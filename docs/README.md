@@ -4349,5 +4349,14 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   «Więcej» в том же порядке.
 - «UA» вместо «UK» в списках языка клиента и приглашения (`localeCode` в `lib/i18n/locales.ts`).
 
+- «Ustawienia» (`app/[locale]/app/settings/page.tsx`): список разделов (значок, название, одна строка —
+  `settings.sections`): «Rezerwacje online», «Salon» (с фото), «Pytania przy rezerwacji», «Pora na kolejną wizytę»,
+  «Instagram i Twoja strona», «Regulamin i prywatność». Раздел открывается своей карточкой; на ПК список слева, карточка
+  справа, на телефоне — список, затем карточка с «‹ Ustawienia». Раздел в адресе (`?s=legal`), «Pierwsze kroki» ведут
+  сразу в нужный раздел. Изменения копятся в форме при переходе между карточками; при изменениях сверху полоса
+  «Niezapisane zmiany — Odrzuć / Zapisz» (кнопки «Zapisz» внизу больше нет). Ошибка «Miejsce na mapie» — у поля.
+  e2e: `openSettingsCard` в `apps/web/e2e/settings.ts`.
+
 Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-cabinet-menu-groups`,
-`q6-client-language-ua`.
+`q6-client-language-ua`., `q6-settings-unsaved`,
+`q6-settings-list-phone`, `q6-settings-card-phone`.

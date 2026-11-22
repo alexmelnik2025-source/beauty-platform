@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { freshAddress } from './addresses';
+import { openSettingsCard } from './settings';
 import { clearMailbox, listTo, waitForEmail } from './mailpit';
 import { openBusinessMenu, serveApp } from './mobile-app';
 import { waitForSmsCode } from './sms-log';
@@ -920,6 +921,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     new RegExp(`/pl/b/${location.slug}$`),
   );
   // Languages of the salon: PL, UA, RU chosen; add BY and save.
+  await openSettingsCard(ownerPage, 'Salon');
   await expect(ownerPage.getByRole('button', { name: 'PL polski' })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -935,11 +937,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await ownerPage.getByLabel('O salonie').fill('Barbershop na Woli. Zapraszamy!');
   // Task 22: the reminder email — 24 h by default, the salon picks 3 h.
+  await openSettingsCard(ownerPage, 'Rezerwacje online');
   const reminder = ownerPage.getByLabel('Przypomnienie e-mail przed wizytą');
   await expect(reminder).toHaveValue('24');
   await reminder.selectOption('3');
   await shot(ownerPage, '21-owner-settings');
+  // Task Q6: the changes wait for "Zapisz" in the bar "Niezapisane zmiany" while moving between cards.
+  await expect(ownerPage.getByRole('region', { name: 'Niezapisane zmiany' })).toBeVisible();
+  await shot(ownerPage, 'q6-settings-unsaved');
   // Task 80: questions when booking — mood and note on by default; the salon offers coffee and tea.
+  await openSettingsCard(ownerPage, 'Pytania przy rezerwacji');
   const wishSettings = ownerPage.getByRole('region', { name: 'Pytania przy rezerwacji' });
   await expect(wishSettings.getByLabel(/Jak klient chce spędzić wizytę/)).toBeChecked();
   await expect(wishSettings.getByLabel(/Informacja dla specjalisty/)).toBeChecked();
@@ -949,6 +956,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await wishSettings.scrollIntoViewIfNeeded();
   await shot(ownerPage, '21w-owner-wishes-settings');
   // Short link for Instagram and the booking button for the salon's own site.
+  await openSettingsCard(ownerPage, 'Instagram i Twoja strona');
   await expect(ownerPage.getByLabel('Krótki link')).toHaveValue(new RegExp(`/s/${location.slug}$`));
   await expect(ownerPage.getByLabel('Przycisk rezerwacji na Twoją stronę')).toHaveValue(
     new RegExp(`/embed\\.js" data-salon="${location.slug}" data-lang="pl"`),
@@ -1003,6 +1011,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.locator('html')).not.toHaveClass(/print-qr/);
   await expect(ownerPage.getByLabel('Krótki link')).toBeVisible();
   // Launch task L1: the salon's booking terms and privacy policy, with a template to start from.
+  await openSettingsCard(ownerPage, 'Regulamin i prywatność');
   const terms = ownerPage.getByLabel('Regulamin rezerwacji', { exact: true });
   await expect(terms).toHaveValue(/^# Regulamin rezerwacji/);
   const privacy = ownerPage.getByLabel('Polityka prywatności', { exact: true });
@@ -1018,14 +1027,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await privacy.scrollIntoViewIfNeeded();
   await shot(ownerPage, '65-owner-legal-texts');
   // The place on the catalogue map, pasted as Google Maps copies it.
+  await openSettingsCard(ownerPage, 'Rezerwacje online');
   const place = ownerPage.getByLabel('Miejsce na mapie katalogu');
   await expect(place).toHaveValue('52.2325, 20.9563');
   await place.fill('ul. Bema 91');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
+  // Task Q6: the error is at its field.
+  await expect(place).toHaveAttribute('aria-invalid', 'true');
   await expect(ownerPage.getByText('Wpisz dwie liczby oddzielone przecinkiem')).toBeVisible();
   await place.fill(' 52.23251, 20.95634 ');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
+  await expect(ownerPage.getByRole('region', { name: 'Niezapisane zmiany' })).toHaveCount(0);
   const savedLocation = await json<{
     languages: string[];
     description: string | null;
@@ -1043,6 +1056,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   expect(savedLocation.description).toBe('Barbershop na Woli. Zapraszamy!');
   expect(savedLocation.privacyPolicy).toMatch(/^# Polityka prywatności rezerwacji online/);
   // Salon photos: two big pictures, shrunk before upload and saved at once; one removed.
+  await openSettingsCard(ownerPage, 'Salon');
   await expect(ownerPage.getByText('0 z 10', { exact: true })).toBeVisible();
   await ownerPage
     .getByLabel('Dodaj zdjęcia')
@@ -1100,7 +1114,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await euroPage.close();
   // Back to złoty for the rest of the scenario.
   await ownerPage.waitForLoadState('networkidle');
-  await ownerPage.goto('/pl/app/settings');
+  await ownerPage.goto('/pl/app/settings?s=salon');
   await ownerPage.getByLabel('Waluta cen').selectOption('PLN');
   await ownerPage.locator('form.page').getByRole('button', { name: 'Zapisz' }).click();
   await expect(ownerPage.getByText('Zapisano')).toBeVisible();
@@ -1121,6 +1135,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ).toBe(true);
   expect((await ownerMobile.locator('.cal-toolbar').boundingBox())!.height).toBeLessThan(80);
   await shot(ownerMobile, '12-owner-calendar-phone');
+  // Task Q6: on a phone "Ustawienia" is first a list of sections (icon, title, one line)…
+  await ownerMobile.goto('/pl/app/settings');
+  const settingsList = ownerMobile.locator('.settings-nav');
+  await expect(settingsList.getByRole('button', { name: /^Regulamin i prywatność/ })).toBeVisible();
+  await expect(ownerMobile.getByLabel('Link dla klientów')).toBeHidden();
+  await shot(ownerMobile, 'q6-settings-list-phone');
+  // …and a section opens alone, with "‹ Ustawienia" back to the list.
+  await settingsList.getByRole('button', { name: /^Salon/ }).click();
+  await expect(ownerMobile.getByLabel('Waluta cen')).toBeVisible();
+  await expect(settingsList).toBeHidden();
+  await shot(ownerMobile, 'q6-settings-card-phone');
+  await ownerMobile.getByRole('button', { name: '‹ Ustawienia' }).click();
+  await expect(settingsList).toBeVisible();
 
   // The cabinet can be installed as an app: manifest in the page's language, service worker.
   const manifestHref = await ownerMobile.locator('link[rel="manifest"]').getAttribute('href');

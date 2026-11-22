@@ -14,8 +14,8 @@ const PAGES: Record<Step, string> = {
   services: 'services',
   team: 'team',
   hours: 'team',
-  legal: 'settings',
-  online: 'settings',
+  legal: 'settings?s=legal',
+  online: 'settings?s=booking',
 };
 
 /**

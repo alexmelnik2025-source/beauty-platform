@@ -19,6 +19,24 @@ type LocationSettings = Location;
 type LegalKey = 'bookingTerms' | 'privacyPolicy';
 const LEGAL_KEYS: LegalKey[] = ['bookingTerms', 'privacyPolicy'];
 
+/** Task Q6: the sections of "Ustawienia", as a list; each opens its own card. */
+const SECTIONS = ['booking', 'salon', 'wishes', 'rebook', 'share', 'legal'] as const;
+type SectionKey = (typeof SECTIONS)[number];
+const SECTION_ICON: Record<SectionKey, string> = {
+  booking: '📅',
+  salon: '🏠',
+  wishes: '☕',
+  rebook: '🔁',
+  share: '🔗',
+  legal: '📄',
+};
+
+/** The section in the address ("?s=legal"), so a reload or a link from "Pierwsze kroki" opens it. */
+function sectionFromAddress(): SectionKey | null {
+  const s = new URLSearchParams(window.location.search).get('s');
+  return SECTIONS.find((key) => key === s) ?? null;
+}
+
 /** Placeholders like {KRS} that the salon still has to replace, each once. */
 function placeholders(...texts: (string | null)[]): string[] {
   return [...new Set(texts.join('\n').match(/\{[A-Z_]+\}/g) ?? [])];
@@ -36,6 +54,31 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [coordinates, setCoordinates] = useState('');
   const [templateNote, setTemplateNote] = useState(false);
+  const [coordinatesError, setCoordinatesError] = useState('');
+  // null: the list of sections (on a computer the first card stays open next to it).
+  const [section, setSection] = useState<SectionKey | null>(null);
+
+  useEffect(() => {
+    setSection(sectionFromAddress());
+    const back = () => setSection(sectionFromAddress());
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
+
+  function openSection(key: SectionKey | null) {
+    setSection(key);
+    setMessage('');
+    const params = new URLSearchParams(window.location.search);
+    if (key) params.set('s', key);
+    else params.delete('s');
+    const query = params.toString();
+    window.history.pushState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}`,
+    );
+    window.scrollTo(0, 0);
+  }
 
   useEffect(() => {
     api<LocationSettings>(url)
@@ -61,9 +104,12 @@ export default function SettingsPage() {
     if (!form || !loc) return;
     const point = parseCoordinates(coordinates);
     if (point === 'invalid') {
-      setError(t.directory.coordinatesInvalid);
+      // The error stays at its field (task Q6), so its card opens.
+      setCoordinatesError(t.directory.coordinatesInvalid);
+      if ((section ?? 'booking') !== 'booking') openSection('booking');
       return;
     }
+    setCoordinatesError('');
     setBusy(true);
     setError('');
     setMessage('');
@@ -133,338 +179,427 @@ export default function SettingsPage() {
   }
 
   const missing = placeholders(form.bookingTerms, form.privacyPolicy);
+  // Task Q6: changes wait in the form until "Zapisz" in the bar; "Odrzuć" brings back what is saved.
+  const dirty =
+    JSON.stringify(form) !== JSON.stringify(loc) ||
+    coordinates !== formatCoordinates(loc.latitude, loc.longitude);
+  const shown: SectionKey = section ?? 'booking';
+  const title: Record<SectionKey, string> = {
+    booking: t.settings.booking,
+    salon: t.settings.salon,
+    wishes: t.wishes.settingsTitle,
+    rebook: t.settings.rebookTitle,
+    share: t.share.title,
+    legal: t.legal.title,
+  };
+
+  function discard() {
+    if (!loc) return;
+    setForm(loc);
+    setCoordinates(formatCoordinates(loc.latitude, loc.longitude));
+    setCoordinatesError('');
+    setTemplateNote(false);
+    setError('');
+  }
 
   return (
     <>
       <div className="page-head">
         <h1>{t.settings.title}</h1>
       </div>
-      <form className="page form" onSubmit={save} style={{ maxWidth: 640 }}>
-        <ErrorBox>{error}</ErrorBox>
-        {message ? (
-          <p className="note" role="status">
-            {message}
-          </p>
+      <form className={`page form settings${section ? '' : ' settings--home'}`} onSubmit={save}>
+        {dirty ? (
+          <div className="unsaved-bar" role="region" aria-label={t.settings.unsaved}>
+            <strong className="grow">{t.settings.unsaved}</strong>
+            <button type="button" className="btn btn--quiet" onClick={discard} disabled={busy}>
+              {t.settings.discard}
+            </button>
+            <button className="btn" disabled={busy}>
+              {t.common.save}
+            </button>
+          </div>
         ) : null}
-        <section className="section">
-          <h2>{t.settings.booking}</h2>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.onlineBookingEnabled}
-              onChange={(e) => setForm({ ...form, onlineBookingEnabled: e.target.checked })}
-            />
-            <span>{t.settings.enabled}</span>
-          </label>
-          <div className="field">
-            <span>{t.settings.link}</span>
-            <div className="copy-field">
-              <input className="input" readOnly value={link} aria-label={t.settings.link} />
-              <button
-                type="button"
-                className="btn btn--quiet"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(link);
-                  setCopied(true);
-                }}
-              >
-                {copied ? t.actions.copied : t.actions.copy}
-              </button>
-            </div>
-          </div>
-          <div className="row">
-            <label className="field">
-              <span>{t.settings.lead}</span>
-              <input
-                type="number"
-                min={0}
-                max={10080}
-                value={form.minLeadMinutes}
-                onChange={num('minLeadMinutes')}
-              />
-            </label>
-            <label className="field">
-              <span>{t.settings.horizon}</span>
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={form.bookingHorizonDays}
-                onChange={num('bookingHorizonDays')}
-              />
-            </label>
-          </div>
-          {loadedWithoutPlace ? (
-            <p className="note" role="note">
-              {t.directory.notOnMap}
-            </p>
-          ) : null}
-          <label className="field">
-            <span>{t.directory.coordinates}</span>
-            <input
-              value={coordinates}
-              inputMode="decimal"
-              placeholder="52.23251, 20.95634"
-              onChange={(e) => setCoordinates(e.target.value)}
-            />
-            <span className="small muted">{t.directory.coordinatesHint}</span>
-          </label>
-          <div className="row">
-            <label className="field">
-              <span>{t.settings.deadline}</span>
-              <input
-                type="number"
-                min={0}
-                max={10080}
-                value={form.clientCancelDeadlineMinutes}
-                onChange={num('clientCancelDeadlineMinutes')}
-              />
-            </label>
-            <label className="field">
-              <span>{t.settings.step}</span>
-              <select value={form.slotStepMinutes} onChange={num('slotStepMinutes')}>
-                {[5, 10, 15, 30].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>{t.settings.reminder}</span>
-            <select value={form.reminderHoursBefore} onChange={num('reminderHoursBefore')}>
-              {[2, 3, 6, 12, 24, 48, 0].map((h) => (
-                <option key={h} value={h}>
-                  {h === 0 ? t.settings.reminderNone : `${h} ${t.settings.reminderHours}`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>{t.settings.waitlistHold}</span>
-            <select value={form.waitlistHoldMinutes} onChange={num('waitlistHoldMinutes')}>
-              {[0, 10, 15, 30, 60].map((m) => (
-                <option key={m} value={m}>
-                  {m === 0 ? t.settings.waitlistHoldOff : `${m} ${t.settings.waitlistHoldMinutes}`}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-        <section className="section" aria-labelledby="rebook-title">
-          <h2 id="rebook-title">{t.settings.rebookTitle}</h2>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.rebookReminderDays > 0}
-              onChange={(e) => setForm({ ...form, rebookReminderDays: e.target.checked ? 28 : 0 })}
-            />
-            <span>{t.settings.rebookOn}</span>
-          </label>
-          {form.rebookReminderDays > 0 ? (
-            <>
-              <label className="field">
-                <span>{t.settings.rebookDays}</span>
-                <input
-                  type="number"
-                  min={7}
-                  max={365}
-                  value={form.rebookReminderDays}
-                  onChange={num('rebookReminderDays')}
-                />
-              </label>
-              <label className="field">
-                <span>{t.settings.rebookText}</span>
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  placeholder={t.settings.rebookTextPlaceholder}
-                  value={form.rebookReminderText ?? ''}
-                  onChange={text('rebookReminderText')}
-                />
-              </label>
-            </>
-          ) : null}
-          <p className="small muted">{t.settings.rebookHint}</p>
-        </section>
-        <section className="section" aria-labelledby="wishes-title">
-          <h2 id="wishes-title">{t.wishes.settingsTitle}</h2>
-          <p className="small muted">{t.wishes.settingsHint}</p>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.askMood}
-              onChange={(e) => setForm({ ...form, askMood: e.target.checked })}
-            />
-            <span>
-              {MOOD_ICON.chat} {MOOD_ICON.quiet} {MOOD_ICON.relax} {t.wishes.askMood}
-            </span>
-          </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.askDrink}
-              onChange={(e) => setForm({ ...form, askDrink: e.target.checked })}
-            />
-            <span>
-              {DRINK_ICON.coffee} {t.wishes.askDrink}
-            </span>
-          </label>
-          {form.askDrink ? (
-            <fieldset className="field" style={{ marginLeft: 28 }}>
-              <legend className="small">{t.wishes.drinksOffered}</legend>
-              <div className="row">
-                {OFFERED_DRINKS.map((d) => (
-                  <label className="check" key={d}>
-                    <input
-                      type="checkbox"
-                      checked={form.drinks.includes(d)}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          drinks: e.target.checked
-                            ? OFFERED_DRINKS.filter((x) => x === d || form.drinks.includes(x))
-                            : form.drinks.filter((x) => x !== d),
-                        })
-                      }
-                    />
-                    <span>
-                      {DRINK_ICON[d]} {t.wishes.drink[d]}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          ) : null}
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.askNote}
-              onChange={(e) => setForm({ ...form, askNote: e.target.checked })}
-            />
-            <span>✍️ {t.wishes.askNote}</span>
-          </label>
-        </section>
-        <section className="section" aria-labelledby="legal-title">
-          <h2 id="legal-title">{t.legal.title}</h2>
-          <p className="small muted">{t.legal.hint}</p>
-          {LEGAL_KEYS.map((key) => (
-            <div className="field" key={key}>
-              <label className="field">
-                <span>{key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}</span>
-                <textarea
-                  aria-label={key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}
-                  rows={8}
-                  maxLength={50000}
-                  value={form[key] ?? ''}
-                  onChange={text(key)}
-                />
-              </label>
-              <div className="row">
+        <nav className="settings-nav" aria-label={t.settings.title}>
+          <ul className="list">
+            {SECTIONS.map((key) => (
+              <li key={key}>
                 <button
                   type="button"
-                  className="btn btn--quiet"
-                  onClick={() => void insertTemplate(key)}
+                  className="list-row"
+                  aria-current={shown === key ? 'page' : undefined}
+                  onClick={() => openSection(key)}
                 >
-                  {t.legal.useTemplate}
+                  <span className="settings-icon" aria-hidden="true">
+                    {SECTION_ICON[key]}
+                  </span>
+                  <span className="grow">
+                    <strong>{title[key]}</strong>
+                    <span className="small muted">{t.settings.sections[key]}</span>
+                  </span>
+                  <span aria-hidden="true">›</span>
                 </button>
-                {loc[key] ? (
-                  <a
-                    className="btn btn--quiet"
-                    href={`/${locale}/b/${loc.slug}/${key === 'bookingTerms' ? 'regulamin' : 'privacy'}`}
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    {t.legal.preview}
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ))}
-          <span className="small muted">{t.legal.markdownHint}</span>
-          {templateNote ? <p className="note">{t.legal.templateNote}</p> : null}
-          {missing.length > 0 ? (
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="settings-card">
+          <button
+            type="button"
+            className="link-btn settings-back"
+            onClick={() => openSection(null)}
+          >
+            ‹ {t.settings.title}
+          </button>
+          <ErrorBox>{error}</ErrorBox>
+          {message ? (
             <p className="note" role="status">
-              {fill(t.legal.missing, { list: missing.join(', ') })}
+              {message}
             </p>
           ) : null}
-        </section>
-        <ShareBooking slug={loc.slug} name={loc.name} />
-        <section className="section">
-          <h2>{t.settings.salon}</h2>
-          <label className="field">
-            <span>{t.settings.name}</span>
-            <input required value={form.name} onChange={text('name')} />
-          </label>
-          <label className="field">
-            <span>{t.settings.address}</span>
-            <input required value={form.addressLine} onChange={text('addressLine')} />
-          </label>
-          <div className="row">
-            <label className="field">
-              <span>{t.settings.city}</span>
-              <input required value={form.city} onChange={text('city')} />
-            </label>
-            <label className="field">
-              <span>{t.settings.postalCode}</span>
-              <input required value={form.postalCode} onChange={text('postalCode')} />
-            </label>
-          </div>
-          <label className="field">
-            <span>{t.settings.phone}</span>
-            <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
-          </label>
-          <label className="field">
-            <span>{t.settings.timeZone}</span>
-            <select value={form.timezone} onChange={text('timezone')}>
-              {salonTimeZones(LOCALE_TAGS[locale]).map((z) => (
-                <option key={z.timeZone} value={z.timeZone}>
-                  {z.label}
-                </option>
+          {shown === 'booking' ? (
+            <section className="section">
+              <h2>{t.settings.booking}</h2>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={form.onlineBookingEnabled}
+                  onChange={(e) => setForm({ ...form, onlineBookingEnabled: e.target.checked })}
+                />
+                <span>{t.settings.enabled}</span>
+              </label>
+              <div className="field">
+                <span>{t.settings.link}</span>
+                <div className="copy-field">
+                  <input className="input" readOnly value={link} aria-label={t.settings.link} />
+                  <button
+                    type="button"
+                    className="btn btn--quiet"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(link);
+                      setCopied(true);
+                    }}
+                  >
+                    {copied ? t.actions.copied : t.actions.copy}
+                  </button>
+                </div>
+              </div>
+              <div className="row">
+                <label className="field">
+                  <span>{t.settings.lead}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10080}
+                    value={form.minLeadMinutes}
+                    onChange={num('minLeadMinutes')}
+                  />
+                </label>
+                <label className="field">
+                  <span>{t.settings.horizon}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.bookingHorizonDays}
+                    onChange={num('bookingHorizonDays')}
+                  />
+                </label>
+              </div>
+              {loadedWithoutPlace ? (
+                <p className="note" role="note">
+                  {t.directory.notOnMap}
+                </p>
+              ) : null}
+              <label className="field">
+                <span>{t.directory.coordinates}</span>
+                <input
+                  value={coordinates}
+                  inputMode="decimal"
+                  placeholder="52.23251, 20.95634"
+                  aria-invalid={coordinatesError ? true : undefined}
+                  aria-describedby={coordinatesError ? 'coordinates-error' : undefined}
+                  onChange={(e) => {
+                    setCoordinates(e.target.value);
+                    setCoordinatesError('');
+                  }}
+                />
+                {coordinatesError ? (
+                  <span className="field-error" id="coordinates-error" role="alert">
+                    {coordinatesError}
+                  </span>
+                ) : null}
+                <span className="small muted">{t.directory.coordinatesHint}</span>
+              </label>
+              <div className="row">
+                <label className="field">
+                  <span>{t.settings.deadline}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10080}
+                    value={form.clientCancelDeadlineMinutes}
+                    onChange={num('clientCancelDeadlineMinutes')}
+                  />
+                </label>
+                <label className="field">
+                  <span>{t.settings.step}</span>
+                  <select value={form.slotStepMinutes} onChange={num('slotStepMinutes')}>
+                    {[5, 10, 15, 30].map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="field">
+                <span>{t.settings.reminder}</span>
+                <select value={form.reminderHoursBefore} onChange={num('reminderHoursBefore')}>
+                  {[2, 3, 6, 12, 24, 48, 0].map((h) => (
+                    <option key={h} value={h}>
+                      {h === 0 ? t.settings.reminderNone : `${h} ${t.settings.reminderHours}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>{t.settings.waitlistHold}</span>
+                <select value={form.waitlistHoldMinutes} onChange={num('waitlistHoldMinutes')}>
+                  {[0, 10, 15, 30, 60].map((m) => (
+                    <option key={m} value={m}>
+                      {m === 0
+                        ? t.settings.waitlistHoldOff
+                        : `${m} ${t.settings.waitlistHoldMinutes}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </section>
+          ) : null}
+          {shown === 'salon' ? (
+            <>
+              <section className="section">
+                <h2>{t.settings.salon}</h2>
+                <label className="field">
+                  <span>{t.settings.name}</span>
+                  <input required value={form.name} onChange={text('name')} />
+                </label>
+                <label className="field">
+                  <span>{t.settings.address}</span>
+                  <input required value={form.addressLine} onChange={text('addressLine')} />
+                </label>
+                <div className="row">
+                  <label className="field">
+                    <span>{t.settings.city}</span>
+                    <input required value={form.city} onChange={text('city')} />
+                  </label>
+                  <label className="field">
+                    <span>{t.settings.postalCode}</span>
+                    <input required value={form.postalCode} onChange={text('postalCode')} />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>{t.settings.phone}</span>
+                  <input type="tel" value={form.phone ?? ''} onChange={text('phone')} />
+                </label>
+                <label className="field">
+                  <span>{t.settings.timeZone}</span>
+                  <select value={form.timezone} onChange={text('timezone')}>
+                    {salonTimeZones(LOCALE_TAGS[locale]).map((z) => (
+                      <option key={z.timeZone} value={z.timeZone}>
+                        {z.label}
+                      </option>
+                    ))}
+                    {/* A zone set before this list existed stays selectable. */}
+                    {salonTimeZones(LOCALE_TAGS[locale]).some(
+                      (z) => z.timeZone === form.timezone,
+                    ) ? null : (
+                      <option value={form.timezone}>{form.timezone}</option>
+                    )}
+                  </select>
+                  <span className="small muted">{t.settings.timeZoneHint}</span>
+                </label>
+                <label className="field">
+                  <span>{t.settings.currency}</span>
+                  <select value={form.currency} onChange={text('currency')}>
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {currencyName(c, LOCALE_TAGS[locale])}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="small muted">{t.settings.currencyHint}</span>
+                </label>
+                <label className="field">
+                  <span>{t.profile.description}</span>
+                  <textarea
+                    rows={4}
+                    maxLength={1000}
+                    value={form.description ?? ''}
+                    onChange={text('description')}
+                  />
+                  <span className="small muted">{t.profile.descriptionHint}</span>
+                </label>
+                <p className="small muted">{t.profile.hoursHint}</p>
+                <LanguagePicker
+                  title={t.languages.salonTitle}
+                  hint={t.languages.salonHint}
+                  value={form.languages ?? []}
+                  onChange={(languages) => setForm({ ...form, languages })}
+                />
+              </section>
+              <SalonPhotos base={url} />
+              <SalonPhotos base={url} />
+            </>
+          ) : null}
+          {shown === 'wishes' ? (
+            <section className="section" aria-labelledby="wishes-title">
+              <h2 id="wishes-title">{t.wishes.settingsTitle}</h2>
+              <p className="small muted">{t.wishes.settingsHint}</p>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={form.askMood}
+                  onChange={(e) => setForm({ ...form, askMood: e.target.checked })}
+                />
+                <span>
+                  {MOOD_ICON.chat} {MOOD_ICON.quiet} {MOOD_ICON.relax} {t.wishes.askMood}
+                </span>
+              </label>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={form.askDrink}
+                  onChange={(e) => setForm({ ...form, askDrink: e.target.checked })}
+                />
+                <span>
+                  {DRINK_ICON.coffee} {t.wishes.askDrink}
+                </span>
+              </label>
+              {form.askDrink ? (
+                <fieldset className="field" style={{ marginLeft: 28 }}>
+                  <legend className="small">{t.wishes.drinksOffered}</legend>
+                  <div className="row">
+                    {OFFERED_DRINKS.map((d) => (
+                      <label className="check" key={d}>
+                        <input
+                          type="checkbox"
+                          checked={form.drinks.includes(d)}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              drinks: e.target.checked
+                                ? OFFERED_DRINKS.filter((x) => x === d || form.drinks.includes(x))
+                                : form.drinks.filter((x) => x !== d),
+                            })
+                          }
+                        />
+                        <span>
+                          {DRINK_ICON[d]} {t.wishes.drink[d]}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={form.askNote}
+                  onChange={(e) => setForm({ ...form, askNote: e.target.checked })}
+                />
+                <span>✍️ {t.wishes.askNote}</span>
+              </label>
+            </section>
+          ) : null}
+          {shown === 'rebook' ? (
+            <section className="section" aria-labelledby="rebook-title">
+              <h2 id="rebook-title">{t.settings.rebookTitle}</h2>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={form.rebookReminderDays > 0}
+                  onChange={(e) =>
+                    setForm({ ...form, rebookReminderDays: e.target.checked ? 28 : 0 })
+                  }
+                />
+                <span>{t.settings.rebookOn}</span>
+              </label>
+              {form.rebookReminderDays > 0 ? (
+                <>
+                  <label className="field">
+                    <span>{t.settings.rebookDays}</span>
+                    <input
+                      type="number"
+                      min={7}
+                      max={365}
+                      value={form.rebookReminderDays}
+                      onChange={num('rebookReminderDays')}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>{t.settings.rebookText}</span>
+                    <textarea
+                      rows={3}
+                      maxLength={500}
+                      placeholder={t.settings.rebookTextPlaceholder}
+                      value={form.rebookReminderText ?? ''}
+                      onChange={text('rebookReminderText')}
+                    />
+                  </label>
+                </>
+              ) : null}
+              <p className="small muted">{t.settings.rebookHint}</p>
+            </section>
+          ) : null}
+          {shown === 'share' ? <ShareBooking slug={loc.slug} name={loc.name} /> : null}
+          {shown === 'legal' ? (
+            <section className="section" aria-labelledby="legal-title">
+              <h2 id="legal-title">{t.legal.title}</h2>
+              <p className="small muted">{t.legal.hint}</p>
+              {LEGAL_KEYS.map((key) => (
+                <div className="field" key={key}>
+                  <label className="field">
+                    <span>{key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}</span>
+                    <textarea
+                      aria-label={key === 'bookingTerms' ? t.legal.terms : t.legal.privacy}
+                      rows={8}
+                      maxLength={50000}
+                      value={form[key] ?? ''}
+                      onChange={text(key)}
+                    />
+                  </label>
+                  <div className="row">
+                    <button
+                      type="button"
+                      className="btn btn--quiet"
+                      onClick={() => void insertTemplate(key)}
+                    >
+                      {t.legal.useTemplate}
+                    </button>
+                    {loc[key] ? (
+                      <a
+                        className="btn btn--quiet"
+                        href={`/${locale}/b/${loc.slug}/${key === 'bookingTerms' ? 'regulamin' : 'privacy'}`}
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {t.legal.preview}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
               ))}
-              {/* A zone set before this list existed stays selectable. */}
-              {salonTimeZones(LOCALE_TAGS[locale]).some(
-                (z) => z.timeZone === form.timezone,
-              ) ? null : (
-                <option value={form.timezone}>{form.timezone}</option>
-              )}
-            </select>
-            <span className="small muted">{t.settings.timeZoneHint}</span>
-          </label>
-          <label className="field">
-            <span>{t.settings.currency}</span>
-            <select value={form.currency} onChange={text('currency')}>
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {currencyName(c, LOCALE_TAGS[locale])}
-                </option>
-              ))}
-            </select>
-            <span className="small muted">{t.settings.currencyHint}</span>
-          </label>
-          <label className="field">
-            <span>{t.profile.description}</span>
-            <textarea
-              rows={4}
-              maxLength={1000}
-              value={form.description ?? ''}
-              onChange={text('description')}
-            />
-            <span className="small muted">{t.profile.descriptionHint}</span>
-          </label>
-          <p className="small muted">{t.profile.hoursHint}</p>
-          <LanguagePicker
-            title={t.languages.salonTitle}
-            hint={t.languages.salonHint}
-            value={form.languages ?? []}
-            onChange={(languages) => setForm({ ...form, languages })}
-          />
-        </section>
-        <SalonPhotos base={url} />
-        <button className="btn" disabled={busy}>
-          {t.common.save}
-        </button>
+              <span className="small muted">{t.legal.markdownHint}</span>
+              {templateNote ? <p className="note">{t.legal.templateNote}</p> : null}
+              {missing.length > 0 ? (
+                <p className="note" role="status">
+                  {fill(t.legal.missing, { list: missing.join(', ') })}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+        </div>
       </form>
     </>
   );

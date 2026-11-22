@@ -7,6 +7,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { freshAddress } from './addresses';
+import { openSettingsCard } from './settings';
 import { waitForEmail } from './mailpit';
 import { openBusinessMenu, serveApp } from './mobile-app';
 
@@ -121,6 +122,7 @@ test('each specialist has a QR code; scanning it books with them (task Q2)', asy
   const page = await desk.newPage();
   await signInCabinet(page);
   await page.goto('/pl/app/settings');
+  await openSettingsCard(page, 'Instagram i Twoja strona');
   const staffQr = page.getByTestId('staff-qr');
   await staffQr.scrollIntoViewIfNeeded();
   await expect(staffQr.getByText('Kod QR specjalisty')).toBeVisible();

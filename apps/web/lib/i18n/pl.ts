@@ -1555,6 +1555,17 @@ export const pl = {
     rebookTextPlaceholder: 'Np. Dawno Cię nie było — wpadnij na odświeżenie fryzury!',
     rebookHint:
       'Jeden e-mail po każdej wizycie, od salonu, z linkiem do rezerwacji u tego samego specjalisty. Tylko klientom, którzy zgodzili się na wiadomości salonu i nie mają kolejnej rezerwacji. Każdy e-mail ma link do wypisania się.',
+    /** Task Q6: "Ustawienia" as a list of sections, each opening its own card. */
+    sections: {
+      booking: 'Link, terminy, przypomnienia, miejsce na mapie',
+      salon: 'Nazwa, adres, waluta, języki, zdjęcia',
+      wishes: 'Nastrój, napój, informacja dla specjalisty',
+      rebook: 'E-mail, gdy klient dawno nie był',
+      share: 'Krótki link, kod QR, przycisk na stronę',
+      legal: 'Teksty, które klient akceptuje przy rezerwacji',
+    },
+    unsaved: 'Niezapisane zmiany',
+    discard: 'Odrzuć',
   },
   loyalty: {
     title: 'Program lojalnościowy',

@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { freshAddress } from './addresses';
+import { openSettingsCard } from './settings';
 import { waitForEmail } from './mailpit';
 
 /**
@@ -117,6 +118,7 @@ test('the owner sets up "time for the next visit"; the client unsubscribes in on
   await cabinet.getByRole('button', { name: 'Zaloguj się' }).click();
   await cabinet.waitForURL(/\/pl\/app\//);
   await cabinet.goto('/pl/app/settings');
+  await openSettingsCard(cabinet, 'Pora na kolejną wizytę');
   const section = cabinet.getByRole('region', { name: 'Pora na kolejną wizytę' });
   await section.getByRole('checkbox', { name: /Pora na kolejną wizytę\?/ }).check();
   await expect(section.getByLabel('Ile dni po ostatniej wizycie')).toHaveValue('28');

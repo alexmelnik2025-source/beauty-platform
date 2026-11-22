@@ -1,5 +1,6 @@
 import { expect, test, type APIResponse, type Page } from '@playwright/test';
 import { freshAddress } from './addresses';
+import { openSettingsCard } from './settings';
 import { waitForEmail } from './mailpit';
 
 /**
@@ -60,6 +61,7 @@ test('an owner in Istanbul creates a salon in the Turkish time zone with prices 
   await page.waitForLoadState('networkidle');
 
   await page.goto('/pl/app/settings');
+  await openSettingsCard(page, 'Salon');
   await expect(page.getByLabel('Kraj i strefa czasowa')).toHaveValue('Europe/Istanbul');
   await expect(page.getByLabel('Waluta cen')).toHaveValue('TRY');
   // Changing the zone does not change the currency (prices would need correcting by hand).

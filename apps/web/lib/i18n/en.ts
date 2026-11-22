@@ -1558,6 +1558,17 @@ export const en: Dict = {
     rebookTextPlaceholder: 'E.g. It’s been a while — come in for a fresh cut!',
     rebookHint:
       'One email after each visit, from the salon, with a link to book the same specialist. Only to clients who agreed to the salon’s messages and have nothing booked ahead. Every email has an unsubscribe link.',
+    /** Task Q6: "Settings" as a list of sections, each opening its own card. */
+    sections: {
+      booking: 'Link, times, reminders, place on the map',
+      salon: 'Name, address, currency, languages, photos',
+      wishes: 'Mood, drink, a note for the specialist',
+      rebook: 'An email when a client has not been for a while',
+      share: 'Short link, QR code, button for your website',
+      legal: 'Texts the client accepts when booking',
+    },
+    unsaved: 'Unsaved changes',
+    discard: 'Discard',
   },
   loyalty: {
     title: 'Loyalty program',

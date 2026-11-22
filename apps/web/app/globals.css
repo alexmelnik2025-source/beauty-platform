@@ -3654,3 +3654,91 @@ ul.wish-photos {
   border-color: var(--signal);
   box-shadow: 0 0 0 1px var(--signal);
 }
+
+/* Task Q6: "Ustawienia" — a list of sections and one card at a time; on a computer side by side. */
+.settings {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 640px);
+  align-items: start;
+  column-gap: 32px;
+}
+
+.settings .unsaved-bar {
+  grid-column: 1 / -1;
+}
+
+.settings-nav .list-row[aria-current='page'] .grow strong {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.settings-icon {
+  flex: none;
+  width: 28px;
+  font-size: 20px;
+  text-align: center;
+}
+
+.settings-card {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.settings-back {
+  display: none;
+  justify-self: start;
+}
+
+.unsaved-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* On the dark bar: "Zapisz" light, "Odrzuć" an outline. */
+.unsaved-bar .btn {
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.unsaved-bar .btn--quiet {
+  background: transparent;
+  color: var(--paper);
+}
+
+@media (max-width: 760px) {
+  .settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings:not(.settings--home) .settings-nav,
+  .settings--home .settings-card {
+    display: none;
+  }
+
+  .settings-back {
+    display: inline;
+  }
+
+  .settings-card {
+    padding: 0;
+    border: 0;
+  }
+}
+
+@media print {
+  .settings-nav,
+  .unsaved-bar {
+    display: none;
+  }
+}
