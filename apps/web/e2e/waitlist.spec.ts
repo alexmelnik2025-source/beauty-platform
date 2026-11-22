@@ -235,7 +235,7 @@ test('a full day: the client joins the waiting list and leaves it from the email
   const autoForm = dana.getByRole('form', { name: 'Powiadom mnie, gdy zwolni się termin' });
   // Her own email: no field to fill in.
   await expect(autoForm.getByText(DANA)).toBeVisible();
-  await expect(autoForm.getByLabel('E-mail')).toHaveCount(0);
+  await expect(autoForm.getByRole('textbox', { name: 'E-mail', exact: true })).toHaveCount(0);
   await autoForm.getByLabel('Imię i nazwisko').fill('Dana Lis');
   await autoForm.getByLabel(/^Zapisz mnie automatycznie, gdy zwolni się termin/).check();
   await autoForm.getByLabel(/^Akceptuję/).check();
