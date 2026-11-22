@@ -14,6 +14,8 @@ const rule = (id: string, over: Partial<Rule> = {}): Rule => ({
   start: '10:00',
   end: '13:00',
   discountPercent: 20,
+  kind: 'hours',
+  lastMinuteHours: null,
   staffIds: [],
   serviceIds: [],
   ...over,
@@ -78,6 +80,14 @@ describe('newRule', () => {
 });
 
 describe('rulesToSave', () => {
+  it('a Last Minute rule (task Q7) stays one', () => {
+    const lastMinute = rule('lm', { kind: 'lastMinute', lastMinuteHours: 24 });
+    expect(rulesToSave([lastMinute], {})[0]).toMatchObject({
+      kind: 'lastMinute',
+      lastMinuteHours: 24,
+    });
+  });
+
   it('keeps the other rules, drops one, adds one — without server ids', () => {
     const current = [rule('a'), rule('b', { discountPercent: 10, serviceIds: ['x'] })];
     const add = {
@@ -95,6 +105,8 @@ describe('rulesToSave', () => {
         start: '10:00',
         end: '13:00',
         discountPercent: 10,
+        kind: 'hours',
+        lastMinuteHours: null,
         staffIds: [],
         serviceIds: ['x'],
       },

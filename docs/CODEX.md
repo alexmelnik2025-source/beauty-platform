@@ -30,6 +30,15 @@
 
 (Что нужно экрану — какой запрос/поля — статус: «ждёт» / «готово: …».)
 
+- **Q7 «Promocje» — Last Minute** — готово (Claude, 22.11.2026): `GET/PUT /v1/organizations/:org/locations/:id/happy-hours`,
+  у правила новые поля `kind: 'hours' | 'lastMinute'` и `lastMinuteHours: number | null` (1–72, только для
+  `lastMinute`; для него `weekdays`/`start`/`end` можно не передавать — тогда каждый день, весь день). Процент 1–90,
+  дни и часы — как раньше. Скидка Last Minute — только при онлайн-записи; клиенту её показывают
+  `discountPercent` в `GET /v1/public/locations/:slug/availability` и `happyHourPercent`/`listPriceGrosze` в брони.
+  **Важно для экранов:** список сохраняется целиком (PUT) — передавайте `kind` и `lastMinuteHours` каждого правила
+  обратно (в `apps/mobile-business/src/happyHours.ts` → `rulesToSave` это уже добавлено, иначе Last Minute
+  превращался бы в скидку на весь день). Экраны «+ Dodaj promocję» в мобильных приложениях можно начинать.
+
 ## Предложения Codex (ждут решения владельца)
 
 (Новые идеи — не программировать без «да» владельца.)

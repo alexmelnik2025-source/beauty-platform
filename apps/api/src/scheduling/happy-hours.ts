@@ -10,20 +10,39 @@ import { formatClock, instantToLocal, isoWeekday, parseClock } from './time';
 
 type Rule = Pick<
   HappyHour,
-  'weekdays' | 'startMinute' | 'endMinute' | 'discountPercent' | 'staffIds' | 'serviceIds'
+  | 'weekdays'
+  | 'startMinute'
+  | 'endMinute'
+  | 'discountPercent'
+  | 'staffIds'
+  | 'serviceIds'
+  | 'lastMinuteHours'
 >;
 
 /**
  * The happy-hour discount for a visit (task 16): the largest one among the salon's rules that
  * cover its weekday and start time (in the salon's time zone), its staff member and service.
  * null when no rule covers it.
+ *
+ * Task Q7: a "Last Minute" rule also needs `minutesAhead` — how long before its start the visit
+ * is booked online; without it (visits added by the staff) Last Minute rules never count.
  */
 export function happyHourPercent(
   rules: Rule[],
-  visit: { staffId: string; serviceId: string; weekday: number; minute: number },
+  visit: {
+    staffId: string;
+    serviceId: string;
+    weekday: number;
+    minute: number;
+    minutesAhead?: number;
+  },
 ): number | null {
   let best: number | null = null;
   for (const r of rules) {
+    if (r.lastMinuteHours !== null) {
+      const ahead = visit.minutesAhead;
+      if (ahead === undefined || ahead < 0 || ahead > r.lastMinuteHours * 60) continue;
+    }
     if (!r.weekdays.includes(visit.weekday)) continue;
     if (visit.minute < r.startMinute || visit.minute >= r.endMinute) continue;
     if (r.staffIds.length > 0 && !r.staffIds.includes(visit.staffId)) continue;
@@ -83,8 +102,8 @@ export class HappyHoursService {
     const staffIds = new Set(staff.map((s) => s.id));
     const serviceIds = new Set(services.map((s) => s.id));
     const rows = input.rules.map((r, i) => {
-      const startMinute = parseClock(r.start)!;
-      const endMinute = parseClock(r.end)!;
+      const startMinute = parseClock(r.start ?? '00:00')!;
+      const endMinute = parseClock(r.end ?? '24:00')!;
       if (startMinute >= endMinute) throw invalid(`rules.${i}.end`, 'end must be after start');
       // Another location's staff member or service never gets this location's price.
       if (r.staffIds.some((id) => !staffIds.has(id))) {
@@ -95,10 +114,11 @@ export class HappyHoursService {
       }
       return {
         locationId,
-        weekdays: [...new Set(r.weekdays)].sort(),
+        weekdays: [...new Set(r.weekdays ?? [1, 2, 3, 4, 5, 6, 7])].sort(),
         startMinute,
         endMinute,
         discountPercent: r.discountPercent,
+        lastMinuteHours: r.kind === 'lastMinute' ? r.lastMinuteHours! : null,
         staffIds: [...new Set(r.staffIds)],
         serviceIds: [...new Set(r.serviceIds)],
         sortOrder: i * 10,
@@ -111,11 +131,20 @@ export class HappyHoursService {
     return this.response(locationId);
   }
 
-  /** The price of a new visit at this location, by its staff member, service and start. */
+  /**
+   * The price of a new visit at this location, by its staff member, service and start.
+   * Task Q7: `bookedOnlineAt` (a client booking online) lets "Last Minute" rules count.
+   */
   async priceFor(
     db: Prisma.TransactionClient,
     location: { id: string; timezone: string },
-    visit: { staffId: string; serviceId: string; start: number; listPriceGrosze: number },
+    visit: {
+      staffId: string;
+      serviceId: string;
+      start: number;
+      listPriceGrosze: number;
+      bookedOnlineAt?: number;
+    },
   ): Promise<VisitPrice> {
     const rules = await db.happyHour.findMany({ where: { locationId: location.id } });
     if (rules.length === 0) return visitPrice(visit.listPriceGrosze, null);
@@ -125,6 +154,10 @@ export class HappyHoursService {
       serviceId: visit.serviceId,
       weekday: isoWeekday(local.date),
       minute: local.minute,
+      minutesAhead:
+        visit.bookedOnlineAt === undefined
+          ? undefined
+          : Math.floor((visit.start - visit.bookedOnlineAt) / 60_000),
     });
     return visitPrice(visit.listPriceGrosze, percent);
   }
@@ -141,6 +174,8 @@ export class HappyHoursService {
         start: formatClock(r.startMinute),
         end: formatClock(r.endMinute),
         discountPercent: r.discountPercent,
+        kind: r.lastMinuteHours === null ? ('hours' as const) : ('lastMinute' as const),
+        lastMinuteHours: r.lastMinuteHours,
         staffIds: r.staffIds,
         serviceIds: r.serviceIds,
       })),

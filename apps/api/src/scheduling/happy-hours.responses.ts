@@ -11,6 +11,16 @@ export const happyHoursSchema = responseSchema(
         start: z.string().describe('HH:mm, local time of the salon'),
         end: z.string().describe('HH:mm; a visit starting before it gets the price'),
         discountPercent: z.number().int(),
+        kind: z
+          .enum(['hours', 'lastMinute'])
+          .describe(
+            'Task Q7: hours = days and hours; lastMinute = online, shortly before the visit',
+          ),
+        lastMinuteHours: z
+          .number()
+          .int()
+          .nullable()
+          .describe('Last Minute: at most this many hours before the visit; null for hours'),
         staffIds: z.array(z.string()).describe('Empty = every staff member'),
         serviceIds: z.array(z.string()).describe('Empty = every service'),
       }),

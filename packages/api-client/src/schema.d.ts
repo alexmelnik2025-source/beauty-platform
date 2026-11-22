@@ -5983,6 +5983,13 @@ export interface components {
                 /** @description HH:mm; a visit starting before it gets the price */
                 end: string;
                 discountPercent: number;
+                /**
+                 * @description Task Q7: hours = days and hours; lastMinute = online, shortly before the visit
+                 * @enum {string}
+                 */
+                kind: "hours" | "lastMinute";
+                /** @description Last Minute: at most this many hours before the visit; null for hours */
+                lastMinuteHours: number | null;
                 /** @description Empty = every staff member */
                 staffIds: string[];
                 /** @description Empty = every service */
@@ -10556,12 +10563,20 @@ export interface operations {
             content: {
                 "application/json": {
                     rules: {
-                        /** @description ISO weekdays: 1 = Monday … 7 = Sunday */
-                        weekdays: number[];
-                        /** @description Local time the price starts (a visit starting at it gets it) */
-                        start: string;
-                        /** @description Local time the price ends (a visit starting at it does not) */
-                        end: string;
+                        /**
+                         * @description Task Q7: hours = chosen days and hours; lastMinute = visits booked online shortly before they start
+                         * @default hours
+                         * @enum {string}
+                         */
+                        kind?: "hours" | "lastMinute";
+                        /** @description Last Minute only: at most this many hours before the visit (1–72) */
+                        lastMinuteHours?: number | null;
+                        /** @description ISO weekdays: 1 = Monday … 7 = Sunday (Last Minute: every day if left out) */
+                        weekdays?: number[];
+                        /** @description Local time the price starts (a visit starting at it gets it; Last Minute: 00:00 if left out) */
+                        start?: string;
+                        /** @description Local time the price ends (a visit starting at it does not; Last Minute: 24:00 if left out) */
+                        end?: string;
                         discountPercent: number;
                         /**
                          * @description Empty = every staff member

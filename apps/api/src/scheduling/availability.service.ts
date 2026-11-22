@@ -41,6 +41,8 @@ export interface ComputeOptions {
   durationMinutes?: number;
   /** Task 70: "any of these" specialists (when no single staffId is given). */
   staffIds?: string[];
+  /** Task Q7: a client books online — "Last Minute" discounts count (by `now`). */
+  online?: boolean;
 }
 
 const MINUTE_MS = 60_000;
@@ -74,7 +76,10 @@ export class AvailabilityService {
     options: ComputeOptions = {},
   ): Promise<AvailabilityResponse> {
     const now = options.now ?? Date.now();
-    return this.compute(location, query, this.publicWindow(location, now), options);
+    return this.compute(location, query, this.publicWindow(location, now), {
+      ...options,
+      online: true,
+    });
   }
 
   /**
@@ -325,7 +330,7 @@ export class AvailabilityService {
         (query.staffId ? durationOf.get(query.staffId) : undefined) ?? service.durationMinutes,
       slots: slots.map((slot) => ({
         ...slot,
-        discountPercent: slotDiscount(rules, service.id, slot),
+        discountPercent: slotDiscount(rules, service.id, slot, options.online ? now : undefined),
       })),
     };
   }
@@ -355,18 +360,24 @@ function mergeByStart(lists: Slot[][], order: string[]): Slot[] {
 /**
  * The happy-hour discount shown at a time: the smallest among the staff members free then, so
  * whoever "any staff member" turns out to be, the visit gets at least it. null = none.
+ * Task Q7: `bookedOnlineAt` (the public page) lets "Last Minute" rules count.
  */
 function slotDiscount(
   rules: Parameters<typeof happyHourPercent>[0],
   serviceId: string,
-  slot: { date: string; time: string; staffIds: string[] },
+  slot: { start: string; date: string; time: string; staffIds: string[] },
+  bookedOnlineAt?: number,
 ): number | null {
   if (rules.length === 0 || slot.staffIds.length === 0) return null;
   const weekday = isoWeekday(slot.date);
   const minute = parseClock(slot.time) ?? 0;
+  const minutesAhead =
+    bookedOnlineAt === undefined
+      ? undefined
+      : Math.floor((Date.parse(slot.start) - bookedOnlineAt) / MINUTE_MS);
   let least: number | null = null;
   for (const staffId of slot.staffIds) {
-    const percent = happyHourPercent(rules, { staffId, serviceId, weekday, minute });
+    const percent = happyHourPercent(rules, { staffId, serviceId, weekday, minute, minutesAhead });
     if (percent === null) return null;
     least = least === null ? percent : Math.min(least, percent);
   }

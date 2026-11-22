@@ -17,6 +17,8 @@ const EMPTY: Draft = {
   start: '10:00',
   end: '13:00',
   discountPercent: 20,
+  kind: 'hours',
+  lastMinuteHours: null,
   staffIds: [],
   serviceIds: [],
 };

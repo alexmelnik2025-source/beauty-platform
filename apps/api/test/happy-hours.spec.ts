@@ -132,6 +132,7 @@ describe('happy-hour price', () => {
     discountPercent: 20,
     staffIds: [] as string[],
     serviceIds: [] as string[],
+    lastMinuteHours: null as number | null,
   };
   const visit = { staffId: 's1', serviceId: 'h', weekday: 1, minute: 600 };
 
@@ -147,6 +148,20 @@ describe('happy-hour price', () => {
     const beardOnly = { ...rule, discountPercent: 50, serviceIds: ['b'] };
     expect(happyHourPercent([beardOnly], visit)).toBeNull();
     expect(happyHourPercent([], visit)).toBeNull();
+  });
+
+  it('Last Minute (task Q7): only online, at most so many hours before the visit', () => {
+    const lastMinute = { ...rule, discountPercent: 25, lastMinuteHours: 3 };
+    // Added by the staff (no "booked online" time): never.
+    expect(happyHourPercent([lastMinute], visit)).toBeNull();
+    expect(happyHourPercent([lastMinute], { ...visit, minutesAhead: 0 })).toBe(25);
+    expect(happyHourPercent([lastMinute], { ...visit, minutesAhead: 180 })).toBe(25);
+    expect(happyHourPercent([lastMinute], { ...visit, minutesAhead: 181 })).toBeNull();
+    expect(happyHourPercent([lastMinute], { ...visit, minutesAhead: -1 })).toBeNull();
+    // Its days and hours still count; the largest discount wins.
+    expect(happyHourPercent([lastMinute], { ...visit, weekday: 4, minutesAhead: 60 })).toBeNull();
+    expect(happyHourPercent([rule, lastMinute], { ...visit, minutesAhead: 60 })).toBe(25);
+    expect(happyHourPercent([rule, lastMinute], { ...visit, minutesAhead: 600 })).toBe(20);
   });
 
   it('rounds the discount down to whole hundredths', () => {
@@ -183,6 +198,8 @@ describe('happy hours of a salon', () => {
         start: '10:00',
         end: '14:00',
         discountPercent: 20,
+        kind: 'hours',
+        lastMinuteHours: null,
         staffIds: [kasiaId],
         serviceIds: [],
       },
@@ -192,6 +209,8 @@ describe('happy hours of a salon', () => {
         start: '16:00',
         end: '24:00',
         discountPercent: 10,
+        kind: 'hours',
+        lastMinuteHours: null,
         staffIds: [],
         serviceIds: [beardId],
       },
@@ -316,5 +335,94 @@ describe('happy hours in the free times', () => {
     expect(discountAt(any, '10:00')).toBe(10);
     expect(discountAt(any, '12:00')).toBeNull();
     expect(discountAt(await times(olaId), '11:30')).toBe(10);
+  });
+});
+
+describe('Last Minute (task Q7)', () => {
+  /** −15% for visits booked online at most 48 hours before they start. */
+  const lastMinute = { kind: 'lastMinute', lastMinuteHours: 48, discountPercent: 15 };
+  let tomorrow: string;
+  beforeEach(() => {
+    tomorrow = addDays(localToday(Date.now(), TZ), 1);
+  });
+  const discounts = async (date: string, path: string, auth?: Record<string, string>) => {
+    const req = ctx.http().get(path).query({ serviceId: haircutId, from: date, to: date });
+    const res = await (auth ? req.set(auth) : req).expect(200);
+    return (res.body as { slots: { discountPercent: number | null }[] }).slots.map(
+      (s) => s.discountPercent,
+    );
+  };
+
+  it('the owner sets one: every day, all day, kept as Last Minute', async () => {
+    const saved = await put([lastMinute, kasiaMornings()]).expect(200);
+    expect(
+      registeredResponseSchema('HappyHours').safeParse(saved.body).error?.issues ?? [],
+    ).toEqual([]);
+    expect(saved.body.rules[0]).toMatchObject({
+      kind: 'lastMinute',
+      lastMinuteHours: 48,
+      weekdays: [1, 2, 3, 4, 5, 6, 7],
+      start: '00:00',
+      end: '24:00',
+      discountPercent: 15,
+    });
+    expect(saved.body.rules[1]).toMatchObject({ kind: 'hours', lastMinuteHours: null });
+    // What the cabinet sends back (the rules as read, without ids) keeps both as they were.
+    const again = await put(
+      saved.body.rules.map(({ id: _id, ...rest }: { id: string }) => rest),
+    ).expect(200);
+    expect(again.body.rules.map(({ id: _id, ...rest }: { id: string }) => rest)).toEqual(
+      saved.body.rules.map(({ id: _id, ...rest }: { id: string }) => rest),
+    );
+  });
+
+  it('refuses a Last Minute rule without hours, and days and hours rules without days', async () => {
+    const field = async (rule: object) =>
+      (await put([rule]).expect(400)).body.error.details.map((d: { path: string }) => d.path);
+    expect(await field({ kind: 'lastMinute', discountPercent: 15 })).toContain(
+      'rules.0.lastMinuteHours',
+    );
+    expect(await field({ ...lastMinute, lastMinuteHours: 73 })).toContain(
+      'rules.0.lastMinuteHours',
+    );
+    expect(await field({ ...kasiaMornings(), lastMinuteHours: 5 })).toContain(
+      'rules.0.lastMinuteHours',
+    );
+    expect(await field({ discountPercent: 10 })).toEqual(
+      expect.arrayContaining(['rules.0.weekdays', 'rules.0.start', 'rules.0.end']),
+    );
+  });
+
+  it('online free times and holds shortly before the visit get it; the salon’s own do not', async () => {
+    await put([lastMinute]).expect(200);
+    const publicPath = `/v1/public/locations/${slug}/availability`;
+    const soon = await discounts(tomorrow, publicPath);
+    expect(soon.length).toBeGreaterThan(0);
+    expect(soon.every((d) => d === 15)).toBe(true);
+    // Three days ahead is more than 48 hours away.
+    expect((await discounts(day, publicPath)).every((d) => d === null)).toBe(true);
+    // The salon's calendar shows the list price.
+    const staffPath = `${base}/availability`;
+    expect((await discounts(tomorrow, staffPath, owner.auth)).every((d) => d === null)).toBe(true);
+
+    const hold = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId: haircutId, staffId: kasiaId, start: at(tomorrow, 16) })
+      .expect(201);
+    expect(hold.body).toMatchObject({
+      priceGrosze: 6800,
+      listPriceGrosze: 8000,
+      happyHourPercent: 15,
+    });
+    const later = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId: haircutId, staffId: kasiaId, start: at(day, 16) })
+      .expect(201);
+    expect(later.body).toMatchObject({ priceGrosze: 8000, happyHourPercent: null });
+    // A visit the salon adds for tomorrow keeps the list price.
+    const own = await booked(olaId, at(tomorrow, 16));
+    expect(await row(own.body.id)).toMatchObject({ priceGrosze: 8000, happyHourPercent: null });
   });
 });

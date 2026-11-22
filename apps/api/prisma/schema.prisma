@@ -779,6 +779,10 @@ model HappyHour {
   startMinute     Int      @map("start_minute")
   endMinute       Int      @map("end_minute")
   discountPercent Int      @map("discount_percent")
+  /// Task Q7 "Last Minute": null = an ordinary rule (days and hours). A number = the rule covers
+  /// only visits booked online at most this many hours before they start (still within its
+  /// weekdays and hours).
+  lastMinuteHours Int?     @map("last_minute_hours")
   /// Empty = every staff member / every service of the location.
   staffIds        String[] @map("staff_ids") @db.Uuid
   serviceIds      String[] @map("service_ids") @db.Uuid

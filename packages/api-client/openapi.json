@@ -4591,7 +4591,30 @@
                     "items": {
                       "type": "object",
                       "properties": {
+                        "kind": {
+                          "default": "hours",
+                          "description": "Task Q7: hours = chosen days and hours; lastMinute = visits booked online shortly before they start",
+                          "type": "string",
+                          "enum": [
+                            "hours",
+                            "lastMinute"
+                          ]
+                        },
+                        "lastMinuteHours": {
+                          "description": "Last Minute only: at most this many hours before the visit (1–72)",
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 72
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "weekdays": {
+                          "description": "ISO weekdays: 1 = Monday … 7 = Sunday (Last Minute: every day if left out)",
                           "minItems": 1,
                           "maxItems": 7,
                           "type": "array",
@@ -4599,16 +4622,15 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 7
-                          },
-                          "description": "ISO weekdays: 1 = Monday … 7 = Sunday"
+                          }
                         },
                         "start": {
-                          "type": "string",
-                          "description": "Local time the price starts (a visit starting at it gets it)"
+                          "description": "Local time the price starts (a visit starting at it gets it; Last Minute: 00:00 if left out)",
+                          "type": "string"
                         },
                         "end": {
-                          "type": "string",
-                          "description": "Local time the price ends (a visit starting at it does not)"
+                          "description": "Local time the price ends (a visit starting at it does not; Last Minute: 24:00 if left out)",
+                          "type": "string"
                         },
                         "discountPercent": {
                           "type": "integer",
@@ -4639,9 +4661,6 @@
                         }
                       },
                       "required": [
-                        "weekdays",
-                        "start",
-                        "end",
                         "discountPercent"
                       ]
                     }
@@ -22768,6 +22787,21 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "hours",
+                    "lastMinute"
+                  ],
+                  "description": "Task Q7: hours = days and hours; lastMinute = online, shortly before the visit"
+                },
+                "lastMinuteHours": {
+                  "nullable": true,
+                  "description": "Last Minute: at most this many hours before the visit; null for hours",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "staffIds": {
                   "type": "array",
                   "items": {
@@ -22789,6 +22823,8 @@
                 "start",
                 "end",
                 "discountPercent",
+                "kind",
+                "lastMinuteHours",
                 "staffIds",
                 "serviceIds"
               ],
