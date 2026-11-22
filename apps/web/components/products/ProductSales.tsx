@@ -9,7 +9,7 @@ import { parseBarcode } from '@/lib/barcode';
 import { ErrorBox, FieldError } from '../ui';
 
 /** Task 673: the fields of a visit's product sale that can show an error under them. */
-type SaleField = 'code' | 'quantity';
+type SaleField = 'code' | 'product' | 'quantity';
 
 /**
  * Task 395: "Produkty" in the card of a visit that took place — what the client bought (pomade,
@@ -42,6 +42,8 @@ export function ProductSales({
   /**
    * Task 673 (owner's rule: errors at the field): an unknown code and "not enough in stock" are said
    * under the field they came from (the code, or the number of pieces); editing it takes them away.
+   * Task 682: "+ Dodaj" no longer stays silently off — an empty or wrong code, or no product
+   * chosen, is said under that field.
    */
   const [problem, setProblem] = useState<{ field: SaleField; text: string } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -96,7 +98,14 @@ export function ProductSales({
   /** Task 524: one piece of the product with this code, or "no such product". */
   function sellByCode() {
     const wanted = parseBarcode(code);
-    if (!wanted) return;
+    if (!wanted) {
+      setError('');
+      setProblem({
+        field: 'code',
+        text: wanted === null ? t.onboarding.fieldRequired : p.wrongBarcode,
+      });
+      return;
+    }
     const found = products.find((x) => x.barcode === wanted);
     if (!found) {
       setError('');
@@ -193,11 +202,7 @@ export function ProductSales({
             style={{ flex: '1 1 12rem' }}
             data-testid="visit-products-code"
           />
-          <button
-            type="submit"
-            className="btn btn--quiet btn--small"
-            disabled={busy || !parseBarcode(code)}
-          >
+          <button type="submit" className="btn btn--quiet btn--small" disabled={busy}>
             + {p.addSale}
           </button>
         </form>
@@ -210,7 +215,11 @@ export function ProductSales({
           style={{ gap: 8, alignItems: 'center' }}
           onSubmit={(e) => {
             e.preventDefault();
-            if (!productId) return;
+            if (!productId) {
+              setError('');
+              setProblem({ field: 'product', text: t.onboarding.fieldRequired });
+              return;
+            }
             run(
               () => api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
               'quantity',
@@ -226,8 +235,10 @@ export function ProductSales({
           <select
             aria-label={p.choose}
             value={productId}
+            {...invalid('product')}
             onChange={(e) => {
               setProductId(e.target.value);
+              clear('product');
               clear('quantity');
             }}
             style={{ flex: '1 1 12rem' }}
@@ -264,11 +275,12 @@ export function ProductSales({
             }}
             style={{ maxWidth: 70 }}
           />
-          <button type="submit" className="btn btn--quiet btn--small" disabled={busy || !productId}>
+          <button type="submit" className="btn btn--quiet btn--small" disabled={busy}>
             + {p.addSale}
           </button>
         </form>
       ) : null}
+      {fieldError('product')}
       {fieldError('quantity')}
       <span className="small muted">{p.soldHint}</span>
       <ErrorBox>{error}</ErrorBox>

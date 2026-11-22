@@ -99,6 +99,8 @@ export function VisitVouchers({
     setProblem(null);
     setInfo('');
     const wanted = code.trim().toUpperCase().replace(/[\s-]/g, '');
+    // Task 682: an empty code is said under the field (the button no longer stays silently off).
+    if (!wanted) return setProblem({ field: 'code', text: t.onboarding.fieldRequired });
     if (wanted.length < 4) return setProblem({ field: 'code', text: v.notFound });
     const grosze = parseAmount(amount);
     if (!grosze) return setProblem({ field: 'amount', text: v.wrongAmount });
@@ -229,7 +231,7 @@ export function VisitVouchers({
             />
             {fieldError('amount')}
           </label>
-          <button type="submit" className="btn btn--small" disabled={busy || !code.trim()}>
+          <button type="submit" className="btn btn--small" disabled={busy}>
             {v.pay}
           </button>
           <button

@@ -684,6 +684,14 @@ pnpm --filter @beauty/api-client generate
   `visit-voucher`, скриншоты `673-visit-product-code-error`, `673-visit-voucher-code-error`,
   `673-visit-voucher-amount-error`.
 
+## Пустой код в карточке визита — у поля (задача 682, 22.11.2026)
+
+- Карточка визита → «Produkty»: «+ Dodaj» у кода без кода — «Uzupełnij to pole.», с неверным кодом — «Od 3 do 32
+  znaków: cyfry, litery i „-”.»; «+ Dodaj» у списка без выбранного товара — «Uzupełnij to pole.» под списком.
+  «Zapłać bonem» без кода — «Uzupełnij to pole.» под «Kod bonu». Кнопки больше не выключаются молча; курсор — в поле,
+  правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
+  `682-visit-voucher-code-required`.
+
 ## Ошибка у поля в ответе на отзыв (задача 681, 22.11.2026)
 
 - «Opinie» → «Odpowiedz»: пустой ответ (или одни пробелы) — «Uzupełnij to pole.» под «Odpowiedź salonu» (красная

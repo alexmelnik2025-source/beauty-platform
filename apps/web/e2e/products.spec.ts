@@ -331,6 +331,26 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await page.goto(`/pl/app/calendar?date=${visit.date}`);
   await page.getByRole('button', { name: /Jan Kowalski/ }).click();
   const codeSold = page.getByRole('dialog').getByTestId('visit-products');
+  // Task 682: "+ Dodaj" is not silently off — an empty or a wrong code is said under the field,
+  // and so is no product chosen in the list.
+  await codeSold.getByTestId('visit-products-code').press('Enter');
+  await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
+    'Uzupełnij to pole.',
+  );
+  await codeSold.getByTestId('visit-products-code').fill('a!');
+  await expect(codeSold.locator('.field-error')).toHaveCount(0);
+  await codeSold.getByTestId('visit-products-code').press('Enter');
+  await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
+    'Od 3 do 32 znaków: cyfry, litery i „-”.',
+  );
+  await expect(codeSold.getByTestId('visit-products-code')).toBeFocused();
+  await codeSold.scrollIntoViewIfNeeded();
+  await shot(page, '682-visit-product-code-required');
+  await codeSold.getByRole('button', { name: '+ Dodaj' }).last().click();
+  await expect(
+    codeSold.getByRole('combobox', { name: 'Wybierz produkt' }),
+  ).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(codeSold.getByRole('combobox', { name: 'Wybierz produkt' })).toBeFocused();
   await codeSold.getByTestId('visit-products-code').fill('5901234123457');
   await codeSold.getByTestId('visit-products-code').press('Enter');
   await expect(codeSold).toContainText('Za mało sztuk w magazynie');

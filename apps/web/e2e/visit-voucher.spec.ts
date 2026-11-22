@@ -142,6 +142,13 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
   await card.getByRole('button', { name: 'Klient płaci bonem podarunkowym?' }).click();
   // What is left to pay for the visit is filled in.
   await expect(card.getByTestId('visit-voucher-amount')).toHaveValue('90');
+  // Task 682: no code yet — said under "Kod bonu" (the button is not silently off).
+  await card.getByRole('button', { name: 'Zapłać bonem' }).click();
+  await expect(card.getByTestId('visit-voucher-code')).toHaveAccessibleDescription(
+    'Uzupełnij to pole.',
+  );
+  await expect(card.getByTestId('visit-voucher-code')).toBeFocused();
+  await shot(page, '682-visit-voucher-code-required');
   // A code of no voucher: said so, nothing is taken.
   await card.getByTestId('visit-voucher-code').fill('ZZZZ-ZZZZ');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
