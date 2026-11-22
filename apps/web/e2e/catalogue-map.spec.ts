@@ -1,3 +1,4 @@
+import type { PublicSalon, PublicSalonDirectory } from '@beauty/api-client';
 import {
   expect,
   test,
@@ -223,5 +224,67 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
   } finally {
     await phone.close();
     clientApp.server.close();
+  }
+});
+
+test('both salons at the same address can be selected on the 320px app map', async ({
+  browser,
+}) => {
+  const address = {
+    addressLine: 'ul. Mapowa 1',
+    city: 'Aleksandrów Kujawski',
+    postalCode: '87-700',
+    latitude: 52.8669,
+    longitude: 18.6958,
+    languages: ['pl'],
+    currency: 'PLN',
+    priceFromGrosze: 5000,
+    staffSpeaking: null,
+    specialties: ['barber'],
+    photoUrl: null,
+    distanceKm: null,
+    rating: null,
+    reviewCount: 0,
+    timezone: 'Europe/Warsaw',
+    todayHours: [],
+  } satisfies Omit<PublicSalon, 'name' | 'slug'>;
+  const items = [
+    { ...address, name: 'Salon Parter', slug: 'wspolny-adres-parter' },
+    { ...address, name: 'Salon Piętro', slug: 'wspolny-adres-pietro' },
+  ];
+  const directory: PublicSalonDirectory = {
+    items,
+    languageCounts: { pl: 2 },
+    specialtyCounts: { barber: 2 },
+    openNowCount: 0,
+    page: 1,
+    pageSize: items.length,
+    total: items.length,
+    pageCount: 1,
+  };
+
+  const preview = await serveApp('mobile-client');
+  const phone = await browser.newContext({
+    viewport: { width: 320, height: 700 },
+    isMobile: true,
+    locale: 'pl-PL',
+    timezoneId: 'Europe/Warsaw',
+  });
+  try {
+    const app = await phone.newPage();
+    await app.route('**/v1/public/locations?*', (route) => route.fulfill({ json: directory }));
+    await app.route('**/v1/public/locations/wspolny-adres-*/free-today', (route) =>
+      route.fulfill({ json: { date: new Date().toISOString().slice(0, 10), staffIds: [] } }),
+    );
+    await app.goto(preview.url);
+    await app.getByRole('button', { name: 'Znajdź salon' }).click();
+    await expect(app.getByRole('button', { name: /^Salon na mapie: Salon / })).toHaveCount(2);
+    for (const { name } of items) {
+      await app.getByRole('button', { name: `Salon na mapie: ${name}`, exact: true }).click();
+      await expect(app.getByRole('region', { name, exact: true })).toBeVisible();
+    }
+  } finally {
+    await phone.close();
+    preview.server.close();
   }
 });

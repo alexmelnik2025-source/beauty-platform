@@ -424,6 +424,13 @@ export const sq: Dictionary = {
     tooMany: 'Keni tashmë 100 sallone të preferuara. Hiqni një për të shtuar një të ri.',
   },
   waitlist: {
+    autoLead:
+      'Zgjidh një ditë pa orare të lira. Nëse lirohet një orar për ty, do të marrësh konfirmimin e rezervimit.',
+    autoBook: 'Më rezervo automatikisht kur të lirohet një orar',
+    phoneForAuto: 'Shkruaj një numër telefoni të vlefshëm për rezervimin automatik.',
+    joinedAuto:
+      'Je në listën e pritjes për {day}. Do të të rezervojmë automatikisht kur të lirohet një orar.',
+    autoStatus: 'Rezervimi automatik është aktiv',
     open: 'Nuk ka ditë të përshtatshme? Më njoftoni kur të lirohet një orar',
     title: 'Lista e pritjes',
     lead: 'Zgjidhni një ditë pa orare të lira. Kur dikush anulon, do të merrni një email — kush vjen i pari, e merr.',

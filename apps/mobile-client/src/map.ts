@@ -37,6 +37,49 @@ export function project(point: MapPoint, zoom: number): { x: number; y: number }
   };
 }
 
+const MARKER_RADIUS = 15;
+const MARKER_STEP = 32;
+const MAX_MARKER_OFFSET = 96;
+
+/** Nearby pins must remain individually tappable, even when salons share an address. */
+function separateMarkers<T>(
+  markers: MapMarker<T>[],
+  width: number,
+  height: number,
+): MapMarker<T>[] {
+  const placed: MapMarker<T>[] = [];
+  const fits = (x: number, y: number) =>
+    x >= MARKER_RADIUS &&
+    y >= MARKER_RADIUS &&
+    x <= width - MARKER_RADIUS &&
+    y <= height - MARKER_RADIUS &&
+    placed.every(
+      (pin) => Math.abs(pin.x - x) >= 2 * MARKER_RADIUS || Math.abs(pin.y - y) >= 2 * MARKER_RADIUS,
+    );
+
+  for (const marker of markers) {
+    if (fits(marker.x, marker.y)) {
+      placed.push(marker);
+      continue;
+    }
+    let best = marker;
+    let closest = Infinity;
+    for (let dx = -MAX_MARKER_OFFSET; dx <= MAX_MARKER_OFFSET; dx += MARKER_STEP) {
+      for (let dy = -MAX_MARKER_OFFSET; dy <= MAX_MARKER_OFFSET; dy += MARKER_STEP) {
+        const distance = dx * dx + dy * dy;
+        const x = marker.x + dx;
+        const y = marker.y + dy;
+        if (distance < closest && fits(x, y)) {
+          best = { ...marker, x, y };
+          closest = distance;
+        }
+      }
+    }
+    placed.push(best);
+  }
+  return placed;
+}
+
 /**
  * The closest zoom (at most street level, 16) that shows every point inside `width` × `height`
  * with `margin` pixels free at the edges; its tiles and where each point lands. Without points —
@@ -90,7 +133,11 @@ export function mapLayout<T extends MapPoint>(
   return {
     zoom,
     tiles,
-    markers: projected.map(({ item, x, y }) => ({ item, x: x - left, y: y - top })),
+    markers: separateMarkers(
+      projected.map(({ item, x, y }) => ({ item, x: x - left, y: y - top })),
+      width,
+      height,
+    ),
   };
 }
 

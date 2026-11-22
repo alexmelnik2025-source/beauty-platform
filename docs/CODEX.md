@@ -17,6 +17,7 @@
    - Q8 лист ожидания: в клиентском переключатель «Zapisz mnie automatycznie, gdy zwolni się termin»; в бизнес-приложении пометка «Auto».
    - Q9 защита от отмен: в карточке клиента бизнес-приложения «Zasady dla klienta» (według zasad salonu / zaufany / najpierw opłata zaległych / tylko z potwierdzeniem / tylko telefonicznie); в клиентском — уведомление «zapłacisz za poprzednią i tę wizytę w salonie» перед подтверждением.
 4. Ошибки, тесты, скорость в обоих мобильных приложениях.
+   - `codex/fix-mobile-map-markers` (22.11.2026) — на карте клиентского приложения можно открыть каждый из двух салонов по одному адресу на экране 320 px.
 
 ## В работе у Codex
 
@@ -65,7 +66,7 @@
   вошедшего клиента (страница записи без входа это поле не принимает). Когда время освобождается и такой клиент первый
   в очереди, визит записывается сразу (статус записи в листе — `booked`, клиенту обычное письмо-подтверждение).
   `autoBook` есть в `GET /v1/client/waitlist` (клиентское приложение) и в `GET …/locations/:id/waitlist` (бизнес:
-  пометка «Auto»). Экраны можно начинать.
+  пометка «Auto»). Экраны — `codex/q8-auto-waitlist` (22.11.2026).
   Claude поправил одну строку в `apps/mobile-business/test/waitlist.test.ts` (в тестовую запись добавлено
   `autoBook: false`), иначе typecheck падал из-за нового обязательного поля — сами экраны не тронуты.
 
