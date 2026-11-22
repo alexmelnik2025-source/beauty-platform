@@ -257,6 +257,8 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   await move.scrollIntoViewIfNeeded();
   await shot(page, 'Q3-move-cancelled');
   await move.getByRole('link', { name: 'Wybierz nowy termin' }).click();
+  // A day ahead too: late in the evening today may have one free time or none.
+  await page.locator('.day-strip button').nth(2).click();
   await page.locator('.times button').nth(1).click();
   // Booking with a code signed the client in on this phone: the details are there, no code.
   await expect(page.getByLabel('E-mail')).toHaveValue(CLIENT);
