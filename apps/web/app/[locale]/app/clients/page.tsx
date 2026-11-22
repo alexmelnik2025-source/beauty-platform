@@ -6,11 +6,23 @@ import { ClientLoyalty } from '@/components/loyalty/ClientLoyalty';
 import { useSession } from '@/components/Session';
 import { PhoneField } from '@/components/PhoneField';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
-import { ErrorBox, Sheet, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, LOCALES, localeCode, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Customer, CustomerDetail, CustomerSegments, CustomerTags } from '@/lib/types';
+
+/** Task 659: the client card's fields that can show an error under them. */
+type ClientField = 'name' | 'phone' | 'email';
+const CLIENT_FIELDS: ClientField[] = ['name', 'phone', 'email'];
+
+/** The fields the server's validation answer is about; empty when it is about something else. */
+function clientFieldsOf(err: unknown): ClientField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const paths = (err.details as { path?: string }[]).map((d) => d.path);
+  return CLIENT_FIELDS.filter((f) => paths.includes(f));
+}
 
 type ClientRow = Customer;
 
@@ -578,6 +590,12 @@ function ClientSheet({
   });
   const [duplicate, setDuplicate] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 659 (owner's rule: errors at the field): the fields with an error shown under them —
+   * a blank name before sending, the server's answer about the name, phone or e-mail, a phone
+   * another client already has. Editing a field takes its error away.
+   */
+  const [problems, setProblems] = useState<ClientField[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -600,8 +618,14 @@ function ClientSheet({
 
   async function save(e: FormEvent, allowDuplicatePhone = false) {
     e.preventDefault();
-    setBusy(true);
     setError('');
+    if (!form.name.trim()) {
+      setDuplicate(false);
+      setProblems(['name']);
+      return;
+    }
+    setProblems([]);
+    setBusy(true);
     const tags = form.tags
       .split(',')
       .map((s) => s.trim())
@@ -641,8 +665,11 @@ function ClientSheet({
       }
       onSaved();
     } catch (err) {
-      setDuplicate(err instanceof ApiError && err.code === 'CUSTOMER_PHONE_EXISTS');
-      setError(errorText(t, err));
+      const dup = err instanceof ApiError && err.code === 'CUSTOMER_PHONE_EXISTS';
+      const fields = dup ? (['phone'] as ClientField[]) : clientFieldsOf(err);
+      setDuplicate(dup);
+      setProblems(fields);
+      if (fields.length === 0) setError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -661,6 +688,24 @@ function ClientSheet({
       )
     : null;
 
+  const problemText: Record<ClientField, string> = {
+    name: t.booking.nameInvalid,
+    phone: duplicate ? t.errors.CUSTOMER_PHONE_EXISTS : t.booking.phoneInvalid,
+    email: t.booking.emailInvalid,
+  };
+  const problem = (field: ClientField) =>
+    problems.includes(field) ? problemText[field] : undefined;
+  /** Editing a field takes its error away (and the "add anyway" offer with the phone's). */
+  const edit = (field: ClientField, change: Partial<typeof form>) => {
+    setForm({ ...form, ...change });
+    if (problems.includes(field)) setProblems(problems.filter((f) => f !== field));
+    if (field === 'phone') setDuplicate(false);
+  };
+  const invalid = (field: ClientField) => ({
+    'aria-invalid': problems.includes(field) || undefined,
+    'aria-describedby': problems.includes(field) ? `client-${field}-error` : undefined,
+  });
+
   return (
     <Sheet title={client ? client.name : t.clients.add} onClose={onClose}>
       {erasedOn ? (
@@ -670,6 +715,36 @@ function ClientSheet({
       ) : null}
       <form className="form" onSubmit={(e) => void save(e)} hidden={Boolean(erasedOn)}>
         <ErrorBox>{error}</ErrorBox>
+        <label className="field">
+          <span>{t.clients.name}</span>
+          <input
+            required
+            value={form.name}
+            {...invalid('name')}
+            onChange={(e) => edit('name', { name: e.target.value })}
+          />
+          <FieldError id="client-name-error" text={problem('name')} />
+        </label>
+        <div className="row">
+          <PhoneField
+            label={t.clients.phone}
+            required
+            value={form.phone}
+            defaultDial={dial}
+            error={problem('phone')}
+            onChange={(phone) => edit('phone', { phone })}
+          />
+          <label className="field">
+            <span>{t.clients.email}</span>
+            <input
+              type="email"
+              value={form.email}
+              {...invalid('email')}
+              onChange={(e) => edit('email', { email: e.target.value })}
+            />
+            <FieldError id="client-email-error" text={problem('email')} />
+          </label>
+        </div>
         {duplicate && !client ? (
           <button
             type="button"
@@ -679,31 +754,6 @@ function ClientSheet({
             {t.clients.addAnyway}
           </button>
         ) : null}
-        <label className="field">
-          <span>{t.clients.name}</span>
-          <input
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </label>
-        <div className="row">
-          <PhoneField
-            label={t.clients.phone}
-            required
-            value={form.phone}
-            defaultDial={dial}
-            onChange={(phone) => setForm({ ...form, phone })}
-          />
-          <label className="field">
-            <span>{t.clients.email}</span>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </label>
-        </div>
         <label className="field">
           <span>{t.clients.language}</span>
           <select
