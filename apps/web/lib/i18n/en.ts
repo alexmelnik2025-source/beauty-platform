@@ -1634,6 +1634,7 @@ export const en: Dict = {
     bonusRemove: 'Remove rule',
     bonusSave: 'Save rules',
     bonusNone: 'No rules — every visit earns the usual stamps or points.',
+    bonusNothingExtra: 'Set a multiplier above 1 or extra points.',
     lead: 'You set the rules: what earns a client stamps or points and which rewards they can exchange them for. Program discounts are paid by the salon.',
     settings: 'Program settings',
     enabled: 'Program on',

@@ -1349,6 +1349,9 @@ API: `GET /v1/client/favorites`, `PUT` и `DELETE /v1/client/favorites/{slug}` (
   «каждая стрижка при визитах раз в 3 недели ×2». Первый визит и неоплаченные визиты не считаются.
 - Кабинет: блок «Dodatkowe pieczątki i punkty» в «Program lojalnościowy» — название, мастера, дни, «Mnożnik (×)»,
   «Dodatkowo (+)», «Gdy wraca w ciągu (dni)»; 4 языка; скриншот 79.
+  Ошибки у поля (671): пустое название — «Uzupełnij to pole.», число вне диапазона — «Wpisz liczbę od … do …», правило
+  без ничего сверху (×1 и +0) — «Ustaw mnożnik powyżej 1 lub dodatkowe punkty.» под «Mnożnik»; до отправки, курсор к
+  первому неверному полю; ответ сервера — у поля. Скриншот `671-loyalty-bonus-field-errors`.
 - Клиент видит правила (задача 19d): в «Moje bonusy» на сайте и в клиентском приложении — блок «Więcej za wizytę»
   («Spokojne dni ×2 — pon., wt., śr. · u: Kasia · gdy wracasz w ciągu 21 dni»), 6 языков; API — поле `bonuses` в
   `GET /v1/client/loyalty` (только при включённой программе; правило только для ушедших мастеров не показывается).

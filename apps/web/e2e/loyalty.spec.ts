@@ -372,8 +372,21 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   });
   await expect(bonusForm.getByText('Brak zasad')).toBeVisible();
   await bonusForm.getByRole('button', { name: '+ Dodaj zasadę' }).click();
+  // Task 671: a blank name and a rule that gives nothing extra are said under their fields.
+  await bonusForm.getByLabel('Mnożnik (×)').fill('1');
+  await bonusForm.getByRole('button', { name: 'Zapisz zasady' }).click();
+  await expect(bonusForm.getByLabel('Nazwa zasady')).toBeFocused();
+  await expect(bonusForm.getByLabel('Nazwa zasady')).toHaveAccessibleDescription(
+    'Uzupełnij to pole.',
+  );
+  await expect(bonusForm.getByLabel('Mnożnik (×)')).toHaveAccessibleDescription(
+    'Ustaw mnożnik powyżej 1 lub dodatkowe punkty.',
+  );
+  await bonusForm.scrollIntoViewIfNeeded();
+  await shot(page, '671-loyalty-bonus-field-errors');
   await bonusForm.getByLabel('Nazwa zasady').fill('Spokojne dni ×2');
   await bonusForm.getByLabel('Mnożnik (×)').fill('2');
+  await expect(bonusForm.locator('.field-error')).toHaveCount(0);
   await bonusForm.getByLabel('Gdy wraca w ciągu (dni)').fill('21');
   for (const day of ['Poniedziałek', 'Wtorek', 'Środa']) {
     await bonusForm.getByLabel(day, { exact: true }).check();
