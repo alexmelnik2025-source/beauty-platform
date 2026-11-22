@@ -756,4 +756,65 @@ describe('waiting list in the client app (51)', () => {
     const bobs = await ctx.http().get('/v1/client/waitlist').set(bob).expect(200);
     expect(bobs.body.items).toHaveLength(1);
   });
+
+  it('Q8: "book me automatically" — the first free time is booked at once, no offer', async () => {
+    await holdMinutes(15);
+    const day = dayAhead(3);
+    const visit = await fillDay(day);
+    const anna = await clientSignIn(ANNA);
+    const body = { serviceId, staffId, date: day, name: 'Anna', locale: 'pl', acceptTerms: true };
+    // A visit needs a phone: without one, no automatic booking.
+    expectError(
+      (
+        await ctx
+          .http()
+          .post(`/v1/client/waitlist/locations/${slug}`)
+          .set(anna)
+          .send({ ...body, autoBook: true })
+          .expect(400)
+      ).body,
+      'VALIDATION_ERROR',
+    );
+    await ctx
+      .http()
+      .post(`/v1/client/waitlist/locations/${slug}`)
+      .set(anna)
+      .send({ ...body, autoBook: true, phone: '+48 600 111 222' })
+      .expect(201);
+    // The booking page cannot ask for it (the email there is not confirmed yet): ignored.
+    await join(day, BOB, { phone: '+48600222333', autoBook: true }).expect(201);
+    const listed = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(
+      listed.body.items.map((e: { email: string; autoBook: boolean }) => [e.email, e.autoBook]),
+    ).toEqual([
+      [ANNA, true],
+      [BOB, false],
+    ]);
+    const mine = await ctx.http().get('/v1/client/waitlist').set(anna).expect(200);
+    expect(mine.body.items[0]).toMatchObject({ date: day, status: 'waiting', autoBook: true });
+    await outbox.drain();
+    const before = ctx.mail.allTo(ANNA).length;
+
+    // The salon cancels the visit: Anna (first, automatic) gets it booked straight away.
+    await cancelVisit(visit);
+    expect(await waitlist.sweep()).toBe(1);
+    const booked = await ctx.prisma.appointment.findMany({
+      where: { locationId, status: 'confirmed' },
+      include: { customer: true },
+    });
+    expect(booked).toHaveLength(1);
+    expect(booked[0]!.customer).toMatchObject({ email: ANNA, phone: '+48600111222' });
+    const entry = await ctx.prisma.waitlistEntry.findFirstOrThrow({ where: { email: ANNA } });
+    expect(entry.status).toBe('booked');
+    // The usual confirmation email with the manage link, no offer to answer.
+    await outbox.drain();
+    const mails = ctx.mail.allTo(ANNA).slice(before);
+    expect(mails.some((m) => m.text.includes('/pl/m/'))).toBe(true);
+    expect(mails.some((m) => m.subject.includes('Termin czeka'))).toBe(false);
+    // Nothing is left on the day: Bob waits on, nobody holds a time.
+    expect(await waitlist.sweep()).toBe(0);
+    expect(await ctx.prisma.appointment.count({ where: { locationId, status: 'held' } })).toBe(0);
+    const after = await ctx.http().get(`${base}/waitlist`).set(owner.auth).expect(200);
+    expect(after.body.items.map((e: { email: string }) => e.email)).toEqual([BOB]);
+  });
 });
