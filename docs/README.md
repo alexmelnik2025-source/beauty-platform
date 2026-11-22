@@ -4257,3 +4257,19 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 приложения. e2e: `booking.spec.ts` (01-client-services, 00-client-salon-profile, 05-client-code, 05w-client-wishes,
 06-client-done), `install-banner.spec.ts` (Q5-no-banner-on-steps), `languages`, `open-status`, `price-rows`,
 `salon-languages`, `web-favorites`, `wish-photos`.
+
+## Минимализм кабинета (задача Q6, веб-часть)
+
+Одобрено владельцем 21.11.2026. Только полировка существующего, ни один пункт не удалён. Бизнес-приложение — у Codex
+(`AGENTS.md`, `docs/CODEX.md`).
+
+- «Usługi → Produkty»: восемь пояснений открываются кнопкой «?» («Jak to działa?») рядом с заголовком
+  (`ProductsSection.tsx`, ключ `products.helpOpen`).
+- Календарь на телефоне: шапка в одну строку — короткая дата (`shortDate` в `lib/time.ts`, класс `only-mobile`), дата
+  и салон без переносов.
+- Кабинет на ПК: меню в группах «Oferta», «Rezerwacje», «Salon» (`MenuItem.group`, словарь `navGroups`); на телефоне
+  «Więcej» в том же порядке.
+- «UA» вместо «UK» в списках языка клиента и приглашения (`localeCode` в `lib/i18n/locales.ts`).
+
+Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-cabinet-menu-groups`,
+`q6-client-language-ua`.

@@ -134,7 +134,7 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
   await expect(card.getByText('Tylko dzień i miesiąc, bez roku.')).toBeVisible();
   await shot(page, '240-a-client-birthday-card');
   // Task Q6: the message language says "UA" for Ukrainian, as everywhere else.
-  const language = card.getByLabel('Język wiadomości', { exact: true });
+  const language = card.locator('label', { hasText: 'Język wiadomości' }).locator('select');
   await expect(language.locator('option[value="uk"]')).toHaveText('UA');
   await language.scrollIntoViewIfNeeded();
   await card.screenshot({ path: 'e2e/screenshots/q6-client-language-ua.png' });
