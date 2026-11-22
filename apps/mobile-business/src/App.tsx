@@ -147,6 +147,7 @@ export default function App() {
               canChangeSalon={stage.choices.length > 1}
               onChangeSalon={() => setStage({ kind: 'salons', choices: stage.choices })}
               onSignOut={signOut}
+              onLocale={setLocale}
             />
           )}
         </View>

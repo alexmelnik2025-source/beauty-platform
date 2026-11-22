@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   Platform,
   Pressable,
   RefreshControl,
@@ -22,6 +24,7 @@ import { blocksOfDay, blockTargets, canRemoveBlock } from '../blocks';
 import {
   addDays,
   dayTitle,
+  calendarDate,
   formatPrice,
   myStaffId,
   onlyMine,
@@ -36,6 +39,7 @@ import { errorText } from '../errors';
 import { badge } from '../notifications';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { LanguagePicker } from './LanguagePicker';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
 import { ProfileScreen } from './ProfileScreen';
@@ -70,6 +74,8 @@ import { ClientsNowCard } from './ClientsNowCard';
 import { SetupCard } from './SetupCard';
 import { presetFromEntry, type NewVisitPreset } from '../waitlist';
 
+type MainTab = 'calendar' | 'clients' | 'shop' | 'more';
+
 const REFRESH_MS = 30_000;
 
 /** One day of the salon's calendar; a specialist sees their own visits (the server decides). */
@@ -82,6 +88,7 @@ export function DayScreen(props: {
   canChangeSalon: boolean;
   onChangeSalon: () => void;
   onSignOut: () => void;
+  onLocale: (locale: Locale) => void;
 }) {
   const { api, t, salon } = props;
   const today = todayIn(props.timeZone);
@@ -92,14 +99,12 @@ export function DayScreen(props: {
   const [openId, setOpenId] = useState<string | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [teamHoursOpen, setTeamHoursOpen] = useState(false);
-  const [clientsOpen, setClientsOpen] = useState(false);
+  const [tab, setTab] = useState<MainTab>('calendar');
   const [teamOpen, setTeamOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [guardOpen, setGuardOpen] = useState(false);
   const [vouchersOpen, setVouchersOpen] = useState(false);
-  /** Task Q3: "Mój sklep" (owners and managers). */
-  const [shopOpen, setShopOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [happyOpen, setHappyOpen] = useState(false);
@@ -115,7 +120,8 @@ export function DayScreen(props: {
   const [info, setInfo] = useState('');
   const [canChange, setCanChange] = useState(salon.role !== 'staff');
   const [mineId, setMineId] = useState<string | null>(null);
-  const [mineOnly, setMineOnly] = useState(false);
+  const [staffId, setStaffId] = useState<string | null>(null);
+  const [staffPicker, setStaffPicker] = useState(false);
   const [rights, setRights] = useState<MyRights | null>(null);
   const [adding, setAdding] = useState(false);
   const [canReport, setCanReport] = useState(salon.role !== 'staff');
@@ -210,10 +216,61 @@ export function DayScreen(props: {
   const till = tillOf(dayReport, date);
 
   const all = calendar && calendar.from === date ? visitsOfDay(calendar, date) : null;
-  // "Only mine" is for an owner or manager who also works as a specialist;
-  // a specialist's calendar already holds just their own visits (the server decides).
-  const showMineSwitch = salon.role !== 'staff' && mineId !== null;
-  const visits = all && showMineSwitch && mineOnly ? onlyMine(all, mineId) : all;
+  const canBrowseSalon = salon.role !== 'staff';
+  const selectedStaff = staffList.find((staff) => staff.id === staffId);
+  const staffLabel = canBrowseSalon
+    ? (selectedStaff?.displayName ?? t.navigation.allStaff)
+    : (staffList.find((staff) => staff.id === mineId)?.displayName ?? t.navigation.myCalendar);
+  const visits = all ? onlyMine(all, canBrowseSalon ? staffId : null) : null;
+
+  useEffect(() => {
+    if (tab !== 'more') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setTab('calendar');
+      return true;
+    });
+    return () => sub.remove();
+  }, [tab]);
+
+  function withNavigation(content: ReactNode) {
+    const tabs: { id: MainTab; icon: string; label: string }[] = [
+      { id: 'calendar', icon: '▦', label: t.navigation.calendar },
+      ...(canBrowseSalon
+        ? [
+            { id: 'clients' as const, icon: '♙', label: t.clients.open },
+            { id: 'shop' as const, icon: '▣', label: t.shop.open },
+          ]
+        : []),
+      { id: 'more', icon: '⋯', label: t.navigation.more },
+    ];
+    return (
+      <View style={styles.shell}>
+        <View style={styles.shell}>{content}</View>
+        <View style={styles.tabBar} accessibilityRole="tablist">
+          {tabs.map(({ id, icon, label }) => (
+            <Pressable
+              key={id}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: tab === id }}
+              onPress={() => {
+                setStaffPicker(false);
+                setTab(id);
+              }}
+              style={[styles.tab, tab === id && styles.tabSelected]}
+            >
+              <Text aria-hidden style={styles.tabIcon}>
+                {icon}
+              </Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.tabLabel}>
+                {label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   if (weekOpen) {
     return (
@@ -446,15 +503,15 @@ export function DayScreen(props: {
     return <BookingLinkScreen api={api} t={t} salon={salon} onBack={() => setLinkOpen(false)} />;
   }
 
-  if (shopOpen) {
-    return (
+  if (tab === 'shop') {
+    return withNavigation(
       <MyShopScreen
         api={api}
         t={t}
         locale={props.locale}
         salon={salon}
-        onBack={() => setShopOpen(false)}
-      />
+        onBack={() => setTab('calendar')}
+      />,
     );
   }
 
@@ -497,16 +554,16 @@ export function DayScreen(props: {
     );
   }
 
-  if (clientsOpen) {
-    return (
+  if (tab === 'clients') {
+    return withNavigation(
       <ClientsScreen
         api={api}
         t={t}
         locale={props.locale}
         salon={salon}
         timeZone={props.timeZone}
-        onBack={() => setClientsOpen(false)}
-      />
+        onBack={() => setTab('calendar')}
+      />,
     );
   }
 
@@ -535,9 +592,16 @@ export function DayScreen(props: {
       />
     );
   }
-  const working = calendar && calendar.from === date ? staffOfDay(calendar, date) : [];
+  const working =
+    calendar && calendar.from === date
+      ? staffOfDay(calendar, date, canBrowseSalon ? staffId : null)
+      : [];
   const dayBlocks =
-    blocks && blocks.date === date ? blocksOfDay(blocks.list, staffList, date, props.timeZone) : [];
+    blocks && blocks.date === date
+      ? blocksOfDay(blocks.list, staffList, date, props.timeZone).filter(
+          (block) => !staffId || !block.staffId || block.staffId === staffId,
+        )
+      : [];
 
   /** Task 351: the day as text for the team chat or printing — the list as it is on the screen. */
   async function sharePlan() {
@@ -571,98 +635,166 @@ export function DayScreen(props: {
     }
   }
 
-  return (
+  if (tab === 'more') {
+    const items = [
+      { label: t.notifications.open, open: () => setBellOpen(true), visible: true },
+      { label: t.services.open, open: () => setServicesOpen(true), visible: canBrowseSalon },
+      { label: t.happyHours.open, open: () => setHappyOpen(true), visible: canBrowseSalon },
+      { label: t.team.open, open: () => setTeamOpen(true), visible: canBrowseSalon },
+      { label: t.schedule.teamOpen, open: () => setTeamHoursOpen(true), visible: canBrowseSalon },
+      { label: t.schedule.open, open: () => setScheduleOpen(true), visible: !!mineId },
+      { label: t.reports.open, open: () => setReportsOpen(true), visible: canReport },
+      {
+        label: t.loyalty.open,
+        open: () => setLoyaltyOpen(true),
+        visible: mayManageLoyalty(salon.role),
+      },
+      { label: t.guard.open, open: () => setGuardOpen(true), visible: mayManageGuard(salon.role) },
+      { label: t.reviews.open, open: () => setReviewsOpen(true), visible: true },
+      { label: t.vouchers.open, open: () => setVouchersOpen(true), visible: true },
+      {
+        label: t.history.open,
+        open: () => setHistoryOpen(true),
+        visible: mayViewHistory(salon.role),
+      },
+      { label: t.bookingLink.open, open: () => setLinkOpen(true), visible: canBrowseSalon },
+      {
+        label: t.messages.open,
+        open: () => setMessagesOpen(true),
+        visible: maySeeSalon(salon.role),
+      },
+      {
+        label: t.navigation.settings,
+        open: () => setSalonOpen(true),
+        visible: maySeeSalon(salon.role),
+      },
+      { label: t.profile.open, open: () => setProfileOpen(true), visible: !!mineId },
+      { label: t.changeSalon, open: props.onChangeSalon, visible: props.canChangeSalon },
+    ];
+    return withNavigation(
+      <ScrollView contentContainerStyle={styles.screen}>
+        <View style={styles.top}>
+          <Heading>{t.navigation.more}</Heading>
+          <LanguagePicker t={t} locale={props.locale} onLocale={props.onLocale} />
+        </View>
+        <Card>
+          {items
+            .filter((item) => item.visible)
+            .map(({ label, open }) => (
+              <Pressable
+                key={label}
+                accessibilityRole="button"
+                onPress={open}
+                style={styles.menuItem}
+              >
+                <Text style={styles.menuText}>{label}</Text>
+                <Text aria-hidden style={styles.muted}>
+                  ›
+                </Text>
+              </Pressable>
+            ))}
+        </Card>
+        <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
+      </ScrollView>,
+    );
+  }
+
+  return withNavigation(
     <ScrollView
       contentContainerStyle={styles.screen}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={styles.top}>
-        <Text style={styles.salon}>{salonName}</Text>
-        <View style={styles.row}>
-          {props.canChangeSalon ? (
-            <Button kind="link" label={t.changeSalon} onPress={props.onChangeSalon} />
-          ) : null}
-          <Button
-            kind="link"
-            label={unread > 0 ? `${t.notifications.open} (${badge(unread)})` : t.notifications.open}
-            onPress={() => setBellOpen(true)}
-          />
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.clients.open} onPress={() => setClientsOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.services.open} onPress={() => setServicesOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.happyHours.open} onPress={() => setHappyOpen(true)} />
-          ) : null}
-          {mayManageLoyalty(salon.role) ? (
-            <Button kind="link" label={t.loyalty.open} onPress={() => setLoyaltyOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.team.open} onPress={() => setTeamOpen(true)} />
-          ) : null}
-          {mayManageGuard(salon.role) ? (
-            <Button kind="link" label={t.guard.open} onPress={() => setGuardOpen(true)} />
-          ) : null}
-          {maySeeSalon(salon.role) ? (
-            <Button kind="link" label={t.salon.open} onPress={() => setSalonOpen(true)} />
-          ) : null}
-          {maySeeSalon(salon.role) ? (
-            <Button kind="link" label={t.messages.open} onPress={() => setMessagesOpen(true)} />
-          ) : null}
-          {mineId ? (
-            <Button kind="link" label={t.schedule.open} onPress={() => setScheduleOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button
-              kind="link"
-              label={t.schedule.teamOpen}
-              onPress={() => setTeamHoursOpen(true)}
-            />
-          ) : null}
-          {canReport ? (
-            <Button kind="link" label={t.reports.open} onPress={() => setReportsOpen(true)} />
-          ) : null}
-          {mineId ? (
-            <Button kind="link" label={t.profile.open} onPress={() => setProfileOpen(true)} />
-          ) : null}
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.bookingLink.open} onPress={() => setLinkOpen(true)} />
-          ) : null}
-          <Button kind="link" label={t.reviews.open} onPress={() => setReviewsOpen(true)} />
-          <Button kind="link" label={t.vouchers.open} onPress={() => setVouchersOpen(true)} />
-          {salon.role !== 'staff' ? (
-            <Button kind="link" label={t.shop.open} onPress={() => setShopOpen(true)} />
-          ) : null}
-          {mayViewHistory(salon.role) ? (
-            <Button kind="link" label={t.history.open} onPress={() => setHistoryOpen(true)} />
-          ) : null}
-          <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
-        </View>
+        <Text numberOfLines={1} style={styles.salon}>
+          {salonName}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            unread > 0 ? `${t.notifications.open} (${badge(unread)})` : t.notifications.open
+          }
+          onPress={() => setBellOpen(true)}
+          style={styles.compactButton}
+        >
+          <Text style={styles.menuText}>🔔{unread > 0 ? ` ${badge(unread)}` : ''}</Text>
+        </Pressable>
       </View>
-
-      <Heading>{dayTitle(date, props.locale)}</Heading>
-      <View style={styles.row}>
-        <Button
-          kind="secondary"
-          label="‹"
-          a11yLabel={t.day.previous}
-          onPress={() => setDate(addDays(date, -1))}
-        />
-        <Button
-          kind="secondary"
-          label={t.day.today}
+      <View style={styles.dateBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.day.previous}
+          onPress={() => setDate((current) => addDays(current, -1))}
+          style={styles.compactButton}
+        >
+          <Text style={styles.menuText}>‹</Text>
+        </Pressable>
+        <Text
+          accessibilityRole="header"
+          accessibilityLabel={dayTitle(date, props.locale)}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={styles.dateLabel}
+        >
+          {calendarDate(date, props.locale)}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.day.next}
+          onPress={() => setDate((current) => addDays(current, 1))}
+          style={styles.compactButton}
+        >
+          <Text style={styles.menuText}>›</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: date === today }}
           onPress={() => setDate(today)}
           disabled={date === today}
-        />
-        <Button
-          kind="secondary"
-          label="›"
-          a11yLabel={t.day.next}
-          onPress={() => setDate(addDays(date, 1))}
-        />
-        <Button kind="secondary" label={t.week.open} onPress={() => setWeekOpen(true)} />
+          style={styles.compactButton}
+        >
+          <Text numberOfLines={1} style={[styles.menuText, date === today && styles.muted]}>
+            {t.day.today}
+          </Text>
+        </Pressable>
+        {canBrowseSalon && staffList.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.navigation.specialist}: ${staffLabel}`}
+            accessibilityState={{ expanded: staffPicker }}
+            onPress={() => setStaffPicker(!staffPicker)}
+            style={[styles.compactButton, styles.staffButton]}
+          >
+            <Text numberOfLines={1} style={styles.menuText}>
+              {staffLabel} ▾
+            </Text>
+          </Pressable>
+        ) : (
+          <Text numberOfLines={1} style={[styles.menuText, styles.staffButton]}>
+            {staffLabel}
+          </Text>
+        )}
+      </View>
+      {staffPicker ? (
+        <Card>
+          {[{ id: null, displayName: t.navigation.allStaff }, ...staffList].map((staff) => (
+            <Pressable
+              key={staff.id ?? 'all'}
+              accessibilityRole="button"
+              accessibilityState={{ selected: staffId === staff.id }}
+              onPress={() => {
+                setStaffId(staff.id);
+                setStaffPicker(false);
+              }}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuText}>{staff.displayName}</Text>
+              {staffId === staff.id ? <Text aria-hidden>✓</Text> : null}
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+      <View style={styles.row}>
+        <Button kind="link" label={t.week.open} onPress={() => setWeekOpen(true)} />
         <Button kind="link" label={t.day.refresh} onPress={load} />
         {visits ? (
           <Button kind="link" label={t.day.sharePlan} onPress={() => void sharePlan()} />
@@ -783,13 +915,6 @@ export function DayScreen(props: {
             <Text style={styles.section}>
               {t.day.visits} ({visits.length})
             </Text>
-            {showMineSwitch ? (
-              <Button
-                kind="link"
-                label={mineOnly ? t.day.everyone : t.day.onlyMine}
-                onPress={() => setMineOnly(!mineOnly)}
-              />
-            ) : null}
           </View>
           {till ? (
             <View style={styles.till} testID="till" accessibilityRole="summary">
@@ -885,7 +1010,7 @@ export function DayScreen(props: {
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>
       ) : null}
-    </ScrollView>
+    </ScrollView>,
   );
 }
 
@@ -902,7 +1027,65 @@ function textShareTools(): TextShareTools {
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: 20, gap: 12 },
+  shell: { flex: 1 },
+  screen: { padding: 16, gap: 12 },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingHorizontal: 4,
+  },
+  tab: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderTopWidth: 2,
+    borderTopColor: 'transparent',
+  },
+  tabSelected: { backgroundColor: colors.soft, borderTopColor: colors.ink },
+  tabIcon: { color: colors.ink, fontSize: 21 },
+  tabLabel: { color: colors.ink, fontWeight: '600', fontSize: 12 },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+  },
+  menuText: { color: colors.ink, fontSize: 14, flexShrink: 1 },
+  dateBar: {
+    flexDirection: 'row',
+    gap: 2,
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  compactButton: {
+    minHeight: 44,
+    minWidth: 36,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateLabel: {
+    color: colors.ink,
+    fontWeight: '700',
+    fontSize: 14,
+    minWidth: 50,
+    paddingHorizontal: 2,
+    textAlign: 'center',
+  },
+  staffButton: { flex: 1, minWidth: 0 },
+
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },

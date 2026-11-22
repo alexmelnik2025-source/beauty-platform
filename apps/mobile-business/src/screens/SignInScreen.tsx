@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, parseContact, type BusinessApi, type Contact, type Locale } from '../api';
 import { errorText } from '../errors';
-import { fill, LANGUAGE_NAMES, LOCALES, type Dictionary } from '../i18n';
+import { fill, type Dictionary } from '../i18n';
+import { LanguagePicker } from './LanguagePicker';
 import { Button, colors, ErrorText, Heading } from '../ui';
 
 /**
@@ -122,19 +123,7 @@ export function SignInScreen(props: {
           />
         </>
       )}
-      <View style={styles.languages} accessibilityLabel={t.language}>
-        {LOCALES.map((l) => (
-          <Text
-            key={l}
-            accessibilityRole="button"
-            aria-pressed={l === locale}
-            onPress={() => props.onLocale(l)}
-            style={[styles.language, l === locale && styles.languageActive]}
-          >
-            {LANGUAGE_NAMES[l]}
-          </Text>
-        ))}
-      </View>
+      <LanguagePicker t={t} locale={locale} onLocale={props.onLocale} />
     </View>
   );
 }
@@ -154,7 +143,4 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   code: { fontSize: 28, letterSpacing: 8, textAlign: 'center' },
-  languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 24 },
-  language: { color: colors.muted, fontSize: 14, paddingVertical: 6 },
-  languageActive: { color: colors.ink, fontWeight: '700', textDecorationLine: 'underline' },
 });
