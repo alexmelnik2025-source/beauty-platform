@@ -432,8 +432,12 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   const ilian = list.getByRole('listitem').filter({ hasText: 'Ilian' });
   await ilian.getByRole('textbox').fill('42,55');
   await ilian.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(commissions.getByText(/najwyżej jedno miejsce po przecinku/)).toBeVisible();
+  // Task 666: the error is under Ilian's field (red frame, "!"), not above the list.
+  await expect(ilian.getByText(/najwyżej jedno miejsce po przecinku/)).toBeVisible();
+  await expect(ilian.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
+  await shot(page, '666-commission-field-error');
   await ilian.getByRole('textbox').fill('40');
+  await expect(commissions.getByText(/najwyżej jedno miejsce po przecinku/)).toHaveCount(0);
   await ilian.getByRole('button', { name: 'Zapisz' }).click();
   await expect(ilian.getByRole('status')).toHaveText('Zapisano.');
   await expect(commissions.getByRole('heading', { name: /^Prowizje: 60,00\s*zł$/ })).toBeVisible();
