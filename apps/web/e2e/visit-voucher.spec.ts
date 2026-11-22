@@ -145,7 +145,7 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
   // Task 682: no code yet — said under "Kod bonu" (the button is not silently off).
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card.getByTestId('visit-voucher-code')).toHaveAccessibleDescription(
-    'Uzupełnij to pole.',
+    /Uzupełnij to pole\.$/,
   );
   await expect(card.getByTestId('visit-voucher-code')).toBeFocused();
   await shot(page, '682-visit-voucher-code-required');

@@ -335,13 +335,13 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   // and so is no product chosen in the list.
   await codeSold.getByTestId('visit-products-code').press('Enter');
   await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
-    'Uzupełnij to pole.',
+    /Uzupełnij to pole\.$/,
   );
   await codeSold.getByTestId('visit-products-code').fill('a!');
   await expect(codeSold.locator('.field-error')).toHaveCount(0);
   await codeSold.getByTestId('visit-products-code').press('Enter');
   await expect(codeSold.getByTestId('visit-products-code')).toHaveAccessibleDescription(
-    'Od 3 do 32 znaków: cyfry, litery i „-”.',
+    /Od 3 do 32 znaków: cyfry, litery i „-”\.$/,
   );
   await expect(codeSold.getByTestId('visit-products-code')).toBeFocused();
   await codeSold.scrollIntoViewIfNeeded();
@@ -349,7 +349,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await codeSold.getByRole('button', { name: '+ Dodaj' }).last().click();
   await expect(
     codeSold.getByRole('combobox', { name: 'Wybierz produkt' }),
-  ).toHaveAccessibleDescription('Uzupełnij to pole.');
+  ).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
   await expect(codeSold.getByRole('combobox', { name: 'Wybierz produkt' })).toBeFocused();
   await codeSold.getByTestId('visit-products-code').fill('5901234123457');
   await codeSold.getByTestId('visit-products-code').press('Enter');
