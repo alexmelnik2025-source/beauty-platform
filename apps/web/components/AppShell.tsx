@@ -9,7 +9,7 @@ import type { Dict } from '@/lib/i18n/pl';
 import type { UnreadCount } from '@/lib/types';
 import { InstallApp } from './InstallApp';
 import { useSession } from './Session';
-import { LanguageSwitch, Wordmark } from './ui';
+import { LanguageMenu, Wordmark } from './ui';
 
 interface MenuItem {
   href: string;
@@ -101,7 +101,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <Wordmark href={`/${locale}/app/calendar`} />
+        {/* Task Q6: the language is a compact "PL ▾" in the header, not a row at the very bottom. */}
+        <div className="sidebar-head">
+          <Wordmark href={`/${locale}/app/calendar`} />
+          <LanguageMenu />
+        </div>
         {session.locations.length > 1 ? (
           <label className="field">
             <span className="visually-hidden">{t.settings.salon}</span>
@@ -139,7 +143,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar-foot">
           <span className="muted">{session.me.user.name}</span>
-          <LanguageSwitch />
           <InstallApp compact />
           <button type="button" className="link-btn" onClick={() => void session.signOut()}>
             {t.common.signOut}

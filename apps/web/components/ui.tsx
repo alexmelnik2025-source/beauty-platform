@@ -35,6 +35,31 @@ export function LanguageSwitch({ query = '' }: { query?: string }) {
   );
 }
 
+/**
+ * Task Q6: the cabinet's language as one compact choice in its header — "PL ▾" opens the list of
+ * the dashboard's languages (Ukrainian is "UA"). The same links as `LanguageSwitch`, folded.
+ */
+export function LanguageMenu() {
+  const { locale, t } = useI18n();
+  const pathname = usePathname() ?? `/${locale}`;
+  const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
+  const code = (l: string) => (l === 'uk' ? 'UA' : l.toUpperCase());
+  return (
+    <details className="lang-menu">
+      <summary aria-label={`${t.common.language}: ${code(locale)}`}>
+        {code(locale)} <span aria-hidden="true">▾</span>
+      </summary>
+      <nav className="lang-menu__list" aria-label={t.common.language}>
+        {DASHBOARD_LOCALES.map((l) => (
+          <a key={l} href={`/${l}${rest}`} aria-current={l === locale} lang={l}>
+            {code(l)}
+          </a>
+        ))}
+      </nav>
+    </details>
+  );
+}
+
 export function Spinner({ label }: { label?: string }) {
   const { t } = useI18n();
   return (

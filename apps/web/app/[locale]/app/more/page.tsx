@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { InstallApp } from '@/components/InstallApp';
 import { PushToggle } from '@/components/PushToggle';
 import { useSession } from '@/components/Session';
-import { LanguageSwitch } from '@/components/ui';
+import { LanguageMenu } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { menuItems } from '@/components/AppShell';
 
@@ -17,6 +17,8 @@ export default function MorePage() {
     <>
       <div className="page-head">
         <h1>{t.more.title}</h1>
+        {/* Task Q6: on a phone the language is a compact "PL ▾" in this page's header. */}
+        <LanguageMenu />
       </div>
       <div className="page">
         <div className="small">
@@ -52,10 +54,6 @@ export default function MorePage() {
         </ul>
         <InstallApp />
         <PushToggle />
-        <div className="field">
-          <span className="small muted">{t.more.language}</span>
-          <LanguageSwitch />
-        </div>
         <button type="button" className="btn btn--quiet" onClick={() => void session.signOut()}>
           {t.common.signOut}
         </button>

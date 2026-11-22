@@ -149,6 +149,20 @@ test('every button and link on the cabinet pages has a name (task 386)', async (
       await page.goto('/pl/app/more');
       await page.waitForLoadState('networkidle');
       await page.screenshot({ path: 'e2e/screenshots/386-cabinet-names.png' });
+      // Task Q6: the language is a compact "PL ▾" in the header of "Więcej"; it opens the list.
+      const lang = page.locator('.page-head .lang-menu');
+      await lang.getByLabel('Język: PL').click();
+      await expect(lang.getByRole('navigation', { name: 'Język' }).getByRole('link')).toHaveText([
+        'PL',
+        'UA',
+        'RU',
+        'EN',
+      ]);
+      await page.screenshot({ path: 'e2e/screenshots/q6-language-menu-phone.png' });
+      await lang.getByRole('link', { name: 'UA' }).click();
+      await page.waitForURL(/\/uk\/app\/more/);
+      await expect(page.locator('.page-head .lang-menu summary')).toContainText('UA');
+      await page.goto('/pl/app/more');
     }
     if (viewport !== PHONE) {
       // Task Q6: on a computer the sidebar's long menu is in three small groups — every item stays.
@@ -160,9 +174,15 @@ test('every button and link on the cabinet pages has a name (task 386)', async (
       for (const name of ['Kalendarz', 'Klienci', 'Usługi', 'Opinie', 'Zespół', 'Ustawienia']) {
         await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
       }
+      // Task Q6: the language is a compact "PL ▾" next to the wordmark at the top of the sidebar.
+      const head = page.locator('.sidebar .sidebar-head');
+      await expect(head.locator('.lang-menu summary')).toHaveText(/PL/);
+      await head.getByLabel('Język: PL').click();
+      await expect(head.getByRole('link', { name: 'UA' })).toBeVisible();
       await page
         .locator('.sidebar')
         .screenshot({ path: 'e2e/screenshots/q6-cabinet-menu-groups.png' });
+      await head.getByLabel('Język: PL').click();
     }
     await context.close();
   }

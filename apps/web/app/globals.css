@@ -350,6 +350,53 @@ fieldset.field > legend {
   background: var(--fog);
 }
 
+/* Task Q6: the cabinet's language — one compact "PL ▾" that opens a short list. */
+.lang-menu {
+  position: relative;
+}
+
+.lang-menu summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.lang-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.lang-menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 64px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 8%);
+}
+
+.lang-menu__list a {
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--graphite);
+}
+
+.lang-menu__list a[aria-current='true'] {
+  color: var(--ink);
+  background: var(--fog);
+  font-weight: 600;
+}
+
 /* ── App shell ────────────────────────────────────────── */
 
 .shell {
@@ -367,6 +414,13 @@ fieldset.field > legend {
   gap: 28px;
   padding: 24px 16px;
   border-right: 1px solid var(--line);
+}
+
+.sidebar .sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .sidebar .menu {
