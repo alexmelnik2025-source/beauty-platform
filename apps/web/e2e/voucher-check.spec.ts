@@ -117,6 +117,9 @@ test('the client checks what is left on a gift voucher on the salon page', async
   await expect(section.getByRole('alert')).toHaveText(
     'Ten salon nie ma bonu z takim kodem. Sprawdź litery i cyfry.',
   );
+  // Task Q5: the error is at the code field (red frame) and goes away once the client types.
+  await expect(code).toHaveAttribute('aria-invalid', 'true');
+  await page.screenshot({ path: 'e2e/screenshots/q5-voucher-code-error.png' });
 
   await code.fill(`${voucher.code.slice(0, 4).toLowerCase()}-${voucher.code.slice(4)}`);
   await section.getByRole('button', { name: 'Sprawdź', exact: true }).click();
@@ -125,6 +128,7 @@ test('the client checks what is left on a gift voucher on the salon page', async
   await expect(result).toContainText('Ważny · Ważny do');
   await expect(result).toContainText('Bonem płacisz w salonie, przy wizycie.');
   await expect(section.getByRole('alert')).toHaveCount(0);
+  await expect(code).not.toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByText('Jan Kowalski')).toHaveCount(0);
   await section.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'e2e/screenshots/537.png' });

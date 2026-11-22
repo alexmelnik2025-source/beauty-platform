@@ -5,6 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { PublicGiftVoucher } from '@/lib/types';
+import { FieldError } from '../ui';
 
 /** "17 lutego 2027": a voucher may be valid into the next year, so the year is shown. */
 function dayWithYear(date: string, tag: string): string {
@@ -112,7 +113,12 @@ export function VoucherCheck({ slug }: { slug: string }) {
           <span>{t.voucherCheck.code}</span>
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => {
+              setCode(e.target.value);
+              setError('');
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'voucher-code-error' : undefined}
             autoFocus={focusCode}
             autoComplete="off"
             autoCapitalize="characters"
@@ -125,11 +131,8 @@ export function VoucherCheck({ slug }: { slug: string }) {
           {t.voucherCheck.check}
         </button>
       </form>
-      {error ? (
-        <p className="alert" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {/* Task Q5: the error at the code field — a red frame, "!" and a short line under it. */}
+      <FieldError id="voucher-code-error" text={error} />
       {voucher ? (
         <div className="note stack voucher-check-result" role="status">
           <strong>
