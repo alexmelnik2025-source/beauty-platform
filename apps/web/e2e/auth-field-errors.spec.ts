@@ -20,8 +20,9 @@ test('sign-in errors are shown at their own field', async ({ page, request }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await page.setExtraHTTPHeaders(freshAddress());
   await page.goto('/pl/login');
-  const email = page.getByLabel('E-mail');
-  const password = page.getByLabel('Hasło');
+  // By type: the error under a field becomes part of its name ("Hasło ! Nieprawidłowy e-mail…").
+  const email = page.locator('input[type="email"]');
+  const password = page.locator('input[type="password"]');
   await email.fill(EMAIL);
   await password.fill('not-the-password');
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
