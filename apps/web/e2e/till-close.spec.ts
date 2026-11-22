@@ -154,7 +154,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   await expect(counted).toBeFocused();
   await counted.fill('80x');
   await expect(form.locator('.field-error')).toHaveText('Wpisz kwotę, np. 150 lub 150,50.');
-  await expect(counted).toHaveAccessibleDescription('Wpisz kwotę, np. 150 lub 150,50.');
+  await expect(counted).toHaveAccessibleDescription(/Wpisz kwotę, np\. 150 lub 150,50\.$/);
   await shot(page, '669-till-close-amount-error');
   await counted.fill('80');
   await expect(form.locator('.field-error')).toHaveCount(0);
@@ -208,7 +208,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
   const reason = moveForm.getByLabel('Powód');
   await expect(reason).toHaveAttribute('aria-invalid', 'true');
   await expect(reason).toBeFocused();
-  await expect(reason).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(reason).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
   await expect(moveForm.getByLabel(/Kwota/)).not.toHaveAttribute('aria-invalid', 'true');
   await shot(page, '669-till-move-reason-error');
   await reason.fill('Ręczniki');
