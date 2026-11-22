@@ -11406,6 +11406,11 @@
                   "acceptTerms": {
                     "type": "boolean",
                     "const": true
+                  },
+                  "autoBook": {
+                    "default": false,
+                    "description": "Task Q8: book the first free time automatically (needs a phone)",
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -21039,6 +21044,10 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "autoBook": {
+            "type": "boolean",
+            "description": "Task Q8: the first free time is booked automatically"
           }
         },
         "required": [
@@ -21051,7 +21060,8 @@
           "date",
           "status",
           "notifiedAt",
-          "createdAt"
+          "createdAt",
+          "autoBook"
         ],
         "additionalProperties": false
       },
@@ -29890,6 +29900,10 @@
             "nullable": true,
             "description": "When the client was told a time became free",
             "type": "string"
+          },
+          "autoBook": {
+            "type": "boolean",
+            "description": "Task Q8: the first free time is booked automatically"
           }
         },
         "required": [
@@ -29904,7 +29918,8 @@
           "phone",
           "status",
           "createdAt",
-          "notifiedAt"
+          "notifiedAt",
+          "autoBook"
         ],
         "additionalProperties": false
       },

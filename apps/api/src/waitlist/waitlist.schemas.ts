@@ -36,8 +36,25 @@ export const salonWaitlistQuerySchema = z
   .strict();
 export type SalonWaitlistQuery = z.infer<typeof salonWaitlistQuerySchema>;
 
-/** Task 51: joining from the client app — the email is the signed-in client's own. */
-export const clientJoinWaitlistSchema = joinWaitlistSchema.omit({ email: true }).strict();
+/**
+ * Task 51: joining from the client app — the email is the signed-in client's own.
+ * Task Q8: `autoBook` — the first time that frees up is booked for the client at once (the
+ * signed-in client's email is confirmed already); a phone is needed for the visit.
+ */
+export const clientJoinWaitlistSchema = joinWaitlistSchema
+  .omit({ email: true })
+  .extend({
+    autoBook: z
+      .boolean()
+      .default(false)
+      .describe('Task Q8: book the first free time automatically (needs a phone)'),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.autoBook && !value.phone) {
+      ctx.addIssue({ code: 'custom', path: ['phone'], message: 'required to book automatically' });
+    }
+  });
 export type ClientJoinWaitlistInput = z.infer<typeof clientJoinWaitlistSchema>;
 
 /** Task 164: taking the held time from the offer email; a phone when the list had none. */
