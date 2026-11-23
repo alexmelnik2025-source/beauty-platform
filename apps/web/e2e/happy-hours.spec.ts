@@ -172,9 +172,31 @@ test('the client sees happy-hour prices at the free times and on the held visit'
   await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toBeVisible();
   await expect(owner.getByText('Usługi: Strzyżenie męskie')).toBeVisible();
   await shot(owner, '76c-owner-happy-hours');
-  await owner.getByRole('button', { name: 'Usuń promocję 2' }).click();
+  // Task 744 (owner's rule: errors where the action is): a refused save is said in the sheet under
+  // "Zapisz", a refused removal under the promotion's row — not as a line at the top of the page.
+  const refusePut = () =>
+    owner.route('**/happy-hours', (route) =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({
+            status: 429,
+            json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+          })
+        : route.fallback(),
+    );
+  await refusePut();
+  const removeSecond = owner.getByRole('button', { name: 'Usuń promocję 2' });
+  await removeSecond.click();
+  await owner.getByRole('button', { name: 'Tak, usuń' }).click();
+  await expect(owner.locator('#hh-remove-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(owner.locator('li.list-row--error')).toContainText('−15% · wt. · 14:00–16:00');
+  await expect(removeSecond).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(owner.locator('.alert')).toHaveCount(0);
+  await shot(owner, '744-promotion-remove-error');
+  await owner.unrouteAll({ behavior: 'wait' });
+  await removeSecond.click();
   await owner.getByRole('button', { name: 'Tak, usuń' }).click();
   await expect(owner.getByText('Usunięto promocję.')).toBeVisible();
+  await expect(owner.locator('#hh-remove-error')).toHaveCount(0);
   await expect(owner.getByText('−15% · wt. · 14:00–16:00')).toHaveCount(0);
   await expect(owner.getByText('−20% · Codziennie · 08:00–12:00')).toBeVisible();
 
@@ -191,7 +213,15 @@ test('the client sees happy-hour prices at the free times and on the held visit'
   await expect(sheet.getByText('Wpisz liczbę godzin od 1 do 72.')).toBeVisible();
   await shot(owner, 'q7-promotions-field-error');
   await ahead.fill('3');
-  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await refusePut();
+  const saveSheet = sheet.getByRole('button', { name: 'Zapisz' });
+  await saveSheet.click();
+  await expect(sheet.locator('#hh-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveSheet).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(owner.locator('.alert')).toHaveCount(0);
+  await shot(owner, '744-promotion-save-error');
+  await owner.unrouteAll({ behavior: 'wait' });
+  await saveSheet.click();
   await expect(owner.getByText('Zapisano promocję.')).toBeVisible();
   const lastMinute = owner.getByText('−30% · Last Minute · do 3 godz. przed wizytą');
   await expect(lastMinute).toBeVisible();
