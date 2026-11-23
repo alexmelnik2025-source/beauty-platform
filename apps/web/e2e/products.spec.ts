@@ -225,7 +225,9 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   const options = sold.getByLabel('Wybierz produkt').locator('option');
   await expect(options.nth(1)).toHaveText(/Pomada matowa · 49,00\s*zł · zostało 2 szt\./);
   await sold.getByLabel('Wybierz produkt').selectOption({ index: 1 });
-  await sold.getByLabel('Ilość').fill('2');
+  // Task 703: a part of a piece is not possible — "2.5" stays 2, no browser bubble on "+ Dodaj".
+  await sold.getByLabel('Ilość').fill('2.5');
+  await expect(sold.getByLabel('Ilość')).toHaveValue('2');
   await sold.getByRole('button', { name: '+ Dodaj' }).click();
   await expect(sold).toContainText(/Pomada matowa × 2/);
   // Task 430: both pomades are sold — none left to choose.

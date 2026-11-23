@@ -211,6 +211,7 @@ export function ProductSales({
       {fieldError('code')}
       {canChange && products.length > 0 ? (
         <form
+          noValidate
           className="row"
           style={{ gap: 8, alignItems: 'center' }}
           onSubmit={(e) => {
@@ -267,10 +268,14 @@ export function ProductSales({
             type="number"
             min={1}
             max={99}
+            step={1}
+            inputMode="numeric"
             value={quantity}
             {...invalid('quantity')}
             onChange={(e) => {
-              setQuantity(Math.min(99, Math.max(1, Number(e.target.value) || 1)));
+              // Task 703: whole pieces only — "2,5" becomes 2 instead of the browser's own
+              // "enter a valid value" bubble on "+ Dodaj".
+              setQuantity(Math.min(99, Math.max(1, Math.floor(Number(e.target.value)) || 1)));
               clear('quantity');
             }}
             style={{ maxWidth: 70 }}
