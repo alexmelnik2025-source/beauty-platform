@@ -12,7 +12,7 @@ import { waitForEmail } from './mailpit';
  * Task 254: the order and names of the price-list categories. The owner has "Broda" and
  * "Włosy"; in "Usługi" "↑" by "Włosy" puts it first (the order clients see on the booking
  * page), "Zmień nazwę" turns "Broda" into "Broda i golenie", and a new category "Dzieci" goes
- * to the end. Screenshot 254.
+ * to the end. Screenshot 254. Task 700: an empty name is said under the field (screenshot 700).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -125,12 +125,29 @@ test('the owner orders and renames the categories of the price list', async ({
   await cabinet.getByRole('button', { name: 'Zmień nazwę' }).nth(1).click();
   const name = cabinet.getByLabel('Nazwa kategorii', { exact: true }).first();
   await expect(name).toHaveValue('Broda');
+  // Task 700: an empty name is said under the field, not in the browser's bubble.
+  await name.fill('  ');
+  await cabinet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(cabinet.locator('#category-rename-error')).toHaveText('Uzupełnij to pole.');
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  await expect(name).toBeFocused();
   await name.fill('Broda i golenie');
+  await expect(cabinet.locator('#category-rename-error')).toHaveCount(0);
   await cabinet.getByRole('button', { name: 'Zapisz' }).click();
   await expect(headings).toHaveText(['Włosy', 'Broda i golenie']);
 
+  // Task 700: "Nowa kategoria" without a name — said under the field, the cursor goes there.
+  await cabinet.getByRole('button', { name: 'Nowa kategoria' }).click();
+  const added = cabinet.getByPlaceholder('Nazwa kategorii');
+  await expect(cabinet.locator('#category-add-error')).toHaveText('Uzupełnij to pole.');
+  await expect(added).toHaveAttribute('aria-invalid', 'true');
+  await expect(added).toBeFocused();
+  await shot(cabinet, '700-category-name-error');
+  await expect.poll(categories).toEqual(['Włosy', 'Broda i golenie']);
+
   // A new category goes to the end of the order the owner set.
   await cabinet.getByPlaceholder('Nazwa kategorii').fill('Dzieci');
+  await expect(cabinet.locator('#category-add-error')).toHaveCount(0);
   await cabinet.getByRole('button', { name: 'Nowa kategoria' }).click();
   await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
   await shot(cabinet, '254-category-order');

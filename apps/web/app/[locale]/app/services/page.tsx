@@ -48,6 +48,14 @@ export default function ServicesPage() {
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const renameLock = useSubmitLock();
   const categoryLock = useSubmitLock();
+  /**
+   * Task 700: an empty name of a new or renamed category, or the server's answer about it, is
+   * said under that field — not in the browser's bubble or a line at the top of the page.
+   */
+  const [categoryProblem, setCategoryProblem] = useState<{
+    form: 'add' | 'rename';
+    text: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -68,9 +76,20 @@ export default function ServicesPage() {
     void load();
   }, [load]);
 
+  const categoryInvalid = (form: 'add' | 'rename') => ({
+    'aria-invalid': categoryProblem?.form === form || undefined,
+    'aria-describedby': categoryProblem?.form === form ? `category-${form}-error` : undefined,
+  });
+
   async function addCategory(e: FormEvent) {
     e.preventDefault();
+    if (!newCategory.trim()) {
+      setCategoryProblem({ form: 'add', text: t.onboarding.fieldRequired });
+      document.getElementById('category-add-name')?.focus();
+      return;
+    }
     if (!categoryLock.lock()) return;
+    setCategoryProblem(null);
     try {
       await api(`${base}/service-categories`, {
         method: 'POST',
@@ -80,7 +99,8 @@ export default function ServicesPage() {
       setNewCategory('');
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      setCategoryProblem({ form: 'add', text: errorText(t, err) });
+      document.getElementById('category-add-name')?.focus();
     } finally {
       categoryLock.unlock();
     }
@@ -98,8 +118,15 @@ export default function ServicesPage() {
   async function renameCategory(e: FormEvent) {
     e.preventDefault();
     const category = categories.find((c) => c.id === renaming?.id);
-    if (!renaming || !category || !renameLock.lock()) return;
+    if (!renaming || !category) return;
+    if (!renaming.name.trim()) {
+      setCategoryProblem({ form: 'rename', text: t.onboarding.fieldRequired });
+      document.getElementById('category-rename-name')?.focus();
+      return;
+    }
+    if (!renameLock.lock()) return;
     setError('');
+    setCategoryProblem(null);
     try {
       await api(`${base}/service-categories/${category.id}`, {
         method: 'PATCH',
@@ -108,7 +135,8 @@ export default function ServicesPage() {
       setRenaming(null);
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      setCategoryProblem({ form: 'rename', text: errorText(t, err) });
+      document.getElementById('category-rename-name')?.focus();
     } finally {
       renameLock.unlock();
     }
@@ -282,27 +310,41 @@ export default function ServicesPage() {
           g.items.length === 0 && !g.category ? null : (
             <section key={g.category?.id ?? 'none'} className="section">
               {renaming && g.category && renaming.id === g.category.id ? (
-                <form className="copy-field" onSubmit={renameCategory}>
-                  <input
-                    className="input"
-                    aria-label={t.services.categoryName}
-                    required
-                    autoFocus
-                    maxLength={60}
-                    value={renaming.name}
-                    onChange={(e) => setRenaming({ ...renaming, name: e.target.value })}
+                <div>
+                  <form noValidate className="copy-field" onSubmit={renameCategory}>
+                    <input
+                      id="category-rename-name"
+                      className="input"
+                      aria-label={t.services.categoryName}
+                      required
+                      autoFocus
+                      maxLength={60}
+                      value={renaming.name}
+                      {...categoryInvalid('rename')}
+                      onChange={(e) => {
+                        setRenaming({ ...renaming, name: e.target.value });
+                        if (categoryProblem?.form === 'rename') setCategoryProblem(null);
+                      }}
+                    />
+                    <button className="btn btn--small" disabled={renameLock.busy}>
+                      {t.common.save}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--quiet btn--small"
+                      onClick={() => {
+                        setRenaming(null);
+                        if (categoryProblem?.form === 'rename') setCategoryProblem(null);
+                      }}
+                    >
+                      {t.common.cancel}
+                    </button>
+                  </form>
+                  <FieldError
+                    id="category-rename-error"
+                    text={categoryProblem?.form === 'rename' ? categoryProblem.text : undefined}
                   />
-                  <button className="btn btn--small" disabled={renameLock.busy}>
-                    {t.common.save}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--quiet btn--small"
-                    onClick={() => setRenaming(null)}
-                  >
-                    {t.common.cancel}
-                  </button>
-                </form>
+                </div>
               ) : (
                 <div className="row" style={{ alignItems: 'center' }}>
                   <h2 style={{ flex: '1 1 auto' }}>{g.category?.name ?? t.services.noCategory}</h2>
@@ -312,7 +354,10 @@ export default function ServicesPage() {
                         type="button"
                         className="link-btn small"
                         style={{ flex: '0 0 auto' }}
-                        onClick={() => setRenaming({ id: g.category!.id, name: g.category!.name })}
+                        onClick={() => {
+                          setRenaming({ id: g.category!.id, name: g.category!.name });
+                          if (categoryProblem?.form === 'rename') setCategoryProblem(null);
+                        }}
                       >
                         {t.services.renameCategory}
                       </button>
@@ -410,20 +455,29 @@ export default function ServicesPage() {
             </section>
           ),
         )}
-        <form className="copy-field" onSubmit={addCategory}>
+        <form noValidate className="copy-field" onSubmit={addCategory}>
           <input
+            id="category-add-name"
             className="input"
             placeholder={t.services.categoryName}
             aria-label={t.services.categoryName}
             required
             maxLength={60}
             value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
+            {...categoryInvalid('add')}
+            onChange={(e) => {
+              setNewCategory(e.target.value);
+              if (categoryProblem?.form === 'add') setCategoryProblem(null);
+            }}
           />
           <button className="btn btn--quiet" disabled={categoryLock.busy}>
             {t.services.addCategory}
           </button>
         </form>
+        <FieldError
+          id="category-add-error"
+          text={categoryProblem?.form === 'add' ? categoryProblem.text : undefined}
+        />
       </div>
       {/* Task 395: the products sold at a visit. */}
       <ProductsSection base={base} />
