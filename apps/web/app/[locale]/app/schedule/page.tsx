@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { LanguagePicker, type Spoken } from '@/components/Languages';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { Staff, WorkingHours } from '@/lib/types';
@@ -28,6 +28,12 @@ export default function MySchedulePage() {
   const [languages, setLanguages] = useState<Spoken[]>([]);
   const [savedNote, setSavedNote] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 745 (owner's rule: errors where the action is): a refused "Zapisz" of "Moje języki" is
+   * said under that button, not as a line at the top of the page. The top line stays only for a
+   * page that failed to load.
+   */
+  const [languagesError, setLanguagesError] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -54,7 +60,7 @@ export default function MySchedulePage() {
   async function saveLanguages() {
     if (!mine) return;
     setBusy(true);
-    setError('');
+    setLanguagesError('');
     setSavedNote('');
     try {
       const saved = await api<Staff>(`${base}/staff/${mine.id}/languages`, {
@@ -64,7 +70,7 @@ export default function MySchedulePage() {
       setMine(saved);
       setSavedNote(t.actions.saved);
     } catch (err) {
-      setError(errorText(t, err));
+      setLanguagesError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -104,7 +110,10 @@ export default function MySchedulePage() {
                 title={t.languages.staffTitle}
                 hint={t.languages.staffHint}
                 value={languages}
-                onChange={setLanguages}
+                onChange={(next) => {
+                  setLanguages(next);
+                  setLanguagesError('');
+                }}
               />
               {savedNote ? (
                 <p className="note" role="status">
@@ -115,10 +124,12 @@ export default function MySchedulePage() {
                 type="button"
                 className="btn btn--small"
                 disabled={busy}
+                aria-describedby={languagesError ? 'my-languages-error' : undefined}
                 onClick={() => void saveLanguages()}
               >
                 {t.common.save}
               </button>
+              <FieldError id="my-languages-error" text={languagesError} />
             </section>
             <section className="section">
               <h2>{t.team.hours}</h2>
