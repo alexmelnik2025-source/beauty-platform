@@ -220,7 +220,9 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   // Task 707: another catalogue brings its own warehouse; no price group in złoty is said under
   // "Grupa cen" (not a switched-off "Zapisz" or a line at the top), and going back restores both.
   const priceGroup = baseCard.getByLabel('Grupa cen');
-  await baseCard.getByLabel('Katalog').selectOption('308');
+  // The error under "Grupa cen" also says "katalog" — so the list is found by how its name starts.
+  const catalogue = baseCard.getByRole('combobox', { name: /^Katalog/ });
+  await catalogue.selectOption('308');
   await expect(baseCard.getByLabel('Magazyn')).toHaveValue('bl_202');
   await expect(baseCard.locator('.field-error')).toHaveText(
     'Ten katalog nie ma grupy cen w walucie salonu — dodaj ją w Base albo wybierz inny katalog.',
@@ -230,7 +232,7 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await expect(priceGroup).toBeFocused();
   await expect(page.locator('[aria-labelledby="integrations-title"] .alert')).toHaveCount(0);
   await shot(page, '707-base-choice-empty');
-  await baseCard.getByLabel('Katalog').selectOption('307');
+  await catalogue.selectOption('307');
   await expect(priceGroup).toHaveValue('105');
   await expect(baseCard.getByLabel('Magazyn')).toHaveValue('bl_201');
   await expect(baseCard.locator('.field-error')).toHaveCount(0);
