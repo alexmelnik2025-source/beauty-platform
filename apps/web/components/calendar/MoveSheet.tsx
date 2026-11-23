@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Appointment, Staff } from '@/lib/types';
-import { ErrorBox, Sheet } from '../ui';
+import { ErrorBox, FieldError, Sheet } from '../ui';
 
 /** Where a visit was dropped in the calendar (task 221). */
 export interface MoveTarget {
@@ -46,6 +46,16 @@ export function MoveSheet({
   const [askOutside, setAskOutside] = useState(false);
   const [outside, setOutside] = useState(false);
   const [key] = useState(newIdempotencyKey);
+  /**
+   * Task 723 (owner's rule: errors at the field): "outside working hours" is said under the
+   * "Zapisz także poza godzinami pracy" choice, which gets the cursor; "Przenieś wizytę" is not
+   * silently off until it is ticked.
+   */
+  const [outsideError, setOutsideError] = useState('');
+
+  useEffect(() => {
+    if (outsideError) document.getElementById('move-outside')?.focus();
+  }, [outsideError]);
 
   const name = (id: string) =>
     staffList.find((s) => s.id === id)?.displayName ?? a.staff.displayName;
@@ -55,6 +65,10 @@ export function MoveSheet({
   const will = `${span(target.minute)} · ${name(target.staffId)}`;
 
   async function save() {
+    if (askOutside && !outside) {
+      document.getElementById('move-outside')?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -73,6 +87,8 @@ export function MoveSheet({
     } catch (err) {
       if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS' && canOutside) {
         setAskOutside(true);
+        setOutsideError(calendarErrorText(t, err));
+        return;
       }
       setError(calendarErrorText(t, err));
     } finally {
@@ -89,12 +105,7 @@ export function MoveSheet({
           <button type="button" className="btn btn--quiet" onClick={onClose}>
             {t.common.cancel}
           </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={busy || (askOutside && !outside)}
-            onClick={() => void save()}
-          >
+          <button type="button" className="btn" disabled={busy} onClick={() => void save()}>
             {t.appointment.saveMove}
           </button>
         </>
@@ -115,10 +126,20 @@ export function MoveSheet({
       </dl>
       <ErrorBox>{error}</ErrorBox>
       {askOutside ? (
-        <label className="check">
-          <input type="checkbox" checked={outside} onChange={(e) => setOutside(e.target.checked)} />
-          <span>{t.appointment.outsideHours}</span>
-        </label>
+        <div>
+          <label className="check">
+            <input
+              id="move-outside"
+              type="checkbox"
+              checked={outside}
+              aria-invalid={(Boolean(outsideError) && !outside) || undefined}
+              aria-describedby={outsideError && !outside ? 'move-outside-error' : undefined}
+              onChange={(e) => setOutside(e.target.checked)}
+            />
+            <span>{t.appointment.outsideHours}</span>
+          </label>
+          <FieldError id="move-outside-error" text={outside ? undefined : outsideError} />
+        </div>
       ) : null}
     </Sheet>
   );

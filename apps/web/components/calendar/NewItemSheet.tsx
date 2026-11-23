@@ -18,7 +18,16 @@ import { PaymentMethodPicker } from './PaymentMethodPicker';
  * task 694 added the ones the browser used to check with its bubble.
  */
 type ItemField =
-  'service' | 'staff' | 'date' | 'time' | 'endTime' | 'weeks' | 'name' | 'phone' | 'email';
+  | 'service'
+  | 'staff'
+  | 'date'
+  | 'time'
+  | 'endTime'
+  | 'weeks'
+  | 'name'
+  | 'phone'
+  | 'email'
+  | 'outside';
 
 /** Which new-client field the server's answer is about; null when it is about something else. */
 function itemFieldOf(err: unknown): 'name' | 'phone' | 'email' | null {
@@ -187,8 +196,14 @@ export function NewItemSheet({
       }
       onCreated(date);
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS' && canOutside) {
-        setAskOutside(true);
+      if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS') {
+        // Task 723 (owner's rule: errors at the field): said under "Zapisz także poza godzinami
+        // pracy" for those allowed to tick it, otherwise under the time — not as a line at the top.
+        const tick = canOutside && kind === 'appointment' && !inPast;
+        if (tick) setAskOutside(true);
+        setProblem({ field: tick ? 'outside' : 'time', text: calendarErrorText(t, err) });
+        unlock();
+        return;
       }
       const field = kind === 'appointment' && !customer ? itemFieldOf(err) : null;
       const text: Record<'name' | 'phone' | 'email', string> = {
@@ -529,14 +544,21 @@ export function NewItemSheet({
             ) : null}
 
             {askOutside && !inPast ? (
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={outside}
-                  onChange={(e) => setOutside(e.target.checked)}
-                />
-                <span>{t.appointment.outsideHours}</span>
-              </label>
+              <div>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={outside}
+                    {...invalid('outside')}
+                    onChange={(e) => {
+                      setOutside(e.target.checked);
+                      clear('outside');
+                    }}
+                  />
+                  <span>{t.appointment.outsideHours}</span>
+                </label>
+                {fieldError('outside')}
+              </div>
             ) : null}
           </>
         )}
