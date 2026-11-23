@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Platform,
   Pressable,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -137,9 +137,15 @@ export function ClientsScreen(props: {
   // Task 277: a full page came back — there may be more clients ("Pokaż więcej klientów").
   const [hasMore, setHasMore] = useState(false);
   const [moreBusy, setMoreBusy] = useState(false);
+  const latestSearch = useRef(0);
+  const loadingMore = useRef(false);
+  const texts = useRef(t);
+  texts.current = t;
 
   const loadMore = async () => {
-    if (!list || moreBusy) return;
+    if (!list || busy || loadingMore.current) return;
+    const request = latestSearch.current;
+    loadingMore.current = true;
     setMoreBusy(true);
     try {
       const page = await api.customers(
@@ -157,12 +163,14 @@ export function ClientsScreen(props: {
         list.length,
         order,
       );
+      if (request !== latestSearch.current) return;
       const seen = new Set(list.map((client) => client.id));
       setList([...list, ...page.filter((client) => !seen.has(client.id))]);
       setHasMore(page.length === PAGE);
     } catch (e) {
-      setError(errorText(e, t));
+      if (request === latestSearch.current) setError(errorText(e, texts.current));
     } finally {
+      loadingMore.current = false;
       setMoreBusy(false);
     }
   };
@@ -184,6 +192,7 @@ export function ClientsScreen(props: {
 
   const search = useCallback(
     async (text: string) => {
+      const request = ++latestSearch.current;
       setBusy(true);
       try {
         const page = await api.customers(
@@ -201,20 +210,20 @@ export function ClientsScreen(props: {
           0,
           order,
         );
+        if (request !== latestSearch.current) return;
         setList(page);
         setHasMore(page.length === PAGE);
         setSearched(text.trim());
         setError('');
       } catch (e) {
-        setError(errorText(e, t));
+        if (request === latestSearch.current) setError(errorText(e, texts.current));
       } finally {
-        setBusy(false);
+        if (request === latestSearch.current) setBusy(false);
       }
     },
     [
       api,
-      salon,
-      t,
+      salon.orgId,
       inactiveDays,
       tag,
       birthdays,
@@ -233,7 +242,7 @@ export function ClientsScreen(props: {
     } catch {
       setTags([]);
     }
-  }, [api, salon]);
+  }, [api, salon.orgId]);
 
   useEffect(() => {
     void search('');
@@ -245,7 +254,7 @@ export function ClientsScreen(props: {
     } catch {
       setSegments(null);
     }
-  }, [api, salon]);
+  }, [api, salon.orgId]);
 
   useEffect(() => {
     void loadTags();
@@ -311,8 +320,8 @@ export function ClientsScreen(props: {
     );
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+  const header = (
+    <View style={{ gap: 12, paddingBottom: list?.length ? 12 : 0 }}>
       <View style={styles.row}>
         <Button kind="link" label={c.back} onPress={onBack} />
       </View>
@@ -590,39 +599,49 @@ export function ClientsScreen(props: {
                         ? c.inactiveNone
                         : c.none}
         </Text>
-      ) : (
-        <>
-          {!searched && list.length >= PAGE ? (
-            <Text style={styles.muted}>{fill(c.first, { count: String(PAGE) })}</Text>
-          ) : null}
-          {list.map((client) => (
-            <Pressable
-              key={client.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${c.card}: ${client.name}`}
-              onPress={() => setOpenId(client.id)}
-              style={({ pressed }) => pressed && { opacity: 0.7 }}
-            >
-              <Card>
-                <Text style={styles.name}>{client.name}</Text>
-                {client.phone || client.email ? (
-                  <Text style={styles.muted}>
-                    {[client.phone, client.email].filter(Boolean).join(' · ')}
-                  </Text>
-                ) : null}
-                {client.birthday ? (
-                  <Text style={styles.muted}>
-                    🎂{' '}
-                    {birthdayText(client.birthday, props.locale, c.birthdayToday, props.timeZone)}
-                  </Text>
-                ) : null}
-                {client.tags && client.tags.length > 0 ? (
-                  <Text style={styles.tags}>{client.tags.join(' · ')}</Text>
-                ) : null}
-              </Card>
-            </Pressable>
-          ))}
-          {hasMore ? (
+      ) : !searched && list.length >= PAGE ? (
+        <Text style={styles.muted}>{fill(c.first, { count: String(PAGE) })}</Text>
+      ) : null}
+    </View>
+  );
+
+  return (
+    <FlatList
+      contentContainerStyle={{ padding: 20 }}
+      keyboardShouldPersistTaps="handled"
+      data={list ?? undefined}
+      keyExtractor={(client) => client.id}
+      ItemSeparatorComponent={ClientRowGap}
+      ListHeaderComponent={header}
+      renderItem={({ item: client }) => (
+        <Pressable
+          key={client.id}
+          accessibilityRole="button"
+          accessibilityLabel={`${c.card}: ${client.name}`}
+          onPress={() => setOpenId(client.id)}
+          style={({ pressed }) => pressed && { opacity: 0.7 }}
+        >
+          <Card>
+            <Text style={styles.name}>{client.name}</Text>
+            {client.phone || client.email ? (
+              <Text style={styles.muted}>
+                {[client.phone, client.email].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
+            {client.birthday ? (
+              <Text style={styles.muted}>
+                🎂 {birthdayText(client.birthday, props.locale, c.birthdayToday, props.timeZone)}
+              </Text>
+            ) : null}
+            {client.tags && client.tags.length > 0 ? (
+              <Text style={styles.tags}>{client.tags.join(' · ')}</Text>
+            ) : null}
+          </Card>
+        </Pressable>
+      )}
+      ListFooterComponent={
+        list?.length && hasMore ? (
+          <View style={{ paddingTop: 12 }}>
             <View style={styles.row}>
               <Button
                 kind="secondary"
@@ -631,15 +650,18 @@ export function ClientsScreen(props: {
                 onPress={() => void loadMore()}
               />
             </View>
-          ) : null}
-        </>
-      )}
-    </ScrollView>
+          </View>
+        ) : undefined
+      }
+    />
   );
 }
 
+function ClientRowGap() {
+  return <View style={{ height: 12 }} />;
+}
+
 const styles = StyleSheet.create({
-  screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginBottom: 10 },

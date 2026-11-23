@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import {
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { BusinessApi, CatalogProduct, Locale, Product, StockHistory } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -46,6 +55,10 @@ export function ProductListSection(props: {
   locale: Locale;
   salon: SalonChoice;
   catalogCards: Record<string, CatalogProduct>;
+  inventory: Awaited<ReturnType<BusinessApi['products']>> | null;
+  onReload: () => Promise<void>;
+  onProductsChanged: (products: Product[]) => void;
+  header: ReactNode;
 }) {
   const { api, t, salon } = props;
   const p = t.products;
@@ -55,9 +68,12 @@ export function ProductListSection(props: {
   const [adding, setAdding] = useState(false);
   const [addOptions, setAddOptions] = useState(false);
   const [showOnline, setShowOnline] = useState(false);
-  const [products, setProducts] = useState<Product[] | null>(null);
+  const products = props.inventory?.products ?? null;
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
-  const [sold30, setSold30] = useState<Map<string, number>>(new Map());
+  const sold30 = useMemo(
+    () => new Map(props.inventory?.sold30Days.map((x) => [x.productId, x.quantity])),
+    [props.inventory],
+  );
   const [editId, setEditId] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     name: '',
@@ -121,23 +137,13 @@ export function ProductListSection(props: {
       .join(' · ');
   };
 
-  const load = useCallback(async () => {
-    const list = await api.products(salon.orgId, salon.locationId);
-    setSold30(new Map(list.sold30Days.map((x) => [x.productId, x.quantity])));
-    setProducts(list.products);
-  }, [api, salon]);
-
-  useEffect(() => {
-    void load().catch((e: unknown) => setError(errorText(e, t)));
-  }, [load, t]);
-
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
     if (busy) return false;
     setBusy(true);
     setError('');
     try {
       await action();
-      await load().catch((e: unknown) => setError(errorText(e, t)));
+      await props.onReload().catch((e: unknown) => setError(errorText(e, t)));
       if (history) {
         // The open history shows the change too (gone with a removed product).
         const res = await api
@@ -185,15 +191,19 @@ export function ProductListSection(props: {
   const freshLow = parseStock(fresh.low);
   const draftBarcode = parseBarcode(draft.barcode);
   const freshBarcode = parseBarcode(fresh.barcode);
-  const shown = (products ?? []).filter(
-    (x) =>
-      x.id === editId ||
-      x.id === askRemove ||
-      x.id === writeOffId ||
-      x.id === deliveryId ||
-      (matchesProductSearch(x, search) &&
-        (filter === 'all' ||
-          (x.active && (filter === 'active' || x.lowStock || x.stockQuantity === 0)))),
+  const shown = useMemo(
+    () =>
+      (products ?? []).filter(
+        (x) =>
+          x.id === editId ||
+          x.id === askRemove ||
+          x.id === writeOffId ||
+          x.id === deliveryId ||
+          (matchesProductSearch(x, search) &&
+            (filter === 'all' ||
+              (x.active && (filter === 'active' || x.lowStock || x.stockQuantity === 0)))),
+      ),
+    [products, editId, askRemove, writeOffId, deliveryId, search, filter],
   );
   const toggleHistory = async (id: string) => {
     if (history?.id === id) {
@@ -229,8 +239,8 @@ export function ProductListSection(props: {
   const csvFor = suppliers.includes(csvSupplier) ? csvSupplier : '';
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
 
-  return (
-    <View style={{ gap: 8 }} testID="products">
+  const controls = (
+    <View style={{ gap: 8 }}>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {!adding ? (
         <Button label={p.add} onPress={() => setAdding(true)} />
@@ -510,7 +520,7 @@ export function ProductListSection(props: {
               products={products}
               sold30={sold30}
               onSaved={(result) => {
-                setProducts(result.list);
+                props.onProductsChanged(result.list);
                 setDeliveryOpen(false);
                 setHistory(null);
                 setDeliveryDone(
@@ -529,7 +539,7 @@ export function ProductListSection(props: {
               salon={salon}
               products={products}
               onSaved={(result) => {
-                setProducts(result.products);
+                props.onProductsChanged(result.products);
                 setStocktake(false);
                 setHistory(null);
                 setStocktakeDone(
@@ -578,360 +588,361 @@ export function ProductListSection(props: {
           {p.searchNone}
         </Text>
       ) : null}
-      {shown.map((x) =>
-        editId === x.id ? (
-          <Card key={x.id}>
-            <TextInput
-              accessibilityLabel={p.name}
-              value={draft.name}
-              maxLength={80}
-              onChangeText={(name) => setDraft({ ...draft, name })}
-              style={styles.input}
-            />
-            <TextInput
-              accessibilityLabel={fill(p.priceIn, { currency: salon.currency })}
-              keyboardType="decimal-pad"
-              value={draft.price}
-              onChangeText={(price) => setDraft({ ...draft, price })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            {draftPrice === null ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
-            <TextInput
-              accessibilityLabel={`${p.costNew} (${salon.currency})`}
-              placeholder={`${p.costNew} (${salon.currency})`}
-              placeholderTextColor={colors.placeholder}
-              keyboardType="decimal-pad"
-              value={draft.cost}
-              onChangeText={(cost) => setDraft({ ...draft, cost })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            {draftCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
-            <TextInput
-              accessibilityLabel={p.supplierNew}
-              placeholder={p.supplierNew}
-              placeholderTextColor={colors.placeholder}
-              value={draft.supplier}
-              maxLength={80}
-              onChangeText={(supplier) => setDraft({ ...draft, supplier })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            <TextInput
-              accessibilityLabel={p.barcodeNew}
-              placeholder={p.barcodeNew}
-              placeholderTextColor={colors.placeholder}
-              value={draft.barcode}
-              maxLength={40}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              onChangeText={(barcode) => setDraft({ ...draft, barcode })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            {draftBarcode === undefined ? (
-              <Text style={styles.warn}>{p.barcodeInvalid}</Text>
-            ) : null}
-            <TextInput
-              accessibilityLabel={p.stockIn}
-              placeholder={p.stockIn}
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-              value={draft.stock}
-              onChangeText={(stock) => setDraft({ ...draft, stock })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            {draftStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
-            <TextInput
-              accessibilityLabel={p.lowIn}
-              placeholder={p.lowIn}
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-              value={draft.low}
-              onChangeText={(low) => setDraft({ ...draft, low })}
-              style={[styles.input, { marginTop: 8 }]}
-            />
-            {draftLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
-            <View style={styles.row}>
-              <Button
-                label={p.save}
-                busy={busy}
-                disabled={
-                  draftPrice === null ||
-                  draftCost === undefined ||
-                  draftStock === undefined ||
-                  draftLow === undefined ||
-                  draftBarcode === undefined ||
-                  draft.name.trim() === ''
-                }
-                onPress={() =>
-                  void run(() =>
-                    api.updateProduct(salon.orgId, salon.locationId, x.id, {
-                      name: draft.name.trim(),
-                      priceGrosze: draftPrice ?? x.priceGrosze,
-                      purchasePriceGrosze: draftCost ?? null,
-                      stockQuantity: draftStock ?? null,
-                      lowStockAt: draftLow ?? null,
-                      supplier: draft.supplier.trim() || null,
-                      barcode: draftBarcode ?? null,
-                    }),
-                  ).then((ok) => ok && setEditId(null))
-                }
-              />
-              <Button kind="secondary" label={p.cancel} onPress={() => setEditId(null)} />
-            </View>
-          </Card>
-        ) : (
-          <Card key={x.id}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: expandedId === x.id }}
-              aria-expanded={expandedId === x.id}
-              onPress={() => setExpandedId(expandedId === x.id ? null : x.id)}
-              style={styles.productRow}
-            >
-              <ProductPhoto product={x} cards={props.catalogCards} api={api} />
-              <View style={styles.productName}>
-                <Text style={styles.name}>{x.name}</Text>
-                <Text style={styles.muted}>{x.active ? t.navigation.active : p.notSold}</Text>
-              </View>
-              <Text style={x.lowStock || x.stockQuantity === 0 ? styles.warn : styles.muted}>
-                {x.stockQuantity === null
-                  ? p.historyNotCounted
-                  : fill(t.shop.pieces, { n: String(x.stockQuantity) })}
-              </Text>
-              <Text style={styles.name}>{money(x.priceGrosze)}</Text>
-              <Text aria-hidden style={styles.muted}>
-                {expandedId === x.id ? '▾' : '›'}
-              </Text>
-            </Pressable>
-            {expandedId === x.id ? (
-              <>
-                {x.purchasePriceGrosze === null ? null : (
-                  <Text style={styles.muted} testID="product-cost">
-                    {`${p.cost}: ${money(x.purchasePriceGrosze)}`}
-                  </Text>
-                )}
-                {x.supplier === null ? null : (
-                  <Text style={styles.muted} testID="product-supplier">
-                    {`${p.supplier}: ${x.supplier}`}
-                  </Text>
-                )}
-                {x.barcode === null ? null : (
-                  <Text style={styles.muted} testID="product-barcode">
-                    {`${p.barcode}: ${x.barcode}`}
-                  </Text>
-                )}
-                {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
-                  <Text style={x.lowStock ? styles.warn : styles.muted}>
-                    {fill(p.stockLeft, { n: String(x.stockQuantity) })}
-                    {x.lowStock ? ` · ${p.lowBadge}` : ''}
-                  </Text>
-                ) : (
-                  <Text style={styles.warn}>{p.stockNone}</Text>
-                )}
-                {pace(x) ? (
-                  <Text style={styles.muted} testID="product-pace">
-                    {pace(x)}
-                  </Text>
-                ) : null}
-                {deliveryId === x.id ? (
-                  <View style={{ gap: 6, marginTop: 6 }}>
-                    <TextInput
-                      accessibilityLabel={fill(p.restockFor, { name: x.name })}
-                      placeholder={p.restockIn}
-                      placeholderTextColor={colors.placeholder}
-                      keyboardType="number-pad"
-                      value={delivery}
-                      onChangeText={setDelivery}
-                      style={styles.input}
-                    />
-                    <View style={styles.row}>
-                      <Button
-                        label={p.restockAdd}
-                        busy={busy}
-                        disabled={!deliveryCount}
-                        onPress={() =>
-                          void run(() =>
-                            api.restockProduct(
-                              salon.orgId,
-                              salon.locationId,
-                              x.id,
-                              deliveryCount ?? 0,
-                            ),
-                          ).then((ok) => ok && setDeliveryId(null))
-                        }
-                      />
-                      <Button
-                        kind="secondary"
-                        label={p.cancel}
-                        onPress={() => setDeliveryId(null)}
-                      />
-                    </View>
-                  </View>
-                ) : writeOffId === x.id ? (
-                  // Task 445: "Odpis" — used in the salon, damaged or lost.
-                  <View style={{ gap: 6, marginTop: 6 }}>
-                    <TextInput
-                      accessibilityLabel={fill(p.writeOffFor, { name: x.name })}
-                      placeholder={p.writeOffQuantity}
-                      placeholderTextColor={colors.placeholder}
-                      keyboardType="number-pad"
-                      value={writeOff.quantity}
-                      onChangeText={(quantity) => setWriteOff({ ...writeOff, quantity })}
-                      style={styles.input}
-                    />
-                    <TextInput
-                      accessibilityLabel={p.writeOffNote}
-                      placeholder={p.writeOffNote}
-                      placeholderTextColor={colors.placeholder}
-                      maxLength={120}
-                      value={writeOff.note}
-                      onChangeText={(note) => setWriteOff({ ...writeOff, note })}
-                      style={styles.input}
-                    />
-                    <View style={styles.row}>
-                      <Button
-                        label={p.writeOffAdd}
-                        busy={busy}
-                        disabled={!writeOffCount}
-                        onPress={() =>
-                          void run(() =>
-                            api.writeOffProduct(
-                              salon.orgId,
-                              salon.locationId,
-                              x.id,
-                              writeOffCount ?? 0,
-                              writeOff.note.trim() || undefined,
-                            ),
-                          ).then((ok) => ok && setWriteOffId(null))
-                        }
-                      />
-                      <Button
-                        kind="secondary"
-                        label={p.cancel}
-                        onPress={() => setWriteOffId(null)}
-                      />
-                    </View>
-                  </View>
-                ) : askRemove === x.id ? (
-                  <View style={{ gap: 6, marginTop: 6 }}>
-                    <Text style={styles.text}>{fill(p.removeAsk, { name: x.name })}</Text>
-                    <View style={styles.row}>
-                      <Button
-                        label={p.removeYes}
-                        busy={busy}
-                        onPress={() =>
-                          void run(() =>
-                            api.removeProduct(salon.orgId, salon.locationId, x.id),
-                          ).then(() => setAskRemove(null))
-                        }
-                      />
-                      <Button
-                        kind="secondary"
-                        label={p.cancel}
-                        onPress={() => setAskRemove(null)}
-                      />
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.row}>
-                    <Button
-                      kind="secondary"
-                      label={p.history}
-                      a11yLabel={fill(p.historyFor, { name: x.name })}
-                      onPress={() => void toggleHistory(x.id)}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={p.restock}
-                      a11yLabel={fill(p.restockFor, { name: x.name })}
-                      disabled={busy}
-                      onPress={() => {
-                        setDelivery('');
-                        setAskRemove(null);
-                        setWriteOffId(null);
-                        setDeliveryId(x.id);
-                      }}
-                    />
-                    {x.stockQuantity !== null && x.stockQuantity > 0 ? (
-                      <Button
-                        kind="secondary"
-                        label={p.writeOff}
-                        a11yLabel={fill(p.writeOffFor, { name: x.name })}
-                        disabled={busy}
-                        onPress={() => {
-                          setWriteOff({ quantity: '', note: '' });
-                          setAskRemove(null);
-                          setDeliveryId(null);
-                          setWriteOffId(x.id);
-                        }}
-                      />
-                    ) : null}
-                    <Button
-                      kind="secondary"
-                      label={p.change}
-                      a11yLabel={fill(p.changeFor, { name: x.name })}
-                      onPress={() => {
-                        setDraft({
-                          name: x.name,
-                          price: amountInput(x.priceGrosze) || '0',
-                          cost:
-                            x.purchasePriceGrosze === null
-                              ? ''
-                              : amountInput(x.purchasePriceGrosze) || '0',
-                          stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
-                          low: x.lowStockAt === null ? '' : String(x.lowStockAt),
-                          supplier: x.supplier ?? '',
-                          barcode: x.barcode ?? '',
-                        });
-                        setEditId(x.id);
-                      }}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={x.active ? p.stopSelling : p.startSelling}
-                      disabled={busy}
-                      onPress={() =>
-                        void run(() =>
-                          api.updateProduct(salon.orgId, salon.locationId, x.id, {
-                            active: !x.active,
-                          }),
-                        )
-                      }
-                    />
-                    <Button
-                      kind="link"
-                      label={p.remove}
-                      a11yLabel={fill(p.removeFor, { name: x.name })}
-                      onPress={() => setAskRemove(x.id)}
-                    />
-                  </View>
-                )}
-                {history?.id === x.id ? (
-                  <View style={{ gap: 4, marginTop: 8 }} testID="stock-history">
-                    <Text style={styles.text}>{fill(p.historyFor, { name: x.name })}</Text>
-                    {history.rows.length === 0 ? (
-                      <Text style={styles.muted}>{p.historyEmpty}</Text>
-                    ) : (
-                      history.rows.map((r) => (
-                        <Text key={r.id} style={styles.muted}>
-                          {`${r.date} ${r.time} · ${p.historyKinds[r.kind]} · ${fill(p.historyRow, {
-                            change: r.change > 0 ? `+${r.change}` : String(r.change),
-                            after:
-                              r.quantityAfter === null
-                                ? p.historyNotCounted
-                                : String(r.quantityAfter),
-                          })}${r.byName ? ` · ${r.byName}` : ''}${r.note ? ` · ${r.note}` : ''}`}
-                        </Text>
-                      ))
-                    )}
-                  </View>
-                ) : null}
-              </>
-            ) : null}
-          </Card>
-        ),
-      )}
     </View>
   );
+
+  const renderProduct = ({ item: x }: { item: Product }) =>
+    editId === x.id ? (
+      <Card key={x.id}>
+        <TextInput
+          accessibilityLabel={p.name}
+          value={draft.name}
+          maxLength={80}
+          onChangeText={(name) => setDraft({ ...draft, name })}
+          style={styles.input}
+        />
+        <TextInput
+          accessibilityLabel={fill(p.priceIn, { currency: salon.currency })}
+          keyboardType="decimal-pad"
+          value={draft.price}
+          onChangeText={(price) => setDraft({ ...draft, price })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        {draftPrice === null ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
+        <TextInput
+          accessibilityLabel={`${p.costNew} (${salon.currency})`}
+          placeholder={`${p.costNew} (${salon.currency})`}
+          placeholderTextColor={colors.placeholder}
+          keyboardType="decimal-pad"
+          value={draft.cost}
+          onChangeText={(cost) => setDraft({ ...draft, cost })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        {draftCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
+        <TextInput
+          accessibilityLabel={p.supplierNew}
+          placeholder={p.supplierNew}
+          placeholderTextColor={colors.placeholder}
+          value={draft.supplier}
+          maxLength={80}
+          onChangeText={(supplier) => setDraft({ ...draft, supplier })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        <TextInput
+          accessibilityLabel={p.barcodeNew}
+          placeholder={p.barcodeNew}
+          placeholderTextColor={colors.placeholder}
+          value={draft.barcode}
+          maxLength={40}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          onChangeText={(barcode) => setDraft({ ...draft, barcode })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        {draftBarcode === undefined ? <Text style={styles.warn}>{p.barcodeInvalid}</Text> : null}
+        <TextInput
+          accessibilityLabel={p.stockIn}
+          placeholder={p.stockIn}
+          placeholderTextColor={colors.placeholder}
+          keyboardType="number-pad"
+          value={draft.stock}
+          onChangeText={(stock) => setDraft({ ...draft, stock })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        {draftStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
+        <TextInput
+          accessibilityLabel={p.lowIn}
+          placeholder={p.lowIn}
+          placeholderTextColor={colors.placeholder}
+          keyboardType="number-pad"
+          value={draft.low}
+          onChangeText={(low) => setDraft({ ...draft, low })}
+          style={[styles.input, { marginTop: 8 }]}
+        />
+        {draftLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
+        <View style={styles.row}>
+          <Button
+            label={p.save}
+            busy={busy}
+            disabled={
+              draftPrice === null ||
+              draftCost === undefined ||
+              draftStock === undefined ||
+              draftLow === undefined ||
+              draftBarcode === undefined ||
+              draft.name.trim() === ''
+            }
+            onPress={() =>
+              void run(() =>
+                api.updateProduct(salon.orgId, salon.locationId, x.id, {
+                  name: draft.name.trim(),
+                  priceGrosze: draftPrice ?? x.priceGrosze,
+                  purchasePriceGrosze: draftCost ?? null,
+                  stockQuantity: draftStock ?? null,
+                  lowStockAt: draftLow ?? null,
+                  supplier: draft.supplier.trim() || null,
+                  barcode: draftBarcode ?? null,
+                }),
+              ).then((ok) => ok && setEditId(null))
+            }
+          />
+          <Button kind="secondary" label={p.cancel} onPress={() => setEditId(null)} />
+        </View>
+      </Card>
+    ) : (
+      <Card key={x.id}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: expandedId === x.id }}
+          aria-expanded={expandedId === x.id}
+          onPress={() => setExpandedId(expandedId === x.id ? null : x.id)}
+          style={styles.productRow}
+        >
+          <ProductPhoto product={x} cards={props.catalogCards} api={api} />
+          <View style={styles.productName}>
+            <Text style={styles.name}>{x.name}</Text>
+            <Text style={styles.muted}>{x.active ? t.navigation.active : p.notSold}</Text>
+          </View>
+          <Text style={x.lowStock || x.stockQuantity === 0 ? styles.warn : styles.muted}>
+            {x.stockQuantity === null
+              ? p.historyNotCounted
+              : fill(t.shop.pieces, { n: String(x.stockQuantity) })}
+          </Text>
+          <Text style={styles.name}>{money(x.priceGrosze)}</Text>
+          <Text aria-hidden style={styles.muted}>
+            {expandedId === x.id ? '▾' : '›'}
+          </Text>
+        </Pressable>
+        {expandedId === x.id ? (
+          <>
+            {x.purchasePriceGrosze === null ? null : (
+              <Text style={styles.muted} testID="product-cost">
+                {`${p.cost}: ${money(x.purchasePriceGrosze)}`}
+              </Text>
+            )}
+            {x.supplier === null ? null : (
+              <Text style={styles.muted} testID="product-supplier">
+                {`${p.supplier}: ${x.supplier}`}
+              </Text>
+            )}
+            {x.barcode === null ? null : (
+              <Text style={styles.muted} testID="product-barcode">
+                {`${p.barcode}: ${x.barcode}`}
+              </Text>
+            )}
+            {x.stockQuantity === null ? null : x.stockQuantity > 0 ? (
+              <Text style={x.lowStock ? styles.warn : styles.muted}>
+                {fill(p.stockLeft, { n: String(x.stockQuantity) })}
+                {x.lowStock ? ` · ${p.lowBadge}` : ''}
+              </Text>
+            ) : (
+              <Text style={styles.warn}>{p.stockNone}</Text>
+            )}
+            {pace(x) ? (
+              <Text style={styles.muted} testID="product-pace">
+                {pace(x)}
+              </Text>
+            ) : null}
+            {deliveryId === x.id ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <TextInput
+                  accessibilityLabel={fill(p.restockFor, { name: x.name })}
+                  placeholder={p.restockIn}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="number-pad"
+                  value={delivery}
+                  onChangeText={setDelivery}
+                  style={styles.input}
+                />
+                <View style={styles.row}>
+                  <Button
+                    label={p.restockAdd}
+                    busy={busy}
+                    disabled={!deliveryCount}
+                    onPress={() =>
+                      void run(() =>
+                        api.restockProduct(salon.orgId, salon.locationId, x.id, deliveryCount ?? 0),
+                      ).then((ok) => ok && setDeliveryId(null))
+                    }
+                  />
+                  <Button kind="secondary" label={p.cancel} onPress={() => setDeliveryId(null)} />
+                </View>
+              </View>
+            ) : writeOffId === x.id ? (
+              // Task 445: "Odpis" — used in the salon, damaged or lost.
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <TextInput
+                  accessibilityLabel={fill(p.writeOffFor, { name: x.name })}
+                  placeholder={p.writeOffQuantity}
+                  placeholderTextColor={colors.placeholder}
+                  keyboardType="number-pad"
+                  value={writeOff.quantity}
+                  onChangeText={(quantity) => setWriteOff({ ...writeOff, quantity })}
+                  style={styles.input}
+                />
+                <TextInput
+                  accessibilityLabel={p.writeOffNote}
+                  placeholder={p.writeOffNote}
+                  placeholderTextColor={colors.placeholder}
+                  maxLength={120}
+                  value={writeOff.note}
+                  onChangeText={(note) => setWriteOff({ ...writeOff, note })}
+                  style={styles.input}
+                />
+                <View style={styles.row}>
+                  <Button
+                    label={p.writeOffAdd}
+                    busy={busy}
+                    disabled={!writeOffCount}
+                    onPress={() =>
+                      void run(() =>
+                        api.writeOffProduct(
+                          salon.orgId,
+                          salon.locationId,
+                          x.id,
+                          writeOffCount ?? 0,
+                          writeOff.note.trim() || undefined,
+                        ),
+                      ).then((ok) => ok && setWriteOffId(null))
+                    }
+                  />
+                  <Button kind="secondary" label={p.cancel} onPress={() => setWriteOffId(null)} />
+                </View>
+              </View>
+            ) : askRemove === x.id ? (
+              <View style={{ gap: 6, marginTop: 6 }}>
+                <Text style={styles.text}>{fill(p.removeAsk, { name: x.name })}</Text>
+                <View style={styles.row}>
+                  <Button
+                    label={p.removeYes}
+                    busy={busy}
+                    onPress={() =>
+                      void run(() => api.removeProduct(salon.orgId, salon.locationId, x.id)).then(
+                        () => setAskRemove(null),
+                      )
+                    }
+                  />
+                  <Button kind="secondary" label={p.cancel} onPress={() => setAskRemove(null)} />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.row}>
+                <Button
+                  kind="secondary"
+                  label={p.history}
+                  a11yLabel={fill(p.historyFor, { name: x.name })}
+                  onPress={() => void toggleHistory(x.id)}
+                />
+                <Button
+                  kind="secondary"
+                  label={p.restock}
+                  a11yLabel={fill(p.restockFor, { name: x.name })}
+                  disabled={busy}
+                  onPress={() => {
+                    setDelivery('');
+                    setAskRemove(null);
+                    setWriteOffId(null);
+                    setDeliveryId(x.id);
+                  }}
+                />
+                {x.stockQuantity !== null && x.stockQuantity > 0 ? (
+                  <Button
+                    kind="secondary"
+                    label={p.writeOff}
+                    a11yLabel={fill(p.writeOffFor, { name: x.name })}
+                    disabled={busy}
+                    onPress={() => {
+                      setWriteOff({ quantity: '', note: '' });
+                      setAskRemove(null);
+                      setDeliveryId(null);
+                      setWriteOffId(x.id);
+                    }}
+                  />
+                ) : null}
+                <Button
+                  kind="secondary"
+                  label={p.change}
+                  a11yLabel={fill(p.changeFor, { name: x.name })}
+                  onPress={() => {
+                    setDraft({
+                      name: x.name,
+                      price: amountInput(x.priceGrosze) || '0',
+                      cost:
+                        x.purchasePriceGrosze === null
+                          ? ''
+                          : amountInput(x.purchasePriceGrosze) || '0',
+                      stock: x.stockQuantity === null ? '' : String(x.stockQuantity),
+                      low: x.lowStockAt === null ? '' : String(x.lowStockAt),
+                      supplier: x.supplier ?? '',
+                      barcode: x.barcode ?? '',
+                    });
+                    setEditId(x.id);
+                  }}
+                />
+                <Button
+                  kind="secondary"
+                  label={x.active ? p.stopSelling : p.startSelling}
+                  disabled={busy}
+                  onPress={() =>
+                    void run(() =>
+                      api.updateProduct(salon.orgId, salon.locationId, x.id, {
+                        active: !x.active,
+                      }),
+                    )
+                  }
+                />
+                <Button
+                  kind="link"
+                  label={p.remove}
+                  a11yLabel={fill(p.removeFor, { name: x.name })}
+                  onPress={() => setAskRemove(x.id)}
+                />
+              </View>
+            )}
+            {history?.id === x.id ? (
+              <View style={{ gap: 4, marginTop: 8 }} testID="stock-history">
+                <Text style={styles.text}>{fill(p.historyFor, { name: x.name })}</Text>
+                {history.rows.length === 0 ? (
+                  <Text style={styles.muted}>{p.historyEmpty}</Text>
+                ) : (
+                  history.rows.map((r) => (
+                    <Text key={r.id} style={styles.muted}>
+                      {`${r.date} ${r.time} · ${p.historyKinds[r.kind]} · ${fill(p.historyRow, {
+                        change: r.change > 0 ? `+${r.change}` : String(r.change),
+                        after:
+                          r.quantityAfter === null ? p.historyNotCounted : String(r.quantityAfter),
+                      })}${r.byName ? ` · ${r.byName}` : ''}${r.note ? ` · ${r.note}` : ''}`}
+                    </Text>
+                  ))
+                )}
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </Card>
+    );
+
+  return (
+    <FlatList
+      testID="products"
+      contentContainerStyle={{ padding: 16 }}
+      keyboardShouldPersistTaps="handled"
+      data={shown}
+      keyExtractor={(product) => product.id}
+      ItemSeparatorComponent={ProductRowGap}
+      ListHeaderComponent={
+        <View style={{ gap: 12, paddingBottom: shown.length ? 8 : 0 }}>
+          {props.header}
+          {controls}
+        </View>
+      }
+      renderItem={renderProduct}
+    />
+  );
+}
+
+function ProductRowGap() {
+  return <View style={{ height: 8 }} />;
 }
 
 function ProductPhoto({

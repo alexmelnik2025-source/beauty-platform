@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import {
   BackHandler,
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   View,
@@ -106,20 +116,37 @@ export function ReportsScreen(props: {
   const [csvInfo, setCsvInfo] = useState('');
   const range = reportRange(period, today);
 
+  const { orgId, locationId } = salon;
+  const texts = useRef(t);
+  texts.current = t;
+  const pending = useRef<{ from: string; to: string } | null>(null);
+
   const load = useCallback(async () => {
+    const { from, to } = range;
+    if (pending.current?.from === from && pending.current.to === to) return;
+    const request = { from, to };
+    pending.current = request;
     setLoading(true);
     try {
-      setReport(await api.report(salon.orgId, salon.locationId, range.from, range.to));
+      const result = await api.report(orgId, locationId, from, to);
+      if (pending.current !== request) return;
+      setReport(result);
       setError('');
     } catch (e) {
-      setError(errorText(e, t));
+      if (pending.current === request) setError(errorText(e, texts.current));
     } finally {
-      setLoading(false);
+      if (pending.current === request) {
+        pending.current = null;
+        setLoading(false);
+      }
     }
-  }, [api, salon, range.from, range.to, t]);
+  }, [api, orgId, locationId, range.from, range.to]);
 
   useEffect(() => {
     void load();
+    return () => {
+      pending.current = null;
+    };
   }, [load]);
 
   // Task 220: the accountant's CSV of the period — saved in a browser, shared on a phone.
@@ -264,11 +291,8 @@ export function ReportsScreen(props: {
     );
   }
 
-  return (
-    <ScrollView
-      contentContainerStyle={styles.screen}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-    >
+  const sections = reportSections(
+    <>
       <View style={styles.top}>
         <Button kind="link" label={r.back} onPress={onBack} />
         <Text style={styles.salon}>{salon.locationName}</Text>
@@ -1224,12 +1248,39 @@ export function ReportsScreen(props: {
       ) : !error ? (
         <Text style={styles.muted}>{t.loading}</Text>
       ) : null}
-    </ScrollView>
+    </>,
+  );
+  return (
+    <FlatList
+      contentContainerStyle={styles.screen}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      data={sections}
+      keyExtractor={(section) => section.key}
+      renderItem={({ item }) => item.element}
+      ItemSeparatorComponent={ReportSectionGap}
+    />
   );
 }
 
+function reportSections(
+  children: ReactNode,
+  parent = '',
+): Array<{ key: string; element: ReactElement }> {
+  return Children.toArray(children).flatMap((element) => {
+    if (!isValidElement<{ children?: ReactNode }>(element)) return [];
+    const key = parent + element.key;
+    return element.type === Fragment
+      ? reportSections(element.props.children, key)
+      : [{ key, element }];
+  });
+}
+
+function ReportSectionGap() {
+  return <View style={{ height: 12 }} />;
+}
+
 const styles = StyleSheet.create({
-  screen: { padding: 20, gap: 12 },
+  screen: { padding: 20 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },

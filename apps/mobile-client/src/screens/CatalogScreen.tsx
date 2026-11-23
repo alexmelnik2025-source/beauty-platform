@@ -75,6 +75,7 @@ export function CatalogScreen(props: {
   const [locationFailed, setLocationFailed] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
+  const request = useRef<AbortController | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
 
@@ -98,19 +99,26 @@ export function CatalogScreen(props: {
   const load = useCallback(
     async (nextPage: number, append: boolean) => {
       if (languages === null) return;
+      request.current?.abort();
+      const controller = new AbortController();
+      request.current = controller;
       setBusy(true);
       setError('');
       try {
-        const res = await api.directory({
-          page: nextPage,
-          pageSize: MAP_PAGE,
-          language: languages,
-          specialty: specialty ?? undefined,
-          q: search || undefined,
-          near: near ?? undefined,
-          openNow,
-          bestRated,
-        });
+        const res = await api.directory(
+          {
+            page: nextPage,
+            pageSize: MAP_PAGE,
+            language: languages,
+            specialty: specialty ?? undefined,
+            q: search || undefined,
+            near: near ?? undefined,
+            openNow,
+            bestRated,
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
         setLanguageCounts(res.languageCounts);
         setSpecialtyCounts(res.specialtyCounts);
         setOpenNowCount(res.openNowCount);
@@ -119,9 +127,9 @@ export function CatalogScreen(props: {
         setPageCount(res.pageCount);
         setTotal(res.total);
       } catch (e) {
-        setError(errorText(e, tRef.current));
+        if (!controller.signal.aborted) setError(errorText(e, tRef.current));
       } finally {
-        setBusy(false);
+        if (!controller.signal.aborted) setBusy(false);
       }
     },
     // The texts follow the app language, but switching it does not reload the list.
@@ -130,6 +138,7 @@ export function CatalogScreen(props: {
 
   useEffect(() => {
     void load(1, false);
+    return () => request.current?.abort();
   }, [load]);
 
   useEffect(() => {
