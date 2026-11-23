@@ -1823,6 +1823,7 @@ export const pl = {
     deliverySupplier: 'Pokaż produkty dostawcy',
     deliveryCame: 'Przyszło — {name}',
     deliverySave: 'Przyjmij dostawę ({n} szt.)',
+    deliveryEmpty: 'Wpisz, ile sztuk przyszło.',
     deliveryDone: 'Dostawa przyjęta: {pieces} szt., produktów: {products}.',
     orderOpen: 'Tekst zamówienia',
     orderTitle: 'Zamówienie',

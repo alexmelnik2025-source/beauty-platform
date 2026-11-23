@@ -1827,6 +1827,7 @@ export const ru: Dict = {
     deliverySupplier: 'Показать товары поставщика',
     deliveryCame: 'Пришло — {name}',
     deliverySave: 'Принять поставку ({n} шт.)',
+    deliveryEmpty: 'Введите, сколько штук пришло.',
     deliveryDone: 'Поставка принята: {pieces} шт., товаров: {products}.',
     orderOpen: 'Текст заказа',
     orderTitle: 'Заказ',

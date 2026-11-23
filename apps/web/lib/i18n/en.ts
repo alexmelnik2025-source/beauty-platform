@@ -1827,6 +1827,7 @@ export const en: Dict = {
     deliverySupplier: 'Show the supplier’s products',
     deliveryCame: 'Came — {name}',
     deliverySave: 'Receive the delivery ({n} pcs)',
+    deliveryEmpty: 'Enter how many pieces came.',
     deliveryDone: 'Delivery received: {pieces} pcs, products: {products}.',
     orderOpen: 'Order text',
     orderTitle: 'Order',

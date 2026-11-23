@@ -133,6 +133,21 @@ test('the owner sends the order for the products to order to each supplier', asy
   await expect(delivery.getByLabel('Przyszło — Wosk')).toHaveValue('4');
   await expect(delivery.getByLabel('Przyszło — Szampon')).toHaveValue('1');
   await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveValue('');
+  // Task 710: "Przyjmij dostawę" with no pieces typed is not silently off — said under the first field.
+  for (const name of ['Pomada matowa', 'Wosk', 'Szampon']) {
+    await delivery.getByLabel(`Przyszło — ${name}`).fill('');
+  }
+  await delivery.getByRole('button', { name: 'Przyjmij dostawę (0 szt.)' }).click();
+  const firstCame = delivery.getByTestId('delivery-row').first().getByRole('textbox');
+  await expect(firstCame).toBeFocused();
+  await expect(firstCame).toHaveAttribute('aria-invalid', 'true');
+  await expect(delivery.getByRole('alert')).toHaveText('Wpisz, ile sztuk przyszło.');
+  await delivery.scrollIntoViewIfNeeded();
+  await shot(page, '710-delivery-empty');
+  await delivery.getByLabel('Przyszło — Pomada matowa').fill('5');
+  await expect(delivery.locator('.field-error')).toHaveCount(0);
+  await delivery.getByLabel('Przyszło — Wosk').fill('4');
+  await delivery.getByLabel('Przyszło — Szampon').fill('1');
   // Task 670: zero pieces can't come — said under the field itself.
   await delivery.getByLabel('Przyszło — Olejek').fill('0');
   await expect(delivery.getByLabel('Przyszło — Olejek')).toHaveAccessibleDescription(
@@ -140,6 +155,9 @@ test('the owner sends the order for the products to order to each supplier', asy
   );
   await delivery.scrollIntoViewIfNeeded();
   await shot(page, '670-delivery-field-error');
+  // Task 710: pressing the button sends the cursor to the wrong number.
+  await delivery.getByRole('button', { name: /^Przyjmij dostawę \(/ }).click();
+  await expect(delivery.getByLabel('Przyszło — Olejek')).toBeFocused();
   await delivery.getByLabel('Przyszło — Olejek').fill('');
   await expect(delivery.locator('.field-error')).toHaveCount(0);
   await delivery.getByLabel('Pokaż produkty dostawcy').selectOption('Hairgum');

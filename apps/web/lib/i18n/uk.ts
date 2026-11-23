@@ -1818,6 +1818,7 @@ export const uk: Dict = {
     deliverySupplier: 'Показати товари постачальника',
     deliveryCame: 'Прийшло — {name}',
     deliverySave: 'Прийняти поставку ({n} шт.)',
+    deliveryEmpty: 'Введіть, скільки штук надійшло.',
     deliveryDone: 'Поставку прийнято: {pieces} шт., товарів: {products}.',
     orderOpen: 'Текст замовлення',
     orderTitle: 'Замовлення',

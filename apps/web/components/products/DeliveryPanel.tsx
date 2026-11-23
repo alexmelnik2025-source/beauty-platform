@@ -64,6 +64,8 @@ export function DeliveryPanel({
    * take; a wrong number typed is said under its field at once. Editing the field clears it.
    */
   const [serverWrong, setServerWrong] = useState<string[]>([]);
+  /** Task 710: "Przyjmij dostawę" pressed with no pieces typed — said under the first field. */
+  const [empty, setEmpty] = useState(false);
 
   const suppliers = [
     ...new Map(
@@ -80,11 +82,20 @@ export function DeliveryPanel({
   const items = parsed.flatMap(({ product, n }) =>
     typeof n === 'number' ? [{ productId: product.id, quantity: n }] : [],
   );
+  const emptyId = empty && items.length === 0 ? parsed[0]?.product.id : undefined;
   const bad = (id: string, value: number | null | undefined) =>
-    value === undefined || serverWrong.includes(id);
+    value === undefined || serverWrong.includes(id) || id === emptyId;
   const total = items.reduce((sum, i) => sum + i.quantity, 0);
 
   async function save() {
+    // Task 710 (owner's rule: errors at the field): the button is not silently off — a wrong number
+    // or no pieces at all sends the cursor to the field that says so.
+    const first = parsed.find((r) => r.n === undefined) ?? (items.length === 0 ? parsed[0] : null);
+    if (first) {
+      if (items.length === 0 && first.n !== undefined) setEmpty(true);
+      document.getElementById(`delivery-${first.product.id}`)?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     setServerWrong([]);
@@ -147,6 +158,7 @@ export function DeliveryPanel({
             </span>
             <span className="commission-row__input">
               <input
+                id={`delivery-${x.id}`}
                 inputMode="numeric"
                 aria-label={p.deliveryCame.replace('{name}', x.name)}
                 aria-invalid={bad(x.id, n) || undefined}
@@ -156,6 +168,7 @@ export function DeliveryPanel({
                 onChange={(e) => {
                   setPieces({ ...pieces, [x.id]: e.target.value });
                   setServerWrong(serverWrong.filter((id) => id !== x.id));
+                  setEmpty(false);
                 }}
               />
               <span aria-hidden="true">{p.pieces}</span>
@@ -163,7 +176,11 @@ export function DeliveryPanel({
             <FieldError
               id={`delivery-${x.id}-error`}
               text={
-                bad(x.id, n) ? fill(t.guard.numberRange, { min: '1', max: '100 000' }) : undefined
+                x.id === emptyId && n === null
+                  ? p.deliveryEmpty
+                  : bad(x.id, n)
+                    ? fill(t.guard.numberRange, { min: '1', max: '100 000' })
+                    : undefined
               }
             />
           </li>
@@ -173,7 +190,7 @@ export function DeliveryPanel({
         <button
           type="button"
           className="btn btn--small"
-          disabled={busy || wrong || items.length === 0}
+          disabled={busy || parsed.length === 0}
           onClick={() => void save()}
         >
           {p.deliverySave.replace('{n}', String(total))}
