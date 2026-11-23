@@ -692,6 +692,13 @@ pnpm --filter @beauty/api-client generate
   правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
   `682-visit-voucher-code-required`.
 
+## Ошибки у строки: «Usuń z listy» в «Lista oczekujących» (задача 729, 23.11.2026)
+
+- Кабинет → «Lista oczekujących» → «Usuń z listy» → «Tak, usuń»: если сервер отказал, ответ стоит под строкой этого
+  клиента (красный «!»), а не вверху страницы; клиент остаётся в списке. Запись, которую уже удалили на другом
+  устройстве (или клиент сам вышел из листа), просто обновляет список. e2e `waitlist`, скриншот
+  `729-waitlist-remove-error`.
+
 ## Ошибки у строки: «Anuluj» приглашения и «↑ / ↓» в «Zespół» (задача 728, 23.11.2026)
 
 - «Zespół» → «Dostęp i uprawnienia» → «Zaproszenia»: если сервер не дал отменить приглашение («Anuluj»), ответ стоит

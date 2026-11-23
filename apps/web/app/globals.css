@@ -3636,6 +3636,15 @@ ul.wish-photos {
   box-shadow: 0 0 0 2px var(--signal);
 }
 
+/* Task 729: "Lista oczekujących" — a refused removal is said under the client's row. */
+.list-row.list-row--error {
+  flex-wrap: wrap;
+}
+
+.list-row.list-row--error > .field-error {
+  flex-basis: 100%;
+}
+
 /* Task 728: "Zespół" — a refused "Anuluj" or ↑/↓ is said under its own row. */
 .list > li.orderable--error,
 .history li.history__row--error {

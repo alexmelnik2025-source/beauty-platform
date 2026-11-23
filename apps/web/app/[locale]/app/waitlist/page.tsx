@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PageTitleHelp } from '@/components/PageTitleHelp';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay } from '@/lib/time';
 import type { SalonWaitlistEntry, SalonWaitlist } from '@/lib/types';
@@ -35,6 +35,9 @@ export default function WaitingListPage() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  // Task 729 (owner's rule: errors where the action is): a refused "Tak, usuń" is said under
+  // that client's row, not as a line at the top of the page.
+  const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
   const { busy, lock, unlock } = useSubmitLock();
 
   const load = useCallback(async () => {
@@ -52,14 +55,16 @@ export default function WaitingListPage() {
 
   async function remove(entry: SalonWaitlistEntry) {
     if (!lock()) return;
-    setError('');
+    setRowError(null);
     setInfo('');
     try {
       await api(`${base}/waitlist/${entry.id}/remove`, { method: 'POST' });
       setItems((list) => (list ?? []).filter((e) => e.id !== entry.id));
       setInfo(fill(t.waitingList.removed, { name: entry.name }));
     } catch (err) {
-      setError(errorText(t, err));
+      // Already gone (removed on another device, or the client left the list): show the list as it is now.
+      if (err instanceof ApiError && err.code === 'NOT_FOUND') await load();
+      else setRowError({ id: entry.id, text: errorText(t, err) });
     } finally {
       setConfirm(null);
       unlock();
@@ -91,7 +96,10 @@ export default function WaitingListPage() {
               <h2>{formatDay(date, tag)}</h2>
               <ul className="list">
                 {entries.map((e) => (
-                  <li key={e.id} className="list-row">
+                  <li
+                    key={e.id}
+                    className={`list-row${rowError?.id === e.id ? ' list-row--error' : ''}`}
+                  >
                     <span className="grow">
                       <strong>{e.name}</strong>
                       <span className="small">
@@ -153,14 +161,21 @@ export default function WaitingListPage() {
                         type="button"
                         className="link-btn small"
                         aria-label={fill(t.waitingList.removeOne, { name: e.name })}
+                        aria-describedby={
+                          rowError?.id === e.id ? `waitlist-row-error-${e.id}` : undefined
+                        }
                         onClick={() => {
                           setInfo('');
+                          setRowError(null);
                           setConfirm(e.id);
                         }}
                       >
                         {t.waitingList.remove}
                       </button>
                     )}
+                    {rowError?.id === e.id ? (
+                      <FieldError id={`waitlist-row-error-${e.id}`} text={rowError.text} />
+                    ) : null}
                   </li>
                 ))}
               </ul>

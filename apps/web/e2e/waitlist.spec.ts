@@ -204,6 +204,22 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await cabinet.getByRole('button', { name: 'Usuń z listy: Bob Brown' }).click();
   await expect(cabinet.getByText('Usunąć Bob Brown z listy?', { exact: false })).toBeVisible();
   await shot(cabinet, '80d-owner-waitlist-remove');
+  // Task 729 (owner's rule: errors where the action is): a refused removal is said under Bob's
+  // row, not as a line at the top of the page; Bob stays on the list.
+  await cabinet.route('**/waitlist/*/remove', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await cabinet.getByRole('button', { name: 'Tak, usuń' }).click();
+  const bobRow = cabinet.locator('li.list-row').filter({ hasText: 'Bob Brown' });
+  await expect(bobRow.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(
+    cabinet.getByRole('button', { name: 'Usuń z listy: Bob Brown' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(cabinet.locator('.alert')).toHaveCount(0);
+  await shot(cabinet, '729-waitlist-remove-error');
+  await cabinet.unrouteAll({ behavior: 'wait' });
+  await cabinet.getByRole('button', { name: 'Usuń z listy: Bob Brown' }).click();
+  await expect(bobRow.getByRole('alert')).toHaveCount(0);
   await cabinet.getByRole('button', { name: 'Tak, usuń' }).click();
   await expect(cabinet.getByText('Usunięto Bob Brown z listy oczekujących.')).toBeVisible();
   await expect(cabinet.getByText('Bob Brown', { exact: true })).toHaveCount(0);
