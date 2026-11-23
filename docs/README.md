@@ -691,6 +691,7 @@ pnpm --filter @beauty/api-client generate
   «Zapłać bonem» без кода — «Uzupełnij to pole.» под «Kod bonu». Кнопки больше не выключаются молча; курсор — в поле,
   правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
   `682-visit-voucher-code-required`.
+
 ## Ошибки у поля: «Nowa kategoria» в «Zespół» и срок резерва в «Mój sklep» (задача 683, 23.11.2026)
 
 - «Zespół» → «+ Nowa kategoria» (и правка категории): пустое название (или одни пробелы) — «Uzupełnij to pole.» под
