@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -21,7 +13,7 @@ import {
   type Member,
   type Team,
 } from '../team';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { PermissionsScreen } from './PermissionsScreen';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -234,6 +226,7 @@ export function TeamScreen(props: {
               <Text style={styles.muted}>{z.role}:</Text>
               {roles.map((r) => (
                 <Pressable
+                  accessibilityLabel={roleName(r)}
                   key={r}
                   accessibilityRole="button"
                   aria-pressed={role === r}

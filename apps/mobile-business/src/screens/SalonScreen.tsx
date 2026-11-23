@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -28,7 +27,7 @@ import {
   type SalonForm,
   type SalonProblem,
 } from '../salon';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import { SPOKEN, toggleLanguage } from '../profile';
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
@@ -316,6 +315,7 @@ export function SalonScreen(props: {
       <View style={[styles.switchRow, { marginTop: 10 }]}>
         <Text style={[styles.value, { flex: 1, fontWeight: '400' }]}>{text}</Text>
         <Switch
+          style={switchTouchTarget}
           accessibilityLabel={label}
           value={form[key]}
           onValueChange={(on) => setForm({ ...form, [key]: on })}
@@ -381,6 +381,7 @@ export function SalonScreen(props: {
                       </Text>
                     </View>
                     <Switch
+                      style={switchTouchTarget}
                       accessibilityLabel={s.online}
                       value={form.onlineBookingEnabled}
                       onValueChange={(onlineBookingEnabled) =>
@@ -670,6 +671,7 @@ export function SalonScreen(props: {
             <Card>
               {sections.map((item) => (
                 <Pressable
+                  accessibilityLabel={item.title}
                   key={item.key}
                   accessibilityRole="button"
                   onPress={() => {
@@ -684,9 +686,7 @@ export function SalonScreen(props: {
                   </Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.value}>{item.title}</Text>
-                    <Text numberOfLines={1} style={styles.small}>
-                      {item.hint}
-                    </Text>
+                    <Text style={styles.small}>{item.hint}</Text>
                   </View>
                   <Text aria-hidden style={styles.small}>
                     ›
@@ -806,6 +806,7 @@ export function ChoiceList<T extends string>(props: {
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       accessibilityRole="button"
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}

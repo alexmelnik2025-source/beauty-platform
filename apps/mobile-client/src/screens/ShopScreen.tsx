@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +14,7 @@ import { errorText } from '../errors';
 import { formatMoment, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { fromCurrency, nextVisitAt, SHOP_CATEGORIES, sellersLine } from '../shop';
-import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, Chip, colors, ErrorText, Heading, Pressable } from '../ui';
 
 /** The search asks the server once the client stops typing for this long. */
 const TYPING_MS = 350;
@@ -157,12 +156,10 @@ export function ShopScreen(props: {
               <View style={[styles.thumb, styles.noPhoto]} />
             )}
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name} numberOfLines={2}>
-                {p.name}
-              </Text>
+              <Text style={styles.name}>{p.name}</Text>
               {p.brand ? <Text style={styles.small}>{p.brand}</Text> : null}
               <Text style={styles.price}>{fill(t.shop.from, { price })}</Text>
-              <Text style={styles.small} numberOfLines={1}>
+              <Text style={styles.small}>
                 {sellers === null
                   ? t.shop.soldOut
                   : sellers.kind === 'one'

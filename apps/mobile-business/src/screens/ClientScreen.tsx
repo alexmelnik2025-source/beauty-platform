@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -38,7 +29,7 @@ import { contactsChange, contactsForm, type ContactsForm } from '../clientContac
 import type { ClientProblem } from '../newVisit';
 import { dialForTimeZone } from '../phone';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ClientBonusSection } from './ClientBonusSection';
 import { ClientContactsFields } from './ClientContactsFields';
 import { csvTools } from './csvTools';

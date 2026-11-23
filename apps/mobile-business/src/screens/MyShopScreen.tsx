@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type CatalogProduct, type Locale, type Product } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { canSeeBase } from '../baseStatus';
 import { ProductListSection } from './ProductListSection';
 import { BaseStatusCard } from './BaseStatusCard';
@@ -108,6 +100,7 @@ export function MyShopScreen(props: {
       <View style={styles.tabs} accessibilityRole="tablist">
         {(['products', 'online', 'integrations'] as const).map((item) => (
           <Pressable
+            accessibilityLabel={t.navigation[item]}
             key={item}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === item, disabled: busy }}
@@ -120,9 +113,7 @@ export function MyShopScreen(props: {
             }}
             style={[styles.tab, item === 'online' && styles.wideTab, tab === item && styles.tabOn]}
           >
-            <Text numberOfLines={1} adjustsFontSizeToFit style={styles.tabText}>
-              {t.navigation[item]}
-            </Text>
+            <Text style={styles.tabText}>{t.navigation[item]}</Text>
           </Pressable>
         ))}
       </View>
@@ -296,7 +287,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', padding: 3, borderRadius: 10, backgroundColor: colors.soft },
   tab: {
     flex: 1,
-    minWidth: 0,
+    paddingVertical: 6,
     minHeight: 44,
     paddingHorizontal: 4,
     alignItems: 'center',
@@ -305,7 +296,13 @@ const styles = StyleSheet.create({
   },
   wideTab: { flex: 1.45 },
   tabOn: { backgroundColor: colors.card },
-  tabText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
+  tabText: {
+    textAlign: 'center',
+    maxWidth: '100%',
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 14 },
   summary: { color: colors.ink, fontSize: 15, fontWeight: '600' },

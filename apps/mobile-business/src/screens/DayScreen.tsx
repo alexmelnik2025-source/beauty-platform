@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Share,
@@ -38,7 +37,7 @@ import { shareText, type TextShareTools } from '../share';
 import { errorText } from '../errors';
 import { badge } from '../notifications';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { LanguagePicker } from './LanguagePicker';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
@@ -272,9 +271,7 @@ export function DayScreen(props: {
               <Text aria-hidden style={styles.tabIcon}>
                 {icon}
               </Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.tabLabel}>
-                {label}
-              </Text>
+              <Text style={styles.tabLabel}>{label}</Text>
             </Pressable>
           ))}
         </View>
@@ -693,6 +690,7 @@ export function DayScreen(props: {
             .filter((item) => item.visible)
             .map(({ label, open }) => (
               <Pressable
+                accessibilityLabel={label}
                 key={label}
                 accessibilityRole="button"
                 onPress={open}
@@ -716,9 +714,7 @@ export function DayScreen(props: {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={styles.top}>
-        <Text numberOfLines={1} style={styles.salon}>
-          {salonName}
-        </Text>
+        <Text style={styles.salon}>{salonName}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -742,8 +738,6 @@ export function DayScreen(props: {
         <Text
           accessibilityRole="header"
           accessibilityLabel={dayTitle(date, props.locale)}
-          numberOfLines={1}
-          adjustsFontSizeToFit
           style={styles.dateLabel}
         >
           {calendarDate(date, props.locale)}
@@ -757,15 +751,14 @@ export function DayScreen(props: {
           <Text style={styles.menuText}>›</Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={t.day.today}
           accessibilityRole="button"
           accessibilityState={{ disabled: date === today }}
           onPress={() => setDate(today)}
           disabled={date === today}
           style={styles.compactButton}
         >
-          <Text numberOfLines={1} style={[styles.menuText, date === today && styles.muted]}>
-            {t.day.today}
-          </Text>
+          <Text style={[styles.menuText, date === today && styles.muted]}>{t.day.today}</Text>
         </Pressable>
         {canBrowseSalon && staffList.length > 0 ? (
           <Pressable
@@ -776,20 +769,17 @@ export function DayScreen(props: {
             onPress={() => setStaffPicker(!staffPicker)}
             style={[styles.compactButton, styles.staffButton]}
           >
-            <Text numberOfLines={1} style={styles.menuText}>
-              {staffLabel} ▾
-            </Text>
+            <Text style={styles.menuText}>{staffLabel} ▾</Text>
           </Pressable>
         ) : (
-          <Text numberOfLines={1} style={[styles.menuText, styles.staffButton]}>
-            {staffLabel}
-          </Text>
+          <Text style={[styles.menuText, styles.staffButton]}>{staffLabel}</Text>
         )}
       </View>
       {staffPicker ? (
         <Card>
           {[{ id: null, displayName: t.navigation.allStaff }, ...staffList].map((staff) => (
             <Pressable
+              accessibilityLabel={staff.displayName}
               key={staff.id ?? 'all'}
               accessibilityRole="button"
               accessibilityState={{ selected: staffId === staff.id }}
@@ -1050,8 +1040,8 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    minWidth: 0,
     minHeight: 55,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -1060,7 +1050,13 @@ const styles = StyleSheet.create({
   },
   tabSelected: { backgroundColor: colors.soft, borderTopColor: colors.ink },
   tabIcon: { color: colors.ink, fontSize: 21 },
-  tabLabel: { color: colors.ink, fontWeight: '600', fontSize: 12 },
+  tabLabel: {
+    textAlign: 'center',
+    maxWidth: '100%',
+    color: colors.ink,
+    fontWeight: '600',
+    fontSize: 12,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1072,6 +1068,7 @@ const styles = StyleSheet.create({
   },
   menuText: { color: colors.ink, fontSize: 14, flexShrink: 1 },
   dateBar: {
+    flexWrap: 'wrap',
     flexDirection: 'row',
     gap: 2,
     alignItems: 'center',
@@ -1083,7 +1080,7 @@ const styles = StyleSheet.create({
   },
   compactButton: {
     minHeight: 44,
-    minWidth: 36,
+    minWidth: 44,
     paddingHorizontal: 5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1092,11 +1089,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontWeight: '700',
     fontSize: 14,
+    flexShrink: 1,
     minWidth: 50,
     paddingHorizontal: 2,
     textAlign: 'center',
   },
-  staffButton: { flex: 1, minWidth: 0 },
+  staffButton: { flexGrow: 1, flexShrink: 1, minWidth: 44, maxWidth: '100%' },
 
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },

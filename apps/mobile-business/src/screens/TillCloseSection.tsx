@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, TillClose } from '../api';
 import { dayTitle, formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -13,7 +13,7 @@ import {
   parseCash,
   tillDifference,
 } from '../tillClose';
-import { Button, colors, ErrorText } from '../ui';
+import { Button, colors, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -244,6 +244,7 @@ function TillMovements(props: PartProps) {
           <View style={styles.row} accessibilityRole="radiogroup">
             {(['out', 'in'] as const).map((k) => (
               <Pressable
+                accessibilityLabel={k === 'in' ? d.tillMoveIn : d.tillMoveOut}
                 key={k}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: kind === k }}

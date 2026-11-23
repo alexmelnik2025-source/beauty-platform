@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Dictionary } from '../i18n';
 import { PAYMENT_METHODS, toggleMethod, type PaymentMethod } from '../payment';
-import { colors } from '../ui';
+import { colors, Pressable } from '../ui';
 
 /** Task 227: Gotówka / Karta / BLIK / Przelew / Inna — only a mark for the report and the till. */
 export function PaymentMethodPicker({
@@ -26,6 +26,7 @@ export function PaymentMethodPicker({
       <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={title}>
         {PAYMENT_METHODS.map((method) => (
           <Pressable
+            accessibilityLabel={v.paymentMethods[method]}
             key={method}
             accessibilityRole="radio"
             accessibilityState={{ checked: value === method, disabled }}

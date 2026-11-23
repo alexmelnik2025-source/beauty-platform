@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   addDays,
   ApiError,
@@ -52,7 +52,7 @@ import { dialForTimeZone } from '../phone';
 import { directionsUrl, durationText, serviceGroups, specialtyText } from '../salon';
 import { shareSalon, visitShareMessage } from '../share';
 import { shareTools } from './shareTools';
-import { Button, Card, Chip, colors, ErrorText, FieldInput, Heading } from '../ui';
+import { Button, Card, Chip, colors, ErrorText, FieldInput, Heading, Pressable } from '../ui';
 import { DiscountedTime } from './DiscountedTime';
 import { WaitlistPanel } from './WaitlistPanel';
 

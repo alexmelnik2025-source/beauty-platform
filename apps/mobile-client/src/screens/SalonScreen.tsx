@@ -4,7 +4,6 @@ import {
   Image,
   Linking,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,7 +40,7 @@ import { shareTools } from './shareTools';
 import { NearbySalons } from './NearbySalons';
 import { SalonReviews } from './SalonReviews';
 import { VoucherCheck } from './VoucherCheck';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 
 /**
  * A salon's page: photos, address, languages, description, opening hours, price list and

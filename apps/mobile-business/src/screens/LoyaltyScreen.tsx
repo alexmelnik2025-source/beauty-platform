@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -43,7 +35,7 @@ import {
 import { BonusRulesSection } from './BonusRulesSection';
 import { EarnRulesSection } from './EarnRulesSection';
 import { TiersSection } from './TiersSection';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**

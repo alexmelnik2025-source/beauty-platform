@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
 import { errorText } from '../errors';
 import { dayChip, formatDay } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone, normalizePhone } from '../phone';
-import { Button, colors, ErrorText, FieldInput } from '../ui';
+import { Button, colors, ErrorText, FieldInput, Pressable, switchTouchTarget } from '../ui';
 import { waitlistDays } from '../waitlist';
 
 /** The waiting list's words for the API's refusals (task 50 rules). */
@@ -109,6 +109,7 @@ export function WaitlistPanel(props: {
           <View style={styles.autoRow}>
             <Text style={[styles.muted, { flex: 1 }]}>{w.autoBook}</Text>
             <Switch
+              style={switchTouchTarget}
               accessibilityLabel={w.autoBook}
               value={autoBook}
               onValueChange={(value) => {

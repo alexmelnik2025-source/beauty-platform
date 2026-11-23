@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BackHandler, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { noticeKind, noticesOfSalon, opensVisit, type Notice } from '../notifications';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { VisitScreen } from './VisitScreen';
 

@@ -37,9 +37,10 @@ export function project(point: MapPoint, zoom: number): { x: number; y: number }
   };
 }
 
-const MARKER_RADIUS = 15;
-const MARKER_STEP = 32;
-const MAX_MARKER_OFFSET = 96;
+export const MARKER_SIZE = 44;
+const MARKER_RADIUS = MARKER_SIZE / 2;
+const MARKER_STEP = MARKER_SIZE + 4;
+const MAX_MARKER_OFFSET = 2 * MARKER_STEP;
 
 /** Nearby pins must remain individually tappable, even when salons share an address. */
 function separateMarkers<T>(

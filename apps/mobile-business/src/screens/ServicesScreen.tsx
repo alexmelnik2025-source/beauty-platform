@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -45,7 +37,7 @@ import {
   type Service,
   type ServiceGroup,
 } from '../services';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -816,6 +808,7 @@ export function ServicesScreen(props: {
                 return (
                   <Card key={service.id}>
                     <Pressable
+                      accessibilityLabel={service.name}
                       accessibilityRole="button"
                       accessibilityState={{ expanded: rowOptions === service.id }}
                       aria-expanded={rowOptions === service.id}
@@ -823,13 +816,10 @@ export function ServicesScreen(props: {
                       style={styles.serviceRow}
                     >
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.name, !service.active && { color: colors.muted }]}
-                        >
+                        <Text style={[styles.name, !service.active && { color: colors.muted }]}>
                           {service.name}
                         </Text>
-                        <Text numberOfLines={1} style={styles.muted}>
+                        <Text style={styles.muted}>
                           {service.active ? t.navigation.active : u.hidden}
                         </Text>
                       </View>

@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
-import {
-  BackHandler,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Location, StaffList } from '../api';
 import { WEB_URL } from '../config';
 import { errorText } from '../errors';
@@ -25,7 +16,7 @@ import {
   type ShareTools,
   type TextShareTools,
 } from '../share';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -181,6 +172,7 @@ export function BookingLinkScreen(props: {
                   const on = s.id === qrStaff;
                   return (
                     <Pressable
+                      accessibilityLabel={s.displayName}
                       key={s.id}
                       accessibilityRole="button"
                       aria-pressed={on}

@@ -6,7 +6,6 @@ import {
   BackHandler,
   Image,
   Linking,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,7 +31,7 @@ import {
   presetFromVisit,
 } from '../newVisit';
 import { wishLines } from '../wishes';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { VisitCouponsSection } from './VisitCouponsSection';
@@ -540,6 +539,7 @@ export function VisitScreen(props: {
             <View style={styles.times}>
               {times.map((s) => (
                 <Pressable
+                  accessibilityLabel={s.time}
                   key={s.start}
                   accessibilityRole="button"
                   onPress={() => setAsk(s)}

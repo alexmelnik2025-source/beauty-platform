@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
   BusinessApi,
   ClientFilters,
@@ -30,7 +21,7 @@ import { dialForTimeZone } from '../phone';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { shareCsv } from '../share';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ClientContactsFields } from './ClientContactsFields';
 import { ClientScreen } from './ClientScreen';
 import { csvTools } from './csvTools';
@@ -403,6 +394,9 @@ export function ClientsScreen(props: {
       <View style={styles.row} accessibilityRole="radiogroup">
         {INACTIVE.map((days) => (
           <Pressable
+            accessibilityLabel={
+              days === 0 ? c.inactiveAll : fill(c.inactiveDays, { days: String(days) })
+            }
             key={days}
             accessibilityRole="radio"
             accessibilityState={{ checked: days === inactiveDays }}
@@ -425,6 +419,15 @@ export function ClientsScreen(props: {
           <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={c.sort}>
             {SORTS.filter((value) => value !== 'paid' || salon.role !== 'staff').map((value) => (
               <Pressable
+                accessibilityLabel={
+                  {
+                    name: c.sortName,
+                    recent: c.sortRecent,
+                    visits: c.sortVisits,
+                    next: c.sortNext,
+                    paid: c.sortPaid,
+                  }[value]
+                }
                 key={value}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: value === sort }}
@@ -452,6 +455,7 @@ export function ClientsScreen(props: {
       )}
       <View style={styles.row}>
         <Pressable
+          accessibilityLabel={`${c.birthdays} ${segmentCount(segments?.birthdays)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: birthdays }}
           onPress={() => setBirthdays(!birthdays)}
@@ -463,6 +467,7 @@ export function ClientsScreen(props: {
           </Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={`${c.consented} ${segmentCount(segments?.consented)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: consented }}
           accessibilityHint={c.consentedHint}
@@ -475,6 +480,7 @@ export function ClientsScreen(props: {
           </Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={`${c.newcomers} ${segmentCount(segments?.newcomers)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: newcomers }}
           accessibilityHint={c.newcomersHint}
@@ -487,6 +493,7 @@ export function ClientsScreen(props: {
           </Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={`${c.overdue} ${segmentCount(segments?.overdue)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: overdue }}
           accessibilityHint={c.overdueHint}
@@ -499,6 +506,7 @@ export function ClientsScreen(props: {
           </Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={`${c.missed} ${segmentCount(segments?.noShows)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: noShows }}
           accessibilityHint={c.missedHint}
@@ -511,6 +519,7 @@ export function ClientsScreen(props: {
           </Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={`${c.once} ${segmentCount(segments?.once)}`}
           accessibilityRole="switch"
           accessibilityState={{ checked: once }}
           accessibilityHint={c.onceHint}
@@ -533,6 +542,7 @@ export function ClientsScreen(props: {
           <View style={styles.row} accessibilityRole="radiogroup">
             {[{ tag: '', clients: 0 }, ...tags].map((item) => (
               <Pressable
+                accessibilityLabel={item.tag ? `${item.tag} · ${item.clients}` : c.allTags}
                 key={item.tag || '*'}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: item.tag === tag }}

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, StaffList } from '../api';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { flags, languagesChanged, SPOKEN, toggleLanguage, type SpokenLanguage } from '../profile';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**

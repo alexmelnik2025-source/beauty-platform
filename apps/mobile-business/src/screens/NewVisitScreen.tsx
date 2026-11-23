@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
   AppointmentDetail,
   Availability,
@@ -35,7 +27,7 @@ import {
   type MyRights,
 } from '../newVisit';
 import { dialForTimeZone } from '../phone';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { presetChoice, type NewVisitPreset } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
@@ -369,6 +361,7 @@ export function NewVisitScreen(props: {
                 <View style={styles.times}>
                   {times.map((s) => (
                     <Pressable
+                      accessibilityLabel={s.time}
                       key={s.start}
                       accessibilityRole="button"
                       accessibilityState={{ selected: start === s.start }}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -27,7 +26,7 @@ import {
 } from '../reports';
 import { shareCsv } from '../share';
 import { signed } from '../tillClose';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ClientScreen } from './ClientScreen';
 import { CommissionsSection } from './CommissionsSection';
 import { csvTools } from './csvTools';
@@ -951,9 +950,7 @@ export function ReportsScreen(props: {
               {shown.occupancy.staff.map((s) => (
                 <View key={s.id} style={{ gap: 2 }}>
                   <View style={styles.weekday}>
-                    <Text style={styles.weekdayName} numberOfLines={1}>
-                      {s.displayName}
-                    </Text>
+                    <Text style={styles.weekdayName}>{s.displayName}</Text>
                     <View
                       style={styles.bar}
                       accessibilityRole="progressbar"
@@ -1014,9 +1011,7 @@ export function ReportsScreen(props: {
               {shown?.scope !== 'own'
                 ? ratings.staff.map((s) => (
                     <View key={s.id} style={styles.weekday}>
-                      <Text style={[styles.weekdayName, { flexGrow: 1 }]} numberOfLines={1}>
-                        {s.displayName}
-                      </Text>
+                      <Text style={[styles.weekdayName, { flexGrow: 1 }]}>{s.displayName}</Text>
                       <Text style={styles.small}>
                         {fill(r.ratingsStaff, {
                           stars: starsText(s.average, props.locale),
@@ -1033,9 +1028,7 @@ export function ReportsScreen(props: {
               ) : null}
               {ratings.services.map((s) => (
                 <View key={s.id} style={styles.weekday}>
-                  <Text style={[styles.weekdayName, { flexGrow: 1 }]} numberOfLines={1}>
-                    {s.name}
-                  </Text>
+                  <Text style={[styles.weekdayName, { flexGrow: 1 }]}>{s.name}</Text>
                   <Text style={styles.small}>
                     {fill(r.ratingsStaff, {
                       stars: starsText(s.average, props.locale),
@@ -1061,9 +1054,7 @@ export function ReportsScreen(props: {
               {shown.scope !== 'own'
                 ? shown.rebooking.staff.map((s) => (
                     <View key={s.id} style={styles.weekday}>
-                      <Text style={styles.weekdayName} numberOfLines={1}>
-                        {s.displayName}
-                      </Text>
+                      <Text style={styles.weekdayName}>{s.displayName}</Text>
                       <View
                         style={styles.bar}
                         accessibilityRole="progressbar"

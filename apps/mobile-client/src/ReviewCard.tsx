@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
 import { errorText } from './errors';
 import { fill, type Dictionary } from './i18n';
-import { Button, colors, ErrorText } from './ui';
+import { Button, colors, ErrorText, Pressable } from './ui';
 
 const TEXT_MAX = 1000;
 

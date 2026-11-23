@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -31,7 +23,7 @@ import {
   stars,
   type Review,
 } from '../reviews';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -170,6 +162,7 @@ export function ReviewsScreen(props: {
             ...team.map((s) => ({ staffId: s.staffId, label: staffReviewChip(s, props.locale) })),
           ].map((chip) => (
             <Pressable
+              accessibilityLabel={chip.label}
               key={chip.staffId ?? 'all'}
               accessibilityRole="button"
               aria-pressed={staffId === chip.staffId}
@@ -197,6 +190,7 @@ export function ReviewsScreen(props: {
             })),
           ].map((chip) => (
             <Pressable
+              accessibilityLabel={chip.label}
               key={chip.serviceId ?? 'all'}
               accessibilityRole="button"
               aria-pressed={serviceId === chip.serviceId}
@@ -218,6 +212,7 @@ export function ReviewsScreen(props: {
         <View style={styles.actions} role="group" aria-label={r.byStars}>
           {[{ rating: null, label: r.allStars }, ...chips].map((chip) => (
             <Pressable
+              accessibilityLabel={chip.label}
               key={chip.rating ?? 'all'}
               accessibilityRole="button"
               aria-pressed={rating === chip.rating}
@@ -235,6 +230,7 @@ export function ReviewsScreen(props: {
       {manager && (unansweredCount > 0 || unanswered) ? (
         <View style={styles.actions}>
           <Pressable
+            accessibilityLabel={fill(r.unanswered, { n: String(unansweredCount) })}
             accessibilityRole="button"
             aria-pressed={unanswered}
             accessibilityState={{ selected: unanswered }}
