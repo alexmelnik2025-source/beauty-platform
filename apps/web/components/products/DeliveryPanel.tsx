@@ -78,7 +78,6 @@ export function DeliveryPanel({
     (x) => supplier === '' || x.supplier?.toLocaleLowerCase() === supplier.toLocaleLowerCase(),
   );
   const parsed = shown.map((x) => ({ product: x, n: parsePieces(pieces[x.id] ?? '') }));
-  const wrong = parsed.some((r) => r.n === undefined);
   const items = parsed.flatMap(({ product, n }) =>
     typeof n === 'number' ? [{ productId: product.id, quantity: n }] : [],
   );
