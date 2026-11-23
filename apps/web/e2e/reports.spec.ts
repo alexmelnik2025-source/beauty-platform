@@ -492,8 +492,9 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(page.getByLabel('Od', { exact: true })).toBeVisible();
   // Task 715: a wrong own period is said under the date it is about, and the figures of the
   // previous period are not shown meanwhile.
-  const from = page.getByLabel('Od', { exact: true });
-  const to = page.getByLabel('Do', { exact: true });
+  // (by place, not by label: the error under a date is inside its label.)
+  const from = page.locator('.row.print-hide input[type="date"]').first();
+  const to = page.locator('.row.print-hide input[type="date"]').last();
   await from.fill('2026-03-10');
   await to.fill('2026-03-01');
   await expect(to).toHaveAttribute('aria-invalid', 'true');

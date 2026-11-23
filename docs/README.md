@@ -1322,6 +1322,8 @@ pnpm --filter @beauty/api-client generate
 - API: `GET /v1/organizations/:orgId/locations/:locationId/reports?from=&to=` (`ReportsService`, схема ответа
   `SalonReport`). Удержанные и истёкшие слоты не считаются. Тесты `apps/api/test/reports.spec.ts`, e2e
   `apps/web/e2e/reports.spec.ts`, скриншоты 74 (компьютер) и 74b (телефон).
+- Свой период (задача 715): пустая дата — «Uzupełnij to pole.» под ней; «Od» позже «Do» или больше 366 дней — под «Do»
+  (красная рамка); пока даты неверные, цифры прошлого периода не показываются. Скриншот `715-report-dates-error`.
 - Бизнес-приложение (задача 15): кнопка «Raporty» на экране дня (у владельца и менеджера; у мастера — с правом
   «Widzi ceny i swoje wyniki»): «Ten miesiąc», «Poprzedni miesiąc», «Ostatnie 30 dni», те же цифры карточками и
   списки по специалистам и услугам; «‹ Wróć» и кнопка «назад» Android возвращают в календарь. Код —
