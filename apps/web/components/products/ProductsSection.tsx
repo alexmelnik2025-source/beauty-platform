@@ -899,7 +899,7 @@ export function ProductsSection({ base }: { base: string }) {
                 <button
                   type="button"
                   className="btn btn--small"
-                  disabled={busy || !changed}
+                  disabled={busy || (!changed && rowWrong.length === 0)}
                   onClick={() => {
                     // Task 722: a wrong field sends the cursor to it — the text is already under it.
                     if (rowWrong.length > 0) {
