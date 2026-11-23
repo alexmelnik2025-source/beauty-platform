@@ -83,6 +83,14 @@ export default function HappyHoursPage() {
   const [confirmRemove, setConfirmRemove] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  /**
+   * Task 744 (owner's rule: errors where the action is): a refused save is said in the open
+   * "Dodaj promocję" / "Edytuj" sheet under "Zapisz" (before, it was a line at the top of the page,
+   * hidden behind the sheet), and a refused "Tak, usuń" under that promotion's row. The top line
+   * stays only for a page that failed to load.
+   */
+  const [sheetError, setSheetError] = useState('');
+  const [rowError, setRowError] = useState<{ index: number; text: string } | null>(null);
   const { busy, lock, unlock } = useSubmitLock();
 
   const load = useCallback(async () => {
@@ -105,9 +113,14 @@ export default function HappyHoursPage() {
   }, [load]);
 
   /** The server keeps the whole list: every change sends all the rules. */
-  async function saveAll(next: Draft[], message: string): Promise<boolean> {
+  async function saveAll(
+    next: Draft[],
+    message: string,
+    removing: number | null = null,
+  ): Promise<boolean> {
     if (!lock()) return false;
-    setError('');
+    setSheetError('');
+    setRowError(null);
     setInfo('');
     try {
       const saved = await api<HappyHours>(`${base}/happy-hours`, {
@@ -118,7 +131,8 @@ export default function HappyHoursPage() {
       setInfo(message);
       return true;
     } catch (err) {
-      setError(errorText(t, err));
+      if (removing === null) setSheetError(errorText(t, err));
+      else setRowError({ index: removing, text: errorText(t, err) });
       return false;
     } finally {
       unlock();
@@ -152,6 +166,8 @@ export default function HappyHoursPage() {
             className="btn btn--small"
             onClick={() => {
               setInfo('');
+              setSheetError('');
+              setRowError(null);
               setEditing('new');
             }}
           >
@@ -160,7 +176,6 @@ export default function HappyHoursPage() {
         }
       />
       <div className="page">
-        <ErrorBox>{error}</ErrorBox>
         {info ? (
           <p className="note" role="status">
             {info}
@@ -169,7 +184,10 @@ export default function HappyHoursPage() {
         {rules.length === 0 ? <p className="note">{t.happyHours.empty}</p> : null}
         <ul className="list">
           {rules.map((rule, i) => (
-            <li key={rule.id} className="list-row">
+            <li
+              key={rule.id}
+              className={`list-row${rowError?.index === i ? ' list-row--error' : ''}`}
+            >
               <span className="grow">
                 <strong>{ruleTitle(t, tag, rule)}</strong>
                 <span className="small muted">
@@ -193,6 +211,7 @@ export default function HappyHoursPage() {
                       void saveAll(
                         drafts.filter((_, j) => j !== i),
                         t.happyHours.removed,
+                        i,
                       );
                     }}
                   >
@@ -214,6 +233,8 @@ export default function HappyHoursPage() {
                     aria-label={fill(t.happyHours.editOne, { n: String(i + 1) })}
                     onClick={() => {
                       setInfo('');
+                      setSheetError('');
+                      setRowError(null);
                       setEditing(i);
                     }}
                   >
@@ -223,12 +244,19 @@ export default function HappyHoursPage() {
                     type="button"
                     className="link-btn small"
                     aria-label={fill(t.happyHours.removeOne, { n: String(i + 1) })}
-                    onClick={() => setConfirmRemove(i)}
+                    aria-describedby={rowError?.index === i ? 'hh-remove-error' : undefined}
+                    onClick={() => {
+                      setRowError(null);
+                      setConfirmRemove(i);
+                    }}
                   >
                     {t.happyHours.remove}
                   </button>
                 </span>
               )}
+              {rowError?.index === i ? (
+                <FieldError id="hh-remove-error" text={rowError.text} />
+              ) : null}
             </li>
           ))}
         </ul>
@@ -240,7 +268,11 @@ export default function HappyHoursPage() {
           staff={staffNames}
           services={serviceNames}
           busy={busy}
-          onClose={() => setEditing(null)}
+          error={sheetError}
+          onClose={() => {
+            setSheetError('');
+            setEditing(null);
+          }}
           onSave={async (draft) => {
             const next =
               editing === 'new'
@@ -262,6 +294,7 @@ function RuleSheet({
   staff,
   services,
   busy,
+  error,
   onClose,
   onSave,
 }: {
@@ -270,6 +303,7 @@ function RuleSheet({
   staff: { id: string; name: string }[];
   services: { id: string; name: string }[];
   busy: boolean;
+  error: string;
   onClose: () => void;
   onSave: (draft: Draft) => Promise<void>;
 }) {
@@ -516,9 +550,14 @@ function RuleSheet({
           </p>
         ) : null}
         <p className="small muted">{t.happyHours.onlyNew}</p>
-        <button className="btn btn--block" disabled={busy}>
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error ? 'hh-save-error' : undefined}
+        >
           {t.common.save}
         </button>
+        <FieldError id="hh-save-error" text={error} />
       </form>
     </Sheet>
   );
