@@ -1808,6 +1808,7 @@ export const en: Dict = {
     /** Task 663: under a wrong field of the new-product form. */
     wrongPrice: 'Enter an amount, e.g. 45 or 45.50.',
     wrongStock: 'Enter a number of pieces from 0 to 100,000 or leave it empty.',
+    wrongPieces: 'Enter a number of pieces from 1 to 100,000.',
     wrongBarcode: '3 to 32 characters: digits, letters and “-”.',
     moreFields: 'More ▸',
     stockLeft: '{n} pcs left',

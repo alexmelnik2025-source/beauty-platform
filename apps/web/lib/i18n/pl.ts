@@ -1804,6 +1804,7 @@ export const pl = {
     /** Task 663: under a wrong field of the new-product form. */
     wrongPrice: 'Wpisz kwotę, np. 45 lub 45,50.',
     wrongStock: 'Wpisz liczbę sztuk od 0 do 100 000 albo zostaw puste.',
+    wrongPieces: 'Wpisz liczbę sztuk od 1 do 100 000.',
     wrongBarcode: 'Od 3 do 32 znaków: cyfry, litery i „-”.',
     moreFields: 'Więcej ▸',
     stockLeft: 'zostało {n} szt.',

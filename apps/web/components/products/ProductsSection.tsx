@@ -137,6 +137,8 @@ export function ProductsSection({ base }: { base: string }) {
   } | null>(null);
   const [deliveries, setDeliveries] = useState<Record<string, string>>({});
   const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
+  /** Task 709: an error of "Przyjmij" / "Odpisz", said under the pieces of that product. */
+  const [piecesError, setPiecesError] = useState<{ key: string; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [stocktake, setStocktake] = useState(false);
@@ -182,7 +184,7 @@ export function ProductsSection({ base }: { base: string }) {
     void load();
   }, [load]);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>, onError?: (text: string) => void) {
     setBusy(true);
     setError('');
     try {
@@ -197,12 +199,61 @@ export function ProductsSection({ base }: { base: string }) {
       }
       return true;
     } catch (err) {
-      setError(errorText(t, err));
+      if (onError) onError(errorText(t, err));
+      else setError(errorText(t, err));
       return false;
     } finally {
       setBusy(false);
     }
   }
+
+  /**
+   * Task 709: "Przyjmij" (delivery) and "Odpisz" (write-off) always work — an empty or wrong number of
+   * pieces, or the server's answer (e.g. fewer pieces in stock), is said under the field, the cursor goes there.
+   */
+  function changePieces(
+    key: string,
+    value: string,
+    path: 'restock' | 'write-off',
+    productId: string,
+    extra: Record<string, string>,
+    done: () => void,
+  ) {
+    const quantity = parseStock(value);
+    const field = () => document.getElementById(`pieces-${key}`)?.focus();
+    if (!quantity) {
+      setPiecesError({ key, text: p.wrongPieces });
+      field();
+      return;
+    }
+    setPiecesError(null);
+    void run(
+      () =>
+        api(`${base}/products/${productId}/${path}`, {
+          method: 'POST',
+          body: { quantity, ...extra },
+        }),
+      (text) => {
+        setPiecesError({ key, text });
+        field();
+      },
+    ).then((ok) => ok && done());
+  }
+  const piecesText = (key: string) => (piecesError?.key === key ? piecesError.text : '');
+  const piecesProps = (key: string) => {
+    const text = piecesText(key);
+    return {
+      id: `pieces-${key}`,
+      'aria-invalid': text ? true : undefined,
+      'aria-describedby': text ? `pieces-${key}-error` : undefined,
+    } as const;
+  };
+  const piecesFieldError = (key: string) =>
+    piecesText(key) ? (
+      <span style={{ flexBasis: '100%' }}>
+        <FieldError id={`pieces-${key}-error`} text={piecesText(key)} />
+      </span>
+    ) : null;
 
   /** Task 437: the stock list as a CSV file (the server names it). */
   async function downloadStock() {
@@ -754,25 +805,32 @@ export function ProductsSection({ base }: { base: string }) {
                     aria-label={`${p.restock} — ${x.name}`}
                     placeholder="+"
                     value={deliveries[x.id] ?? ''}
-                    onChange={(e) => setDeliveries({ ...deliveries, [x.id]: e.target.value })}
+                    {...piecesProps(`restock-${x.id}`)}
+                    onChange={(e) => {
+                      setDeliveries({ ...deliveries, [x.id]: e.target.value });
+                      if (piecesError?.key === `restock-${x.id}`) setPiecesError(null);
+                    }}
                   />
                   <button
                     type="button"
                     className="btn btn--quiet btn--small"
                     aria-label={`${p.restockAdd} — ${x.name}`}
-                    disabled={busy || !parseStock(deliveries[x.id] ?? '')}
+                    disabled={busy}
                     onClick={() =>
-                      void run(() =>
-                        api(`${base}/products/${x.id}/restock`, {
-                          method: 'POST',
-                          body: { quantity: parseStock(deliveries[x.id] ?? '') },
-                        }),
-                      ).then((ok) => ok && setDeliveries({ ...deliveries, [x.id]: '' }))
+                      changePieces(
+                        `restock-${x.id}`,
+                        deliveries[x.id] ?? '',
+                        'restock',
+                        x.id,
+                        {},
+                        () => setDeliveries({ ...deliveries, [x.id]: '' }),
+                      )
                     }
                   >
                     {p.restockAdd}
                   </button>
                 </span>
+                {piecesFieldError(`restock-${x.id}`)}
                 {x.stockQuantity === 0 ? (
                   <span className="badge" data-testid="product-out">
                     {p.stockNone}
@@ -877,7 +935,11 @@ export function ProductsSection({ base }: { base: string }) {
                             aria-label={`${p.writeOffQuantity} — ${x.name}`}
                             placeholder="−"
                             value={writeOff.quantity}
-                            onChange={(e) => setWriteOff({ ...writeOff, quantity: e.target.value })}
+                            {...piecesProps(`write-off-${x.id}`)}
+                            onChange={(e) => {
+                              setWriteOff({ ...writeOff, quantity: e.target.value });
+                              if (piecesError?.key === `write-off-${x.id}`) setPiecesError(null);
+                            }}
                           />
                           <span aria-hidden="true">{p.pieces}</span>
                         </span>
@@ -892,21 +954,21 @@ export function ProductsSection({ base }: { base: string }) {
                           type="button"
                           className="btn btn--quiet btn--small"
                           aria-label={p.writeOffFor.replace('{name}', x.name)}
-                          disabled={busy || !parseStock(writeOff.quantity)}
+                          disabled={busy}
                           onClick={() =>
-                            void run(() =>
-                              api(`${base}/products/${x.id}/write-off`, {
-                                method: 'POST',
-                                body: {
-                                  quantity: parseStock(writeOff.quantity),
-                                  ...(writeOff.note.trim() ? { note: writeOff.note.trim() } : {}),
-                                },
-                              }),
-                            ).then((ok) => ok && setWriteOff({ quantity: '', note: '' }))
+                            changePieces(
+                              `write-off-${x.id}`,
+                              writeOff.quantity,
+                              'write-off',
+                              x.id,
+                              writeOff.note.trim() ? { note: writeOff.note.trim() } : {},
+                              () => setWriteOff({ quantity: '', note: '' }),
+                            )
                           }
                         >
                           {p.writeOffAdd}
                         </button>
+                        {piecesFieldError(`write-off-${x.id}`)}
                       </div>
                     ) : null}
                     {historyOf.rows.length === 0 ? (

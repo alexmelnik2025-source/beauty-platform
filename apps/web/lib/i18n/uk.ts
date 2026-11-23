@@ -1799,6 +1799,7 @@ export const uk: Dict = {
     /** Task 663: under a wrong field of the new-product form. */
     wrongPrice: 'Введіть суму, наприклад 45 або 45,50.',
     wrongStock: 'Введіть кількість штук від 0 до 100 000 або залиште порожнім.',
+    wrongPieces: 'Введіть кількість штук від 1 до 100 000.',
     wrongBarcode: 'Від 3 до 32 символів: цифри, літери та «-».',
     moreFields: 'Ще ▸',
     stockLeft: 'залишилось {n} шт.',

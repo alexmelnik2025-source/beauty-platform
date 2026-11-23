@@ -402,7 +402,17 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await products.getByText('Więcej ▸', { exact: true }).click();
   await products.getByRole('button', { name: '+ Dodaj produkt' }).click();
   await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('');
-  await products.getByLabel('Dostawa — Zestaw').fill('4');
+  // Task 709: "Przyjmij" with no pieces is not silently off — it says so under the field.
+  const zestawDelivery = products.getByLabel('Dostawa — Zestaw');
+  await products.getByRole('button', { name: 'Przyjmij — Zestaw' }).click();
+  await expect(zestawDelivery).toHaveAttribute('aria-invalid', 'true');
+  await expect(zestawDelivery).toBeFocused();
+  await expect(
+    products.locator(`#${await zestawDelivery.getAttribute('aria-describedby')}`),
+  ).toHaveText('Wpisz liczbę sztuk od 1 do 100 000.');
+  await shot(page, '709-restock-pieces-empty');
+  await zestawDelivery.fill('4');
+  await expect(zestawDelivery).not.toHaveAttribute('aria-invalid', 'true');
   await products.getByRole('button', { name: 'Przyjmij — Zestaw' }).click();
   await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('4');
   await expect(products.getByLabel('Dostawa — Zestaw')).toHaveValue('');
@@ -419,7 +429,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   // Task 444: "Odpis" — a damaged set leaves the stock, with the reason in the history.
   const zestawWriteOff = zestawHistory.getByTestId('stock-write-off');
-  await zestawWriteOff.getByLabel('Ile sztuk — Zestaw').fill('1');
+  // Task 709: more pieces than in stock — the salon's answer is said under the field, not at the top.
+  const zestawPieces = zestawWriteOff.getByLabel('Ile sztuk — Zestaw');
+  await zestawPieces.fill('9');
+  await zestawWriteOff.getByRole('button', { name: 'Odpis — Zestaw' }).click();
+  await expect(zestawPieces).toHaveAttribute('aria-invalid', 'true');
+  await expect(zestawPieces).toBeFocused();
+  await expect(zestawWriteOff.getByRole('alert')).toHaveText(
+    'Za mało sztuk w magazynie — popraw stan w „Produkty”.',
+  );
+  await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('4');
+  await zestawHistory.scrollIntoViewIfNeeded();
+  await shot(page, '709-write-off-too-many');
+  await zestawPieces.fill('1');
   await zestawWriteOff.getByLabel(/^Powód/).fill('uszkodzone');
   await zestawWriteOff.getByRole('button', { name: 'Odpis — Zestaw' }).click();
   await expect(products.getByLabel('W magazynie — Zestaw')).toHaveValue('3');
