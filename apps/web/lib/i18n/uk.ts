@@ -2180,6 +2180,7 @@ export const uk: Dict = {
     alsoOnline: 'також онлайн у Sklep',
     narrowDown: 'Показано перші 500 — уточніть пошук.',
     importTicked: 'Імпортувати позначені ({n})',
+    noneTicked: 'Нічого не позначено — позначте товари з ціною.',
     imported: 'Готово: нових {created}, оновлено {updated}, пропущено {skipped}.',
     importedPhotos: 'Фото товарів завантажено за посиланнями: {n}.',
     ordersTitle: 'Замовлення в Base',

@@ -2188,6 +2188,7 @@ export const ru: Dict = {
     alsoOnline: 'также онлайн в Sklep',
     narrowDown: 'Показаны первые 500 — уточните поиск.',
     importTicked: 'Импортировать отмеченные ({n})',
+    noneTicked: 'Ничего не отмечено — отметьте товары с ценой.',
     imported: 'Готово: новых {created}, обновлено {updated}, пропущено {skipped}.',
     importedPhotos: 'Фото товаров загружено по ссылкам: {n}.',
     ordersTitle: 'Заказы в Base',

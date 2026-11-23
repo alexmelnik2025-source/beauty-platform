@@ -758,6 +758,12 @@ function Picker({
     ? rows.filter((r) => r.name.toLowerCase().includes(words) || r.ean?.includes(words))
     : rows;
   const chosen = Object.keys(ticked).filter((k) => ticked[k]);
+  /**
+   * Task 724 (owner's rule: errors at the field): "Importuj zaznaczone (0)" is not silently off —
+   * pressing it says under the list that nothing is ticked and puts the cursor on the first box.
+   */
+  const [noneTicked, setNoneTicked] = useState(false);
+  const showNone = noneTicked && chosen.length === 0;
 
   return (
     <div className="stack" data-testid="integration-picker">
@@ -776,7 +782,11 @@ function Picker({
           {chosen.length === 0 ? s.tickAll : s.untickAll}
         </button>
       </div>
-      <ul className="list" aria-label={s.chooseProducts}>
+      <ul
+        className="list"
+        aria-label={s.chooseProducts}
+        aria-describedby={showNone ? 'integration-picker-error' : undefined}
+      >
         {shown.slice(0, 500).map((r) => (
           <li
             key={r.key}
@@ -788,6 +798,8 @@ function Picker({
                 type="checkbox"
                 checked={Boolean(ticked[r.key])}
                 disabled={busy || r.priceGrosze === null}
+                aria-invalid={showNone || undefined}
+                aria-describedby={showNone ? 'integration-picker-error' : undefined}
                 onChange={(e) => setTicked({ ...ticked, [r.key]: e.target.checked })}
               />
               <span>
@@ -821,14 +833,23 @@ function Picker({
         ))}
       </ul>
       {shown.length > 500 ? <p className="small muted">{s.narrowDown}</p> : null}
+      <FieldError id="integration-picker-error" text={showNone ? s.noneTicked : undefined} />
       <div className="row">
         <button
           type="button"
           className="btn"
-          disabled={busy || chosen.length === 0}
-          onClick={() =>
-            onImport(chosen.slice(0, 200).map((key) => ({ key, online: Boolean(online[key]) })))
-          }
+          disabled={busy}
+          onClick={(e) => {
+            if (chosen.length === 0) {
+              setNoneTicked(true);
+              e.currentTarget
+                .closest('[data-testid="integration-picker"]')
+                ?.querySelector<HTMLInputElement>('ul input[type="checkbox"]:not([disabled])')
+                ?.focus();
+              return;
+            }
+            onImport(chosen.slice(0, 200).map((key) => ({ key, online: Boolean(online[key]) })));
+          }}
         >
           {fill(s.importTicked, { n: String(Math.min(chosen.length, 200)) })}
         </button>
