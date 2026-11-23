@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BackHandler, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { addDays, dayTitle } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { weekStart, weekSummary, type WeekDay } from '../week';
 import type { SalonChoice } from './SalonsScreen';
 

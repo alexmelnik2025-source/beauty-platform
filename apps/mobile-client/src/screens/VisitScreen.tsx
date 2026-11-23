@@ -1,15 +1,6 @@
 import { FormFeedback } from '../FormFeedback';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  BackHandler,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BackHandler, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
   newRequestKey,
@@ -42,7 +33,7 @@ import { fill, type Dictionary } from '../i18n';
 import { directionsUrl } from '../salon';
 import { shareSalon, visitShareMessage } from '../share';
 import { shareTools } from './shareTools';
-import { Button, Card, Chip, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, Chip, colors, ErrorText, Heading, Pressable } from '../ui';
 import { WishesPicker } from '../WishesPicker';
 import { VisitPhotos } from '../WishPhotosPicker';
 import { ReviewCard } from '../ReviewCard';

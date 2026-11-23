@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   myDataFileName,
   type ClientApi,
@@ -26,7 +26,7 @@ import { favoriteSpecialists, type FavoriteSpecialist } from '../favorite';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { saveMyData } from '../myData';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { BonusesView } from './BonusesView';
 import { FavoritesView } from './FavoritesView';
 import { VisitScreen } from './VisitScreen';
@@ -215,6 +215,15 @@ export function VisitsScreen(props: {
       <View style={styles.tabs} accessibilityRole="tablist">
         {(['upcoming', 'past', 'bonuses', 'favorites'] as const).map((s) => (
           <Pressable
+            accessibilityLabel={
+              s === 'upcoming'
+                ? t.visits.upcoming
+                : s === 'past'
+                  ? t.visits.past
+                  : s === 'bonuses'
+                    ? t.bonuses.tab
+                    : t.favorites.tab
+            }
             key={s}
             accessibilityRole="tab"
             aria-selected={s === tab}
@@ -336,6 +345,7 @@ export function VisitsScreen(props: {
         <View style={styles.salonChips} role="group" aria-label={t.visits.salonFilter}>
           {[{ slug: null, name: t.visits.allSalons }, ...salons].map((s) => (
             <Pressable
+              accessibilityLabel={s.name}
               key={s.slug ?? ''}
               accessibilityRole="button"
               aria-pressed={salon === s.slug}
@@ -481,10 +491,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabActive: { backgroundColor: colors.ink },
-  tabText: { color: colors.ink, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  tabText: {
+    maxWidth: '100%',
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   tabTextActive: { color: '#fff' },
   salonChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   salonChip: {
+    maxWidth: '100%',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 999,
@@ -493,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   notified: { color: '#1e6b3a', fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  waitActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
+  waitActions: { flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
   day: {
     color: colors.muted,
@@ -503,7 +520,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: 4,
   },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTop: {
+    flexWrap: 'wrap',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   time: { fontSize: 22, fontWeight: '700', color: colors.ink },
   service: { fontSize: 17, fontWeight: '600', color: colors.ink },
   more: { color: colors.ink, fontSize: 14, fontWeight: '600', marginTop: 6 },

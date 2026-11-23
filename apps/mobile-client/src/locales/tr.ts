@@ -319,7 +319,7 @@ export const tr: Dictionary = {
     title: 'Salon bul',
     lead: 'Online randevu alabileceğiniz salonlar. Hangi dilde hizmet almak istediğinizi seçin.',
     search: 'Ne arıyorsunuz? Hizmet, salon, şehir veya sokak',
-    filterLanguage: 'Dil',
+    filterLanguage: 'Hizmet dili',
     allLanguages: 'Tüm diller',
     clearLanguages: 'Temizle',
     found: 'Bulunan salon: {n}',

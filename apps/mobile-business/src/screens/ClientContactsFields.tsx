@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { CLIENT_LANGUAGES, type ContactsForm } from '../clientContacts';
 import type { Dictionary } from '../i18n';
 import { LANGUAGE_NAMES } from '../i18n';
 import type { ClientProblem } from '../newVisit';
 import { dialForTimeZone } from '../phone';
-import { colors, ErrorText } from '../ui';
+import { colors, ErrorText, Pressable } from '../ui';
 
 /**
  * Tasks 332–333: the client's name, phone, email and the language of their messages — the same
@@ -65,6 +65,7 @@ export function ClientContactsFields(props: {
             const name = (LANGUAGE_NAMES as Record<string, string>)[code] ?? code.toUpperCase();
             return (
               <Pressable
+                accessibilityLabel={name}
                 key={code}
                 accessibilityRole="button"
                 aria-pressed={on}

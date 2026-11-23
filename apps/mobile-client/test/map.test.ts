@@ -39,7 +39,7 @@ describe('catalogue map (task 160)', () => {
     expect(first).toMatchObject({ item: salons[0], x: 140, y: 150 });
     expect(second?.item).toEqual(salons[1]);
     const gap = Math.max(Math.abs(first!.x - second!.x), Math.abs(first!.y - second!.y));
-    expect(gap).toBeGreaterThanOrEqual(30);
+    expect(gap).toBeGreaterThanOrEqual(44);
   });
 
   it('one salon: street level, in the middle; none: no map', () => {

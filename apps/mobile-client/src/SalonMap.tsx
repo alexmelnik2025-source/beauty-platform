@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, DirectorySalon, Locale, SpokenLanguage } from './api';
 import { API_URL } from './config';
 import { formatPrice, ratingText } from './format';
 import { fill, type Dictionary } from './i18n';
-import { mapLayout } from './map';
+import { mapLayout, MARKER_SIZE } from './map';
 import { OpenNow } from './OpenNow';
 import { addressText } from './salon';
-import { Button, colors } from './ui';
+import { Button, colors, Pressable } from './ui';
 
 const HEIGHT = 300;
 
@@ -60,7 +60,7 @@ export function SalonMap(props: {
   return (
     <View style={{ gap: 10 }}>
       <View
-        role="img"
+        role="region"
         aria-label={t.catalog.mapTitle}
         style={styles.map}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
@@ -83,13 +83,11 @@ export function SalonMap(props: {
               accessibilityLabel={fill(t.catalog.marker, { name: item.name })}
               aria-pressed={on}
               onPress={() => setSelected(item.slug)}
-              style={[
-                styles.marker,
-                on && styles.markerOn,
-                { left: x - (on ? 15 : 12), top: y - (on ? 15 : 12) },
-              ]}
+              style={[styles.marker, { left: x - MARKER_SIZE / 2, top: y - MARKER_SIZE / 2 }]}
             >
-              {speaking ? <Text style={styles.markerText}>{speaking}</Text> : null}
+              <View style={[styles.pin, on && styles.pinOn]}>
+                {speaking ? <Text style={styles.markerText}>{speaking}</Text> : null}
+              </View>
             </Pressable>
           );
         })}
@@ -100,14 +98,15 @@ export function SalonMap(props: {
             </Text>
           </View>
         ) : null}
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => void Linking.openURL('https://www.openstreetmap.org/copyright')}
-          style={styles.credit}
-        >
-          <Text style={styles.creditText}>© OpenStreetMap</Text>
-        </Pressable>
       </View>
+      <Pressable
+        accessibilityLabel="OpenStreetMap"
+        accessibilityRole="link"
+        onPress={() => void Linking.openURL('https://www.openstreetmap.org/copyright')}
+        style={styles.credit}
+      >
+        <Text style={styles.creditText}>© OpenStreetMap</Text>
+      </Pressable>
       {salon ? (
         <View role="region" aria-label={salon.name} style={styles.card}>
           {salon.photoUrl ? (
@@ -167,8 +166,14 @@ const styles = StyleSheet.create({
   tile: { position: 'absolute', width: 256, height: 256 },
   marker: {
     position: 'absolute',
-    width: 24,
-    height: 24,
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pin: {
+    minWidth: 24,
+    minHeight: 24,
     borderRadius: 12,
     backgroundColor: '#c72d43',
     borderWidth: 3,
@@ -176,7 +181,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markerOn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.ink },
+  pinOn: { minWidth: 30, minHeight: 30, borderRadius: 15, backgroundColor: colors.ink },
   markerText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   empty: {
     position: 'absolute',
@@ -198,9 +203,8 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   credit: {
-    position: 'absolute',
-    right: 6,
-    bottom: 4,
+    alignSelf: 'flex-end',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.8)',
     paddingHorizontal: 4,
     borderRadius: 4,

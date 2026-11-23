@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable as NativePressable,
+  type PressableProps,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 /** Small shared building blocks and colours of the business app. */
 export const colors = {
@@ -18,6 +26,21 @@ export const colors = {
   soft: '#ececec',
   danger: '#b3261e',
 };
+
+/** Keep the entire control tappable without extending into neighbouring controls. */
+export function Pressable({ style, ...props }: PressableProps) {
+  return (
+    <NativePressable
+      {...props}
+      style={(state) => [styles.touchTarget, typeof style === 'function' ? style(state) : style]}
+    />
+  );
+}
+
+export const switchTouchTarget = Platform.select({
+  web: { height: 44 },
+  default: { minHeight: 44, minWidth: 44 },
+});
 
 export function Button(props: {
   label: string;
@@ -92,6 +115,7 @@ export function Card({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  touchTarget: { minWidth: 44, minHeight: 44 },
   button: {
     backgroundColor: colors.accent,
     borderRadius: 12,

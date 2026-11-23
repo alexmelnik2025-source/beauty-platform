@@ -319,7 +319,7 @@ export const sq: Dictionary = {
     title: 'Gjeni një sallon',
     lead: 'Sallone ku mund të rezervoni online. Zgjidhni gjuhën në të cilën doni të shërbeheni.',
     search: 'Çfarë kërkoni? Shërbim, sallon, qytet ose rrugë',
-    filterLanguage: 'Gjuha',
+    filterLanguage: 'Gjuha e shërbimit',
     allLanguages: 'Të gjitha gjuhët',
     clearLanguages: 'Pastro',
     found: 'Sallone të gjetura: {n}',

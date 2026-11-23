@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -20,7 +11,7 @@ import {
   type MessagesForm,
 } from '../messages';
 import { saveProblem } from '../salon';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -146,6 +137,7 @@ export function MessagesScreen(props: {
             <View style={styles.switchRow}>
               <Text style={[styles.value, { flex: 1 }]}>{m.rebookOn}</Text>
               <Switch
+                style={switchTouchTarget}
                 accessibilityLabel={m.rebookOn}
                 value={form.rebookOn}
                 onValueChange={(rebookOn) => setForm({ ...form, rebookOn })}
@@ -191,6 +183,7 @@ export function MessagesScreen(props: {
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       accessibilityRole="button"
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}

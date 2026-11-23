@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, MemberList, PermissionCatalog, StaffCategoryList } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -24,7 +16,7 @@ import {
   type Exception,
   type PermissionMap,
 } from '../rights';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 type Category = StaffCategoryList[number];
@@ -205,6 +197,7 @@ export function PermissionsScreen(props: {
             const on = open.categoryId === id;
             return (
               <Pressable
+                accessibilityLabel={categoryName(id)}
                 key={id ?? 'default'}
                 accessibilityRole="button"
                 aria-pressed={on}

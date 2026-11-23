@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyBonusRules } from '../api';
 import {
   bonusGives,
@@ -13,7 +13,7 @@ import {
 import { errorText } from '../errors';
 import { daysText, shortWeekday } from '../happyHours';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -249,6 +249,7 @@ function Labeled(props: { label: string; value: string; onChange: (value: string
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       accessibilityRole="button"
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}

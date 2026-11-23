@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type { ClientApi, DirectorySalon, Locale, Specialty, SpokenLanguage } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -155,6 +164,40 @@ export function CatalogScreen(props: {
   };
 
   const shown = items;
+  const { fontScale } = useWindowDimensions();
+  const wrapFilters = Platform.OS === 'web' || fontScale > 1;
+  const filters = (
+    <>
+      <Chip
+        compact
+        label={`${t.catalog.filterLanguage} ${filter === 'language' ? '▴' : '▾'}`}
+        a11yLabel={t.catalog.filterLanguage}
+        pressed={chosen.length > 0}
+        expanded={filter === 'language'}
+        onPress={() => setFilter(filter === 'language' ? null : 'language')}
+      />
+      <Chip
+        compact
+        label={`${t.catalog.filterKind} ${filter === 'kind' ? '▴' : '▾'}`}
+        a11yLabel={t.catalog.filterKind}
+        pressed={specialty !== null}
+        expanded={filter === 'kind'}
+        onPress={() => setFilter(filter === 'kind' ? null : 'kind')}
+      />
+      <Chip
+        compact
+        label={`${t.catalog.openNow} (${openNowCount})`}
+        pressed={openNow}
+        onPress={() => setOpenNow(!openNow)}
+      />
+      <Chip
+        compact
+        label={locating ? t.catalog.locating : t.catalog.near}
+        pressed={near !== null}
+        onPress={() => void toggleNear()}
+      />
+    </>
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -174,38 +217,17 @@ export function CatalogScreen(props: {
         onSubmitEditing={() => setSearch(query.trim())}
         style={styles.input}
       />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}
-      >
-        <Chip
-          compact
-          label={`${t.catalog.filterLanguage} ${filter === 'language' ? '▴' : '▾'}`}
-          pressed={chosen.length > 0}
-          expanded={filter === 'language'}
-          onPress={() => setFilter(filter === 'language' ? null : 'language')}
-        />
-        <Chip
-          compact
-          label={`${t.catalog.filterKind} ${filter === 'kind' ? '▴' : '▾'}`}
-          pressed={specialty !== null}
-          expanded={filter === 'kind'}
-          onPress={() => setFilter(filter === 'kind' ? null : 'kind')}
-        />
-        <Chip
-          compact
-          label={`${t.catalog.openNow} (${openNowCount})`}
-          pressed={openNow}
-          onPress={() => setOpenNow(!openNow)}
-        />
-        <Chip
-          compact
-          label={locating ? t.catalog.locating : t.catalog.near}
-          pressed={near !== null}
-          onPress={() => void toggleNear()}
-        />
-      </ScrollView>
+      {wrapFilters ? (
+        <View style={[styles.filters, styles.wrapFilters]}>{filters}</View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filters}
+        >
+          {filters}
+        </ScrollView>
+      )}
       {locationFailed ? <Text style={styles.small}>{t.catalog.locationFailed}</Text> : null}
       {filter === 'language' ? (
         <View style={styles.chips} accessibilityLabel={t.catalog.filterLanguage}>
@@ -353,5 +375,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   filters: { flexDirection: 'row', gap: 5 },
+  wrapFilters: { flexWrap: 'wrap' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

@@ -4,7 +4,7 @@ import type { Locale } from './api';
 import { formFailure, validationField, type FormFailure } from './errors';
 import { FieldGroup, FormFeedback } from './FormFeedback';
 import { DICTIONARIES, LANGUAGE_NAMES, LOCALES } from './i18n';
-import { Button, colors } from './ui';
+import { Button, colors, Pressable } from './ui';
 
 /** Each language named in itself; the chosen one is underlined. */
 export function LanguageRow(props: {
@@ -47,17 +47,23 @@ export function LanguageRow(props: {
         />
         {open ? (
           <View style={styles.languages} accessibilityLabel={props.label}>
-            {LOCALES.map((l) => (
-              <Text
-                key={l}
-                accessibilityRole="button"
-                aria-pressed={l === props.locale}
-                onPress={() => void choose(l)}
-                style={[styles.language, l === props.locale && styles.languageActive]}
-              >
-                {l === 'uk' ? `UA · ${LANGUAGE_NAMES[l]}` : LANGUAGE_NAMES[l]}
-              </Text>
-            ))}
+            {LOCALES.map((l) => {
+              const label = l === 'uk' ? `UA · ${LANGUAGE_NAMES[l]}` : LANGUAGE_NAMES[l];
+              const selected = l === props.locale;
+              return (
+                <Pressable
+                  key={l}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected }}
+                  aria-pressed={selected}
+                  onPress={() => void choose(l)}
+                  style={styles.languageButton}
+                >
+                  <Text style={[styles.language, selected && styles.languageActive]}>{label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         ) : null}
       </FieldGroup>
@@ -68,6 +74,7 @@ export function LanguageRow(props: {
 
 const styles = StyleSheet.create({
   languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  language: { color: colors.muted, fontSize: 14, paddingVertical: 6 },
+  languageButton: { justifyContent: 'center', paddingHorizontal: 4, maxWidth: '100%' },
+  language: { color: colors.muted, fontSize: 14 },
   languageActive: { color: colors.ink, fontWeight: '700', textDecorationLine: 'underline' },
 });

@@ -128,7 +128,7 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
     await app.getByRole('button', { name: 'Znajdź salon' }).click();
     await expect(app.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
     // The map first, with both salons on it.
-    await expect(app.getByRole('img', { name: 'Mapa salonów' })).toBeVisible();
+    await expect(app.getByRole('region', { name: 'Mapa salonów' })).toBeVisible();
     await expect(app.getByRole('button', { name: 'Mapa', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -175,7 +175,7 @@ test('the client app opens the catalogue on a map with language and kind-of-plac
 
     // The list view, and "Umów" on the card opens the salon's page.
     await app.getByRole('button', { name: 'Lista', exact: true }).click();
-    await expect(app.getByRole('img', { name: 'Mapa salonów' })).toHaveCount(0);
+    await expect(app.getByRole('region', { name: 'Mapa salonów' })).toHaveCount(0);
     await expect(app.getByRole('article', { name: NAILS })).toBeVisible();
     await shot(app, '160c-client-app-list');
     await app.getByRole('button', { name: 'Mapa', exact: true }).click();

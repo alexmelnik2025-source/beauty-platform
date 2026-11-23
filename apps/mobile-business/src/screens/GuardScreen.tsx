@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -28,7 +20,7 @@ import {
   type GuardForm,
 } from '../guard';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -243,6 +235,7 @@ export function GuardScreen(props: {
               <View role="radiogroup" accessibilityLabel={g.actionLabel} style={{ gap: 8 }}>
                 {GUARD_ACTIONS.map((action) => (
                   <Pressable
+                    accessibilityLabel={g.actions[action]}
                     key={action}
                     role="radio"
                     aria-checked={form.action === action}
@@ -320,6 +313,7 @@ export function GuardScreen(props: {
 function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       role="checkbox"
       aria-checked={props.on}
       accessibilityState={{ checked: props.on }}

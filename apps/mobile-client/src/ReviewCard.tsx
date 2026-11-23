@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
 import { formFailure, isNetworkError, validationField, type FormFailure } from './errors';
 import { FieldGroup, FormFeedback } from './FormFeedback';
 import { fill, type Dictionary } from './i18n';
-import { Button, colors, FieldInput } from './ui';
+import { Button, colors, FieldInput, Pressable } from './ui';
 
 const TEXT_MAX = 1000;
 

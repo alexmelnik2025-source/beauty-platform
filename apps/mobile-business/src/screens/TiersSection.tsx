@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyTiers } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { MAX_TIERS, tierRows, tiersToSave, type TierRow } from '../tiers';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -219,6 +219,7 @@ export function TiersSection(props: {
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       accessibilityRole="button"
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}

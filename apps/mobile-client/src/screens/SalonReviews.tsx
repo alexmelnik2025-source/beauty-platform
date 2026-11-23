@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, PublicReviews } from '../api';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
@@ -12,7 +12,7 @@ import {
   starText,
   type SalonReview,
 } from '../salonReviews';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable } from '../ui';
 
 /**
  * Task 212: "Opinie" on the salon page — the average, the specialists' averages as chips (tap —
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   summary: { color: colors.ink, fontSize: 16, fontWeight: '600' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 12,
     justifyContent: 'center',
     borderRadius: 18,

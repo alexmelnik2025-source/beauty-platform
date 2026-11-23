@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, CatalogProduct, Locale, Product, StockHistory } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -14,7 +14,7 @@ function parseCost(text: string): number | null | undefined {
   if (text.trim() === '') return null;
   return parseAmount(text) ?? undefined;
 }
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable, switchTouchTarget } from '../ui';
 import { csvTools, orderShareTools } from './csvTools';
 import { DeliveryCard } from './DeliveryCard';
 import { StocktakeCard } from './StocktakeCard';
@@ -319,6 +319,7 @@ export function ProductListSection(props: {
               <View style={styles.top}>
                 <Text style={styles.name}>{t.shop.showInSalon}</Text>
                 <Switch
+                  style={switchTouchTarget}
                   accessibilityLabel={t.shop.showInSalon}
                   value={showOnline}
                   onValueChange={setShowOnline}
@@ -681,6 +682,7 @@ export function ProductListSection(props: {
         ) : (
           <Card key={x.id}>
             <Pressable
+              accessibilityLabel={x.name}
               accessibilityRole="button"
               accessibilityState={{ expanded: expandedId === x.id }}
               aria-expanded={expandedId === x.id}

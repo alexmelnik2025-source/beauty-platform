@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, StaffList } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { movedOrder, nextSortOrder, teamForProfiles } from '../staffProfile';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ScheduleScreen } from './ScheduleScreen';
 import type { SalonChoice } from './SalonsScreen';
 

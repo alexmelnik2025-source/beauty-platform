@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, DirectorySalon, Locale } from '../api';
 import { formatKm, formatPrice, ratingText } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { OpenNow } from '../OpenNow';
 import { addressText, nearbyOnly } from '../salon';
-import { Card, colors } from '../ui';
+import { Card, colors, Pressable } from '../ui';
 
 const NEARBY_COUNT = 3;
 

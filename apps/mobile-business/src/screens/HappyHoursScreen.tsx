@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { errorText } from '../errors';
 import {
@@ -20,7 +12,7 @@ import {
   type Rule,
 } from '../happyHours';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 const WEEK = [1, 2, 3, 4, 5, 6, 7];
@@ -311,6 +303,7 @@ function toggled<T>(list: T[], value: T): T[] {
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityLabel={props.label}
       accessibilityRole="button"
       aria-pressed={props.on}
       accessibilityState={{ selected: props.on }}

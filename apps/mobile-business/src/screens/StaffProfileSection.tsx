@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type ServiceList, type StaffList } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -14,7 +14,7 @@ import {
 } from '../staffProfile';
 import { photoType, uploadErrorText } from '../salonPhotos';
 import { toggled } from '../services';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -256,6 +256,7 @@ export function StaffProfileSection(props: {
               <Text style={styles.small}>{form.active ? p.activeOn : p.activeOff}</Text>
             </View>
             <Switch
+              style={switchTouchTarget}
               accessibilityLabel={p.active}
               value={form.active}
               onValueChange={(active) => setForm({ ...form, active })}
@@ -295,6 +296,7 @@ export function StaffProfileSection(props: {
                 const on = form.specialties.includes(code);
                 return (
                   <Pressable
+                    accessibilityLabel={p.names[code]}
                     key={code}
                     accessibilityRole="button"
                     aria-pressed={on}

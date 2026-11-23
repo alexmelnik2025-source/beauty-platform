@@ -312,7 +312,7 @@ export const en: Dictionary = {
     title: 'Find a salon',
     lead: 'Salons you can book online. Choose the language you want to be served in.',
     search: 'What are you looking for? Service, salon, city or street',
-    filterLanguage: 'Language',
+    filterLanguage: 'Service language',
     allLanguages: 'All languages',
     clearLanguages: 'Clear',
     found: 'Salons found: {n}',

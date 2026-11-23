@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
+  Platform,
+  Pressable as NativePressable,
+  type PressableProps,
   StyleSheet,
   Text,
   TextInput,
@@ -26,6 +28,21 @@ export const colors = {
   soft: '#ececec',
   danger: '#b3261e',
 };
+
+/** Keep the entire control tappable without extending into neighbouring controls. */
+export function Pressable({ style, ...props }: PressableProps) {
+  return (
+    <NativePressable
+      {...props}
+      style={(state) => [styles.touchTarget, typeof style === 'function' ? style(state) : style]}
+    />
+  );
+}
+
+export const switchTouchTarget = Platform.select({
+  web: { height: 44 },
+  default: { minHeight: 44, minWidth: 44 },
+});
 
 export function Button(props: {
   label: string;
@@ -132,6 +149,7 @@ export function Card({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  touchTarget: { minWidth: 44, minHeight: 44 },
   button: {
     backgroundColor: colors.accent,
     borderRadius: 12,
@@ -140,10 +158,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
+    maxWidth: '100%',
   },
   secondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   link: { backgroundColor: 'transparent', paddingHorizontal: 8 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    maxWidth: '100%',
+    textAlign: 'center',
+  },
   chip: {
     borderWidth: 1,
     borderColor: colors.line,
@@ -151,10 +176,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    minHeight: 36,
+    maxWidth: '100%',
     justifyContent: 'center',
   },
-  compactChip: { paddingHorizontal: 7, paddingVertical: 4, minHeight: 44 },
+  compactChip: { paddingHorizontal: 7, paddingVertical: 4 },
   compactChipText: { fontSize: 12 },
   invalid: { borderColor: colors.danger, borderWidth: 1 },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },

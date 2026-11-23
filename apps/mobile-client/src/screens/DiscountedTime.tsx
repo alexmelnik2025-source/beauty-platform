@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../ui';
+import { StyleSheet, Text } from 'react-native';
+import { colors, Pressable } from '../ui';
 
 export function DiscountedTime({
   time,
