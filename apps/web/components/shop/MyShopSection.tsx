@@ -10,7 +10,11 @@ import type { CatalogProduct, CatalogSearch, Product, ProductList } from '@/lib/
 import { parseTip as parseAmount } from '../calendar/TipField';
 import { useSession } from '../Session';
 import { ReservationDays } from './ReservationDays';
-import { ErrorBox, Spinner } from '../ui';
+import { ErrorBox, FieldError, Spinner } from '../ui';
+
+/** Task 696: the fields of the quick "Dodaj produkt" form, in their order on screen. */
+type AddField = 'name' | 'price' | 'stock';
+const ADD_FIELDS: AddField[] = ['name', 'price', 'stock'];
 
 const SHOP_CATEGORIES = [
   'hair_care',
@@ -66,6 +70,11 @@ export function MyShopSection({ base }: { base: string }) {
   const [stock, setStock] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 696 (owner's rule: errors at the field): an empty name or price, a wrong price or stock
+   * of the quick "Dodaj produkt" form are said under each field, not as one line above the list.
+   */
+  const [addProblems, setAddProblems] = useState<Partial<Record<AddField, string>>>({});
   /** Task Q6: the list as in a shop admin — search, filters, one row per product, opened in place. */
   const [filterText, setFilterText] = useState('');
   const [filter, setFilter] = useState<ShopFilter>('all');
@@ -159,14 +168,20 @@ export function MyShopSection({ base }: { base: string }) {
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
-    const priceGrosze = parseAmount(price);
+    const priceGrosze = price.trim() === '' ? null : parseAmount(price);
     const stockQuantity = stock.trim() === '' ? null : Number(stock);
-    if (
-      !name.trim() ||
-      priceGrosze === null ||
-      (stockQuantity !== null && !/^\d{1,6}$/.test(stock.trim()))
-    ) {
-      setError(s.addInvalid);
+    const found: Partial<Record<AddField, string>> = {};
+    if (!name.trim()) found.name = t.onboarding.fieldRequired;
+    if (!price.trim()) found.price = t.onboarding.fieldRequired;
+    else if (priceGrosze === null) found.price = t.calendar.tillInvalid;
+    if (stockQuantity !== null && !/^\d{1,6}$/.test(stock.trim())) {
+      found.stock = fill(t.guard.numberRange, { min: '0', max: '999 999' });
+    }
+    setAddProblems(found);
+    const first = ADD_FIELDS.find((field) => found[field]);
+    if (first || priceGrosze === null) {
+      setError('');
+      document.getElementById(`shop-add-${first ?? 'price'}`)?.focus();
       return;
     }
     await run(async () => {
@@ -177,11 +192,22 @@ export function MyShopSection({ base }: { base: string }) {
       setName('');
       setPrice('');
       setStock('');
+      setAddProblems({});
       setAdding(false);
     });
   };
 
   if (!products) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
+
+  /** Task 696: the props that tie a field of the quick add to its error; editing clears it. */
+  const addInvalid = (field: AddField) => ({
+    id: `shop-add-${field}`,
+    'aria-invalid': addProblems[field] ? true : undefined,
+    'aria-describedby': addProblems[field] ? `shop-add-${field}-error` : undefined,
+  });
+  const clearAdd = (field: AddField) => {
+    if (addProblems[field]) setAddProblems({ ...addProblems, [field]: undefined });
+  };
 
   const shown = products.filter((p) => p.active);
   const inShop = shown.filter((p) => p.inSalonShop).length;
@@ -246,6 +272,7 @@ export function MyShopSection({ base }: { base: string }) {
 
       {adding ? (
         <form
+          noValidate
           className="card stack"
           id="shop-add"
           onSubmit={(e) => void add(e)}
@@ -262,8 +289,13 @@ export function MyShopSection({ base }: { base: string }) {
                 value={name}
                 maxLength={80}
                 required
-                onChange={(e) => setName(e.target.value)}
+                {...addInvalid('name')}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearAdd('name');
+                }}
               />
+              <FieldError id="shop-add-name-error" text={addProblems.name} />
             </label>
             <label className="field">
               <span>{t.products.price}</span>
@@ -271,12 +303,26 @@ export function MyShopSection({ base }: { base: string }) {
                 value={price}
                 inputMode="decimal"
                 required
-                onChange={(e) => setPrice(e.target.value)}
+                {...addInvalid('price')}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  clearAdd('price');
+                }}
               />
+              <FieldError id="shop-add-price-error" text={addProblems.price} />
             </label>
             <label className="field">
               <span>{s.stock}</span>
-              <input value={stock} inputMode="numeric" onChange={(e) => setStock(e.target.value)} />
+              <input
+                value={stock}
+                inputMode="numeric"
+                {...addInvalid('stock')}
+                onChange={(e) => {
+                  setStock(e.target.value);
+                  clearAdd('stock');
+                }}
+              />
+              <FieldError id="shop-add-stock-error" text={addProblems.stock} />
             </label>
             <button type="submit" className="btn" disabled={busy}>
               {t.common.save}

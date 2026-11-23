@@ -201,8 +201,27 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   // Quick add: a wax, shown to clients at once — the short form opens from "+ Dodaj produkt".
   await page.getByRole('button', { name: '+ Dodaj produkt' }).click();
   const addForm = page.locator('#shop-add');
-  await addForm.getByLabel('Nazwa', { exact: true }).fill('Wosk matowy');
-  await addForm.getByLabel('Cena', { exact: true }).fill('39,90');
+  // Task 696: nothing typed and a wrong stock — said under each field, the cursor on the first.
+  await addForm.locator('#shop-add-stock').fill('dużo');
+  await addForm.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(addForm.locator('#shop-add-name')).toBeFocused();
+  await expect(addForm.locator('#shop-add-name')).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(addForm.locator('#shop-add-price')).toHaveAccessibleDescription(
+    'Uzupełnij to pole.',
+  );
+  await expect(addForm.locator('#shop-add-stock')).toHaveAccessibleDescription(
+    'Wpisz liczbę od 0 do 999 999.',
+  );
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await shot(page, '696-shop-add-field-errors');
+  await addForm.locator('#shop-add-price').fill('39,9,0');
+  await addForm.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(addForm.locator('#shop-add-price')).toHaveAccessibleDescription(
+    'Wpisz kwotę, np. 150 lub 150,50.',
+  );
+  // The error under a field is part of its label now, so the fields are found by their ids.
+  await addForm.locator('#shop-add-name').fill('Wosk matowy');
+  await addForm.locator('#shop-add-price').fill('39,90');
   await addForm.getByLabel(/Sztuk w magazynie/).fill('10');
   await addForm.getByRole('button', { name: 'Zapisz' }).click();
   await expect(page.getByText('Pokazane klientom: 2 z 2 produktów.')).toBeVisible();

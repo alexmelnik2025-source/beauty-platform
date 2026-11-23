@@ -4525,6 +4525,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   (`#visit-reason`) — «Uzupełnij to pole.» под полем, курсор туда, ничего не отправляется; «Wstecz» убирает ошибку.
   Ответы сервера (занято, вне часов работы) — по-прежнему строкой сверху карточки. e2e `calendar-week`, скриншоты
   `695-visit-move-date-error`, `695-visit-cancel-reason-error`.
+- **«Mój sklep» → «+ Dodaj produkt» — ошибки у поля** (задача 696): форма с `noValidate`; пустое название или цена —
+  «Uzupełnij to pole.», неверная цена — `calendar.tillInvalid`, остаток не 0–999 999 — `guard.numberRange`; всё под
+  своим полем (`#shop-add-name`, `#shop-add-price`, `#shop-add-stock`), курсор на первое. Общая строка `shop.addInvalid`
+  больше не показывается (ключ оставлен). e2e `my-shop`, скриншот `696-shop-add-field-errors`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
