@@ -102,6 +102,12 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
 
   // "Nowy bon": 200 zł for Jan.
   const sell = page.getByRole('region', { name: 'Nowy bon' });
+  // Task 687: an empty amount is said under the field, not in the browser's bubble.
+  await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
+  await expect(sell.locator('#voucher-new-amount-error')).toHaveText(
+    'Wpisz kwotę, np. 120 albo 49,50.',
+  );
+  await page.screenshot({ path: 'e2e/screenshots/687-voucher-amount-required.png' });
   await sell.getByLabel('Kwota bonu').fill('200');
   await sell.getByLabel(/^Dla kogo/).fill('Jan Kowalski');
   await sell.getByLabel(/^Notatka/).fill('Na urodziny');

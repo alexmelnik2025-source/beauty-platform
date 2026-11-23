@@ -4468,6 +4468,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   пароль короче 10 знаков при регистрации («Co najmniej 10 znaków») и код приглашения не из 6 цифр («Nieprawidłowy
   kod.»); текст под полем, курсор на первое такое поле, вместо всплывающей подсказки браузера. Новых текстов нет —
   взяты существующие ключи. e2e `auth-field-errors`, скриншоты `686-login-email-invalid`, `686-register-field-errors`.
+- **Карточка услуги и «Bony podarunkowe» — без подсказок браузера** (задача 687): форма «Dodaj usługę / Edytuj» с
+  `noValidate` и проверкой всех полей до отправки — пустое название, минуты не 5–480 с шагом 5 («Od 5 do 480 minut, co
+  5 minut.»), цена не числом, перерыв не 0–120 — каждое под своим полем, курсор на первое (`stepped`, id
+  `service-field-*`). «Nowy bon» и «Zapłać bonem»: пустая сумма — «Wpisz kwotę…» под полем. e2e `service-field-errors`,
+  `gift-vouchers`, скриншоты `687-service-empty-fields`, `687-voucher-amount-required`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

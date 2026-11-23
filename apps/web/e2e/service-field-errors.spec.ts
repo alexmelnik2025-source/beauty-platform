@@ -76,6 +76,25 @@ test('the new-service card says a blank name and a too-high price at their field
   const price = card.getByLabel(/^Cena \(zł\)/);
   const save = card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true });
 
+  // Task 687: an empty name, minutes not on the 5-minute step and a price that is not a number
+  // used to get the browser's bubble; now each is said under its field, the cursor on the first.
+  const minutes = card.locator('#service-field-durationMinutes');
+  await minutes.fill('7');
+  await price.fill('abc');
+  await save.click();
+  await expect(card.locator('#service-name-error')).toHaveText('Uzupełnij to pole.');
+  await expect(card.locator('#service-durationMinutes-error')).toHaveText(
+    'Od 5 do 480 minut, co 5 minut.',
+  );
+  await expect(card.locator('#service-priceGrosze-error')).toHaveText(
+    'Wpisz cenę od 0 do 100 000, np. 50 lub 49,99.',
+  );
+  await expect(name).toBeFocused();
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await page.screenshot({ path: 'e2e/screenshots/687-service-empty-fields.png' });
+  await minutes.fill('30');
+  await expect(card.locator('#service-durationMinutes-error')).toHaveCount(0);
+
   // Only spaces and a price above the limit: both said at their fields, nothing sent.
   await name.fill('   ');
   await price.fill('250000');

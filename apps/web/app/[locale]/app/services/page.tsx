@@ -486,6 +486,11 @@ function serviceFieldsOf(err: unknown): ServiceField[] {
 /** The highest price the server takes: 100 000.00 in the location currency. */
 const MAX_PRICE_GROSZE = 10_000_000;
 
+/** Task 687: whole minutes from `min` to `max`, every 5 minutes. */
+function stepped(minutes: number, min: number, max: number): boolean {
+  return Number.isInteger(minutes) && minutes >= min && minutes <= max && minutes % 5 === 0;
+}
+
 function ServiceSheet({
   base,
   service,
@@ -578,15 +583,25 @@ function ServiceSheet({
     }
   }
 
-  async function save(e: FormEvent) {
+  async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const priceGrosze = Math.round(Number(form.price.replace(',', '.')) * 100);
     const before: ServiceField[] = [];
+    // Task 687 (owner's rule: errors at the field): the form has no browser checks any more (they
+    // showed a bubble instead of the line under the field), so every field is looked at here.
     if (!form.name.trim()) before.push('name');
-    if (!Number.isFinite(priceGrosze) || priceGrosze > MAX_PRICE_GROSZE) before.push('priceGrosze');
+    if (!stepped(form.durationMinutes, 5, 480)) before.push('durationMinutes');
+    if (
+      !/^\d+([.,]\d{1,2})?$/.test(form.price.trim()) ||
+      !Number.isFinite(priceGrosze) ||
+      priceGrosze > MAX_PRICE_GROSZE
+    )
+      before.push('priceGrosze');
+    if (!stepped(form.bufferMinutes, 0, 120)) before.push('bufferMinutes');
     if (before.length > 0) {
       setError('');
       setProblems(before);
+      e.currentTarget.querySelector<HTMLInputElement>(`#service-field-${before[0]}`)?.focus();
       return;
     }
     if (!lock()) return;
@@ -679,7 +694,7 @@ function ServiceSheet({
       title={service ? t.services.edit : copyOf ? t.services.copyTitle : t.services.add}
       onClose={onClose}
     >
-      <form className="form" onSubmit={save}>
+      <form noValidate className="form" onSubmit={(e) => void save(e)}>
         <ErrorBox>{error}</ErrorBox>
         {copyOf ? (
           <p className="small muted" data-testid="service-copy-hint">
@@ -689,6 +704,7 @@ function ServiceSheet({
         <label className="field">
           <span>{t.services.name}</span>
           <input
+            id="service-field-name"
             required
             maxLength={100}
             value={form.name}
@@ -701,6 +717,7 @@ function ServiceSheet({
           <label className="field">
             <span>{t.services.duration}</span>
             <input
+              id="service-field-durationMinutes"
               type="number"
               min={5}
               max={480}
@@ -719,6 +736,7 @@ function ServiceSheet({
               })}
             </span>
             <input
+              id="service-field-priceGrosze"
               inputMode="decimal"
               required
               pattern="\d+([.,]\d{1,2})?"
@@ -732,6 +750,7 @@ function ServiceSheet({
         <label className="field">
           <span>{t.services.buffer}</span>
           <input
+            id="service-field-bufferMinutes"
             type="number"
             min={0}
             max={120}

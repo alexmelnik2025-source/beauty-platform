@@ -424,7 +424,7 @@ function VoucherDetails({
         />
       ) : null}
       {voucher.status === 'active' ? (
-        <form className="form" onSubmit={(e) => void pay(e)}>
+        <form noValidate className="form" onSubmit={(e) => void pay(e)}>
           <div className="row">
             <label className="field grow">
               <span>{t.vouchers.payAmount}</span>
@@ -639,7 +639,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
   return (
     <section className="section" aria-label={t.vouchers.newTitle}>
       <h2>{t.vouchers.newTitle}</h2>
-      <form className="form" onSubmit={(e) => void sell(e)}>
+      <form noValidate className="form" onSubmit={(e) => void sell(e)}>
         <ErrorBox>{error}</ErrorBox>
         <div className="row">
           <label className="field grow">
