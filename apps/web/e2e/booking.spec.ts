@@ -1248,7 +1248,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ]);
   await ownerPage.getByRole('img', { name: 'Zdjęcie salonu 1' }).scrollIntoViewIfNeeded();
   await shot(ownerPage, '34-owner-salon-photos');
-  // Task 740 (owner's rule: errors where the action is): a refused upload is said under
+  // Task 741 (owner's rule: errors where the action is): a refused upload is said under
   // "Dodaj zdjęcia", a refused removal under the photos with that photo framed — no line at the top.
   const photosCard = ownerPage
     .locator('section')
@@ -1284,7 +1284,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await expect(photosCard.locator('.alert')).toHaveCount(0);
   await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
-  await shot(ownerPage, '740-salon-photo-remove-error');
+  await shot(ownerPage, '741-salon-photo-remove-error');
   await ownerPage.unrouteAll({ behavior: 'wait' });
   await removeFirst.click();
   await expect(ownerPage.getByText('1 z 10', { exact: true })).toBeVisible();

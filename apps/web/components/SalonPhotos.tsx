@@ -15,7 +15,7 @@ export function SalonPhotos({ base }: { base: string }) {
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  // Task 740 (owner's rule: errors where the action is): a refused upload is said under
+  // Task 741 (owner's rule: errors where the action is): a refused upload is said under
   // "Dodaj zdjęcia", a refused removal under the photos with that photo framed in red — not as a
   // line at the top of the card. The top line stays only for a list that failed to load.
   const [addError, setAddError] = useState('');

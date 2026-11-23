@@ -704,7 +704,7 @@ pnpm --filter @beauty/api-client generate
 - Владелец → «Ustawienia» → «Salon» → «Zdjęcia salonu»: если сервер не принял фото (или выбрано больше 10), ответ стоит
   под кнопкой «Dodaj zdjęcia»; если отказал в удалении — под фотографиями («Zdjęcie salonu 1: …»), а само фото в красной
   рамке. Фото, уже удалённое на другом устройстве, просто исчезает. Строка вверху карточки — только если список не
-  загрузился. e2e `booking`, скриншот `740-salon-photo-remove-error`.
+  загрузился. e2e `booking`, скриншот `741-salon-photo-remove-error`.
 
 ## Ошибка у салона: «Usuń z ulubionych» в «Ulubione» (задача 734, 23.11.2026)
 
