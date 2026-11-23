@@ -692,6 +692,13 @@ pnpm --filter @beauty/api-client generate
   правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
   `682-visit-voucher-code-required`.
 
+## Ошибки у кнопки: «Pobierz CSV opinii» и «Pokaż więcej» в «Opinie» (задача 731, 23.11.2026)
+
+- Кабинет → «Opinie»: если файл CSV не скачался, ответ стоит под кнопкой «Pobierz CSV opinii» (красный «!»), а не
+  строкой над списком; если не загрузились следующие отзывы — под «Pokaż więcej». Пока следующие отзывы грузятся,
+  «Pokaż więcej» выключена — второе нажатие больше не добавляет те же отзывы дважды. Смена фильтра убирает старые
+  ошибки. e2e `reviews`, скриншот `731-cabinet-reviews-csv-error`.
+
 ## Ошибки у строки: «Usuń z listy» в «Lista oczekujących» (задача 729, 23.11.2026)
 
 - Кабинет → «Lista oczekujących» → «Usuń z listy» → «Tak, usuń»: если сервер отказал, ответ стоит под строкой этого
