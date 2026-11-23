@@ -4591,3 +4591,7 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   wizyty» («Zaloguj się») кнопка молча была выключена, пока не набрано 6 цифр; теперь она нажимается и под кодом
   написано «Wpisz wszystkie 6 cyfr kodu.», курсор туда. e2e `booking`, `client-visits-field-errors`, скриншоты
   `702-booking-code-incomplete`, `702-visits-code-incomplete`.
+- **«Bony podarunkowe» → недописанная дата «Ważny do»** (задача 704): в «Nowy bon» и «Zmień bon» дата, где заполнен
+  только день или месяц, раньше читалась как пустая (бон без срока) или давала подсказку браузера; теперь «Wpisz pełną
+  datę albo wyczyść pole.» под полем, рамка и курсор туда. Пустое поле по-прежнему значит «bez terminu». e2e
+  `gift-vouchers`, скриншот `704-voucher-date-incomplete`.

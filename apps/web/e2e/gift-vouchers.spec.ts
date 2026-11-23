@@ -108,7 +108,21 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
     'Wpisz kwotę, np. 120 albo 49,50.',
   );
   await page.screenshot({ path: 'e2e/screenshots/687-voucher-amount-required.png' });
+  await expect(sell.getByLabel('Kwota bonu')).toBeFocused();
   await sell.getByLabel('Kwota bonu').fill('200');
+  // Task 704: a half-typed "Ważny do" is said under the field instead of quietly selling a
+  // voucher with no last day; clearing the field takes it away.
+  const until = sell.getByLabel(/^Ważny do/);
+  await until.click();
+  await page.keyboard.type('12');
+  await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
+  await expect(sell.locator('#voucher-new-date-error')).toHaveText(
+    'Wpisz pełną datę albo wyczyść pole.',
+  );
+  await expect(until).toBeFocused();
+  await expect(sell.getByRole('status')).toHaveCount(0);
+  await page.screenshot({ path: 'e2e/screenshots/704-voucher-date-incomplete.png' });
+  await until.fill('');
   await sell.getByLabel(/^Dla kogo/).fill('Jan Kowalski');
   await sell.getByLabel(/^Notatka/).fill('Na urodziny');
   await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();

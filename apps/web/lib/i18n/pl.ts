@@ -1103,6 +1103,7 @@ export const pl = {
     newTitle: 'Nowy bon',
     amount: 'Kwota bonu',
     validUntilField: 'Ważny do',
+    dateIncomplete: 'Wpisz pełną datę albo wyczyść pole.',
     recipient: 'Dla kogo',
     note: 'Notatka',
     sell: 'Sprzedaj bon',

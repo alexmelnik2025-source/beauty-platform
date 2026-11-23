@@ -22,6 +22,15 @@ import { useSubmitLock } from '@/lib/submit-lock';
  * Task 662 (owner's rule: errors at the field): which field of a voucher form the server's answer
  * is about — the amount, the "valid until" date, or none (then it stays a line above the form).
  */
+/**
+ * Task 704: a half-typed date ("12.__.2026") reads as empty — it would quietly clear "Ważny do".
+ * True when the date field holds such a date, so it is said under the field instead.
+ */
+function dateIncomplete(id: string): boolean {
+  const input = document.getElementById(id);
+  return input instanceof HTMLInputElement && input.validity.badInput;
+}
+
 function voucherFieldOf(err: unknown): 'amount' | 'validUntil' | null {
   if (!(err instanceof ApiError)) return null;
   if (err.code === 'VOUCHER_BALANCE') return 'amount';
@@ -242,9 +251,15 @@ function EditVoucher({
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!lock()) return;
     setError('');
     setDateError('');
+    const dateId = `voucher-edit-date-${voucher.id}`;
+    if (dateIncomplete(dateId)) {
+      setDateError(t.vouchers.dateIncomplete);
+      document.getElementById(dateId)?.focus();
+      return;
+    }
+    if (!lock()) return;
     try {
       const updated = await api<GiftVoucher>(`${base}/${voucher.id}`, {
         method: 'PATCH',
@@ -274,6 +289,7 @@ function EditVoucher({
   }
   return (
     <form
+      noValidate
       className="form"
       aria-label={`${t.vouchers.edit} ${voucher.code}`}
       onSubmit={(e) => void save(e)}
@@ -285,6 +301,7 @@ function EditVoucher({
         <label className="field grow">
           <span>{t.vouchers.validUntilField}</span>
           <input
+            id={`voucher-edit-date-${voucher.id}`}
             type="date"
             autoFocus
             value={validUntil}
@@ -613,7 +630,16 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
     setDateError('');
     setSold(null);
     const grosze = parseAmount(amount);
-    if (!grosze || grosze < 100) return setAmountError(t.vouchers.wrongAmount);
+    if (!grosze || grosze < 100) {
+      setAmountError(t.vouchers.wrongAmount);
+      document.getElementById('voucher-new-amount')?.focus();
+      return;
+    }
+    if (dateIncomplete('voucher-new-date')) {
+      setDateError(t.vouchers.dateIncomplete);
+      document.getElementById('voucher-new-date')?.focus();
+      return;
+    }
     if (!lock()) return;
     try {
       const voucher = await api<GiftVoucher>(base, {
@@ -652,6 +678,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
           <label className="field grow">
             <span>{t.vouchers.amount}</span>
             <input
+              id="voucher-new-amount"
               inputMode="decimal"
               required
               value={amount}
@@ -668,6 +695,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
               {t.vouchers.validUntilField} ({t.common.optional})
             </span>
             <input
+              id="voucher-new-date"
               type="date"
               value={validUntil}
               {...invalidProps('voucher-new-date-error', dateError)}

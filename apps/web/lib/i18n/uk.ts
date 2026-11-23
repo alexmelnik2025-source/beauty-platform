@@ -1102,6 +1102,7 @@ export const uk: Dict = {
     newTitle: 'Новий сертифікат',
     amount: 'Сума сертифіката',
     validUntilField: 'Діє до',
+    dateIncomplete: 'Введіть повну дату або очистьте поле.',
     recipient: 'Для кого',
     note: 'Нотатка',
     sell: 'Продати сертифікат',

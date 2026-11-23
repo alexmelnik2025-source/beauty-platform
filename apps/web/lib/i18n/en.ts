@@ -1106,6 +1106,7 @@ export const en: Dict = {
     newTitle: 'New voucher',
     amount: 'Voucher amount',
     validUntilField: 'Valid until',
+    dateIncomplete: 'Enter the whole date or clear the field.',
     recipient: 'For whom',
     note: 'Note',
     sell: 'Sell voucher',

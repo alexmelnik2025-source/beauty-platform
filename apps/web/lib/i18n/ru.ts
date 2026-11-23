@@ -1108,6 +1108,7 @@ export const ru: Dict = {
     newTitle: 'Новый сертификат',
     amount: 'Сумма сертификата',
     validUntilField: 'Действует до',
+    dateIncomplete: 'Введите полную дату или очистите поле.',
     recipient: 'Для кого',
     note: 'Заметка',
     sell: 'Продать сертификат',
