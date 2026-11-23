@@ -68,6 +68,18 @@ export function AppointmentManager<T extends PublicAppointment>({
   const [day, setDay] = useState('');
   /** The time the client tapped; moving waits for "Yes" (owner test T11). */
   const [pending, setPending] = useState<Slot | null>(null);
+  /** Task 720: bumped to ask for the free times again (the chosen one was just taken). */
+  const [slotsAsked, setSlotsAsked] = useState(0);
+
+  /**
+   * Task 720 (owner's rule: errors at the field): a panel opens and closes with a clean error
+   * line, so the answer to "Zmień termin" / "Odwołaj wizytę" is said in that panel, by its
+   * buttons, and the answer to the visit's page stays above the visit.
+   */
+  const openMode = useCallback((next: Mode) => {
+    setError('');
+    setMode(next);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -92,10 +104,11 @@ export function AppointmentManager<T extends PublicAppointment>({
     })
       .then((res) => {
         setSlots(res.slots);
-        setDay(res.slots[0]?.date ?? '');
+        // Asked again after a taken time: the client stays on the day they were looking at.
+        setDay((was) => (res.slots.some((x) => x.date === was) ? was : (res.slots[0]?.date ?? '')));
       })
       .catch((err) => setError(errorText(t, err)));
-  }, [mode, a, t]);
+  }, [mode, a, t, slotsAsked]);
 
   // "Zmień termin" and "Odwołaj wizytę" give way to their panel: keyboard focus goes into the
   // panel, and back to the button when the client returns (or to the visit summary when the
@@ -127,7 +140,17 @@ export function AppointmentManager<T extends PublicAppointment>({
       setMode('view');
     } catch (err) {
       setError(errorText(t, err));
-      if (err instanceof ApiError && err.code === 'TOO_LATE_TO_CHANGE') await load();
+      if (err instanceof ApiError && err.code === 'TOO_LATE_TO_CHANGE') {
+        // Nothing can be changed any more: back to the visit, where the error stands above it
+        // with "Zmiana tylko telefonicznie" and the salon's phone.
+        await load();
+        setMode('view');
+      } else if (err instanceof ApiError && err.code === 'SLOT_TAKEN') {
+        // Task 720: the time went to someone else meanwhile — the proposal closes and the free
+        // times are asked again, so the client is not left tapping a time that is gone.
+        setPending(null);
+        setSlotsAsked((n) => n + 1);
+      }
     } finally {
       setBusy(false);
     }
@@ -173,7 +196,7 @@ export function AppointmentManager<T extends PublicAppointment>({
             {message}
           </p>
         ) : null}
-        <ErrorBox>{error}</ErrorBox>
+        {mode === 'view' ? <ErrorBox>{error}</ErrorBox> : null}
         <div className="summary" ref={summaryRef} tabIndex={-1}>
           <span className="big">
             {a.time} · {formatDay(a.date, tag, { short: true })}
@@ -223,7 +246,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                   type="button"
                   className="btn btn--block"
                   ref={moveRef}
-                  onClick={() => setMode('move')}
+                  onClick={() => openMode('move')}
                 >
                   {t.manage.move}
                 </button>
@@ -231,7 +254,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                   type="button"
                   className="btn btn--danger btn--block"
                   ref={cancelRef}
-                  onClick={() => setMode('cancel')}
+                  onClick={() => openMode('cancel')}
                 >
                   {t.manage.cancel}
                 </button>
@@ -319,8 +342,9 @@ export function AppointmentManager<T extends PublicAppointment>({
                 onChange={(e) => setReason(e.target.value)}
               />
             </label>
+            <ErrorBox>{error}</ErrorBox>
             <div className="row">
-              <button type="button" className="btn btn--quiet" onClick={() => setMode('view')}>
+              <button type="button" className="btn btn--quiet" onClick={() => openMode('view')}>
                 {t.manage.keep}
               </button>
               <button className="btn btn--danger" disabled={busy}>
@@ -332,6 +356,7 @@ export function AppointmentManager<T extends PublicAppointment>({
 
         {mode === 'move' ? (
           <section className="stack" ref={panelRef} tabIndex={-1} aria-label={t.manage.move}>
+            <ErrorBox>{error}</ErrorBox>
             {slots === null ? (
               <Spinner />
             ) : slots.length === 0 ? (
@@ -411,7 +436,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                 ) : null}
               </>
             )}
-            <button type="button" className="link-btn small" onClick={() => setMode('view')}>
+            <button type="button" className="link-btn small" onClick={() => openMode('view')}>
               {t.common.back}
             </button>
           </section>

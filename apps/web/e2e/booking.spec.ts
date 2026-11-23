@@ -558,6 +558,40 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await moveConfirm.getByRole('button', { name: 'Nie', exact: true }).click();
   await expect(moveConfirm).toBeHidden();
   await expect(client.getByText('Termin zmieniony.')).toBeHidden();
+  // Task 720 (owner's rule: errors at the field): the time went to someone else meanwhile — it is
+  // said inside "Zmień termin", by the times, the proposal closes and the free times are asked again.
+  let timesAsked = 0;
+  await client.route('**/v1/public/locations/*/availability?*', (route) => {
+    timesAsked += 1;
+    return route.continue();
+  });
+  await client.route('**/reschedule', (route) =>
+    route.fulfill({ status: 409, json: { error: { code: 'SLOT_TAKEN', message: 'taken' } } }),
+  );
+  await client.locator('.times button').first().click();
+  await moveConfirm.getByRole('button', { name: 'Tak, przenieś' }).click();
+  const movePanel = client.getByRole('region', { name: 'Zmień termin' });
+  await expect(movePanel.getByRole('alert')).toHaveText(
+    'Ten termin właśnie się zajął. Wybierz inny.',
+  );
+  await expect(moveConfirm).toBeHidden();
+  await expect.poll(() => timesAsked).toBe(1);
+  await expect(movePanel.locator('.times button').first()).toBeVisible();
+  await shot(client, '720-client-move-slot-taken');
+  // Back on the visit, the panel's error went with it.
+  await movePanel.getByRole('button', { name: 'Wstecz' }).click();
+  await expect(client.getByRole('alert')).toBeHidden();
+  // "Odwołaj wizytę": the answer stands above "Tak, odwołaj", not at the top of the page.
+  await client.route('**/cancel', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await client.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+  const cancelPanel = client.getByRole('form', { name: 'Odwołaj wizytę' });
+  await cancelPanel.getByRole('button', { name: 'Tak, odwołaj' }).click();
+  await expect(cancelPanel.getByRole('alert')).toBeVisible();
+  await expect(client.getByRole('alert')).toHaveCount(1);
+  await shot(client, '720-client-cancel-error');
+  await client.unrouteAll({ behavior: 'wait' });
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();
 
