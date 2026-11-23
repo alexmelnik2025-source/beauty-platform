@@ -1719,6 +1719,9 @@ export const en: Dict = {
     adjustPoints: 'How many (+ add, − take away)',
     adjustReason: 'Reason (shown in the history)',
     adjust: 'Save change',
+    /** Task 692: under the fields of a manual change. */
+    adjustPointsInvalid: 'Enter a number from −100,000 to 100,000, other than 0.',
+    adjustReasonShort: 'Write a reason — at least 3 characters.',
     clientHistory: 'Rewards history',
   },
   admin: {

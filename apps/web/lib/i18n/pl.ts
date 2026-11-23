@@ -1716,6 +1716,9 @@ export const pl = {
     adjustPoints: 'Ile (+ dodaj, − odejmij)',
     adjustReason: 'Powód (widoczny w historii)',
     adjust: 'Zapisz zmianę',
+    /** Task 692: under the fields of a manual change. */
+    adjustPointsInvalid: 'Wpisz liczbę od −100 000 do 100 000, inną niż 0.',
+    adjustReasonShort: 'Napisz powód — co najmniej 3 znaki.',
     clientHistory: 'Historia bonusów',
   },
   admin: {

@@ -424,8 +424,22 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await coupons.getByRole('button', { name: /Anuluj kupon/ }).click();
   await expect(coupons).toContainText('anulowany');
   await expect(client.getByText('Pieczątki na karcie: 3')).toBeVisible();
-  await client.getByLabel('Ile (+ dodaj, − odejmij)').fill('-1');
-  await client.getByLabel('Powód (widoczny w historii)').fill('Pomyłka przy karcie');
+  // Task 692: nothing typed, then zero and a too short reason — said under each field.
+  const adjustPoints = client.locator('input[name="points"]');
+  const adjustReason = client.locator('input[name="reason"]');
+  await client.getByRole('button', { name: 'Zapisz zmianę' }).click();
+  await expect(adjustPoints).toHaveAttribute('aria-invalid', 'true');
+  await expect(adjustPoints).toBeFocused();
+  await expect(adjustReason).toHaveAttribute('aria-invalid', 'true');
+  await adjustPoints.fill('0');
+  await adjustReason.fill('ok');
+  await client.getByRole('button', { name: 'Zapisz zmianę' }).click();
+  await expect(client.getByText('Wpisz liczbę od −100 000 do 100 000, inną niż 0.')).toBeVisible();
+  await expect(client.getByText('Napisz powód — co najmniej 3 znaki.')).toBeVisible();
+  await adjustPoints.scrollIntoViewIfNeeded();
+  await shot(page, '692-loyalty-adjust-errors');
+  await adjustPoints.fill('-1');
+  await adjustReason.fill('Pomyłka przy karcie');
   await client.getByRole('button', { name: 'Zapisz zmianę' }).click();
   await expect(client.getByText('Pieczątki na karcie: 2')).toBeVisible();
   await expect(client).toContainText('Pomyłka przy karcie');

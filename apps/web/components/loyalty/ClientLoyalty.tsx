@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
@@ -27,6 +27,13 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [adjust, setAdjust] = useState({ points: '', reason: '' });
+  /**
+   * Task 692 (owner's rule: errors at the field): a missing, zero or too big number and a too
+   * short reason are said under their field instead of a silent button or the browser's bubble.
+   */
+  const [adjustProblems, setAdjustProblems] = useState<
+    Partial<Record<'points' | 'reason', string>>
+  >({});
 
   const load = useCallback(async () => {
     const [a, p, r] = await Promise.all([
@@ -73,12 +80,26 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
       new Date(iso),
     );
 
-  function saveAdjust(e: FormEvent) {
+  function saveAdjust(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const points = Number(adjust.points);
+    const found: Partial<Record<'points' | 'reason', string>> = {};
+    if (!adjust.points.trim()) found.points = t.onboarding.fieldRequired;
+    else if (!Number.isInteger(points) || points === 0 || Math.abs(points) > 100000) {
+      found.points = t.loyalty.adjustPointsInvalid;
+    }
+    if (!adjust.reason.trim()) found.reason = t.onboarding.fieldRequired;
+    else if (adjust.reason.trim().length < 3) found.reason = t.loyalty.adjustReasonShort;
+    setAdjustProblems(found);
+    const first = (['points', 'reason'] as const).find((field) => found[field]);
+    if (first) {
+      e.currentTarget.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
+      return;
+    }
     void run(async () => {
       await api(`${org}/loyalty/accounts/${customerId}/adjustments`, {
         method: 'POST',
-        body: { points: Number(adjust.points), reason: adjust.reason },
+        body: { points, reason: adjust.reason.trim() },
       });
       setAdjust({ points: '', reason: '' });
       return t.actions.saved;
@@ -209,7 +230,7 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
         )}
       </div>
 
-      <form className="form" onSubmit={saveAdjust} aria-label={t.loyalty.adjustTitle}>
+      <form noValidate className="form" onSubmit={saveAdjust} aria-label={t.loyalty.adjustTitle}>
         <h4>{t.loyalty.adjustTitle}</h4>
         <div className="row">
           <label className="field" style={{ flex: '0 1 140px' }}>
@@ -219,9 +240,18 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
               required
               min={-100000}
               max={100000}
+              name="points"
               value={adjust.points}
-              onChange={(e) => setAdjust({ ...adjust, points: e.target.value })}
+              aria-invalid={adjustProblems.points ? true : undefined}
+              aria-describedby={
+                adjustProblems.points ? `adjust-points-error-${customerId}` : undefined
+              }
+              onChange={(e) => {
+                setAdjust({ ...adjust, points: e.target.value });
+                setAdjustProblems({ ...adjustProblems, points: undefined });
+              }}
             />
+            <FieldError id={`adjust-points-error-${customerId}`} text={adjustProblems.points} />
           </label>
           <label className="field">
             <span>{t.loyalty.adjustReason}</span>
@@ -229,15 +259,21 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
               required
               minLength={3}
               maxLength={500}
+              name="reason"
               value={adjust.reason}
-              onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })}
+              aria-invalid={adjustProblems.reason ? true : undefined}
+              aria-describedby={
+                adjustProblems.reason ? `adjust-reason-error-${customerId}` : undefined
+              }
+              onChange={(e) => {
+                setAdjust({ ...adjust, reason: e.target.value });
+                setAdjustProblems({ ...adjustProblems, reason: undefined });
+              }}
             />
+            <FieldError id={`adjust-reason-error-${customerId}`} text={adjustProblems.reason} />
           </label>
         </div>
-        <button
-          className="btn btn--quiet"
-          disabled={busy || adjust.points.trim() === '' || Number(adjust.points) === 0}
-        >
+        <button className="btn btn--quiet" disabled={busy}>
           {t.loyalty.adjust}
         </button>
       </form>

@@ -1711,6 +1711,9 @@ export const uk: Dict = {
     adjustPoints: 'Скільки (+ додати, − відняти)',
     adjustReason: 'Причина (видно в історії)',
     adjust: 'Зберегти зміну',
+    /** Task 692: under the fields of a manual change. */
+    adjustPointsInvalid: 'Введіть число від −100 000 до 100 000, крім 0.',
+    adjustReasonShort: 'Напишіть причину — щонайменше 3 символи.',
     clientHistory: 'Історія бонусів',
   },
   admin: {

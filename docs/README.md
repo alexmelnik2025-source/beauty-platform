@@ -4500,6 +4500,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   Пустой день или время — «Uzupełnij to pole.», день в прошлом — «Ten czas już minął.» (раньше `min` давал подсказку
   браузера), «Do» не позже «Od» — как раньше; всё под своим полем (`#special-date-error`, `#absence-start-error` и
   т. д.), курсор на первое. e2e `special-days`, скриншот `691-staff-special-date-error`.
+- **Карточка клиента → «Bonusy» → «Ręczna zmiana» — ошибки у поля** (задача 692): форма с `noValidate`, кнопка больше
+  не выключается молча. Пустое число или причина — «Uzupełnij to pole.», 0 / не целое / больше 100 000 по модулю —
+  `loyalty.adjustPointsInvalid`, причина короче 3 знаков — `loyalty.adjustReasonShort` (новые ключи pl/en/ru/uk;
+  sq/tr берут английский, как весь кабинет). e2e `loyalty`, скриншот `692-loyalty-adjust-errors`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
