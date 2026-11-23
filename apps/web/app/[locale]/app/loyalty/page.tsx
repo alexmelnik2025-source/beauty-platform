@@ -5,8 +5,8 @@ import { BonusRulesForm } from '@/components/loyalty/BonusRulesForm';
 import { costLabel, RewardSheet, rewardLabel } from '@/components/loyalty/RewardSheet';
 import { TiersForm } from '@/components/loyalty/TiersForm';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { currencySymbol } from '@/lib/time';
 import type { LoyaltyProgram, LoyaltyReward, LoyaltyTransaction, Service } from '@/lib/types';
@@ -15,12 +15,12 @@ import type { LoyaltyProgram, LoyaltyReward, LoyaltyTransaction, Service } from 
 interface ProgramForm {
   enabled: boolean;
   mode: LoyaltyProgram['mode'];
-  stampsPerVisit: number;
-  pointsPerUnit: number;
+  stampsPerVisit: string;
+  pointsPerUnit: string;
   spendUnit: string;
   minSpend: string;
   pointsValidityDays: string;
-  maxDiscountPercent: number;
+  maxDiscountPercent: string;
   allowStacking: boolean;
   marketplaceEnabled: boolean;
 }
@@ -32,15 +32,60 @@ function toForm(p: LoyaltyProgram): ProgramForm {
   return {
     enabled: p.enabled,
     mode: p.mode,
-    stampsPerVisit: p.stampsPerVisit,
-    pointsPerUnit: p.pointsPerUnit,
+    stampsPerVisit: String(p.stampsPerVisit),
+    pointsPerUnit: String(p.pointsPerUnit),
     spendUnit: zl(p.spendUnitGrosze),
     minSpend: zl(p.minSpendGrosze),
     pointsValidityDays: p.pointsValidityDays === null ? '' : String(p.pointsValidityDays),
-    maxDiscountPercent: p.maxDiscountPercent,
+    maxDiscountPercent: String(p.maxDiscountPercent),
     allowStacking: p.allowStacking,
     marketplaceEnabled: p.marketplaceEnabled,
   };
+}
+
+/** Task 693: the program's fields that can show an error under them. */
+type ProgramField =
+  | 'stampsPerVisit'
+  | 'pointsPerUnit'
+  | 'spendUnit'
+  | 'minSpend'
+  | 'pointsValidityDays'
+  | 'maxDiscountPercent';
+const PROGRAM_FIELDS: ProgramField[] = [
+  'stampsPerVisit',
+  'pointsPerUnit',
+  'spendUnit',
+  'minSpend',
+  'pointsValidityDays',
+  'maxDiscountPercent',
+];
+/** Whole numbers and their allowed range (the server checks the same). */
+const PROGRAM_RANGES: Partial<Record<ProgramField, [number, number]>> = {
+  stampsPerVisit: [0, 100],
+  pointsPerUnit: [0, 100_000],
+  pointsValidityDays: [1, 3650],
+  maxDiscountPercent: [0, 100],
+};
+/** Points of one service (task 693). */
+const RULE_RANGE: [number, number] = [0, 100_000];
+const AMOUNT = /^\d+([.,]\d{1,2})?$/;
+const MAX_AMOUNT_GROSZE = 10_000_000;
+
+const wholeIn = (text: string, [min, max]: [number, number]) =>
+  /^\d+$/.test(text.trim()) && Number(text) >= min && Number(text) <= max;
+const amountIn = (text: string, min: number) =>
+  AMOUNT.test(text.trim()) &&
+  grosze(text.trim()) >= min &&
+  grosze(text.trim()) <= MAX_AMOUNT_GROSZE;
+
+/** The program fields the server's validation answer is about; empty when about something else. */
+function programFieldsOf(err: unknown): ProgramField[] {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
+  if (!Array.isArray(err.details)) return [];
+  const paths = (err.details as { path?: string }[]).map((d) =>
+    String(d.path ?? '').replace(/Grosze$/, ''),
+  );
+  return PROGRAM_FIELDS.filter((f) => paths.includes(f));
 }
 
 /** Rules of the current location: service id → the number typed ('' = general rule). */
@@ -73,6 +118,13 @@ export default function LoyaltyPage() {
   const [message, setMessage] = useState('');
   const [rulesMessage, setRulesMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 693 (owner's rule: errors at the field): a number out of range, a fraction or a wrong
+   * amount — and the server's answer about a field — are said under that field, not as the
+   * browser's bubble or a line at the top of the page. Editing the field takes it away.
+   */
+  const [problems, setProblems] = useState<Partial<Record<ProgramField, string>>>({});
+  const [ruleProblems, setRuleProblems] = useState<Record<string, string>>({});
 
   const loadProgram = useCallback(async () => {
     const p = await api<LoyaltyProgram>(`${org}/loyalty/program`);
@@ -110,10 +162,59 @@ export default function LoyaltyPage() {
   const stamps = form.mode === 'stamps';
   const serviceName = (id: string) =>
     services.find((s) => s.id === id)?.name ?? t.loyalty.otherService;
+  const rangeText = ([min, max]: [number, number]) =>
+    fill(t.guard.numberRange, {
+      min: min.toLocaleString(tag),
+      max: max.toLocaleString(tag),
+    });
+  /** Change one field of the program; its error goes away. */
+  const edit = (field: ProgramField, value: string) => {
+    setForm({ ...form, [field]: value });
+    if (problems[field]) setProblems({ ...problems, [field]: undefined });
+  };
+  /** The id, aria props and error line of one program field. */
+  const fieldProps = (field: ProgramField) => ({
+    id: `loyalty-${field}`,
+    'aria-invalid': problems[field] ? true : undefined,
+    'aria-describedby': problems[field] ? `loyalty-${field}-error` : undefined,
+  });
+  const fieldError = (field: ProgramField) => (
+    <FieldError id={`loyalty-${field}-error`} text={problems[field]} />
+  );
+
+  /** What is wrong with each visible field of the program, in the order of the form. */
+  function programProblems(f: ProgramForm): Partial<Record<ProgramField, string>> {
+    const found: Partial<Record<ProgramField, string>> = {};
+    const visible: ProgramField[] =
+      f.mode === 'stamps'
+        ? ['stampsPerVisit', 'minSpend', 'maxDiscountPercent']
+        : ['pointsPerUnit', 'spendUnit', 'minSpend', 'pointsValidityDays', 'maxDiscountPercent'];
+    for (const field of visible) {
+      const text = f[field].trim();
+      const optional = field === 'minSpend' || field === 'pointsValidityDays';
+      if (!text) {
+        if (!optional) found[field] = t.onboarding.fieldRequired;
+        continue;
+      }
+      const range = PROGRAM_RANGES[field];
+      if (range && !wholeIn(text, range)) found[field] = rangeText(range);
+      if (field === 'spendUnit' && !amountIn(text, 1)) found[field] = t.calendar.tillInvalid;
+      if (field === 'minSpend' && !amountIn(text, 0)) found[field] = t.calendar.tillInvalid;
+    }
+    return found;
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!form || !program) return;
+    const found = programProblems(form);
+    setProblems(found);
+    const first = PROGRAM_FIELDS.find((field) => found[field]);
+    if (first) {
+      setMessage('');
+      document.getElementById(`loyalty-${first}`)?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     setMessage('');
@@ -138,7 +239,13 @@ export default function LoyaltyPage() {
       setForm(toForm(saved));
       setMessage(t.actions.saved);
     } catch (err) {
-      setError(errorText(t, err));
+      const fields = programFieldsOf(err);
+      if (fields.length === 0) setError(errorText(t, err));
+      else {
+        const text = errorText(t, err);
+        setProblems(Object.fromEntries(fields.map((field) => [field, text])));
+        document.getElementById(`loyalty-${fields[0]}`)?.focus();
+      }
     } finally {
       setBusy(false);
     }
@@ -148,6 +255,17 @@ export default function LoyaltyPage() {
     e.preventDefault();
     setError('');
     setRulesMessage('');
+    const found: Record<string, string> = {};
+    for (const s of services) {
+      const text = (rules[s.id] ?? '').trim();
+      if (text && !wholeIn(text, RULE_RANGE)) found[s.id] = rangeText(RULE_RANGE);
+    }
+    setRuleProblems(found);
+    const first = services.find((s) => found[s.id]);
+    if (first) {
+      document.getElementById(`rule-${first.id}`)?.focus();
+      return;
+    }
     try {
       await api(`${base}/loyalty/earn-rules`, {
         method: 'PUT',
@@ -177,7 +295,12 @@ export default function LoyaltyPage() {
         <p className="small muted">{t.loyalty.lead}</p>
         <ErrorBox>{error}</ErrorBox>
 
-        <form className="section form" onSubmit={save} aria-labelledby="loyalty-settings">
+        <form
+          noValidate
+          className="section form"
+          onSubmit={save}
+          aria-labelledby="loyalty-settings"
+        >
           <h2 id="loyalty-settings">{t.loyalty.settings}</h2>
           {message ? (
             <p className="note" role="status">
@@ -223,9 +346,11 @@ export default function LoyaltyPage() {
                 min={0}
                 max={100}
                 required
+                {...fieldProps('stampsPerVisit')}
                 value={form.stampsPerVisit}
-                onChange={(e) => setForm({ ...form, stampsPerVisit: Number(e.target.value) })}
+                onChange={(e) => edit('stampsPerVisit', e.target.value)}
               />
+              {fieldError('stampsPerVisit')}
             </label>
           ) : (
             <div className="row">
@@ -236,9 +361,11 @@ export default function LoyaltyPage() {
                   min={0}
                   max={100000}
                   required
+                  {...fieldProps('pointsPerUnit')}
                   value={form.pointsPerUnit}
-                  onChange={(e) => setForm({ ...form, pointsPerUnit: Number(e.target.value) })}
+                  onChange={(e) => edit('pointsPerUnit', e.target.value)}
                 />
+                {fieldError('pointsPerUnit')}
               </label>
               <label className="field">
                 <span>{fill(t.loyalty.spendUnit, { currency: symbol })}</span>
@@ -246,9 +373,11 @@ export default function LoyaltyPage() {
                   inputMode="decimal"
                   required
                   pattern="\d+([.,]\d{1,2})?"
+                  {...fieldProps('spendUnit')}
                   value={form.spendUnit}
-                  onChange={(e) => setForm({ ...form, spendUnit: e.target.value })}
+                  onChange={(e) => edit('spendUnit', e.target.value)}
                 />
+                {fieldError('spendUnit')}
               </label>
             </div>
           )}
@@ -257,9 +386,11 @@ export default function LoyaltyPage() {
             <input
               inputMode="decimal"
               pattern="\d+([.,]\d{1,2})?"
+              {...fieldProps('minSpend')}
               value={form.minSpend}
-              onChange={(e) => setForm({ ...form, minSpend: e.target.value })}
+              onChange={(e) => edit('minSpend', e.target.value)}
             />
+            {fieldError('minSpend')}
             <span className="small muted">{t.loyalty.minSpendHint}</span>
           </label>
           <div className="row">
@@ -270,9 +401,11 @@ export default function LoyaltyPage() {
                   type="number"
                   min={1}
                   max={3650}
+                  {...fieldProps('pointsValidityDays')}
                   value={form.pointsValidityDays}
-                  onChange={(e) => setForm({ ...form, pointsValidityDays: e.target.value })}
+                  onChange={(e) => edit('pointsValidityDays', e.target.value)}
                 />
+                {fieldError('pointsValidityDays')}
                 <span className="small muted">{t.loyalty.noLimitHint}</span>
               </label>
             )}
@@ -283,9 +416,11 @@ export default function LoyaltyPage() {
                 min={0}
                 max={100}
                 required
+                {...fieldProps('maxDiscountPercent')}
                 value={form.maxDiscountPercent}
-                onChange={(e) => setForm({ ...form, maxDiscountPercent: Number(e.target.value) })}
+                onChange={(e) => edit('maxDiscountPercent', e.target.value)}
               />
+              {fieldError('maxDiscountPercent')}
             </label>
           </div>
           <label className="check">
@@ -353,7 +488,12 @@ export default function LoyaltyPage() {
 
         <BonusRulesForm org={org} base={base} />
 
-        <form className="section form" onSubmit={saveRules} aria-labelledby="loyalty-rules">
+        <form
+          noValidate
+          className="section form"
+          onSubmit={saveRules}
+          aria-labelledby="loyalty-rules"
+        >
           <h2 id="loyalty-rules">{t.loyalty.rules}</h2>
           <p className="small muted">{t.loyalty.rulesHint}</p>
           {rulesMessage ? (
@@ -363,7 +503,11 @@ export default function LoyaltyPage() {
           ) : null}
           <ul className="list">
             {services.map((s) => (
-              <li key={s.id} className="list-row">
+              <li
+                key={s.id}
+                className="list-row"
+                style={ruleProblems[s.id] ? { flexWrap: 'wrap' } : undefined}
+              >
                 <label className="grow" htmlFor={`rule-${s.id}`}>
                   <strong>{s.name}</strong>
                 </label>
@@ -375,13 +519,26 @@ export default function LoyaltyPage() {
                   min={0}
                   max={100000}
                   placeholder={general}
-                  aria-describedby={`rule-unit-${s.id}`}
+                  aria-invalid={ruleProblems[s.id] ? true : undefined}
+                  aria-describedby={
+                    ruleProblems[s.id]
+                      ? `rule-unit-${s.id} rule-error-${s.id}`
+                      : `rule-unit-${s.id}`
+                  }
                   value={rules[s.id] ?? ''}
-                  onChange={(e) => setRules({ ...rules, [s.id]: e.target.value })}
+                  onChange={(e) => {
+                    setRules({ ...rules, [s.id]: e.target.value });
+                    if (ruleProblems[s.id]) setRuleProblems({ ...ruleProblems, [s.id]: '' });
+                  }}
                 />
                 <span id={`rule-unit-${s.id}`} className="small muted" style={{ width: 70 }}>
                   {stamps ? t.loyalty.rulesStamps : t.loyalty.rulesPoints}
                 </span>
+                {ruleProblems[s.id] ? (
+                  <span style={{ flexBasis: '100%' }}>
+                    <FieldError id={`rule-error-${s.id}`} text={ruleProblems[s.id]} />
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

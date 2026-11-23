@@ -46,6 +46,10 @@ const RANGES: Partial<Record<RewardField, [number, number]>> = {
   couponValidityDays: [1, 3650],
 };
 
+/** A whole number typed in the allowed range (task 693). */
+const wholeIn = (text: string, [min, max]: [number, number]) =>
+  /^\d+$/.test(text.trim()) && Number(text) >= min && Number(text) <= max;
+
 /** The fields the server's validation answer is about; empty when it is about something else. */
 function rewardFieldsOf(err: unknown): RewardField[] {
   if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return [];
@@ -77,9 +81,9 @@ export function RewardSheet({
   const [form, setForm] = useState({
     name: reward?.name ?? '',
     kind: reward?.kind ?? ('discount_percent' as LoyaltyReward['kind']),
-    discountPercent: reward?.discountPercent ?? 25,
+    discountPercent: String(reward?.discountPercent ?? 25),
     freeServiceId: reward?.freeServiceId ?? services[0]?.id ?? '',
-    cost: reward?.cost ?? (mode === 'stamps' ? 3 : 100),
+    cost: String(reward?.cost ?? (mode === 'stamps' ? 3 : 100)),
     serviceIds: reward?.serviceIds ?? [],
     couponValidityDays: reward?.couponValidityDays ? String(reward.couponValidityDays) : '',
   });
@@ -94,9 +98,25 @@ export function RewardSheet({
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) {
+    // Task 693: an empty name, a number out of range or a fraction — said under the field at
+    // once, instead of the browser's bubble.
+    const local: RewardField[] = [];
+    if (!form.name.trim()) local.push('name');
+    if (discount && !wholeIn(form.discountPercent, RANGES.discountPercent!)) {
+      local.push('discountPercent');
+    }
+    if (!discount && !form.freeServiceId) local.push('freeServiceId');
+    if (!wholeIn(form.cost, RANGES.cost!)) local.push('cost');
+    if (
+      form.couponValidityDays.trim() &&
+      !wholeIn(form.couponValidityDays, RANGES.couponValidityDays!)
+    ) {
+      local.push('couponValidityDays');
+    }
+    if (local.length > 0) {
       setError('');
-      setProblems(['name']);
+      setProblems(local);
+      document.getElementById(`reward-${local[0]}`)?.focus();
       return;
     }
     setBusy(true);
@@ -155,11 +175,13 @@ export function RewardSheet({
   const problem = (field: RewardField): string | undefined => {
     if (!problems.includes(field)) return undefined;
     if (field === 'name') return t.onboarding.fieldRequired;
+    if (field === 'freeServiceId' && !form.freeServiceId) return t.onboarding.fieldRequired;
     const range = RANGES[field];
     if (!range) return t.errors.VALIDATION_ERROR;
     return fill(t.guard.numberRange, { min: String(range[0]), max: String(range[1]) });
   };
   const invalid = (field: RewardField) => ({
+    id: `reward-${field}`,
     'aria-invalid': problems.includes(field) || undefined,
     'aria-describedby': problems.includes(field) ? `reward-${field}-error` : undefined,
   });
@@ -169,7 +191,7 @@ export function RewardSheet({
 
   return (
     <Sheet title={reward ? t.loyalty.editReward : t.loyalty.addReward} onClose={onClose}>
-      <form className="form" onSubmit={save}>
+      <form noValidate className="form" onSubmit={save}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.loyalty.rewardName}</span>
@@ -203,9 +225,7 @@ export function RewardSheet({
                 required
                 value={form.discountPercent}
                 {...invalid('discountPercent')}
-                onChange={(e) =>
-                  edit('discountPercent', { discountPercent: Number(e.target.value) })
-                }
+                onChange={(e) => edit('discountPercent', { discountPercent: e.target.value })}
               />
               {fieldError('discountPercent')}
             </label>
@@ -239,7 +259,7 @@ export function RewardSheet({
               required
               value={form.cost}
               {...invalid('cost')}
-              onChange={(e) => edit('cost', { cost: Number(e.target.value) })}
+              onChange={(e) => edit('cost', { cost: e.target.value })}
             />
             {fieldError('cost')}
           </label>

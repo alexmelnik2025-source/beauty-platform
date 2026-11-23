@@ -4504,6 +4504,12 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   не выключается молча. Пустое число или причина — «Uzupełnij to pole.», 0 / не целое / больше 100 000 по модулю —
   `loyalty.adjustPointsInvalid`, причина короче 3 знаков — `loyalty.adjustReasonShort` (новые ключи pl/en/ru/uk;
   sq/tr берут английский, как весь кабинет). e2e `loyalty`, скриншот `692-loyalty-adjust-errors`.
+- **«Program lojalnościowy» — настройки, «Nowa nagroda», «Pieczątki i punkty za usługi» — ошибки у поля** (задача 693):
+  три формы с `noValidate`. Пустое обязательное число — «Uzupełnij to pole.», вне диапазона или дробное —
+  `guard.numberRange` («Wpisz liczbę od 0 do 100.»; диапазоны те же, что на сервере), неверная сумма («za każde»,
+  «Minimalna kwota») — `calendar.tillInvalid`; ответ сервера о поле (`spendUnitGrosze` → «za każde» и т. п.) — тоже
+  под полем. Числа формы теперь хранятся строками. Курсор на первое поле с ошибкой. Новых ключей нет. e2e `loyalty`,
+  скриншоты `693-loyalty-settings-errors`, `693-loyalty-reward-number-errors`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

@@ -21,7 +21,7 @@ import { serveApp } from './mobile-app';
  * Then the owner uses the client's coupon on the next visit (10d): the price goes down.
  * The client then picks the coupon herself in "Moje wizyty" (10d, part 3).
  * The owner sees the client's stamps and tier in the business app's client card (18b).
- * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b, 78, 79).
+ * Screenshots go to e2e/screenshots (40–47, 63–63b, 72–72c, 73b, 78, 79, 693).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -158,7 +158,21 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     'true',
   );
   await expect(settings.getByText('Po odebraniu nagrody karta zaczyna się od nowa')).toBeVisible();
-  await settings.getByLabel('Pieczątki za wizytę').fill('1');
+  // Task 693: a number out of range, an empty field and a wrong amount — said under each field.
+  const stampsField = settings.getByLabel('Pieczątki za wizytę');
+  await stampsField.fill('150');
+  await settings.getByLabel('Minimalna kwota wizyty (zł)').fill('5,555');
+  await settings.getByLabel('Maksymalna zniżka na wizytę (%)').fill('');
+  await settings.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(settings.getByText('Wpisz liczbę od 0 do 100.')).toBeVisible();
+  await expect(settings.getByText('Wpisz kwotę, np. 150 lub 150,50.')).toBeVisible();
+  await expect(settings.getByText('Uzupełnij to pole.')).toBeVisible();
+  await expect(stampsField).toHaveAttribute('aria-invalid', 'true');
+  await expect(stampsField).toBeFocused();
+  await expect(settings.getByText('Zapisano')).toHaveCount(0);
+  await shot(page, '693-loyalty-settings-errors');
+  await stampsField.fill('1');
+  await expect(settings.getByText('Wpisz liczbę od 0 do 100.')).toHaveCount(0);
   await settings.getByLabel('Minimalna kwota wizyty (zł)').fill('50');
   await settings.getByLabel('Maksymalna zniżka na wizytę (%)').fill('50');
   await settings.getByRole('button', { name: 'Zapisz' }).click();
@@ -187,6 +201,14 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await shot(page, '668-loyalty-reward-name-error');
   await rewardName.fill('−25% na strzyżenie');
   await expect(sheet.getByText('Uzupełnij to pole.')).toHaveCount(0);
+  // Task 693: a percent over 100 and an empty price — under their fields, not the browser's bubble.
+  await sheet.getByLabel('Zniżka (%)').fill('150');
+  await sheet.getByLabel('Cena w pieczątkach').fill('');
+  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(sheet.getByText('Wpisz liczbę od 1 do 100.')).toBeVisible();
+  await expect(sheet.getByText('Wpisz liczbę od 1 do 100000.')).toBeVisible();
+  await expect(sheet.getByLabel('Zniżka (%)')).toBeFocused();
+  await shot(page, '693-loyalty-reward-number-errors');
   await sheet.getByLabel('Zniżka (%)').fill('25');
   await sheet.getByLabel('Cena w pieczątkach').fill('3');
   await sheet.getByLabel('Strzyżenie męskie').check();
@@ -228,7 +250,14 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     has: page.getByRole('heading', { name: 'Pieczątki i punkty za usługi' }),
   });
   await expect(rules.getByLabel('Broda', { exact: true })).toHaveAttribute('placeholder', '1');
+  // Task 693: a fraction of a stamp is said under the service's field.
+  await rules.getByLabel('Broda', { exact: true }).fill('2.5');
+  await rules.getByRole('button', { name: 'Zapisz zasady usług' }).click();
+  await expect(rules.getByText(/Wpisz liczbę od 0 do 100\s000\./)).toBeVisible();
+  await expect(rules.getByLabel('Broda', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await expect(rules.getByText('Zapisano')).toHaveCount(0);
   await rules.getByLabel('Broda', { exact: true }).fill('0');
+  await expect(rules.getByText(/Wpisz liczbę od 0 do 100\s000\./)).toHaveCount(0);
   await rules.getByRole('button', { name: 'Zapisz zasady usług' }).click();
   await expect(rules.getByText('Zapisano')).toBeVisible();
   const withRules = await json<Program>(
