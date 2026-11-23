@@ -132,6 +132,31 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
   await expect(page.getByText(`Zaproszenie wysłane na ${KASIA}.`, { exact: true })).toBeVisible();
   await expect(page.getByText(`${KASIA} · +48600100200 · Specjalista`)).toBeVisible();
+  // Task 728 (owner's rule: errors where the action is): a refused "Anuluj" is said under that
+  // invitation, not as a line at the top of the page; one cancelled meanwhile just reloads the list.
+  const inviteRow = page.locator('.history li').filter({ hasText: KASIA });
+  await page.route('**/v1/organizations/*/invitations/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 403, json: { error: { code: 'FORBIDDEN', message: 'no' } } })
+      : route.continue(),
+  );
+  await inviteRow.getByRole('button', { name: 'Anuluj' }).click();
+  await expect(inviteRow.getByRole('alert')).toHaveText('Nie masz do tego uprawnień.');
+  await expect(inviteRow.getByRole('button', { name: 'Anuluj' })).toHaveAccessibleDescription(
+    /Nie masz do tego uprawnień\.$/,
+  );
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await shot(page, '728-team-revoke-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await page.route('**/v1/organizations/*/invitations/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'gone' } } })
+      : route.continue(),
+  );
+  await inviteRow.getByRole('button', { name: 'Anuluj' }).click();
+  await expect(inviteRow.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await page.unrouteAll({ behavior: 'wait' });
 
   // The staff card no longer says "no account": the invitation waits.
   await page.getByRole('button', { name: 'Specjaliści' }).click();

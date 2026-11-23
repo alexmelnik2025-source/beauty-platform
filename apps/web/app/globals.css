@@ -3636,6 +3636,17 @@ ul.wish-photos {
   box-shadow: 0 0 0 2px var(--signal);
 }
 
+/* Task 728: "Zespół" — a refused "Anuluj" or ↑/↓ is said under its own row. */
+.list > li.orderable--error,
+.history li.history__row--error {
+  flex-wrap: wrap;
+}
+
+.list > li.orderable--error > .field-error,
+.history li.history__row--error > .field-error {
+  flex-basis: 100%;
+}
+
 /* Task 666: a commission's error takes the whole width of its row, under the field. */
 .commission-row > .field-error {
   flex-basis: 100%;

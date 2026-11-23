@@ -12,8 +12,8 @@ import {
 } from '@/components/team/AccessSheets';
 import { StaffSheet, type StaffRow } from '@/components/team/StaffSheet';
 import { useSpecialtyText } from '@/components/Specialties';
-import { ErrorBox, initials, Spinner } from '@/components/ui';
-import { api } from '@/lib/api';
+import { ErrorBox, FieldError, initials, Spinner } from '@/components/ui';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Invitation } from '@/lib/types';
 
@@ -38,6 +38,10 @@ export default function TeamPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [moving, setMoving] = useState(false);
+  // Task 728 (owner's rule: errors where the action is): a refused "Anuluj" or ↑/↓ is said
+  // under its own row, not as a line at the top of the page.
+  const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
   // Task 13: the owner or a manager puts the staff in the order clients see them.
   const canOrder = role === 'owner' || role === 'manager';
 
@@ -75,11 +79,17 @@ export default function TeamPage() {
   };
 
   async function revoke(id: string) {
+    setRevoking(id);
+    setRowError(null);
     try {
       await api(`/v1/organizations/${orgId}/invitations/${id}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      // Already gone (e.g. cancelled on another device): just show the list as it is now.
+      if (err instanceof ApiError && err.code === 'NOT_FOUND') await load();
+      else setRowError({ id, text: errorText(t, err) });
+    } finally {
+      setRevoking(null);
     }
   }
 
@@ -91,7 +101,7 @@ export default function TeamPage() {
     next.splice(index + by, 0, row);
     setStaff(next);
     setMoving(true);
-    setError('');
+    setRowError(null);
     try {
       setStaff(
         await api<StaffRow[]>(`${base}/staff/order`, {
@@ -100,7 +110,7 @@ export default function TeamPage() {
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      setRowError({ id: row.id, text: errorText(t, err) });
       await load();
     } finally {
       setMoving(false);
@@ -155,7 +165,14 @@ export default function TeamPage() {
               ) : null}
               <ul className="list">
                 {staff.map((s, index) => (
-                  <li key={s.id} className={canOrder && staff.length > 1 ? 'orderable' : undefined}>
+                  <li
+                    key={s.id}
+                    className={
+                      canOrder && staff.length > 1
+                        ? `orderable${rowError?.id === s.id ? ' orderable--error' : ''}`
+                        : undefined
+                    }
+                  >
                     <button type="button" className="list-row" onClick={() => setOpenStaff(s)}>
                       <span className="avatar" aria-hidden="true">
                         {s.photoUrl ? <img src={s.photoUrl} alt="" /> : initials(s.displayName)}
@@ -198,6 +215,9 @@ export default function TeamPage() {
                         </button>
                       </span>
                     ) : null}
+                    {rowError?.id === s.id ? (
+                      <FieldError id={`team-row-error-${s.id}`} text={rowError.text} />
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -234,7 +254,10 @@ export default function TeamPage() {
                 <h2>{t.team.invitations}</h2>
                 <ul className="history">
                   {invitations.map((i) => (
-                    <li key={i.id}>
+                    <li
+                      key={i.id}
+                      className={rowError?.id === i.id ? 'history__row--error' : undefined}
+                    >
                       <span>
                         {i.email}
                         {i.phone ? ` · ${i.phone}` : ''} · {t.team.roles[i.role]}{' '}
@@ -244,10 +267,17 @@ export default function TeamPage() {
                         <button
                           type="button"
                           className="link-btn small"
+                          disabled={revoking === i.id}
+                          aria-describedby={
+                            rowError?.id === i.id ? `team-row-error-${i.id}` : undefined
+                          }
                           onClick={() => void revoke(i.id)}
                         >
                           {t.team.revoke}
                         </button>
+                      ) : null}
+                      {rowError?.id === i.id ? (
+                        <FieldError id={`team-row-error-${i.id}`} text={rowError.text} />
                       ) : null}
                     </li>
                   ))}
