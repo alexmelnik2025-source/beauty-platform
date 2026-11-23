@@ -44,6 +44,17 @@ test('the new-salon form says errors at the field and never creates the company 
 
   const address = page.getByLabel('Ulica i numer');
   const postal = page.getByLabel('Kod pocztowy');
+
+  // Task 689: nothing filled in — no browser bubble, each empty field said under it, the cursor
+  // on the first ("Nazwa firmy").
+  await page.getByRole('button', { name: 'Utwórz salon' }).click();
+  await expect(page.locator('#onboarding-orgName-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.getByLabel('Nazwa firmy')).toBeFocused();
+  await expect(page.locator('#onboarding-addressLine-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.locator('#onboarding-city-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.locator('#onboarding-postalCode-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.locator('#onboarding-locationName-error')).toHaveCount(0);
+  await page.screenshot({ path: 'e2e/screenshots/689-onboarding-empty-fields.png' });
   await page.getByLabel('Nazwa firmy').fill('Berber Moda');
   await address.fill('   ');
   await page.getByLabel('Miasto').fill('İstanbul');
@@ -61,7 +72,7 @@ test('the new-salon form says errors at the field and never creates the company 
 
   // The company is created, the salon is not: the postal code is said at its field.
   await page.getByRole('button', { name: 'Utwórz salon' }).click();
-  await expect(page.locator('#onboarding-postalCode-error')).toBeVisible();
+  await expect(page.locator('#onboarding-postalCode-error')).toHaveText('Sprawdź kod pocztowy.');
   await expect(postal).toHaveAttribute('aria-invalid', 'true');
 
   // Trying again adds the salon to that company.

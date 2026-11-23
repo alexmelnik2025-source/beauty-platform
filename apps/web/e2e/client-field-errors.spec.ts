@@ -7,6 +7,7 @@ import { waitForEmail } from './mailpit';
  * of only spaces is said under "Imię i nazwisko" before anything is sent; a phone another client
  * already has is said under "Telefon", with "Dodaj mimo to" right below the fields — no line on
  * top of the form. Changing the number takes the error and the offer away.
+ * Task 689: an empty name or phone and a wrong e-mail never get the browser's bubble either.
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -82,6 +83,22 @@ test('the new-client card says a blank name and a taken phone at their fields', 
   const name = card.getByLabel('Imię i nazwisko');
   const phone = card.getByRole('textbox', { name: 'Telefon' });
   const save = card.locator('form.form').getByRole('button', { name: 'Zapisz', exact: true });
+
+  // Task 689: an empty name, a phone with only the country code and a wrong e-mail — no browser
+  // bubble, each said under its own field, the cursor on the first.
+  const email = card.getByLabel('E-mail');
+  await phone.fill('+48 ');
+  await email.fill('jan@');
+  await save.click();
+  await expect(card.locator('#client-name-error')).toHaveText('Podaj imię.');
+  await expect(name).toBeFocused();
+  await expect(phone).toHaveAttribute('aria-invalid', 'true');
+  await expect(card.getByText('Uzupełnij to pole.')).toBeVisible();
+  await expect(card.locator('#client-email-error')).toHaveText('Sprawdź adres e-mail.');
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await page.screenshot({ path: 'e2e/screenshots/689-client-empty-fields.png' });
+  await email.fill('');
+  await expect(card.locator('#client-email-error')).toHaveCount(0);
 
   // Only spaces: said at the field before anything is sent.
   await name.fill('   ');

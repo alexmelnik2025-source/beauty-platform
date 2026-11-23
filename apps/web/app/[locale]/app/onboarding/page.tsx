@@ -15,6 +15,10 @@ import { CURRENCIES, currencyName } from '@/lib/time';
 
 type Field = 'orgName' | 'locationName' | 'addressLine' | 'city' | 'postalCode';
 const REQUIRED: Field[] = ['orgName', 'addressLine', 'city', 'postalCode'];
+/** The order the fields stand in on screen: the cursor goes to the first one with an error. */
+const ORDER: Field[] = ['orgName', 'locationName', 'addressLine', 'city', 'postalCode'];
+/** A Polish postal code: "00-000". */
+const PL_POSTAL = /^\d{2}-\d{3}$/;
 /** The server's names of the fields of a new location → the fields of this form. */
 const LOCATION_FIELDS: Record<string, Field> = {
   name: 'locationName',
@@ -54,8 +58,11 @@ export default function OnboardingPage() {
   const tag = LOCALE_TAGS[locale];
   const poland = regionForTimeZone(timeZone) === 'PL';
   const [error, setError] = useState('');
-  /** Task 657: errors at their own field (owner's rule); typing in a field takes its error away. */
-  const [problems, setProblems] = useState<Field[]>([]);
+  /**
+   * Task 657: errors at their own field (owner's rule); typing in a field takes its error away.
+   * Task 689: with the text said under each (an empty field or a postal code of a wrong shape).
+   */
+  const [problems, setProblems] = useState<Partial<Record<Field, string>>>({});
   /**
    * Task 657: the company already created by an earlier try whose salon then failed (a field
    * the server did not take, no network) — trying again adds the salon to it instead of
@@ -65,26 +72,43 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const set = (key: Field) => (e: { target: { value: string } }) => {
     setForm({ ...form, [key]: e.target.value });
-    if (problems.includes(key)) setProblems(problems.filter((f) => f !== key));
+    if (problems[key]) setProblems({ ...problems, [key]: undefined });
   };
   const invalid = (key: Field) => ({
-    'aria-invalid': problems.includes(key) || undefined,
-    'aria-describedby': problems.includes(key) ? `onboarding-${key}-error` : undefined,
+    name: key,
+    'aria-invalid': Boolean(problems[key]) || undefined,
+    'aria-describedby': problems[key] ? `onboarding-${key}-error` : undefined,
   });
   const fieldError = (key: Field) => (
-    <FieldError
-      id={`onboarding-${key}-error`}
-      text={problems.includes(key) ? t.onboarding.fieldRequired : undefined}
-    />
+    <FieldError id={`onboarding-${key}-error`} text={problems[key]} />
   );
+  /** The texts under the fields, the cursor to the first of them. */
+  function show(found: Partial<Record<Field, string>>, form: HTMLFormElement | null) {
+    setProblems(found);
+    const first = ORDER.find((key) => found[key]);
+    if (first) form?.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
+  }
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setError('');
-    // Only spaces pass the browser's own check, but not the server's: said at the field at once.
-    const empty = REQUIRED.filter((key) => form[key].trim() === '');
-    setProblems(empty);
-    if (empty.length > 0) return;
+    // Task 689 (owner's rule: errors at the field): no browser checks (they showed a bubble) — an
+    // empty field (or only spaces) and a Polish postal code of a wrong shape are said under them.
+    const found: Partial<Record<Field, string>> = {};
+    for (const key of REQUIRED) {
+      if (form[key].trim() === '') found[key] = t.onboarding.fieldRequired;
+    }
+    const postal = form.postalCode.trim();
+    // In Poland "00-000" (what the browser's pattern checked); other countries — the server says.
+    if (postal && poland && !PL_POSTAL.test(postal)) {
+      found.postalCode = t.settings.postalCodeInvalid;
+    }
+    if (Object.keys(found).length > 0) {
+      show(found, formEl);
+      return;
+    }
+    setProblems({});
     setBusy(true);
     let org = created;
     try {
@@ -115,8 +139,18 @@ export default function OnboardingPage() {
       window.location.assign(`/${locale}/app/calendar`);
     } catch (err) {
       const fields = org ? fieldsOf(err, LOCATION_FIELDS) : fieldsOf(err, { name: 'orgName' });
-      if (fields.length > 0) setProblems(fields);
-      else setError(errorText(t, err));
+      if (fields.length > 0) {
+        // A postal code the server does not take is filled in — "Sprawdź kod pocztowy.", not "Uzupełnij".
+        show(
+          Object.fromEntries(
+            fields.map((key) => [
+              key,
+              key === 'postalCode' ? t.settings.postalCodeInvalid : t.onboarding.fieldRequired,
+            ]),
+          ),
+          formEl,
+        );
+      } else setError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -127,7 +161,7 @@ export default function OnboardingPage() {
         <h1>{t.onboarding.title}</h1>
         <p className="muted">{t.onboarding.lead}</p>
       </div>
-      <form className="form" onSubmit={submit}>
+      <form noValidate className="form" onSubmit={(e) => void submit(e)}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.onboarding.orgName}</span>
@@ -163,7 +197,6 @@ export default function OnboardingPage() {
             <span>{t.onboarding.postalCode}</span>
             <input
               required
-              pattern={poland ? '\\d{2}-\\d{3}' : undefined}
               placeholder={poland ? '00-000' : undefined}
               value={form.postalCode}
               {...invalid('postalCode')}

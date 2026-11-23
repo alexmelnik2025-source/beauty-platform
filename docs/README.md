@@ -4485,6 +4485,12 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   сервер), e-mail (у вошедшего клиента не проверяется — адрес сессии) и галочку регламента — новый ключ
   `booking.termsRequired` во всех словарях. Ответ сервера `acceptTerms` тоже показывается под галочкой. e2e `booking`,
   `waitlist`, скриншоты `688-booking-details-field-errors`, `688-waitlist-field-errors`.
+- **«Twój salon» (первый салон) и карточка клиента — без подсказок браузера** (задача 689): формы с `noValidate`.
+  «Twój salon»: пустые поля — «Uzupełnij to pole.» под каждым, польский индекс не «00-000» (раньше `pattern`) и индекс,
+  который не принял сервер, — «Sprawdź kod pocztowy.»; курсор на первое поле с ошибкой. «Dodaj klienta» / карточка
+  клиента: пустое имя — «Podaj imię.», телефон только с кодом страны — «Uzupełnij to pole.», неверный телефон или
+  e-mail (`PHONE_SHAPE`/`EMAIL_SHAPE` из `lib/contact-check.ts`) — под полем. e2e `onboarding-retry`,
+  `client-field-errors`, скриншоты `689-onboarding-empty-fields`, `689-client-empty-fields`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

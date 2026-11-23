@@ -8,6 +8,7 @@ import { PhoneField } from '@/components/PhoneField';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { ErrorBox, FieldError, Sheet, Spinner } from '@/components/ui';
 import { api, ApiError, apiResponse } from '@/lib/api';
+import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { errorText, fill, LOCALE_TAGS, LOCALES, localeCode, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { Customer, CustomerDetail, CustomerSegments, CustomerTags } from '@/lib/types';
@@ -15,6 +16,12 @@ import type { Customer, CustomerDetail, CustomerSegments, CustomerTags } from '@
 /** Task 659: the client card's fields that can show an error under them. */
 type ClientField = 'name' | 'phone' | 'email';
 const CLIENT_FIELDS: ClientField[] = ['name', 'phone', 'email'];
+/** Task 689: where the cursor goes for each field with an error (the first on screen). */
+const CLIENT_INPUT: Record<ClientField, string> = {
+  name: 'input[name="name"]',
+  phone: 'input[type="tel"]',
+  email: 'input[type="email"]',
+};
 
 /** The fields the server's validation answer is about; empty when it is about something else. */
 function clientFieldsOf(err: unknown): ClientField[] {
@@ -596,6 +603,8 @@ function ClientSheet({
    * another client already has. Editing a field takes its error away.
    */
   const [problems, setProblems] = useState<ClientField[]>([]);
+  /** Task 689: the phone was left empty (only the country code) — "Uzupełnij to pole.". */
+  const [phoneEmpty, setPhoneEmpty] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -618,12 +627,24 @@ function ClientSheet({
 
   async function save(e: FormEvent, allowDuplicatePhone = false) {
     e.preventDefault();
+    const formEl = (e.currentTarget as HTMLElement | null)?.closest('form') ?? null;
     setError('');
-    if (!form.name.trim()) {
+    // Task 689 (owner's rule: errors at the field): no browser checks (they showed a bubble) — an
+    // empty name or phone and a wrong phone or e-mail are said under them; the cursor to the first.
+    const phone = normalizePhone(form.phone, dial);
+    const noPhone = /^(\+\d{0,4})?$/.test(form.phone.replace(/[\s()-]/g, ''));
+    const found: ClientField[] = [];
+    if (!form.name.trim()) found.push('name');
+    if (noPhone || !PHONE_SHAPE.test(phone)) found.push('phone');
+    if (form.email.trim() && !EMAIL_SHAPE.test(form.email.trim())) found.push('email');
+    if (found.length > 0) {
       setDuplicate(false);
-      setProblems(['name']);
+      setPhoneEmpty(noPhone);
+      setProblems(found);
+      formEl?.querySelector<HTMLInputElement>(CLIENT_INPUT[found[0]!])?.focus();
       return;
     }
+    setPhoneEmpty(false);
     setProblems([]);
     setBusy(true);
     const tags = form.tags
@@ -690,7 +711,11 @@ function ClientSheet({
 
   const problemText: Record<ClientField, string> = {
     name: t.booking.nameInvalid,
-    phone: duplicate ? t.errors.CUSTOMER_PHONE_EXISTS : t.booking.phoneInvalid,
+    phone: duplicate
+      ? t.errors.CUSTOMER_PHONE_EXISTS
+      : phoneEmpty
+        ? t.onboarding.fieldRequired
+        : t.booking.phoneInvalid,
     email: t.booking.emailInvalid,
   };
   const problem = (field: ClientField) =>
@@ -713,12 +738,13 @@ function ClientSheet({
           {fill(t.clients.anonymized, { date: erasedOn })}
         </p>
       ) : null}
-      <form className="form" onSubmit={(e) => void save(e)} hidden={Boolean(erasedOn)}>
+      <form noValidate className="form" onSubmit={(e) => void save(e)} hidden={Boolean(erasedOn)}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.clients.name}</span>
           <input
             required
+            name="name"
             value={form.name}
             {...invalid('name')}
             onChange={(e) => edit('name', { name: e.target.value })}
