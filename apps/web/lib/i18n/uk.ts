@@ -2142,6 +2142,12 @@ export const uk: Dict = {
     inventory: 'Каталог',
     priceGroup: 'Група цін',
     warehouse: 'Склад',
+    /** Task 707: a list with nothing to choose — said under it. */
+    noInventory:
+      'У вашому Base ще немає каталогу — додайте його в Base і відкрийте це вікно знову.',
+    noPriceGroup:
+      'У цьому каталозі немає групи цін у валюті салону — додайте її в Base або виберіть інший каталог.',
+    noWarehouse: 'У цьому каталозі немає складу — додайте його в Base або виберіть інший каталог.',
     syncEvery: 'Оновлювати ціни й залишки кожні',
     minutes: '{n} хв',
     importedCount: 'з Base: {n} тов.',

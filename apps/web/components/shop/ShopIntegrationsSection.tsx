@@ -85,6 +85,48 @@ const importedText = (s: { imported: string; importedPhotos: string }, res: Impo
 
 const SYNC_EVERY = [15, 30, 60, 180, 360, 720, 1440];
 
+type Choice = { inventoryId: string; priceGroupId: string; warehouseId: string };
+type ChoiceField = keyof Choice;
+
+/** The price groups (in the salon's currency) and warehouses the chosen catalogue offers. */
+function allowedFor(options: BaseOptions, inventoryId: string) {
+  const inv = options.inventories.find((i) => i.id === inventoryId);
+  return {
+    priceGroups: options.priceGroups.filter(
+      (g) => g.matchesSalon && (!inv?.priceGroupIds.length || inv.priceGroupIds.includes(g.id)),
+    ),
+    warehouses: options.warehouses.filter(
+      (w) => !inv?.warehouseIds.length || inv.warehouseIds.includes(w.id),
+    ),
+  };
+}
+
+/**
+ * Task 707: the price group and warehouse for a catalogue — the ones asked for if this catalogue
+ * has them, else its defaults, else its first ones. Changing "Katalog" used to keep the old
+ * catalogue's price group and warehouse: the lists showed another one than would be saved, and
+ * "Zapisz" ended in a line at the top of the page.
+ */
+function choiceFor(options: BaseOptions, inventoryId: string, want: Partial<Choice> = {}): Choice {
+  const inv = options.inventories.find((i) => i.id === inventoryId);
+  const { priceGroups, warehouses } = allowedFor(options, inventoryId);
+  const pick = (ids: string[], ...wanted: (string | null | undefined)[]) =>
+    wanted.find((id): id is string => Boolean(id) && ids.includes(id!)) ?? ids[0] ?? '';
+  return {
+    inventoryId: inv?.id ?? '',
+    priceGroupId: pick(
+      priceGroups.map((g) => g.id),
+      want.priceGroupId,
+      inv?.defaultPriceGroupId,
+    ),
+    warehouseId: pick(
+      warehouses.map((w) => w.id),
+      want.warehouseId,
+      inv?.defaultWarehouseId,
+    ),
+  };
+}
+
 /**
  * Task Q4: "Mój sklep" → "Integracje" — the seller's products come by themselves instead of being
  * typed: from its own Base (BaseLinker) in three steps (token → catalogue, prices, warehouse →
@@ -123,7 +165,20 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
    */
   const [tokenProblem, setTokenProblem] = useState('');
   const tokenRef = useRef<HTMLInputElement>(null);
-  const [choice, setChoice] = useState({ inventoryId: '', priceGroupId: '', warehouseId: '' });
+  const [choice, setChoice] = useState<Choice>({
+    inventoryId: '',
+    priceGroupId: '',
+    warehouseId: '',
+  });
+  /** Task 707: the Base's answer about one of the three lists — said under that list. */
+  const [choiceProblem, setChoiceProblem] = useState<{ field: ChoiceField; text: string } | null>(
+    null,
+  );
+  const choiceRefs = {
+    inventoryId: useRef<HTMLSelectElement>(null),
+    priceGroupId: useRef<HTMLSelectElement>(null),
+    warehouseId: useRef<HTMLSelectElement>(null),
+  };
   const [every, setEvery] = useState(60);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [runs, setRuns] = useState<SyncRun[]>([]);
@@ -163,15 +218,13 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
       const got = await api<BaseOptions>(`${base}/options`);
       setOptions(got);
       const inv = got.inventories.find((i) => i.id === status?.inventoryId) ?? got.inventories[0];
-      setChoice({
-        inventoryId: inv?.id ?? '',
-        priceGroupId:
-          status?.priceGroupId ??
-          got.priceGroups.find((g) => g.matchesSalon && g.id === inv?.defaultPriceGroupId)?.id ??
-          got.priceGroups.find((g) => g.matchesSalon)?.id ??
-          '',
-        warehouseId: status?.warehouseId ?? inv?.defaultWarehouseId ?? got.warehouses[0]?.id ?? '',
-      });
+      setChoice(
+        choiceFor(got, inv?.id ?? '', {
+          priceGroupId: status?.priceGroupId ?? undefined,
+          warehouseId: status?.warehouseId ?? undefined,
+        }),
+      );
+      setChoiceProblem(null);
       setEditing(true);
     });
 
@@ -199,23 +252,47 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
       setToken('');
       const got = await api<BaseOptions>(`${base}/options`);
       setOptions(got);
-      const inv = got.inventories[0];
-      setChoice({
-        inventoryId: inv?.id ?? '',
-        priceGroupId:
-          got.priceGroups.find((g) => g.matchesSalon && g.id === inv?.defaultPriceGroupId)?.id ??
-          got.priceGroups.find((g) => g.matchesSalon)?.id ??
-          '',
-        warehouseId: inv?.defaultWarehouseId ?? got.warehouses[0]?.id ?? '',
-      });
+      setChoice(choiceFor(got, got.inventories[0]?.id ?? ''));
+      setChoiceProblem(null);
       setEditing(true);
     });
   };
 
+  /** Task 707: a list with nothing to choose is said under it, not by a switched-off "Zapisz". */
+  const emptyChoice = (): ChoiceField | null => {
+    if (!options) return null;
+    if (!choice.inventoryId) return 'inventoryId';
+    const allowed = allowedFor(options, choice.inventoryId);
+    if (!allowed.priceGroups.length) return 'priceGroupId';
+    if (!allowed.warehouses.length) return 'warehouseId';
+    return null;
+  };
+
   const save = (e: FormEvent) => {
     e.preventDefault();
+    const empty = emptyChoice();
+    if (empty) {
+      choiceRefs[empty].current?.focus();
+      return;
+    }
+    setChoiceProblem(null);
     void run(async () => {
-      await api(base, { method: 'PATCH', body: { ...choice, syncEveryMinutes: every } });
+      try {
+        await api(base, { method: 'PATCH', body: { ...choice, syncEveryMinutes: every } });
+      } catch (err) {
+        const path =
+          err instanceof ApiError &&
+          err.code === 'BASE_INVALID_CHOICE' &&
+          Array.isArray(err.details)
+            ? String((err.details as { path?: string }[])[0]?.path ?? '')
+            : '';
+        if (path === 'inventoryId' || path === 'priceGroupId' || path === 'warehouseId') {
+          setChoiceProblem({ field: path, text: errorText(t, err) });
+          choiceRefs[path].current?.focus();
+          return;
+        }
+        throw err;
+      }
       setEditing(false);
     });
   };
@@ -240,7 +317,13 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
 
   if (!status) return <Spinner />;
   const configured = Boolean(status.inventoryId);
-  const inventory = options?.inventories.find((i) => i.id === choice.inventoryId);
+  const allowed = options ? allowedFor(options, choice.inventoryId) : null;
+  const empty = emptyChoice();
+  const emptyText: Record<ChoiceField, string> = {
+    inventoryId: s.noInventory,
+    priceGroupId: s.noPriceGroup,
+    warehouseId: s.noWarehouse,
+  };
   const date = (iso: string) => new Date(iso).toLocaleString(tag);
 
   return (
@@ -295,58 +378,45 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
           ) : null}
 
           {editing && options ? (
-            <form className="stack" onSubmit={save}>
-              <label className="field">
-                <span>{s.inventory}</span>
-                <select
-                  value={choice.inventoryId}
-                  onChange={(e) => setChoice({ ...choice, inventoryId: e.target.value })}
-                >
-                  {options.inventories.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>{s.priceGroup}</span>
-                <select
-                  value={choice.priceGroupId}
-                  onChange={(e) => setChoice({ ...choice, priceGroupId: e.target.value })}
-                >
-                  {options.priceGroups
-                    .filter(
-                      (g) =>
-                        g.matchesSalon &&
-                        (!inventory?.priceGroupIds.length ||
-                          inventory.priceGroupIds.includes(g.id)),
-                    )
-                    .map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name} ({g.currency})
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>{s.warehouse}</span>
-                <select
-                  value={choice.warehouseId}
-                  onChange={(e) => setChoice({ ...choice, warehouseId: e.target.value })}
-                >
-                  {options.warehouses
-                    .filter(
-                      (w) =>
-                        !inventory?.warehouseIds.length || inventory.warehouseIds.includes(w.id),
-                    )
-                    .map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+            <form className="stack" noValidate onSubmit={save}>
+              {(
+                [
+                  ['inventoryId', s.inventory, options.inventories],
+                  ['priceGroupId', s.priceGroup, allowed?.priceGroups ?? []],
+                  ['warehouseId', s.warehouse, allowed?.warehouses ?? []],
+                ] as const
+              ).map(([field, label, items]) => {
+                const text =
+                  (empty === field ? emptyText[field] : '') ||
+                  (choiceProblem?.field === field ? choiceProblem.text : '');
+                return (
+                  <label key={field} className="field">
+                    <span>{label}</span>
+                    <select
+                      ref={choiceRefs[field]}
+                      value={choice[field]}
+                      aria-invalid={text ? true : undefined}
+                      aria-describedby={text ? `base-${field}-error` : undefined}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setChoiceProblem(null);
+                        setChoice(
+                          field === 'inventoryId'
+                            ? choiceFor(options, value, choice)
+                            : { ...choice, [field]: value },
+                        );
+                      }}
+                    >
+                      {items.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {'currency' in item ? `${item.name} (${item.currency})` : item.name}
+                        </option>
+                      ))}
+                    </select>
+                    <FieldError id={`base-${field}-error`} text={text || undefined} />
+                  </label>
+                );
+              })}
               <label className="field">
                 <span>{s.syncEvery}</span>
                 <select value={every} onChange={(e) => setEvery(Number(e.target.value))}>
@@ -358,13 +428,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                 </select>
               </label>
               <div className="row">
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={
-                    busy || !choice.inventoryId || !choice.priceGroupId || !choice.warehouseId
-                  }
-                >
+                <button type="submit" className="btn" disabled={busy}>
                   {t.common.save}
                 </button>
                 {configured ? (

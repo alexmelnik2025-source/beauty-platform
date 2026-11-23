@@ -38,13 +38,28 @@ const FAKE_BASE: Record<string, object> = {
         warehouses: ['bl_201'],
         default_warehouse: 'bl_201',
       },
+      // Task 707: a second catalogue with prices only in euro and its own warehouse.
+      {
+        inventory_id: 308,
+        name: 'Hurtownia EU',
+        price_groups: [106],
+        default_price_group: 106,
+        warehouses: ['bl_202'],
+        default_warehouse: 'bl_202',
+      },
     ],
   },
   getInventoryPriceGroups: {
-    price_groups: [{ price_group_id: 105, name: 'Detal', currency: 'PLN' }],
+    price_groups: [
+      { price_group_id: 105, name: 'Detal', currency: 'PLN' },
+      { price_group_id: 106, name: 'Hurt', currency: 'EUR' },
+    ],
   },
   getInventoryWarehouses: {
-    warehouses: [{ warehouse_type: 'bl', warehouse_id: 201, name: 'Magazyn Bema' }],
+    warehouses: [
+      { warehouse_type: 'bl', warehouse_id: 201, name: 'Magazyn Bema' },
+      { warehouse_type: 'bl', warehouse_id: 202, name: 'Magazyn Hurt' },
+    ],
   },
   getInventoryProductsList: {
     products: {
@@ -202,6 +217,23 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   // Step 2: the catalogue, price group and warehouse are already suggested.
   await expect(baseCard.getByLabel('Katalog')).toHaveValue('307');
   await expect(baseCard.getByLabel('Magazyn')).toHaveValue('bl_201');
+  // Task 707: another catalogue brings its own warehouse; no price group in złoty is said under
+  // "Grupa cen" (not a switched-off "Zapisz" or a line at the top), and going back restores both.
+  const priceGroup = baseCard.getByLabel('Grupa cen');
+  await baseCard.getByLabel('Katalog').selectOption('308');
+  await expect(baseCard.getByLabel('Magazyn')).toHaveValue('bl_202');
+  await expect(baseCard.locator('.field-error')).toHaveText(
+    'Ten katalog nie ma grupy cen w walucie salonu — dodaj ją w Base albo wybierz inny katalog.',
+  );
+  await expect(priceGroup).toHaveAttribute('aria-invalid', 'true');
+  await baseCard.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(priceGroup).toBeFocused();
+  await expect(page.locator('[aria-labelledby="integrations-title"] .alert')).toHaveCount(0);
+  await shot(page, '707-base-choice-empty');
+  await baseCard.getByLabel('Katalog').selectOption('307');
+  await expect(priceGroup).toHaveValue('105');
+  await expect(baseCard.getByLabel('Magazyn')).toHaveValue('bl_201');
+  await expect(baseCard.locator('.field-error')).toHaveCount(0);
   await baseCard.getByRole('button', { name: 'Zapisz' }).click();
   await expect(baseCard.getByText('Połączono (token …0000)', { exact: false })).toBeVisible();
 

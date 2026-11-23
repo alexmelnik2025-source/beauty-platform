@@ -2151,6 +2151,11 @@ export const ru: Dict = {
     inventory: 'Каталог',
     priceGroup: 'Группа цен',
     warehouse: 'Склад',
+    /** Task 707: a list with nothing to choose — said under it. */
+    noInventory: 'В вашем Base ещё нет каталога — добавьте его в Base и откройте это окно снова.',
+    noPriceGroup:
+      'В этом каталоге нет группы цен в валюте салона — добавьте её в Base или выберите другой каталог.',
+    noWarehouse: 'В этом каталоге нет склада — добавьте его в Base или выберите другой каталог.',
     syncEvery: 'Обновлять цены и остатки каждые',
     minutes: '{n} мин',
     importedCount: 'из Base: {n} тов.',

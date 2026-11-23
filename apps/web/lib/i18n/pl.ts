@@ -2145,6 +2145,11 @@ export const pl = {
     inventory: 'Katalog',
     priceGroup: 'Grupa cen',
     warehouse: 'Magazyn',
+    /** Task 707: a list with nothing to choose — said under it. */
+    noInventory: 'Twój Base nie ma jeszcze katalogu — dodaj go w Base i otwórz to okno ponownie.',
+    noPriceGroup:
+      'Ten katalog nie ma grupy cen w walucie salonu — dodaj ją w Base albo wybierz inny katalog.',
+    noWarehouse: 'Ten katalog nie ma magazynu — dodaj go w Base albo wybierz inny katalog.',
     syncEvery: 'Aktualizuj ceny i stany co',
     minutes: '{n} min',
     importedCount: 'z Base: {n} prod.',

@@ -2152,6 +2152,11 @@ export const en: Dict = {
     inventory: 'Catalogue',
     priceGroup: 'Price group',
     warehouse: 'Warehouse',
+    /** Task 707: a list with nothing to choose — said under it. */
+    noInventory: 'Your Base has no catalogue yet — add one in Base and open this again.',
+    noPriceGroup:
+      "This catalogue has no price group in the salon's currency — add one in Base or choose another catalogue.",
+    noWarehouse: 'This catalogue has no warehouse — add one in Base or choose another catalogue.',
     syncEvery: 'Update prices and stock every',
     minutes: '{n} min',
     importedCount: 'from Base: {n} products',
