@@ -222,8 +222,27 @@ test('the owner invites a specialist by email and phone; they join with a code (
   );
   const ukrainian = myLanguages.getByRole('button', { name: 'UA ukraiński' });
   if ((await ukrainian.getAttribute('aria-pressed')) !== 'true') await ukrainian.click();
-  await myLanguages.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 745 (owner's rule: errors where the action is): a refused "Zapisz" is said under it.
+  await kasia.route('**/languages', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveLanguages = myLanguages.getByRole('button', { name: 'Zapisz' });
+  await saveLanguages.click();
+  await expect(myLanguages.locator('#my-languages-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveLanguages).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(kasia.locator('.alert')).toHaveCount(0);
+  await shot(kasia, '745-staff-my-languages-error');
+  await kasia.unrouteAll({ behavior: 'wait' });
+  await saveLanguages.click();
   await expect(myLanguages.getByRole('status')).toHaveText('Zapisano');
+  await expect(myLanguages.locator('#my-languages-error')).toHaveCount(0);
   await shot(kasia, '57l-staff-my-languages');
 
   // The owner sees the account linked to the profile.
