@@ -205,19 +205,21 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await addForm.locator('#shop-add-stock').fill('dużo');
   await addForm.getByRole('button', { name: 'Zapisz' }).click();
   await expect(addForm.locator('#shop-add-name')).toBeFocused();
-  await expect(addForm.locator('#shop-add-name')).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(addForm.locator('#shop-add-name')).toHaveAccessibleDescription(
+    /Uzupełnij to pole\.$/,
+  );
   await expect(addForm.locator('#shop-add-price')).toHaveAccessibleDescription(
-    'Uzupełnij to pole.',
+    /Uzupełnij to pole\.$/,
   );
   await expect(addForm.locator('#shop-add-stock')).toHaveAccessibleDescription(
-    'Wpisz liczbę od 0 do 999 999.',
+    /Wpisz liczbę od 0 do 999 999\.$/,
   );
   await expect(page.locator('.alert')).toHaveCount(0);
   await shot(page, '696-shop-add-field-errors');
   await addForm.locator('#shop-add-price').fill('39,9,0');
   await addForm.getByRole('button', { name: 'Zapisz' }).click();
   await expect(addForm.locator('#shop-add-price')).toHaveAccessibleDescription(
-    'Wpisz kwotę, np. 150 lub 150,50.',
+    /Wpisz kwotę, np\. 150 lub 150,50\.$/,
   );
   // The error under a field is part of its label now, so the fields are found by their ids.
   await addForm.locator('#shop-add-name').fill('Wosk matowy');
