@@ -3,6 +3,7 @@
 import { LanguagePicker, type Spoken } from '../Languages';
 import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { DASHBOARD_LOCALES, errorText, localeCode, useI18n } from '@/lib/i18n';
 import type { Member, PermissionCatalog, PermissionMap, StaffCategory } from '@/lib/types';
 import { ErrorBox, FieldError, Sheet } from '../ui';
@@ -360,9 +361,26 @@ export function InviteSheet({
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
     setError('');
-    setProblem(null);
+    // Task 699: an empty or wrong e-mail or phone — said under the field before sending, instead
+    // of the browser's bubble; the cursor goes there.
+    const email = form.email.trim();
+    const phone = form.phone.replace(/[\s()-]/g, '');
+    const local: { field: InviteField; text: string } | null = !email
+      ? { field: 'email', text: t.onboarding.fieldRequired }
+      : !EMAIL_SHAPE.test(email)
+        ? { field: 'email', text: t.booking.emailInvalid }
+        : !phone
+          ? { field: 'phone', text: t.onboarding.fieldRequired }
+          : !PHONE_SHAPE.test(phone)
+            ? { field: 'phone', text: t.booking.phoneInvalid }
+            : null;
+    setProblem(local);
+    if (local) {
+      document.getElementById(`invite-${local.field}`)?.focus();
+      return;
+    }
+    setBusy(true);
     try {
       await api(`/v1/organizations/${orgId}/invitations`, {
         method: 'POST',
@@ -403,6 +421,7 @@ export function InviteSheet({
     if (problem?.field === field) setProblem(null);
   };
   const invalid = (field: InviteField) => ({
+    id: `invite-${field}`,
     'aria-invalid': problem?.field === field || undefined,
     'aria-describedby': problem?.field === field ? `invite-${field}-error` : undefined,
   });
@@ -415,7 +434,7 @@ export function InviteSheet({
 
   return (
     <Sheet title={t.team.inviteTitle} onClose={onClose}>
-      <form className="form" onSubmit={send}>
+      <form noValidate className="form" onSubmit={send}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.team.inviteEmail}</span>

@@ -4529,6 +4529,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   «Uzupełnij to pole.», «Do» не позже «Od» — `team.specialBadTime`; текст под промежутком (`#hours-<день>-<n>-error`),
   курсор на неверное поле (`#hours-<день>-<n>-start|end`). Любое изменение дня убирает его ошибки. e2e `booking`,
   скриншот `698-staff-hours-error`.
+- **«Zespół» → «Zaproś do zespołu» — проверка до отправки** (задача 699): форма с `noValidate`; пустой e-mail или
+  телефон — «Uzupełnij to pole.», неверный e-mail (`EMAIL_SHAPE`) или телефон без «+» и кода (`PHONE_SHAPE`) —
+  `booking.emailInvalid` / `booking.phoneInvalid`, под полем (`#invite-email`, `#invite-phone`), курсор туда. Ответы
+  сервера (уже в команде и т. п., задача 667) — как раньше. e2e `team-invite`, скриншот `699-invite-email-error`.
 - **«Mój sklep» → «+ Dodaj produkt» — ошибки у поля** (задача 696): форма с `noValidate`; пустое название или цена —
   «Uzupełnij to pole.», неверная цена — `calendar.tillInvalid`, остаток не 0–999 999 — `guard.numberRange`; всё под
   своим полем (`#shop-add-name`, `#shop-add-price`, `#shop-add-stock`), курсор на первое. Общая строка `shop.addInvalid`

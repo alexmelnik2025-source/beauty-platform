@@ -105,7 +105,16 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await page.getByRole('dialog').getByRole('button', { name: 'Zaproś', exact: true }).click();
   const form = page.getByRole('dialog');
   await expect(form.getByRole('heading', { name: 'Zaproś do zespołu' })).toBeVisible();
-  await form.getByLabel('E-mail', { exact: true }).fill(KASIA);
+  // Task 699: a wrong e-mail is said under "E-mail" before sending, not in the browser's bubble
+  // (the error is part of its label then, so the field is found by its id).
+  const inviteEmail = form.locator('#invite-email');
+  await inviteEmail.fill('kasia@');
+  await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
+  await expect(inviteEmail).toBeFocused();
+  await expect(inviteEmail).toHaveAccessibleDescription(/Sprawdź adres e-mail\.$/);
+  await shot(page, '699-invite-email-error');
+  await inviteEmail.fill(KASIA);
+  await expect(form.locator('.field-error')).toHaveCount(0);
   // Task 667: a number without "+48" is said under "Telefon" (red frame, "!"), not above the form.
   const phone = form.getByLabel('Telefon');
   await phone.fill('600 100 200');
