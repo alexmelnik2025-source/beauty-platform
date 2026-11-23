@@ -4496,6 +4496,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   Неверный код (`INVALID_CODE`) и «Ten kod już nie działa. Wyślij nowy.» (`CODE_EXPIRED` и др.) — под полем кода
   (`#visits-code-error`), а не строкой сверху. e2e `client-visits-field-errors`, скриншоты `690-visits-email-error`,
   `690-visits-code-error`.
+- **«Zespół» → «Dni specjalne» и «Nieobecności» — без подсказок браузера** (задача 691): формы с `noValidate`.
+  Пустой день или время — «Uzupełnij to pole.», день в прошлом — «Ten czas już minął.» (раньше `min` давал подсказку
+  браузера), «Do» не позже «Od» — как раньше; всё под своим полем (`#special-date-error`, `#absence-start-error` и
+  т. д.), курсор на первое. e2e `special-days`, скриншот `691-staff-special-date-error`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

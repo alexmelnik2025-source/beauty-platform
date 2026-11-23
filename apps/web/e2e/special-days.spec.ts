@@ -11,7 +11,8 @@ import { waitForEmail } from './mailpit';
 /**
  * Task 336: "Dni specjalne" in the cabinet — the owner opens a specialist in "Zespół", sets other
  * hours for one date (a wrong time is pointed out) and removes another special day, which gets
- * the usual hours back. Screenshots 336, 336a. Task 660: a wrong time, a wrong absence and a
+ * the usual hours back. Screenshots 336, 336a. Task 691: an empty or past day and an empty
+ * absence are said under their fields. Task 660: a wrong time, a wrong absence and a
  * name of only spaces are pointed out under their field (screenshot 660).
  */
 
@@ -116,9 +117,22 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await expect(special).toBeVisible();
   await expect(special.getByText(/12:00–16:00/)).toBeVisible();
 
+  // ── task 691: no day and a past day — said under "Dzień", no browser bubble ──
+  const day = special.locator('input[type="date"]');
+  await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
+  await expect(special.locator('#special-date-error')).toHaveText('Uzupełnij to pole.');
+  await expect(day).toHaveAttribute('aria-invalid', 'true');
+  await expect(day).toBeFocused();
+  await day.fill(warsawDate(-2));
+  await expect(special.locator('#special-date-error')).toHaveCount(0);
+  await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
+  await expect(special.locator('#special-date-error')).toHaveText('Ten czas już minął.');
+  await special.scrollIntoViewIfNeeded();
+  await shot(page, '691-staff-special-date-error');
+
   // ── a wrong time first, then 09:00–13:00 in three days ────────────────
   const soon = warsawDate(3);
-  await special.getByLabel('Dzień', { exact: true }).fill(soon);
+  await day.fill(soon);
   await special.getByLabel('Od', { exact: true }).fill('14:00');
   await special.getByLabel('Do', { exact: true }).fill('10:00');
   await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
@@ -151,6 +165,11 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
 
   // ── task 660: an absence whose "Do" is before "Od" — pointed out under "Do" ──
   const absence = page.getByRole('region', { name: 'Nieobecności' });
+  // Task 691: nothing filled in — "Uzupełnij to pole." under "Od" and "Do", the cursor on "Od".
+  await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
+  await expect(absence.locator('#absence-start-error')).toHaveText('Uzupełnij to pole.');
+  await expect(absence.locator('#absence-end-error')).toHaveText('Uzupełnij to pole.');
+  await expect(absence.locator('input[type="datetime-local"]').first()).toBeFocused();
   await absence.getByLabel('Od', { exact: true }).fill(`${warsawDate(5)}T15:00`);
   await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T11:00`);
   await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();

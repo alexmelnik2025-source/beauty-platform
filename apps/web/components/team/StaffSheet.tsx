@@ -77,10 +77,20 @@ export function StaffSheet({
    * of the long sheet. Editing the field takes the error away.
    */
   const [nameProblem, setNameProblem] = useState(false);
-  const [specialProblem, setSpecialProblem] = useState(false);
+  /**
+   * Task 660 / 691 (owner's rule: errors at the field): what is wrong with a special day or an
+   * absence, said under that field — an empty field, a past date, "Do" not after "Od".
+   */
+  const [specialProblems, setSpecialProblems] = useState<DayProblems>({});
   const [specialError, setSpecialError] = useState('');
-  const [absenceProblem, setAbsenceProblem] = useState(false);
+  const [absenceProblems, setAbsenceProblems] = useState<DayProblems>({});
   const [absenceError, setAbsenceError] = useState('');
+  /** A changed "Od" takes its own error away, and the "Do not after Od" one under "Do". */
+  const fixStart = (problems: DayProblems): DayProblems => ({
+    ...problems,
+    start: undefined,
+    end: problems.end === t.team.specialBadTime ? undefined : problems.end,
+  });
   const [message, setMessage] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second specialist (T4).
@@ -172,14 +182,15 @@ export function StaffSheet({
     }
   }
 
-  async function addAbsence(e: FormEvent) {
+  async function addAbsence(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!staff) return;
     setAbsenceError('');
-    if (absence.end <= absence.start) {
-      setAbsenceProblem(true);
-      return;
-    }
+    const found: DayProblems = {};
+    if (!absence.start) found.start = t.onboarding.fieldRequired;
+    if (!absence.end) found.end = t.onboarding.fieldRequired;
+    else if (absence.start && absence.end <= absence.start) found.end = t.team.specialBadTime;
+    if (showProblems(found, setAbsenceProblems, e)) return;
     try {
       await api(`${base}/staff/${staff.id}/time-off`, {
         method: 'POST',
@@ -197,15 +208,18 @@ export function StaffSheet({
   }
 
   /** Task 336: special hours for one date (`PUT …/working-hours/overrides/:date`). */
-  async function addSpecial(e: FormEvent) {
+  async function addSpecial(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!staff) return;
     setSpecialError('');
     setSpecialNote('');
-    if (special.end <= special.start) {
-      setSpecialProblem(true);
-      return;
-    }
+    const found: DayProblems = {};
+    if (!special.date) found.date = t.onboarding.fieldRequired;
+    else if (special.date < today()) found.date = t.errors.IN_THE_PAST;
+    if (!special.start) found.start = t.onboarding.fieldRequired;
+    if (!special.end) found.end = t.onboarding.fieldRequired;
+    else if (special.start && special.end <= special.start) found.end = t.team.specialBadTime;
+    if (showProblems(found, setSpecialProblems, e)) return;
     try {
       await api(`${base}/staff/${staff.id}/working-hours/overrides/${special.date}`, {
         method: 'PUT',
@@ -522,7 +536,7 @@ export function StaffSheet({
               {specialNote}
             </p>
           ) : null}
-          <form className="form" onSubmit={addSpecial}>
+          <form noValidate className="form" onSubmit={(e) => void addSpecial(e)}>
             <div className="row">
               <label className="field">
                 <span>{t.team.specialDate}</span>
@@ -530,12 +544,16 @@ export function StaffSheet({
                   type="date"
                   required
                   min={today()}
+                  name="date"
                   value={special.date}
+                  {...invalid(specialProblems, 'date', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, date: e.target.value });
                     setSpecialError('');
+                    setSpecialProblems({ ...specialProblems, date: undefined });
                   }}
                 />
+                <FieldError id="special-date-error" text={specialProblems.date} />
               </label>
               <label className="field">
                 <span>{t.team.start}</span>
@@ -543,12 +561,15 @@ export function StaffSheet({
                   type="time"
                   step={300}
                   required
+                  name="start"
                   value={special.start}
+                  {...invalid(specialProblems, 'start', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, start: e.target.value });
-                    setSpecialProblem(false);
+                    setSpecialProblems(fixStart(specialProblems));
                   }}
                 />
+                <FieldError id="special-start-error" text={specialProblems.start} />
               </label>
               <label className="field">
                 <span>{t.team.end}</span>
@@ -556,18 +577,15 @@ export function StaffSheet({
                   type="time"
                   step={300}
                   required
+                  name="end"
                   value={special.end}
-                  aria-invalid={specialProblem || undefined}
-                  aria-describedby={specialProblem ? 'special-end-error' : undefined}
+                  {...invalid(specialProblems, 'end', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, end: e.target.value });
-                    setSpecialProblem(false);
+                    setSpecialProblems({ ...specialProblems, end: undefined });
                   }}
                 />
-                <FieldError
-                  id="special-end-error"
-                  text={specialProblem ? t.team.specialBadTime : undefined}
-                />
+                <FieldError id="special-end-error" text={specialProblems.end} />
               </label>
             </div>
             <ErrorBox>{specialError}</ErrorBox>
@@ -597,7 +615,7 @@ export function StaffSheet({
               </li>
             ))}
           </ul>
-          <form className="form" onSubmit={addAbsence}>
+          <form noValidate className="form" onSubmit={(e) => void addAbsence(e)}>
             <div className="row">
               <label className="field">
                 <span>{t.team.start}</span>
@@ -605,13 +623,16 @@ export function StaffSheet({
                   type="datetime-local"
                   step={300}
                   required
+                  name="start"
                   value={absence.start}
+                  {...invalid(absenceProblems, 'start', 'absence')}
                   onChange={(e) => {
                     setAbsence({ ...absence, start: e.target.value });
-                    setAbsenceProblem(false);
+                    setAbsenceProblems(fixStart(absenceProblems));
                     setAbsenceError('');
                   }}
                 />
+                <FieldError id="absence-start-error" text={absenceProblems.start} />
               </label>
               <label className="field">
                 <span>{t.team.end}</span>
@@ -619,19 +640,16 @@ export function StaffSheet({
                   type="datetime-local"
                   step={300}
                   required
+                  name="end"
                   value={absence.end}
-                  aria-invalid={absenceProblem || undefined}
-                  aria-describedby={absenceProblem ? 'absence-end-error' : undefined}
+                  {...invalid(absenceProblems, 'end', 'absence')}
                   onChange={(e) => {
                     setAbsence({ ...absence, end: e.target.value });
-                    setAbsenceProblem(false);
+                    setAbsenceProblems({ ...absenceProblems, end: undefined });
                     setAbsenceError('');
                   }}
                 />
-                <FieldError
-                  id="absence-end-error"
-                  text={absenceProblem ? t.team.specialBadTime : undefined}
-                />
+                <FieldError id="absence-end-error" text={absenceProblems.end} />
               </label>
             </div>
             <label className="field">
@@ -686,6 +704,30 @@ function defaultWeek(): Interval[][] {
 }
 
 /** Today in this browser, YYYY-MM-DD — special days start from today (task 336). */
+type DayField = 'date' | 'start' | 'end';
+type DayProblems = Partial<Record<DayField, string>>;
+const DAY_ORDER: DayField[] = ['date', 'start', 'end'];
+
+/** Task 691: the texts under the fields; the cursor to the first. True when something is wrong. */
+function showProblems(
+  found: DayProblems,
+  set: (found: DayProblems) => void,
+  e: FormEvent<HTMLFormElement>,
+): boolean {
+  set(found);
+  const first = DAY_ORDER.find((field) => found[field]);
+  if (!first) return false;
+  e.currentTarget.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
+  return true;
+}
+
+function invalid(problems: DayProblems, field: DayField, form: 'special' | 'absence') {
+  return {
+    'aria-invalid': problems[field] ? true : undefined,
+    'aria-describedby': problems[field] ? `${form}-${field}-error` : undefined,
+  };
+}
+
 function today(): string {
   return new Intl.DateTimeFormat('en-CA').format(new Date());
 }
