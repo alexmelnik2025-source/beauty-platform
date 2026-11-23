@@ -621,6 +621,8 @@ export const pl = {
     ask: 'Jak oceniasz wizytę u {staff}?',
     rating: 'Ocena',
     outOf: '{n} z 5',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Wybierz ocenę.',
     text: 'Kilka słów (opcjonalnie)',
     send: 'Wyślij opinię',
     thanks: 'Dziękujemy za opinię!',

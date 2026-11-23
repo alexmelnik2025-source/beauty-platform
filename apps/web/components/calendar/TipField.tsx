@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
+import { FieldError } from '../ui';
 
 /** 1500 → "15", 1550 → "15,50" — for the field. */
 function tipInput(hundredths: number): string {
@@ -42,7 +43,7 @@ export function TipField({
   const parsed = parseTip(text);
   return (
     <form
-      className="stack"
+      className="stack tip-field"
       style={{ gap: 6 }}
       data-testid="tip-field"
       onSubmit={(e) => {
@@ -61,6 +62,7 @@ export function TipField({
           placeholder="0"
           value={text}
           aria-invalid={parsed === null}
+          aria-describedby={parsed === null ? `${id}-error` : `${id}-hint`}
           onChange={(e) => setText(e.target.value)}
           style={{ maxWidth: 140 }}
         />
@@ -72,9 +74,15 @@ export function TipField({
           {t.appointment.tipSave}
         </button>
       </div>
-      <span className="small muted">
-        {parsed === null ? t.appointment.tipInvalid : t.appointment.tipHint}
-      </span>
+      {/* Task 684 (owner's rule: errors at the field): a wrong amount is a red line with "!" under
+          the field (it was the same grey as the hint), and the field gets the red frame. */}
+      {parsed === null ? (
+        <FieldError id={`${id}-error`} text={t.appointment.tipInvalid} />
+      ) : (
+        <span id={`${id}-hint`} className="small muted">
+          {t.appointment.tipHint}
+        </span>
+      )}
     </form>
   );
 }

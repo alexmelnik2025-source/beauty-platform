@@ -626,6 +626,8 @@ export const ru: Dict = {
     ask: 'Как вам визит к {staff}?',
     rating: 'Оценка',
     outOf: '{n} из 5',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Выберите оценку.',
     text: 'Пара слов (необязательно)',
     send: 'Отправить отзыв',
     thanks: 'Спасибо за отзыв!',

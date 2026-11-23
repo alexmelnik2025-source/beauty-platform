@@ -145,8 +145,13 @@ test('the owner notes a tip; the till and the report show it apart from the reve
   const save = card.getByRole('button', { name: 'Zapisz napiwek' });
   await expect(save).toBeDisabled();
   await tip.fill('15,5x');
-  await expect(card.getByText('Wpisz kwotę, np. 15 lub 15,50.')).toBeVisible();
+  // Task 684: a wrong amount is a red line with "!" under the field, and the field is marked.
+  await expect(card.getByTestId('tip-field').locator('.field-error')).toHaveText(
+    'Wpisz kwotę, np. 15 lub 15,50.',
+  );
+  await expect(tip).toHaveAttribute('aria-invalid', 'true');
   await expect(save).toBeDisabled();
+  await shot(page, '684-visit-tip-error');
   await tip.fill('15,50');
   await save.click();
   await expect(card.getByText('Zmieniono napiwek')).toBeVisible();

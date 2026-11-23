@@ -317,6 +317,8 @@ export const sq: Dict = {
     ask: 'Si ishte vizita juaj te {staff}?',
     rating: 'Vlerësimi',
     outOf: '{n} nga 5',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Zgjidhni një vlerësim.',
     text: 'Disa fjalë (opsionale)',
     send: 'Dërgo vlerësimin',
     thanks: 'Faleminderit për vlerësimin!',

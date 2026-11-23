@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { VisitReview } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { ErrorBox, FieldError } from '../ui';
 import { SalonReply } from './SalonReply';
 import { StarPicker, Stars } from './Stars';
 
@@ -13,6 +13,16 @@ import { StarPicker, Stars } from './Stars';
  * "How was it?" email opens it at #review) and in "My visits". Hidden when there is
  * nothing to write and nothing written.
  */
+/** Which field the server's VALIDATION_ERROR is about ('rating', 'text'), if any. */
+function problemPathOf(err: unknown): 'rating' | 'text' | null {
+  if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return null;
+  if (!Array.isArray(err.details)) return null;
+  const paths = (err.details as { path?: unknown }[]).map((d) => String(d.path ?? ''));
+  if (paths.includes('rating')) return 'rating';
+  if (paths.includes('text')) return 'text';
+  return null;
+}
+
 export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; staffName: string }) {
   const { t, locale } = useI18n();
   const [state, setState] = useState<VisitReview | null>(null);
@@ -21,6 +31,13 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 684 (owner's rule: errors at the field): "Wyślij opinię" used to stay switched off
+   * without a word until a star was chosen; now "Wybierz ocenę." is said under the stars and the
+   * focus goes to them. The server's answer about the rating or the text is said at that field.
+   */
+  const [ratingProblem, setRatingProblem] = useState(false);
+  const [textProblem, setTextProblem] = useState('');
   const [thanks, setThanks] = useState(false);
   // The form and "Zmień opinię" take each other's place: once the client has acted, keyboard
   // focus follows — to the chosen star when the form opens, to "Zmień opinię" (or the section)
@@ -70,6 +87,8 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
     acted.current = true;
     setBusy(true);
     setError('');
+    setRatingProblem(false);
+    setTextProblem('');
     try {
       const res = await api<VisitReview>(endpoint, {
         method: 'PUT',
@@ -80,7 +99,10 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
       setEditing(false);
       setThanks(true);
     } catch (err) {
-      setError(errorText(t, err));
+      const path = problemPathOf(err);
+      if (path === 'rating') setRatingProblem(true);
+      else if (path === 'text') setTextProblem(errorText(t, err));
+      else setError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -104,19 +126,50 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
         <form
           className="form"
           ref={formRef}
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            if (rating > 0) void save();
+            if (rating > 0) {
+              void save();
+              return;
+            }
+            setError('');
+            setRatingProblem(true);
+            e.currentTarget.querySelector<HTMLButtonElement>('[role="radio"]')?.focus();
           }}
         >
           <p>{fill(t.reviews.ask, { staff: staffName })}</p>
-          <StarPicker value={rating} onChange={setRating} />
+          <div className="stack" style={{ gap: 2 }}>
+            <StarPicker
+              value={rating}
+              invalid={ratingProblem}
+              describedBy={ratingProblem ? 'review-rating-error' : undefined}
+              onChange={(n) => {
+                setRating(n);
+                setRatingProblem(false);
+              }}
+            />
+            <FieldError
+              id="review-rating-error"
+              text={ratingProblem ? t.reviews.ratingRequired : undefined}
+            />
+          </div>
           <label className="field">
             <span>{t.reviews.text}</span>
-            <textarea value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} />
+            <textarea
+              value={text}
+              maxLength={1000}
+              aria-invalid={textProblem ? true : undefined}
+              aria-describedby={textProblem ? 'review-text-error' : undefined}
+              onChange={(e) => {
+                setText(e.target.value);
+                setTextProblem('');
+              }}
+            />
+            <FieldError id="review-text-error" text={textProblem || undefined} />
           </label>
           <ErrorBox>{error}</ErrorBox>
-          <button className="btn btn--primary btn--block" disabled={busy || rating === 0}>
+          <button className="btn btn--primary btn--block" disabled={busy}>
             {t.reviews.send}
           </button>
         </form>

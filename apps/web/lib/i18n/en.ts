@@ -619,6 +619,8 @@ export const en: Dict = {
     ask: 'How was your visit with {staff}?',
     rating: 'Rating',
     outOf: '{n} out of 5',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Choose a rating.',
     text: 'A few words (optional)',
     send: 'Send review',
     thanks: 'Thank you for your review!',

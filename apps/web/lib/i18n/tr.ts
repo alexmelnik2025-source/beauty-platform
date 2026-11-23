@@ -314,6 +314,8 @@ export const tr: Dict = {
     ask: '{staff} ile ziyaretiniz nasıldı?',
     rating: 'Puan',
     outOf: '5 üzerinden {n}',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Bir puan seçin.',
     text: 'Birkaç kelime (isteğe bağlı)',
     send: 'Yorumu gönder',
     thanks: 'Yorumunuz için teşekkürler!',

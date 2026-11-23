@@ -692,6 +692,15 @@ pnpm --filter @beauty/api-client generate
   правка убирает ошибку. e2e `products`, `visit-voucher`, скриншоты `682-visit-product-code-required`,
   `682-visit-voucher-code-required`.
 
+## Ошибки у поля в отзыве клиента и в чаевых (задача 684, 23.11.2026)
+
+- Отзыв клиента «Twoja opinia» (`VisitReviewForm`): «Wyślij opinię» без выбранной звезды — «Wybierz ocenę.» под
+  звёздами (красная рамка вокруг звёзд, «!»), курсор на первую звезду; выбор звезды убирает ошибку. Ответ сервера
+  `VALIDATION_ERROR` с `details[].path = rating` или `text` — у своего поля. Ключ словаря `reviews.ratingRequired`.
+- Карточка визита → «Napiwek» (`TipField`): неверная сумма — красная строка «Wpisz kwotę, np. 15 lub 15,50.» с «!» и
+  красная рамка поля (раньше серый текст, как подсказка). e2e `reviews`, `tips`, скриншоты `684-review-rating-required`,
+  `684-visit-tip-error`.
+
 ## Ошибка у поля в ответе на отзыв (задача 681, 22.11.2026)
 
 - «Opinie» → «Odpowiedz»: пустой ответ (или одни пробелы) — «Uzupełnij to pole.» под «Odpowiedź salonu» (красная

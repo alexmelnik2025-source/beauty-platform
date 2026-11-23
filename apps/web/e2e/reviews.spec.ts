@@ -211,8 +211,18 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(form).toBeVisible();
   await expect(form).toContainText('Jak oceniasz wizytę u Ilya?');
   const send = form.getByRole('button', { name: 'Wyślij opinię' });
-  await expect(send).toBeDisabled();
+  // Task 684: sending without a star says "Wybierz ocenę." under the stars (not a silently
+  // switched-off button), and the focus goes to the stars.
+  await send.click();
+  await expect(form.locator('.field-error')).toHaveText('Wybierz ocenę.');
+  await expect(form.getByRole('radiogroup', { name: 'Ocena' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  await expect(form.getByRole('radio', { name: '1 z 5' })).toBeFocused();
+  await shot(page, '684-review-rating-required');
   await form.getByRole('radio', { name: '5 z 5' }).click();
+  await expect(form.locator('.field-error')).toHaveCount(0);
   await form.getByLabel('Kilka słów (opcjonalnie)').fill('Szybko i dokładnie, miła atmosfera.');
   await shot(page, '165b-1-review-form');
   await send.click();

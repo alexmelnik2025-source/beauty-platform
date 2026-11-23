@@ -18,13 +18,24 @@ export function Stars({ value }: { value: number }) {
 export function StarPicker({
   value,
   onChange,
+  invalid,
+  describedBy,
 }: {
   value: number;
   onChange: (rating: number) => void;
+  /** Task 684: no star chosen when sending — the stars get the error's red frame. */
+  invalid?: boolean;
+  describedBy?: string;
 }) {
   const { t } = useI18n();
   return (
-    <div className="star-picker" role="radiogroup" aria-label={t.reviews.rating}>
+    <div
+      className={invalid ? 'star-picker star-picker--invalid' : 'star-picker'}
+      role="radiogroup"
+      aria-label={t.reviews.rating}
+      aria-invalid={invalid || undefined}
+      aria-describedby={describedBy}
+    >
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}

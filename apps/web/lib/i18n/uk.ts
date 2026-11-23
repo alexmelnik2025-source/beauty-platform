@@ -620,6 +620,8 @@ export const uk: Dict = {
     ask: 'Як вам візит до {staff}?',
     rating: 'Оцінка',
     outOf: '{n} з 5',
+    /** Task 684: no star chosen when sending — said under the stars. */
+    ratingRequired: 'Оберіть оцінку.',
     text: 'Кілька слів (необовʼязково)',
     send: 'Надіслати відгук',
     thanks: 'Дякуємо за відгук!',
