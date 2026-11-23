@@ -108,6 +108,8 @@ export const pl = {
     loadingSlots: 'Szukamy wolnych terminów…',
   },
   review: {
+    badRating: 'Wybierz ocenę od 1 do 5.',
+    badText: 'Skróć opinię do 1000 znaków.',
     title: 'Twoja opinia',
     ask: 'Jak oceniasz wizytę u {staff}?',
     rating: 'Ocena',
@@ -172,6 +174,8 @@ export const pl = {
     coupon: { active: 'aktywny', used: 'wykorzystany', expired: 'wygasł' },
   },
   wishStep: {
+    badChoice: 'Wybierz jedną z dostępnych odpowiedzi.',
+    badNote: 'Skróć notatkę do 200 znaków.',
     title: 'Twoje życzenia',
     add: '+ Dodaj życzenie',
     lead: 'Nieobowiązkowe — jedno dotknięcie albo „Pomiń”. Specjalista zobaczy je przed wizytą.',
@@ -482,6 +486,7 @@ export const pl = {
     massage: 'Masaż',
   },
   language: 'Język',
+  badLanguage: 'Wybierz jeden z dostępnych języków.',
   retry: 'Spróbuj ponownie',
   error: {
     bookByPhone: 'Ten salon prosi Cię o rezerwację telefoniczną. Zadzwoń do salonu.',

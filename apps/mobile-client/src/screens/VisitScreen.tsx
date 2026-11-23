@@ -1,3 +1,4 @@
+import { FormFeedback } from '../FormFeedback';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
@@ -11,7 +12,14 @@ import {
   type VisitCoupons,
 } from '../api';
 import type { BookingPreset } from '../booking';
-import { errorText } from '../errors';
+import {
+  errorText,
+  formFailure,
+  validationField,
+  wishFields,
+  type FormFailure,
+  type WishField,
+} from '../errors';
 import {
   dayChip,
   formatDay,
@@ -53,6 +61,8 @@ export function VisitScreen(props: {
 }) {
   const { api, t, locale, onBack, onSessionEnded } = props;
   const [visit, setVisit] = useState<ClientAppointment>(props.visit);
+  const [wishFailure, setWishFailure] = useState<FormFailure | null>(null);
+  const [invalidWish, setInvalidWish] = useState<WishField>();
   const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -238,7 +248,9 @@ export function VisitScreen(props: {
 
   /** Task 80: change the wishes until the visit starts. */
   async function saveWishes(wishes: VisitWishes) {
-    if (!asksWishes(visit.wishQuestions)) return;
+    if (busy || !asksWishes(visit.wishQuestions)) return;
+    setWishFailure(null);
+    setInvalidWish(undefined);
     setBusy(true);
     setError('');
     setDone('');
@@ -249,7 +261,9 @@ export function VisitScreen(props: {
       setDone(t.wishStep.saved);
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
-      setError(errorText(e, t));
+      const field = validationField(e, wishFields);
+      if (field) setInvalidWish(field);
+      else setWishFailure(formFailure(e, t, () => void saveWishes(wishes)));
     } finally {
       setBusy(false);
     }
@@ -324,7 +338,13 @@ export function VisitScreen(props: {
             t={t}
             questions={visit.wishQuestions}
             value={wishDraft}
-            onChange={setWishDraft}
+            invalid={invalidWish}
+            onChange={(wishes) => {
+              if (busy) return;
+              setWishDraft(wishes);
+              setInvalidWish(undefined);
+              setWishFailure(null);
+            }}
           />
           <Button
             kind="secondary"
@@ -332,6 +352,7 @@ export function VisitScreen(props: {
             busy={busy}
             onPress={() => void saveWishes(wishDraft)}
           />
+          <FormFeedback failure={wishFailure} retryLabel={t.retry} busy={busy} />
         </View>
       ) : null}
 

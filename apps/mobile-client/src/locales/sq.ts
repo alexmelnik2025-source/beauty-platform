@@ -109,6 +109,8 @@ export const sq: Dictionary = {
     loadingSlots: 'Po kërkojmë orë të lira…',
   },
   review: {
+    badRating: 'Zgjidhni një vlerësim nga 1 deri në 5.',
+    badText: 'Shkurtojeni komentin në 1000 karaktere.',
     title: 'Vlerësimi juaj',
     ask: 'Si ishte vizita juaj te {staff}?',
     rating: 'Vlerësimi',
@@ -174,6 +176,8 @@ export const sq: Dictionary = {
     coupon: { active: 'aktiv', used: 'përdorur', expired: 'skaduar' },
   },
   wishStep: {
+    badChoice: 'Zgjidhni një nga përgjigjet e disponueshme.',
+    badNote: 'Shkurtojeni shënimin në 200 karaktere.',
     title: 'Dëshirat tuaja',
     add: '+ Shto një dëshirë',
     lead: 'Opsionale — një prekje ose “Kapërce”. Specialisti do t’i shohë para vizitës.',
@@ -489,6 +493,7 @@ export const sq: Dictionary = {
     massage: 'Masazh',
   },
   language: 'Gjuha',
+  badLanguage: 'Zgjidhni një nga gjuhët e disponueshme.',
   retry: 'Provo përsëri',
   error: {
     bookByPhone: 'Ky sallon ju kërkon të rezervoni me telefon. Ju lutem telefononi sallonin.',

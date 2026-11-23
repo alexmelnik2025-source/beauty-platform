@@ -202,6 +202,16 @@ test("the owner sees one specialist's week and moves a visit to another day", as
   await expect(moveDate).toBeFocused();
   await expect(moveDate).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
   await shot(page, '695-visit-move-date-error');
+  // Task 723: a time outside working hours is said under "Zapisz także poza godzinami pracy",
+  // which gets the cursor — not a line at the top of the card; nothing is moved.
+  await moveDate.fill(friday);
+  await card.locator('#visit-moveTime').fill('05:00');
+  await card.getByRole('button', { name: 'Przenieś wizytę' }).click();
+  const outsideHours = card.getByLabel('Zapisz także poza godzinami pracy');
+  await expect(outsideHours).toBeFocused();
+  await expect(outsideHours).toHaveAccessibleDescription(/Ten czas jest poza godzinami pracy\.$/);
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await shot(page, '723-visit-move-outside-hours');
   await card.getByRole('button', { name: 'Wstecz' }).click();
   await card.getByRole('button', { name: 'Odwołaj wizytę' }).click();
   await card.getByRole('button', { name: 'Odwołaj', exact: true }).click();

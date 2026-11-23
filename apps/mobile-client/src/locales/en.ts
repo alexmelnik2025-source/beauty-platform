@@ -108,6 +108,8 @@ export const en: Dictionary = {
     loadingSlots: 'Looking for free times…',
   },
   review: {
+    badRating: 'Choose a rating from 1 to 5.',
+    badText: 'Keep your review to 1,000 characters.',
     title: 'Your review',
     ask: 'How was your visit with {staff}?',
     rating: 'Rating',
@@ -172,6 +174,8 @@ export const en: Dictionary = {
     coupon: { active: 'active', used: 'used', expired: 'expired' },
   },
   wishStep: {
+    badChoice: 'Choose one of the available answers.',
+    badNote: 'Keep your note to 200 characters.',
     title: 'Your wishes',
     add: '+ Add a wish',
     lead: 'Optional — one tap or “Skip”. The specialist will see them before the visit.',
@@ -481,6 +485,7 @@ export const en: Dictionary = {
     massage: 'Massage',
   },
   language: 'Language',
+  badLanguage: 'Choose one of the available languages.',
   retry: 'Try again',
   error: {
     bookByPhone: 'This salon asks you to book by phone. Please call the salon.',

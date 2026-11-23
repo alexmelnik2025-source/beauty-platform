@@ -203,11 +203,18 @@ test('the owner drags a visit to another specialist and time, and before working
   await dragVisit(page, marek.getByRole('button', { name: /Jan Kowalski/ }), marek, 7 * 60 - now);
   await expect(sheet.getByTestId('move-summary')).toContainText('07:00–07:45 · Marek');
   await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
-  await expect(sheet.getByRole('alert')).toBeVisible();
+  // Task 723: the refusal is said under the choice, which gets the cursor — not a line at the top;
+  // "Przenieś wizytę" is not silently off: pressing it again sends the cursor back to the choice.
   const outside = sheet.getByLabel('Zapisz także poza godzinami pracy');
-  await expect(outside).toBeVisible();
-  await expect(sheet.getByRole('button', { name: 'Przenieś wizytę' })).toBeDisabled();
+  await expect(outside).toBeFocused();
+  await expect(outside).toHaveAccessibleDescription(/Ten czas jest poza godzinami pracy\.$/);
+  await expect(sheet.locator('.alert')).toHaveCount(0);
+  await shot(page, '723-move-outside-hours');
+  await outside.blur();
+  await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
+  await expect(outside).toBeFocused();
   await outside.check();
+  await expect(sheet.locator('.field-error')).toHaveCount(0);
   await shot(page, '221-a-calendar-drag-outside-hours');
   await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
   await expect(sheet).toBeHidden();

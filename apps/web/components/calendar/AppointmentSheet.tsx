@@ -23,7 +23,7 @@ import { VisitToHand } from '../shop/VisitToHand';
 type Mode = 'view' | 'move' | 'cancel';
 
 /** Task 695: the fields of the move and cancel forms that can show an error under them. */
-type SheetField = 'moveDate' | 'moveTime' | 'reason';
+type SheetField = 'moveDate' | 'moveTime' | 'moveOutside' | 'reason';
 
 export function AppointmentSheet({
   id,
@@ -86,9 +86,16 @@ export function AppointmentSheet({
     void load();
   }, [load]);
 
+  // Task 723: a field error that appears with the server's answer (e.g. the "outside working hours"
+  // choice) gets the cursor once it is on the screen.
+  useEffect(() => {
+    if (problem?.field === 'moveOutside') document.getElementById('visit-moveOutside')?.focus();
+  }, [problem]);
+
   async function run(action: () => Promise<unknown>, after: Mode = 'view') {
     setBusy(true);
     setError('');
+    setProblem((p) => (p?.field === 'moveOutside' || p?.field === 'moveTime' ? null : p));
     try {
       await action();
       onChanged();
@@ -96,8 +103,16 @@ export function AppointmentSheet({
       setAskOutside(false);
       await load();
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS' && canOutside) {
-        setAskOutside(true);
+      if (err instanceof ApiError && err.code === 'OUTSIDE_WORKING_HOURS') {
+        // Task 723 (owner's rule: errors at the field): said under "Zapisz także poza godzinami
+        // pracy" for those allowed to tick it, otherwise under the time — not as a line at the top.
+        if (canOutside) setAskOutside(true);
+        setProblem({
+          field: canOutside ? 'moveOutside' : 'moveTime',
+          text: calendarErrorText(t, err),
+        });
+        if (!canOutside) document.getElementById('visit-moveTime')?.focus();
+        return;
       }
       if (err instanceof ApiError && err.code === 'VERSION_CONFLICT') await load();
       setError(calendarErrorText(t, err));
@@ -579,14 +594,21 @@ export function AppointmentSheet({
             </label>
           ) : null}
           {askOutside ? (
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={move.outside}
-                onChange={(e) => setMove({ ...move, outside: e.target.checked })}
-              />
-              <span>{t.appointment.outsideHours}</span>
-            </label>
+            <div>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={move.outside}
+                  {...invalid('moveOutside')}
+                  onChange={(e) => {
+                    setMove({ ...move, outside: e.target.checked });
+                    clear('moveOutside');
+                  }}
+                />
+                <span>{t.appointment.outsideHours}</span>
+              </label>
+              {fieldError('moveOutside')}
+            </div>
           ) : null}
           <div className="row">
             <button

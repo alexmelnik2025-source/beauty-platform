@@ -2188,6 +2188,12 @@ poza godzinami pracy» (владельцу, менеджеру и мастеру
 календарь прокручивается как раньше — там перенос через карточку. Код: `components/calendar/MoveSheet.tsx`,
 `Calendar.tsx`; e2e `calendar-drag.spec.ts`, скриншоты 221, 221-a.
 
+Задача 723 (ошибки у поля, 23.11.2026): «Ten czas jest poza godzinami pracy.» больше не строка вверху окна — текст
+под галочкой «Zapisz także poza godzinami pracy», курсор туда (окно перетаскивания, «Przenieś» в карточке визита,
+«Nowa wizyta»). Кто не может записывать вне часов — текст под полем времени. В окне перетаскивания «Przenieś wizytę»
+больше не выключена молча: нажатие без галочки возвращает курсор к ней. e2e `calendar-drag`, `calendar-week`,
+скриншоты `723-move-outside-hours`, `723-visit-move-outside-hours`.
+
 ## «Tydzień» в календаре кабинета (задача 222)
 
 Переключатель «Dzień / Tydzień» в «Kalendarz». «Tydzień» — неделя одного мастера (выбор «Tydzień specjalisty»),

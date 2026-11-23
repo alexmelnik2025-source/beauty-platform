@@ -1,6 +1,8 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import type { WishField } from './errors';
+import { FieldGroup } from './FormFeedback';
 import type { Dictionary } from './i18n';
-import { Chip, colors } from './ui';
+import { Chip, colors, FieldInput } from './ui';
 import {
   DRINK_ICON,
   drinkChoices,
@@ -19,9 +21,10 @@ export function WishesPicker(props: {
   t: Dictionary;
   questions: WishQuestions;
   value: VisitWishes;
+  invalid?: WishField;
   onChange: (value: VisitWishes) => void;
 }) {
-  const { t, questions, value, onChange } = props;
+  const { t, questions, value, onChange, invalid } = props;
   const w = t.wishStep;
   const drinks = drinkChoices(questions);
   return (
@@ -32,37 +35,42 @@ export function WishesPicker(props: {
       {questions.mood ? (
         <View style={styles.group} accessibilityLabel={w.moodQ}>
           <Text style={styles.question}>{w.moodQ}</Text>
-          <View style={styles.chips}>
-            {MOODS.map((m) => (
-              <Chip
-                key={m}
-                label={`${MOOD_ICON[m]} ${w.mood[m]}`}
-                pressed={value.mood === m}
-                onPress={() => onChange({ ...value, mood: value.mood === m ? null : m })}
-              />
-            ))}
-          </View>
+          <FieldGroup error={invalid === 'mood' ? w.badChoice : undefined}>
+            <View style={styles.chips}>
+              {MOODS.map((m) => (
+                <Chip
+                  key={m}
+                  label={`${MOOD_ICON[m]} ${w.mood[m]}`}
+                  pressed={value.mood === m}
+                  onPress={() => onChange({ ...value, mood: value.mood === m ? null : m })}
+                />
+              ))}
+            </View>
+          </FieldGroup>
         </View>
       ) : null}
       {drinks.length > 0 ? (
         <View style={styles.group} accessibilityLabel={w.drinkQ}>
           <Text style={styles.question}>{w.drinkQ}</Text>
-          <View style={styles.chips}>
-            {drinks.map((d) => (
-              <Chip
-                key={d}
-                label={`${DRINK_ICON[d]} ${w.drink[d]}`}
-                pressed={value.drink === d}
-                onPress={() => onChange({ ...value, drink: value.drink === d ? null : d })}
-              />
-            ))}
-          </View>
+          <FieldGroup error={invalid === 'drink' ? w.badChoice : undefined}>
+            <View style={styles.chips}>
+              {drinks.map((d) => (
+                <Chip
+                  key={d}
+                  label={`${DRINK_ICON[d]} ${w.drink[d]}`}
+                  pressed={value.drink === d}
+                  onPress={() => onChange({ ...value, drink: value.drink === d ? null : d })}
+                />
+              ))}
+            </View>
+          </FieldGroup>
         </View>
       ) : null}
       {questions.note ? (
         <View style={styles.group}>
           <Text style={styles.question}>{w.noteQ}</Text>
-          <TextInput
+          <FieldInput
+            error={invalid === 'note' ? w.badNote : undefined}
             accessibilityLabel={w.noteQ}
             placeholder={w.notePlaceholder}
             placeholderTextColor={colors.placeholder}
