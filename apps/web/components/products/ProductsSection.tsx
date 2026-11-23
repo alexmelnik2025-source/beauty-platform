@@ -356,6 +356,16 @@ export function ProductsSection({ base }: { base: string }) {
   const newFieldError = (field: NewField): string =>
     (left.has(field) ? wrongNow[field] : '') ||
     (serverError?.field === field ? serverError.text : '');
+  /** Task 722: the name of a field of a product row, before its error under the row. */
+  const fieldLabel = (field: NewField): string =>
+    ({
+      name: p.name,
+      price: p.price,
+      cost: p.cost,
+      barcode: p.barcode,
+      stock: p.stock,
+      low: p.low,
+    })[field];
   /** Props of a new-product field: its error under it, said to screen readers too. */
   const newFieldProps = (field: NewField) => {
     const text = newFieldError(field);
@@ -716,10 +726,40 @@ export function ProductsSection({ base }: { base: string }) {
               (draftLow !== undefined && draftLow !== x.lowStockAt) ||
               (draft.supplier.trim() || null) !== x.supplier ||
               (draftBarcode !== undefined && draftBarcode !== x.barcode);
+            /**
+             * Task 722 (owner's rule: errors at the field): what is wrong in each field of the row,
+             * said under the row at once (was only a red frame, and "Zapisz" was silently off).
+             */
+            const rowWrong: [NewField, string][] = (
+              [
+                ['name', draft.name.trim() === '' ? t.onboarding.fieldRequired : ''],
+                [
+                  'price',
+                  draftPrice !== null
+                    ? ''
+                    : draft.price.trim() === ''
+                      ? t.onboarding.fieldRequired
+                      : p.wrongPrice,
+                ],
+                ['cost', draftCost === undefined ? p.wrongPrice : ''],
+                ['barcode', draftBarcode === undefined ? p.wrongBarcode : ''],
+                ['stock', draftStock === undefined ? p.wrongStock : ''],
+                ['low', draftLow === undefined ? p.wrongStock : ''],
+              ] as [NewField, string][]
+            ).filter(([, text]) => text !== '');
+            const rowProps = (field: NewField) => {
+              const wrong = rowWrong.some(([f]) => f === field);
+              return {
+                id: `product-${x.id}-${field}`,
+                'aria-invalid': wrong || undefined,
+                'aria-describedby': wrong ? `product-${x.id}-${field}-error` : undefined,
+              } as const;
+            };
             return (
               <li key={x.id} className="commission-row" data-testid="product-row">
                 <input
                   aria-label={`${p.name} — ${x.name}`}
+                  {...rowProps('name')}
                   value={draft.name}
                   maxLength={80}
                   onChange={(e) =>
@@ -731,7 +771,7 @@ export function ProductsSection({ base }: { base: string }) {
                   <input
                     inputMode="decimal"
                     aria-label={`${p.price} — ${x.name}`}
-                    aria-invalid={draftPrice === null}
+                    {...rowProps('price')}
                     value={draft.price}
                     onChange={(e) =>
                       setDrafts({ ...drafts, [x.id]: { ...draft, price: e.target.value } })
@@ -743,7 +783,7 @@ export function ProductsSection({ base }: { base: string }) {
                   <input
                     inputMode="decimal"
                     aria-label={`${p.cost} — ${x.name}`}
-                    aria-invalid={draftCost === undefined}
+                    {...rowProps('cost')}
                     placeholder={p.costPlaceholder}
                     value={draft.cost}
                     onChange={(e) =>
@@ -764,7 +804,7 @@ export function ProductsSection({ base }: { base: string }) {
                 />
                 <input
                   aria-label={`${p.barcode} — ${x.name}`}
-                  aria-invalid={draftBarcode === undefined}
+                  {...rowProps('barcode')}
                   placeholder={p.barcode}
                   value={draft.barcode}
                   maxLength={40}
@@ -777,7 +817,7 @@ export function ProductsSection({ base }: { base: string }) {
                   <input
                     inputMode="numeric"
                     aria-label={`${p.stock} — ${x.name}`}
-                    aria-invalid={draftStock === undefined}
+                    {...rowProps('stock')}
                     placeholder="—"
                     value={draft.stock}
                     onChange={(e) =>
@@ -790,7 +830,7 @@ export function ProductsSection({ base }: { base: string }) {
                   <input
                     inputMode="numeric"
                     aria-label={`${p.low} — ${x.name}`}
-                    aria-invalid={draftLow === undefined}
+                    {...rowProps('low')}
                     placeholder="—"
                     value={draft.low}
                     onChange={(e) =>
@@ -830,6 +870,17 @@ export function ProductsSection({ base }: { base: string }) {
                     {p.restockAdd}
                   </button>
                 </span>
+                {rowWrong.length > 0 ? (
+                  <span style={{ flexBasis: '100%' }} data-testid="product-row-errors">
+                    {rowWrong.map(([field, text]) => (
+                      <FieldError
+                        key={field}
+                        id={`product-${x.id}-${field}-error`}
+                        text={`${fieldLabel(field)}: ${text}`}
+                      />
+                    ))}
+                  </span>
+                ) : null}
                 {piecesFieldError(`restock-${x.id}`)}
                 {x.stockQuantity === 0 ? (
                   <span className="badge" data-testid="product-out">
@@ -848,17 +899,13 @@ export function ProductsSection({ base }: { base: string }) {
                 <button
                   type="button"
                   className="btn btn--small"
-                  disabled={
-                    busy ||
-                    !changed ||
-                    draftPrice === null ||
-                    draftCost === undefined ||
-                    draftStock === undefined ||
-                    draftLow === undefined ||
-                    draftBarcode === undefined ||
-                    draft.name.trim() === ''
-                  }
-                  onClick={() =>
+                  disabled={busy || !changed}
+                  onClick={() => {
+                    // Task 722: a wrong field sends the cursor to it — the text is already under it.
+                    if (rowWrong.length > 0) {
+                      document.getElementById(`product-${x.id}-${rowWrong[0]![0]}`)?.focus();
+                      return;
+                    }
                     void run(() =>
                       api(`${base}/products/${x.id}`, {
                         method: 'PATCH',
@@ -872,8 +919,8 @@ export function ProductsSection({ base }: { base: string }) {
                           barcode: draftBarcode,
                         },
                       }),
-                    )
-                  }
+                    );
+                  }}
                 >
                   {p.save}
                 </button>
