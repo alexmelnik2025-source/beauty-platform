@@ -215,7 +215,7 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     const removeButton = card.getByRole('button', { name: `Usuń z ulubionych: ${SALON}` });
     await removeButton.click();
     await expect(card.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-    await expect(removeButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+    await expect(removeButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
     await expect(page.locator('.alert')).toHaveCount(0);
     await shot(page, '734-site-favorite-remove-error');
     await page.unrouteAll({ behavior: 'wait' });

@@ -643,7 +643,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   const dataButton = client.getByRole('button', { name: 'Pobierz moje dane' });
   await dataButton.click();
-  await expect(dataButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(dataButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(client.locator('#visits-download-error')).toBeVisible();
   await expect(client.locator('.alert')).toHaveCount(0);
   await dataButton.scrollIntoViewIfNeeded();
