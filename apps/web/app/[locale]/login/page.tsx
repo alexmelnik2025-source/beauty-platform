@@ -27,6 +27,21 @@ function fieldOf(err: unknown): Field | null {
   return null;
 }
 
+/** A plain look at an e-mail address: something@something.something, no spaces. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Task 686: what is missing or wrong before asking the server, first field first. */
+function checkLogin(
+  email: string,
+  password: string,
+  t: ReturnType<typeof useI18n>['t'],
+): { field: Field; text: string } | null {
+  if (!email.trim()) return { field: 'email', text: t.onboarding.fieldRequired };
+  if (!EMAIL_SHAPE.test(email.trim())) return { field: 'email', text: t.booking.emailInvalid };
+  if (!password) return { field: 'password', text: t.onboarding.fieldRequired };
+  return null;
+}
+
 export default function LoginPage() {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -37,10 +52,18 @@ export default function LoginPage() {
   const [problem, setProblem] = useState<{ field: Field; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
     setError('');
+    // Task 686 (owner's rule: errors at the field): an empty or wrong field used to get the
+    // browser's bubble; now it is said under the field and the cursor goes there.
+    const own = checkLogin(email, password, t);
+    if (own) {
+      setProblem(own);
+      e.currentTarget.querySelector<HTMLInputElement>(`input[name="${own.field}"]`)?.focus();
+      return;
+    }
+    setBusy(true);
     setProblem(null);
     try {
       const res = await api<{ accessToken: string }>('/v1/auth/login', {
@@ -67,12 +90,13 @@ export default function LoginPage() {
         <h1>{t.auth.loginTitle}</h1>
         <p className="muted">{t.auth.loginLead}</p>
       </div>
-      <form className="form" onSubmit={submit}>
+      <form noValidate className="form" onSubmit={(e) => void submit(e)}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.auth.email}</span>
           <input
             type="email"
+            name="email"
             autoComplete="email"
             required
             value={email}
@@ -92,6 +116,7 @@ export default function LoginPage() {
           <span>{t.auth.password}</span>
           <input
             type="password"
+            name="password"
             autoComplete="current-password"
             required
             value={password}

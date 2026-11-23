@@ -71,11 +71,19 @@ export default function InvitePage() {
   }
 
   /** Signing in with the code accepts every invitation for this address at once. */
-  async function signInWithCode(e: FormEvent) {
+  async function signInWithCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!preview) return;
-    setBusy(true);
     setError('');
+    // Task 686 (owner's rule: errors at the field): an empty or short code used to get the
+    // browser's bubble; now it is said under the code field and the cursor goes there.
+    const typed = code.trim();
+    if (!/^\d{6}$/.test(typed)) {
+      setCodeError(typed ? t.errors.INVALID_CODE : t.onboarding.fieldRequired);
+      e.currentTarget.querySelector<HTMLInputElement>('input[name="code"]')?.focus();
+      return;
+    }
+    setBusy(true);
     setCodeError('');
     try {
       const res = await api<{ accessToken: string }>('/v1/auth/code/verify', {
@@ -127,13 +135,14 @@ export default function InvitePage() {
           ) : me ? (
             <p className="note">{fill(t.invite.wrongEmail, { email: preview.email })}</p>
           ) : codeSent ? (
-            <form className="form" onSubmit={signInWithCode}>
+            <form noValidate className="form" onSubmit={(e) => void signInWithCode(e)}>
               <p className="small" role="status">
                 {fill(t.invite.codeSent, { email: preview.email })}
               </p>
               <label className="field">
                 <span>{t.invite.code}</span>
                 <input
+                  name="code"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   pattern="[0-9]{6}"

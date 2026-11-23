@@ -21,26 +21,44 @@ function fieldsOf(err: unknown): Field[] {
   return FIELDS.filter((f) => paths.includes(f));
 }
 
+/** A plain look at an e-mail address: something@something.something, no spaces. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterPage() {
   const { t, locale } = useI18n();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
-  /** Fields with an error shown under them; typing in a field takes its error away. */
-  const [problems, setProblems] = useState<Field[]>([]);
+  /** Errors shown under their fields; typing in a field takes its error away. */
+  const [problems, setProblems] = useState<Partial<Record<Field, string>>>({});
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
     setError('');
-    setProblems([]);
+    // Task 686 (owner's rule: errors at the field): an empty or wrong field used to get the
+    // browser's bubble; now every such field says it under itself and the cursor goes to the first.
+    const own: Partial<Record<Field, string>> = {};
+    if (!form.name.trim()) own.name = t.onboarding.fieldRequired;
+    if (!form.email.trim()) own.email = t.onboarding.fieldRequired;
+    else if (!EMAIL_SHAPE.test(form.email.trim())) own.email = t.booking.emailInvalid;
+    if (!form.password) own.password = t.onboarding.fieldRequired;
+    else if (form.password.length < 10) own.password = t.auth.passwordHint;
+    const first = FIELDS.find((f) => own[f]);
+    if (first) {
+      setProblems(own);
+      e.currentTarget.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
+      return;
+    }
+    setBusy(true);
+    setProblems({});
     try {
       await api('/v1/auth/register', { method: 'POST', auth: false, body: { ...form, locale } });
       setSent(true);
     } catch (err) {
       const fields = fieldsOf(err);
-      if (fields.length > 0) setProblems(fields);
+      if (fields.length > 0)
+        setProblems(Object.fromEntries(fields.map((f) => [f, problemText[f]])));
       else setError(errorText(t, err));
     } finally {
       setBusy(false);
@@ -54,17 +72,14 @@ export default function RegisterPage() {
   };
   const set = (field: Field, value: string) => {
     setForm({ ...form, [field]: value });
-    if (problems.includes(field)) setProblems(problems.filter((f) => f !== field));
+    if (problems[field]) setProblems({ ...problems, [field]: undefined });
   };
   const invalid = (field: Field) => ({
-    'aria-invalid': problems.includes(field) || undefined,
-    'aria-describedby': problems.includes(field) ? `register-${field}-error` : undefined,
+    'aria-invalid': problems[field] ? true : undefined,
+    'aria-describedby': problems[field] ? `register-${field}-error` : undefined,
   });
   const fieldError = (field: Field) => (
-    <FieldError
-      id={`register-${field}-error`}
-      text={problems.includes(field) ? problemText[field] : undefined}
-    />
+    <FieldError id={`register-${field}-error`} text={problems[field]} />
   );
 
   if (sent) {
@@ -79,11 +94,12 @@ export default function RegisterPage() {
   return (
     <AuthPage>
       <h1>{t.auth.registerTitle}</h1>
-      <form className="form" onSubmit={submit}>
+      <form noValidate className="form" onSubmit={(e) => void submit(e)}>
         <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.auth.name}</span>
           <input
+            name="name"
             autoComplete="name"
             required
             value={form.name}
@@ -96,6 +112,7 @@ export default function RegisterPage() {
           <span>{t.auth.email}</span>
           <input
             type="email"
+            name="email"
             autoComplete="email"
             required
             value={form.email}
@@ -110,6 +127,7 @@ export default function RegisterPage() {
           </span>
           <input
             type="password"
+            name="password"
             autoComplete="new-password"
             minLength={10}
             required
