@@ -3636,6 +3636,12 @@ ul.wish-photos {
   box-shadow: 0 0 0 2px var(--signal);
 }
 
+/* Task 740: "Zdjęcia salonu" — the photo whose removal was refused is framed in red. */
+.photo-grid li.photo--error {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 1px var(--signal);
+}
+
 /* Task 729: "Lista oczekujących" — a refused removal is said under the client's row. */
 .list-row.list-row--error {
   flex-wrap: wrap;

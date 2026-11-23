@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { MAX_SALON_PHOTOS, PHOTO_ACCEPT, SALON_PHOTO_SIDE, shrinkPhoto } from '@/lib/photos';
 import type { Photo } from '@/lib/types';
-import { ErrorBox } from './ui';
+import { ErrorBox, FieldError } from './ui';
 
 /** Salon photos for the booking page: add (shrunk in the browser first) and remove. */
 export function SalonPhotos({ base }: { base: string }) {
@@ -15,6 +15,12 @@ export function SalonPhotos({ base }: { base: string }) {
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Task 740 (owner's rule: errors where the action is): a refused upload is said under
+  // "Dodaj zdjęcia", a refused removal under the photos with that photo framed in red — not as a
+  // line at the top of the card. The top line stays only for a list that failed to load.
+  const [addError, setAddError] = useState('');
+  const [removeError, setRemoveError] = useState<{ id: string; text: string } | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     api<Photo[]>(url)
@@ -25,7 +31,8 @@ export function SalonPhotos({ base }: { base: string }) {
   async function add(files: FileList | null) {
     if (!files?.length || !photos) return;
     setBusy(true);
-    setError('');
+    setAddError('');
+    setRemoveError(null);
     let list = photos;
     try {
       for (const file of Array.from(files).slice(0, MAX_SALON_PHOTOS - list.length)) {
@@ -34,9 +41,9 @@ export function SalonPhotos({ base }: { base: string }) {
         list = [...list, saved];
         setPhotos(list);
       }
-      if (files.length > MAX_SALON_PHOTOS - photos.length) setError(t.errors.TOO_MANY_PHOTOS);
+      if (files.length > MAX_SALON_PHOTOS - photos.length) setAddError(t.errors.TOO_MANY_PHOTOS);
     } catch (err) {
-      setError(errorText(t, err));
+      setAddError(errorText(t, err));
     } finally {
       setBusy(false);
       if (input.current) input.current.value = '';
@@ -44,14 +51,23 @@ export function SalonPhotos({ base }: { base: string }) {
   }
 
   async function remove(id: string) {
-    setError('');
+    setRemoving(id);
+    setRemoveError(null);
+    setAddError('');
     try {
       await api(`${url}/${id}`, { method: 'DELETE' });
       setPhotos((list) => list && list.filter((p) => p.id !== id));
     } catch (err) {
-      setError(errorText(t, err));
+      // A photo already removed on another device just leaves the list.
+      if (err instanceof ApiError && err.status === 404)
+        setPhotos((list) => list && list.filter((p) => p.id !== id));
+      else setRemoveError({ id, text: errorText(t, err) });
+    } finally {
+      setRemoving(null);
     }
   }
+
+  const removeIndex = removeError ? (photos ?? []).findIndex((p) => p.id === removeError.id) : -1;
 
   const full = (photos?.length ?? 0) >= MAX_SALON_PHOTOS;
   return (
@@ -62,12 +78,14 @@ export function SalonPhotos({ base }: { base: string }) {
       {photos?.length ? (
         <ul className="photo-grid">
           {photos.map((p, i) => (
-            <li key={p.id}>
+            <li key={p.id} className={removeError?.id === p.id ? 'photo--error' : undefined}>
               <img src={p.url} alt={`${t.photos.alt} ${i + 1}`} />
               <button
                 type="button"
                 className="icon-btn photo-remove"
                 aria-label={`${t.photos.remove} ${i + 1}`}
+                disabled={removing === p.id}
+                aria-describedby={removeError?.id === p.id ? 'salon-photo-remove-error' : undefined}
                 onClick={() => void remove(p.id)}
               >
                 ✕
@@ -75,6 +93,12 @@ export function SalonPhotos({ base }: { base: string }) {
             </li>
           ))}
         </ul>
+      ) : null}
+      {removeError && removeIndex >= 0 ? (
+        <FieldError
+          id="salon-photo-remove-error"
+          text={`${t.photos.alt} ${removeIndex + 1}: ${removeError.text}`}
+        />
       ) : null}
       <div className="row" style={{ alignItems: 'center' }}>
         <label className={`btn btn--quiet${busy || full || !photos ? ' is-disabled' : ''}`}>
@@ -87,6 +111,7 @@ export function SalonPhotos({ base }: { base: string }) {
             className="visually-hidden"
             disabled={busy || full || !photos}
             aria-label={t.photos.add}
+            aria-describedby={addError ? 'salon-photos-add-error' : undefined}
             onChange={(e) => void add(e.target.files)}
           />
         </label>
@@ -96,6 +121,7 @@ export function SalonPhotos({ base }: { base: string }) {
             .replace('{max}', String(MAX_SALON_PHOTOS))}
         </span>
       </div>
+      <FieldError id="salon-photos-add-error" text={addError} />
     </section>
   );
 }

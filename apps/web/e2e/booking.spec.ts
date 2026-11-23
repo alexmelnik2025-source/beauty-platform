@@ -1248,7 +1248,45 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   ]);
   await ownerPage.getByRole('img', { name: 'Zdjęcie salonu 1' }).scrollIntoViewIfNeeded();
   await shot(ownerPage, '34-owner-salon-photos');
-  await ownerPage.getByRole('button', { name: 'Usuń zdjęcie 1' }).click();
+  // Task 740 (owner's rule: errors where the action is): a refused upload is said under
+  // "Dodaj zdjęcia", a refused removal under the photos with that photo framed — no line at the top.
+  const photosCard = ownerPage
+    .locator('section')
+    .filter({ has: ownerPage.getByRole('heading', { name: 'Zdjęcia salonu' }) })
+    .last();
+  const refuse = (method: string) =>
+    ownerPage.route('**/photos**', (route) =>
+      route.request().method() === method
+        ? route.fulfill({
+            status: 429,
+            json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+          })
+        : route.fallback(),
+    );
+  await refuse('POST');
+  await ownerPage
+    .getByLabel('Dodaj zdjęcia')
+    .setInputFiles([await testPhoto(ownerPage, 'lustro.png', 800, 600)]);
+  await expect(photosCard.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(ownerPage.getByLabel('Dodaj zdjęcia')).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
+  await ownerPage.unrouteAll({ behavior: 'wait' });
+  await refuse('DELETE');
+  const removeFirst = ownerPage.getByRole('button', { name: 'Usuń zdjęcie 1' });
+  await removeFirst.click();
+  await expect(photosCard.getByRole('alert')).toHaveText(
+    'Zdjęcie salonu 1: Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(removeFirst).toHaveAccessibleDescription(
+    'Zdjęcie salonu 1: Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(photosCard.locator('.alert')).toHaveCount(0);
+  await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
+  await shot(ownerPage, '740-salon-photo-remove-error');
+  await ownerPage.unrouteAll({ behavior: 'wait' });
+  await removeFirst.click();
   await expect(ownerPage.getByText('1 z 10', { exact: true })).toBeVisible();
   const salonPhotos = await json<{ url: string; contentType: string; sizeBytes: number }[]>(
     await request.get(`${base}/photos`, { headers: owner }),
