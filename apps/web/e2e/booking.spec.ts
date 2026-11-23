@@ -858,6 +858,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     ownerPage.getByRole('dialog').getByRole('button', { name: 'EN angielski' }),
   ).toHaveAttribute('aria-pressed', 'false');
   await shot(ownerPage, '17-owner-staff-hours');
+  // Task 698: an interval whose "Do" is not after "Od" is said under it, nothing is saved.
+  const hours = ownerPage.getByRole('dialog').locator('.day-row input[type="time"]');
+  const firstEnd = hours.nth(1);
+  const firstEndBefore = await firstEnd.inputValue();
+  await firstEnd.fill(await hours.nth(0).inputValue());
+  await ownerPage.getByRole('dialog').getByRole('button', { name: 'Zapisz', exact: true }).click();
+  await expect(firstEnd).toBeFocused();
+  await expect(firstEnd).toHaveAccessibleDescription(
+    /Godzina „Do” musi być późniejsza niż „Od”\.$/,
+  );
+  await shot(ownerPage, '698-staff-hours-error');
+  await firstEnd.fill(firstEndBefore);
+  await expect(ownerPage.getByRole('dialog').locator('.field-error')).toHaveCount(0);
   // Ola's photo: a tall phone picture is made smaller in the browser, saved at once.
   const olaDialog = ownerPage.getByRole('dialog');
   await olaDialog

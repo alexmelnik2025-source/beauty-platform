@@ -4525,6 +4525,10 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   (`#visit-reason`) — «Uzupełnij to pole.» под полем, курсор туда, ничего не отправляется; «Wstecz» убирает ошибку.
   Ответы сервера (занято, вне часов работы) — по-прежнему строкой сверху карточки. e2e `calendar-week`, скриншоты
   `695-visit-move-date-error`, `695-visit-cancel-reason-error`.
+- **Карточка специалиста → «Godziny pracy» — ошибки у поля** (задача 698): форма с `noValidate`; пустое «Od»/«Do» —
+  «Uzupełnij to pole.», «Do» не позже «Od» — `team.specialBadTime`; текст под промежутком (`#hours-<день>-<n>-error`),
+  курсор на неверное поле (`#hours-<день>-<n>-start|end`). Любое изменение дня убирает его ошибки. e2e `booking`,
+  скриншот `698-staff-hours-error`.
 - **«Mój sklep» → «+ Dodaj produkt» — ошибки у поля** (задача 696): форма с `noValidate`; пустое название или цена —
   «Uzupełnij to pole.», неверная цена — `calendar.tillInvalid`, остаток не 0–999 999 — `guard.numberRange`; всё под
   своим полем (`#shop-add-name`, `#shop-add-price`, `#shop-add-stock`), курсор на первое. Общая строка `shop.addInvalid`

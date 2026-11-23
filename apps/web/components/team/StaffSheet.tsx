@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { useSubmitLock } from '@/lib/submit-lock';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
@@ -91,6 +91,14 @@ export function StaffSheet({
     start: undefined,
     end: problems.end === t.team.specialBadTime ? undefined : problems.end,
   });
+  /**
+   * Task 698 (owner's rule: errors at the field): an empty hour or an interval whose end is not
+   * after its start, by "<weekday>.<interval>" — said under that interval instead of the
+   * browser's bubble or the server's line at the top of the sheet. Changing the day clears it.
+   */
+  const [hoursProblems, setHoursProblems] = useState<
+    Record<string, { field: 'start' | 'end'; text: string }>
+  >({});
   const [message, setMessage] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   // One key per form: a repeated or retried "add" never creates a second specialist (T4).
@@ -126,6 +134,24 @@ export function StaffSheet({
     if (!week) return;
     if (!profile.displayName.trim()) {
       setNameProblem(true);
+      return;
+    }
+    const found: typeof hoursProblems = {};
+    week.forEach((intervals, day) =>
+      intervals.forEach((interval, i) => {
+        if (!interval.start)
+          found[`${day}.${i}`] = { field: 'start', text: t.onboarding.fieldRequired };
+        else if (!interval.end)
+          found[`${day}.${i}`] = { field: 'end', text: t.onboarding.fieldRequired };
+        else if (interval.end <= interval.start) {
+          found[`${day}.${i}`] = { field: 'end', text: t.team.specialBadTime };
+        }
+      }),
+    );
+    setHoursProblems(found);
+    const first = Object.keys(found)[0];
+    if (first) {
+      document.getElementById(`hours-${first.replace('.', '-')}-${found[first]!.field}`)?.focus();
       return;
     }
     if (!lock()) return;
@@ -291,8 +317,24 @@ export function StaffSheet({
     }
   }
 
-  const setDay = (day: number, intervals: Interval[]) =>
+  const setDay = (day: number, intervals: Interval[]) => {
     setWeek((w) => w && w.map((d, i) => (i === day ? intervals : d)));
+    // Task 698: the day's intervals changed (or moved up) — their errors go away.
+    if (Object.keys(hoursProblems).some((key) => key.startsWith(`${day}.`))) {
+      setHoursProblems((all) =>
+        Object.fromEntries(Object.entries(all).filter(([key]) => !key.startsWith(`${day}.`))),
+      );
+    }
+  };
+  /** Task 698: the id and aria props of one hour of an interval, tied to its error. */
+  const hourProps = (day: number, i: number, field: 'start' | 'end') => {
+    const bad = hoursProblems[`${day}.${i}`]?.field === field;
+    return {
+      id: `hours-${day}-${i}-${field}`,
+      'aria-invalid': bad || undefined,
+      'aria-describedby': bad ? `hours-${day}-${i}-error` : undefined,
+    };
+  };
 
   const when = (local: string) =>
     new Intl.DateTimeFormat(tag, {
@@ -313,7 +355,7 @@ export function StaffSheet({
 
   return (
     <Sheet title={staff ? staff.displayName : t.team.addStaff} onClose={onClose}>
-      <form className="form" onSubmit={save}>
+      <form noValidate className="form" onSubmit={save}>
         <ErrorBox>{error}</ErrorBox>
         {message ? <p className="note">{message}</p> : null}
         {staff ? (
@@ -432,52 +474,60 @@ export function StaffSheet({
                       <span className="muted small">{t.team.dayOff}</span>
                     ) : null}
                     {week[day]!.map((interval, i) => (
-                      <div key={i} className="interval">
-                        <input
-                          type="time"
-                          step={300}
-                          required
-                          aria-label={`${name} ${t.team.start}`}
-                          value={interval.start}
-                          onChange={(e) =>
-                            setDay(
-                              day,
-                              week[day]!.map((x, j) =>
-                                j === i ? { ...x, start: e.target.value } : x,
-                              ),
-                            )
-                          }
+                      <Fragment key={i}>
+                        <div className="interval">
+                          <input
+                            type="time"
+                            step={300}
+                            required
+                            {...hourProps(day, i, 'start')}
+                            aria-label={`${name} ${t.team.start}`}
+                            value={interval.start}
+                            onChange={(e) =>
+                              setDay(
+                                day,
+                                week[day]!.map((x, j) =>
+                                  j === i ? { ...x, start: e.target.value } : x,
+                                ),
+                              )
+                            }
+                          />
+                          –
+                          <input
+                            type="time"
+                            step={300}
+                            required
+                            {...hourProps(day, i, 'end')}
+                            aria-label={`${name} ${t.team.end}`}
+                            value={interval.end}
+                            onChange={(e) =>
+                              setDay(
+                                day,
+                                week[day]!.map((x, j) =>
+                                  j === i ? { ...x, end: e.target.value } : x,
+                                ),
+                              )
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label={t.team.removeInterval}
+                            onClick={() =>
+                              setDay(
+                                day,
+                                week[day]!.filter((_, j) => j !== i),
+                              )
+                            }
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <FieldError
+                          id={`hours-${day}-${i}-error`}
+                          text={hoursProblems[`${day}.${i}`]?.text}
                         />
-                        –
-                        <input
-                          type="time"
-                          step={300}
-                          required
-                          aria-label={`${name} ${t.team.end}`}
-                          value={interval.end}
-                          onChange={(e) =>
-                            setDay(
-                              day,
-                              week[day]!.map((x, j) =>
-                                j === i ? { ...x, end: e.target.value } : x,
-                              ),
-                            )
-                          }
-                        />
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          aria-label={t.team.removeInterval}
-                          onClick={() =>
-                            setDay(
-                              day,
-                              week[day]!.filter((_, j) => j !== i),
-                            )
-                          }
-                        >
-                          ✕
-                        </button>
-                      </div>
+                      </Fragment>
                     ))}
                     <button
                       type="button"
