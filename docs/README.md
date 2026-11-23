@@ -4580,6 +4580,7 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 Скриншоты: `q6-products-help-closed`, `q6-products-help-open`, `12-owner-calendar-phone`, `q6-cabinet-menu-groups`,
 `q6-client-language-ua`., `q6-settings-unsaved`,
 `q6-settings-list-phone`, `q6-settings-card-phone`, `q6-language-menu-phone`, `q6-shop-list`, `q6-shop-list-phone`, `q6-services-list`.
+
 - **«Usługi» → «Nowa kategoria» и «Zmień nazwę» категории — ошибки у поля** (задача 700): формы с `noValidate`;
   пустое (или из одних пробелов) название — «Uzupełnij to pole.» под полем, рамка и курсор туда; ответ сервера при
   добавлении или переименовании тоже под этим полем, а не строкой вверху страницы. Правка поля убирает ошибку.
