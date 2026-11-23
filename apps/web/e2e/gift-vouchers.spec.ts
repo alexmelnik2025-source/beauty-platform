@@ -122,6 +122,11 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
 
   // Task 662: a code no voucher has is said under "Kod bonu"; typing again takes it away.
   const check = page.getByRole('region', { name: 'Sprawdź bon' });
+  // Task 701: "Sprawdź" with no code says so under the field; the cursor goes there.
+  await check.getByRole('button', { name: 'Sprawdź' }).click();
+  await expect(check.locator('#voucher-check-code-error')).toHaveText('Uzupełnij to pole.');
+  await expect(check.getByLabel('Kod bonu')).toBeFocused();
+  await page.screenshot({ path: 'e2e/screenshots/701-voucher-check-empty.png' });
   await check.getByLabel('Kod bonu').fill('ZZZZ9999');
   await check.getByRole('button', { name: 'Sprawdź' }).click();
   await expect(check.locator('#voucher-check-code-error')).toHaveText(

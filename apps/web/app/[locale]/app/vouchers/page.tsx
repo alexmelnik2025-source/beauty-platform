@@ -535,7 +535,13 @@ function CheckVoucher({
   async function check(e: FormEvent) {
     e.preventDefault();
     const typed = code.trim();
-    if (!typed || !lock()) return;
+    // Task 701: "Sprawdź" with an empty code did nothing — now it is said under the field.
+    if (!typed) {
+      setCodeError(t.onboarding.fieldRequired);
+      document.getElementById('voucher-check-code')?.focus();
+      return;
+    }
+    if (!lock()) return;
     setError('');
     setCodeError('');
     onFound(null);
@@ -558,6 +564,7 @@ function CheckVoucher({
         <label className="field grow">
           <span>{t.vouchers.code}</span>
           <input
+            id="voucher-check-code"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
