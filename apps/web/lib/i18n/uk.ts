@@ -1891,6 +1891,7 @@ export const uk: Dict = {
     stocktakeMissing: 'бракує {n} шт.',
     stocktakeExtra: 'надлишок {n} шт.',
     stocktakeSave: 'Зберегти інвентаризацію',
+    stocktakeSame: 'Нічого не змінилося — введіть, скільки штук на полиці.',
     stocktakeDone:
       'Інвентаризацію збережено: змінено товарів: {changed}, бракує {missing} шт., надлишок {extra} шт.',
     stockCsvHint:

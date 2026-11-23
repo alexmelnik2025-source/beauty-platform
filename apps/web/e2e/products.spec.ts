@@ -453,6 +453,16 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await products.getByRole('button', { name: 'Inwentaryzacja', exact: true }).click();
   const stocktake = products.getByTestId('stocktake');
   await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveValue('3');
+  // Task 721: "Zapisz inwentaryzację" with nothing changed is not silently off — said under the first field.
+  await stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' }).click();
+  const firstShelf = stocktake.getByTestId('stocktake-row').first().getByRole('textbox');
+  await expect(firstShelf).toBeFocused();
+  await expect(firstShelf).toHaveAttribute('aria-invalid', 'true');
+  await expect(stocktake.getByRole('alert')).toHaveText(
+    'Nic się nie zmieniło — wpisz, ile sztuk jest na półce.',
+  );
+  await stocktake.scrollIntoViewIfNeeded();
+  await shot(page, '721-stocktake-nothing-changed');
   // Task 670: a wrong number is said under its own field (red frame, "!").
   await stocktake.getByLabel('Na półce — Zestaw').fill('2,5');
   await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveAccessibleDescription(
@@ -460,6 +470,9 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   );
   await stocktake.scrollIntoViewIfNeeded();
   await shot(page, '670-stocktake-field-error');
+  // Task 721: pressing the button sends the cursor to the wrong number.
+  await stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' }).click();
+  await expect(stocktake.getByLabel('Na półce — Zestaw')).toBeFocused();
   await stocktake.getByLabel('Na półce — Zestaw').fill('2');
   await expect(stocktake.locator('.field-error')).toHaveCount(0);
   await expect(stocktake.getByTestId('stocktake-diff')).toHaveText('brakuje 1 szt.');

@@ -1896,6 +1896,7 @@ export const pl = {
     stocktakeMissing: 'brakuje {n} szt.',
     stocktakeExtra: 'nadwyżka {n} szt.',
     stocktakeSave: 'Zapisz inwentaryzację',
+    stocktakeSame: 'Nic się nie zmieniło — wpisz, ile sztuk jest na półce.',
     stocktakeDone:
       'Inwentaryzacja zapisana: zmienione produkty: {changed}, brakuje {missing} szt., nadwyżka {extra} szt.',
     stockCsvHint:

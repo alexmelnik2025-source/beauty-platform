@@ -1901,6 +1901,7 @@ export const en: Dict = {
     stocktakeMissing: '{n} pcs missing',
     stocktakeExtra: '{n} pcs extra',
     stocktakeSave: 'Save the stocktake',
+    stocktakeSame: 'Nothing has changed — enter how many pieces are on the shelf.',
     stocktakeDone:
       'Stocktake saved: products changed: {changed}, {missing} pcs missing, {extra} pcs extra.',
     stockCsvHint:

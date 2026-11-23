@@ -52,19 +52,30 @@ export function StocktakePanel({
    * take; a wrong number typed is said under its field at once. Editing the field clears it.
    */
   const [serverWrong, setServerWrong] = useState<string[]>([]);
+  /** Task 721: "Zapisz inwentaryzację" pressed with nothing changed — said under the first field. */
+  const [same, setSame] = useState(false);
 
   const parsed = products.map((x) => ({ product: x, count: parseCount(counts[x.id] ?? '') }));
-  const wrong = parsed.some((r) => r.count === undefined);
   const changes = parsed.flatMap(({ product, count }) =>
     typeof count === 'number' && count !== product.stockQuantity
       ? [{ productId: product.id, quantity: count }]
       : [],
   );
 
+  const sameId = same && changes.length === 0 ? parsed[0]?.product.id : undefined;
   const bad = (id: string, value: number | null | undefined) =>
-    value === undefined || serverWrong.includes(id);
+    value === undefined || serverWrong.includes(id) || id === sameId;
 
   async function save() {
+    // Task 721 (owner's rule: errors at the field): the button is not silently off — a wrong number
+    // or no difference at all sends the cursor to the field that says so.
+    const first =
+      parsed.find((r) => r.count === undefined) ?? (changes.length === 0 ? parsed[0] : null);
+    if (first) {
+      if (changes.length === 0 && first.count !== undefined) setSame(true);
+      document.getElementById(`stocktake-${first.product.id}`)?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     setServerWrong([]);
@@ -111,6 +122,7 @@ export function StocktakePanel({
             </span>
             <span className="commission-row__input">
               <input
+                id={`stocktake-${x.id}`}
                 inputMode="numeric"
                 aria-label={p.stocktakeCount.replace('{name}', x.name)}
                 aria-invalid={bad(x.id, count) || undefined}
@@ -120,6 +132,7 @@ export function StocktakePanel({
                 onChange={(e) => {
                   setCounts({ ...counts, [x.id]: e.target.value });
                   setServerWrong(serverWrong.filter((id) => id !== x.id));
+                  setSame(false);
                 }}
               />
               <span aria-hidden="true">{p.pieces}</span>
@@ -134,9 +147,11 @@ export function StocktakePanel({
             <FieldError
               id={`stocktake-${x.id}-error`}
               text={
-                bad(x.id, count)
-                  ? fill(t.guard.numberRange, { min: '0', max: '100 000' })
-                  : undefined
+                x.id === sameId && count !== undefined
+                  ? p.stocktakeSame
+                  : bad(x.id, count)
+                    ? fill(t.guard.numberRange, { min: '0', max: '100 000' })
+                    : undefined
               }
             />
           </li>
@@ -146,7 +161,7 @@ export function StocktakePanel({
         <button
           type="button"
           className="btn btn--small"
-          disabled={busy || wrong || changes.length === 0}
+          disabled={busy || parsed.length === 0}
           onClick={() => void save()}
         >
           {p.stocktakeSave}

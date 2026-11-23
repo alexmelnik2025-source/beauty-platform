@@ -1900,6 +1900,7 @@ export const ru: Dict = {
     stocktakeMissing: 'не хватает {n} шт.',
     stocktakeExtra: 'излишек {n} шт.',
     stocktakeSave: 'Сохранить инвентаризацию',
+    stocktakeSame: 'Ничего не изменилось — введите, сколько штук на полке.',
     stocktakeDone:
       'Инвентаризация сохранена: изменено товаров: {changed}, не хватает {missing} шт., излишек {extra} шт.',
     stockCsvHint:
