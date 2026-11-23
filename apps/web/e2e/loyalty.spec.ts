@@ -368,7 +368,22 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await tiersForm.getByRole('button', { name: '+ Dodaj poziom' }).click();
   await tiersForm.getByLabel('Nazwa poziomu').nth(1).fill('Silver');
   await tiersForm.getByLabel('Od (wizyt)').nth(1).fill('1');
-  await tiersForm.getByLabel('Rabat (%)').nth(1).fill('5');
+  // Task 697: a period too short and a discount over 100 — said under the fields, not in the
+  // browser's bubble; the cursor goes to the period, the first on screen.
+  const period = tiersForm.locator('#tier-period');
+  await period.fill('10');
+  await tiersForm.getByLabel('Rabat (%)').nth(1).fill('150');
+  await tiersForm.getByRole('button', { name: 'Zapisz poziomy' }).click();
+  await expect(tiersForm.locator('#tier-period-error')).toHaveText('Wpisz liczbę od 30 do 1095.');
+  await expect(tiersForm.locator('#tier-1-discountPercent-error')).toHaveText(
+    'Wpisz liczbę od 0 do 100.',
+  );
+  await expect(period).toBeFocused();
+  await tiersForm.scrollIntoViewIfNeeded();
+  await shot(page, '697-loyalty-tier-number-errors');
+  await period.fill('365');
+  await tiersForm.locator('#tier-1-discountPercent').fill('5');
+  await expect(tiersForm.locator('.field-error')).toHaveCount(0);
   // Task 664 (errors at the field): the same threshold twice is said under the second one;
   // nothing is saved until it is changed.
   const silverFrom = tiersForm.getByLabel(/^Od \(wizyt\)/).nth(1);

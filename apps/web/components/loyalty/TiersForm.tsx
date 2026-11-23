@@ -18,6 +18,14 @@ const toRow = (t: LoyaltyTiers['tiers'][number], spend: boolean): Row => ({
   discountPercent: String(t.discountPercent),
 });
 
+/** Task 697: the fields of a row, in their order on screen. */
+const FIELDS = ['name', 'threshold', 'discountPercent'] as const;
+/** An amount with at most two decimals ("1500" or "1500.50", the comma already a dot). */
+const AMOUNT = /^\d+(\.\d{1,2})?$/;
+/** A whole number typed in the allowed range. */
+const wholeIn = (text: string, min: number, max: number) =>
+  /^\d+$/.test(text.trim()) && Number(text) >= min && Number(text) <= max;
+
 /** Task 664: a field of the tiers form — "periodDays", or "<row>.name" / "<row>.threshold" / … */
 type FieldKey = string;
 
@@ -75,18 +83,37 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
     // Task 664: a name of spaces only, or a threshold another tier already has — said at once.
     const local: Record<FieldKey, string> = {};
     const seen = new Set<string>();
+    // Task 697: what the browser checked with its bubble — an empty field, a number out of
+    // range, a fraction or a wrong amount — is said under the field too.
+    const range = (min: number, max: number) =>
+      fill(t.guard.numberRange, { min: String(min), max: String(max) });
+    if (!wholeIn(periodDays, 30, 1095)) {
+      local.periodDays = periodDays.trim() ? range(30, 1095) : t.onboarding.fieldRequired;
+    }
     rows.forEach((r, i) => {
       if (!r.name.trim()) local[`${i}.name`] = t.onboarding.fieldRequired;
       const threshold = r.threshold.trim().replace(',', '.');
-      if (threshold !== '' && seen.has(String(Number(threshold)))) {
+      if (threshold === '') local[`${i}.threshold`] = t.onboarding.fieldRequired;
+      else if (spend ? !AMOUNT.test(threshold) || Number(threshold) > 1_000_000 : false) {
+        local[`${i}.threshold`] = t.calendar.tillInvalid;
+      } else if (!spend && !wholeIn(threshold, 0, 100_000_000)) {
+        local[`${i}.threshold`] = range(0, 100_000_000);
+      } else if (seen.has(String(Number(threshold)))) {
         local[`${i}.threshold`] = t.loyalty.tierThresholdTaken;
       }
       seen.add(String(Number(threshold)));
+      if (r.discountPercent.trim() && !wholeIn(r.discountPercent, 0, 100)) {
+        local[`${i}.discountPercent`] = range(0, 100);
+      }
     });
     setFieldErrors(local);
-    const first = Object.keys(local)[0];
+    // The cursor goes to the first field on screen: the period, then the rows in order.
+    const order = ['periodDays', ...rows.flatMap((_, i) => FIELDS.map((f) => `${i}.${f}`))];
+    const first = order.find((key) => local[key]);
     if (first) {
-      document.getElementById(`tier-${first.replace('.', '-')}`)?.focus();
+      document
+        .getElementById(first === 'periodDays' ? 'tier-period' : `tier-${first.replace('.', '-')}`)
+        ?.focus();
       return;
     }
     setBusy(true);
@@ -142,7 +169,7 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
   const rowErrorId = (i: number, field: keyof Row) => `tier-${i}-${field}-error`;
 
   return (
-    <form className="section form" onSubmit={save} aria-labelledby="loyalty-tiers">
+    <form noValidate className="section form" onSubmit={save} aria-labelledby="loyalty-tiers">
       <h2 id="loyalty-tiers">{t.loyalty.tiers}</h2>
       <p className="small muted">{t.loyalty.tiersHint}</p>
       <ErrorBox>{error}</ErrorBox>
@@ -166,6 +193,7 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
             min={30}
             max={1095}
             required
+            id="tier-period"
             value={periodDays}
             {...invalidProps('tier-period-error', fieldErrors.periodDays)}
             onChange={(e) => {

@@ -4510,6 +4510,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   «Minimalna kwota») — `calendar.tillInvalid`; ответ сервера о поле (`spendUnitGrosze` → «za każde» и т. п.) — тоже
   под полем. Числа формы теперь хранятся строками. Курсор на первое поле с ошибкой. Новых ключей нет. e2e `loyalty`,
   скриншоты `693-loyalty-settings-errors`, `693-loyalty-reward-number-errors`.
+- **«Program lojalnościowy» → «Poziomy klientów» — числа у поля** (задача 697): форма с `noValidate`. Период
+  (`#tier-period`) — целое 30–1095, порог — обязателен, целое 0–100 000 000 (визиты) или сумма с ≤ 2 знаками после
+  запятой до 1 000 000 (`calendar.tillInvalid`), скидка — пусто (= 0) или целое 0–100 (`guard.numberRange`). Ошибки
+  под полем, курсор на первое по порядку на экране. Повтор порога (задача 664) — как раньше. e2e `loyalty`, скриншот
+  `697-loyalty-tier-number-errors`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
