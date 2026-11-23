@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { WaitlistOffer } from '@/lib/types';
-import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { ErrorBox, FieldError, LanguageSwitch, Spinner } from '../ui';
 
 /**
  * Task 164: a freed time is held for the first client on the waiting list for 15 minutes.
@@ -18,6 +18,8 @@ export function WaitlistOfferView({ token }: { token: string }) {
   const [missing, setMissing] = useState(false);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+  /** Task 705 (owner's rule: errors at the field): what is wrong with the phone, under it. */
+  const [phoneProblem, setPhoneProblem] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -27,8 +29,16 @@ export function WaitlistOfferView({ token }: { token: string }) {
   }, [token]);
 
   async function answer(kind: 'accept' | 'decline') {
+    // Task 705: an empty phone is said under the field (the button was silently switched off).
+    if (kind === 'accept' && offer?.needsPhone && !phone.trim()) {
+      setError('');
+      setPhoneProblem(t.onboarding.fieldRequired);
+      document.getElementById('offer-phone')?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
+    setPhoneProblem('');
     try {
       setOffer(
         await api<WaitlistOffer>(`/v1/public/waitlist-offers/${token}/${kind}`, {
@@ -38,6 +48,17 @@ export function WaitlistOfferView({ token }: { token: string }) {
         }),
       );
     } catch (err) {
+      // Task 705: a phone the server does not take is said under the phone, not at the top.
+      const atPhone =
+        err instanceof ApiError &&
+        err.code === 'VALIDATION_ERROR' &&
+        Array.isArray(err.details) &&
+        (err.details as { path?: string }[]).some((d) => d.path === 'phone');
+      if (atPhone) {
+        setPhoneProblem(t.booking.phoneInvalid);
+        document.getElementById('offer-phone')?.focus();
+        return;
+      }
       setError(errorText(t, err));
       // The time may be gone meanwhile: show what it is now.
       api<WaitlistOffer>(`/v1/public/waitlist-offers/${token}`, { auth: false })
@@ -96,7 +117,14 @@ export function WaitlistOfferView({ token }: { token: string }) {
               : ''}
           </p>
           {offer.status === 'offered' ? (
-            <>
+            <form
+              noValidate
+              className="stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void answer('accept');
+              }}
+            >
               <p className="note" role="status">
                 {fill(t.waitlist.offerLead, { time: until })}
               </p>
@@ -104,20 +132,22 @@ export function WaitlistOfferView({ token }: { token: string }) {
                 <label className="field">
                   <span>{t.waitlist.offerPhone}</span>
                   <input
+                    id="offer-phone"
                     type="tel"
                     autoComplete="tel"
                     placeholder="+48 600 000 000"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    aria-invalid={phoneProblem ? true : undefined}
+                    aria-describedby={phoneProblem ? 'offer-phone-error' : undefined}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setPhoneProblem('');
+                    }}
                   />
+                  <FieldError id="offer-phone-error" text={phoneProblem} />
                 </label>
               ) : null}
-              <button
-                type="button"
-                className="btn"
-                disabled={busy || (offer.needsPhone && !phone.trim())}
-                onClick={() => void answer('accept')}
-              >
+              <button type="submit" className="btn" disabled={busy}>
                 {t.waitlist.offerTake}
               </button>
               <button
@@ -128,7 +158,7 @@ export function WaitlistOfferView({ token }: { token: string }) {
               >
                 {t.waitlist.offerDecline}
               </button>
-            </>
+            </form>
           ) : (
             <>
               <p className="note" role="status">

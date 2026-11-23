@@ -112,6 +112,20 @@ test('the client checks what is left on a gift voucher on the salon page', async
   const code = section.getByLabel('Kod bonu');
   await expect(code).toBeFocused();
 
+  // Task 706: "Sprawdź" with no code — said under the field (the button was silently off).
+  const checkButton = section.getByRole('button', { name: 'Sprawdź', exact: true });
+  await checkButton.click();
+  await expect(section.getByRole('alert')).toHaveText('Uzupełnij to pole.');
+  await expect(code).toHaveAttribute('aria-invalid', 'true');
+  await expect(code).toBeFocused();
+  await page.screenshot({ path: 'e2e/screenshots/706-voucher-check-empty.png' });
+  // Too short to be a code: no such voucher.
+  await code.fill('ab');
+  await checkButton.click();
+  await expect(section.getByRole('alert')).toHaveText(
+    'Ten salon nie ma bonu z takim kodem. Sprawdź litery i cyfry.',
+  );
+
   await code.fill('ZZZZ-ZZZZ');
   await section.getByRole('button', { name: 'Sprawdź', exact: true }).click();
   await expect(section.getByRole('alert')).toHaveText(

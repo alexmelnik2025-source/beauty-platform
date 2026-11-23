@@ -4595,3 +4595,9 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   только день или месяц, раньше читалась как пустая (бон без срока) или давала подсказку браузера; теперь «Wpisz pełną
   datę albo wyczyść pole.» под полем, рамка и курсор туда. Пустое поле по-прежнему значит «bez terminu». e2e
   `gift-vouchers`, скриншот `704-voucher-date-incomplete`.
+- **Письмо «Zwolnił się termin» → телефон** (задача 705): кнопка «Biorę ten termin» молча была выключена без телефона,
+  а неверный номер показывался строкой вверху; теперь «Uzupełnij to pole.» / «Sprawdź numer telefonu.» под полем
+  «Telefon», курсор туда. e2e `waitlist-offer`, скриншот `705-waitlist-offer-phone-error`.
+- **«Sprawdź bon podarunkowy» на странице салона — пустой или короткий код** (задача 706): кнопка «Sprawdź» молча была
+  выключена до 4 знаков; теперь под полем «Uzupełnij to pole.» (пусто) или «Ten salon nie ma bonu z takim kodem…»
+  (меньше 4 знаков), курсор туда. e2e `voucher-check`, скриншот `706-voucher-check-empty`.

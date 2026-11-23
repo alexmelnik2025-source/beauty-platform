@@ -170,8 +170,17 @@ test('a freed time is held for the first client on the list, who takes it from t
   await expect(page.getByText('Strzyżenie męskie')).toBeVisible();
   await expect(page.getByText(/Trzymamy go dla Ciebie do/)).toBeVisible();
   const take = page.getByRole('button', { name: 'Biorę ten termin' });
-  await expect(take).toBeDisabled();
+  // Task 705: no phone — said under the field, the cursor goes there (the button was silently off).
+  await take.click();
+  await expect(page.locator('#offer-phone-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.getByLabel('Telefon')).toBeFocused();
+  // A phone the server does not take is said under the phone too.
+  await page.getByLabel('Telefon').fill('600');
+  await take.click();
+  await expect(page.locator('#offer-phone-error')).toHaveText('Sprawdź numer telefonu.');
+  await shot(page, '705-waitlist-offer-phone-error');
   await page.getByLabel('Telefon').fill('+48 600 111 222');
+  await expect(page.locator('#offer-phone-error')).toBeHidden();
   await shot(page, '164-waitlist-offer');
   await take.click();
   await expect(page.getByText('Gotowe! Wizyta zarezerwowana.')).toBeVisible();

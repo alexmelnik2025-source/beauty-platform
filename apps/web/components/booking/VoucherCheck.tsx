@@ -73,7 +73,15 @@ export function VoucherCheck({ slug }: { slug: string }) {
   function check(event: FormEvent) {
     event.preventDefault();
     const typed = code.trim();
-    if (typed.length < 4 || busy) return;
+    if (busy) return;
+    // Task 706 (owner's rule: errors at the field): an empty or too short code is said under the
+    // field (the button was silently switched off). No code this short exists, so "not found".
+    if (typed.length < 4) {
+      setVoucher(null);
+      setError(typed ? t.voucherCheck.notFound : t.onboarding.fieldRequired);
+      document.getElementById('voucher-check-code')?.focus();
+      return;
+    }
     void lookUp(typed);
   }
 
@@ -108,10 +116,11 @@ export function VoucherCheck({ slug }: { slug: string }) {
     <section className="stack voucher-check" aria-labelledby="voucher-check-title">
       <h2 id="voucher-check-title">{t.voucherCheck.title}</h2>
       <p className="small muted">{t.voucherCheck.hint}</p>
-      <form className="voucher-check-form" onSubmit={check}>
+      <form noValidate className="voucher-check-form" onSubmit={check}>
         <label className="field">
           <span>{t.voucherCheck.code}</span>
           <input
+            id="voucher-check-code"
             value={code}
             onChange={(e) => {
               setCode(e.target.value);
@@ -127,7 +136,7 @@ export function VoucherCheck({ slug }: { slug: string }) {
             placeholder="ABCD-EFGH"
           />
         </label>
-        <button type="submit" className="btn btn--small" disabled={busy || code.trim().length < 4}>
+        <button type="submit" className="btn btn--small" disabled={busy}>
           {t.voucherCheck.check}
         </button>
       </form>
