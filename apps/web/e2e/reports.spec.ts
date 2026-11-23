@@ -490,6 +490,27 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await page.getByRole('button', { name: 'Ten miesiąc' }).click();
   await page.getByRole('button', { name: 'Własny okres' }).click();
   await expect(page.getByLabel('Od', { exact: true })).toBeVisible();
+  // Task 715: a wrong own period is said under the date it is about, and the figures of the
+  // previous period are not shown meanwhile.
+  const from = page.getByLabel('Od', { exact: true });
+  const to = page.getByLabel('Do', { exact: true });
+  await from.fill('2026-03-10');
+  await to.fill('2026-03-01');
+  await expect(to).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#report-to-error')).toHaveText(
+    'Sprawdź daty: „Od” nie później niż „Do”, najwyżej 366 dni.',
+  );
+  await expect(from).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(totals).toBeHidden();
+  await shot(page, '715-report-dates-error');
+  await from.fill('');
+  await expect(from).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('#report-from-error')).toHaveText('Uzupełnij to pole.');
+  await expect(page.locator('#report-to-error')).toBeHidden();
+  await to.fill('2026-03-31');
+  await from.fill('2026-03-01');
+  await expect(page.locator('#report-from-error, #report-to-error')).toHaveCount(0);
+  await expect(totals).toBeVisible();
   await page.getByRole('button', { name: 'Ostatnie 30 dni' }).click();
   await expect(totals.getByText('opłacone wizyty: 3')).toBeVisible();
   await shot(page, '74b-owner-reports-phone');

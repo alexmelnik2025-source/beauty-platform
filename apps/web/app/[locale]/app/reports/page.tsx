@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api, apiResponse } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn } from '@/lib/time';
@@ -101,6 +101,21 @@ export default function ReportsPage() {
   const range = period === 'custom' ? custom : rangeOf(period, today);
   const invalid =
     !range.from || !range.to || range.from > range.to || daysBetween(range.from, range.to) >= 366;
+  /**
+   * Task 715 (owner's rule: errors at the field): a wrong own period is said under the date it is
+   * about — an empty date under itself, "Od" after "Do" or more than 366 days under "Do".
+   */
+  const dateProblem: { field: 'from' | 'to'; text: string } | null = !invalid
+    ? null
+    : !range.from
+      ? { field: 'from', text: t.onboarding.fieldRequired }
+      : !range.to
+        ? { field: 'to', text: t.onboarding.fieldRequired }
+        : { field: 'to', text: t.reports.tooLong };
+  const dateInvalid = (field: 'from' | 'to') => ({
+    'aria-invalid': dateProblem?.field === field || undefined,
+    'aria-describedby': dateProblem?.field === field ? `report-${field}-error` : undefined,
+  });
 
   // Task 225: only the report goes to the printer ("print-report" in globals.css).
   useEffect(() => {
@@ -302,7 +317,12 @@ export default function ReportsPage() {
                 type="date"
                 value={custom.from}
                 max={today}
+                {...dateInvalid('from')}
                 onChange={(e) => setCustom({ ...custom, from: e.target.value })}
+              />
+              <FieldError
+                id="report-from-error"
+                text={dateProblem?.field === 'from' ? dateProblem.text : undefined}
               />
             </label>
             <label className="field">
@@ -310,16 +330,21 @@ export default function ReportsPage() {
               <input
                 type="date"
                 value={custom.to}
+                {...dateInvalid('to')}
                 onChange={(e) => setCustom({ ...custom, to: e.target.value })}
+              />
+              <FieldError
+                id="report-to-error"
+                text={dateProblem?.field === 'to' ? dateProblem.text : undefined}
               />
             </label>
           </div>
         ) : null}
-        {invalid ? <p className="note">{t.reports.tooLong}</p> : null}
         {report?.scope === 'own' ? <p className="note">{t.reports.ownHint}</p> : null}
         <ErrorBox>{error}</ErrorBox>
 
-        {!report || !totals ? (
+        {invalid ? null : !report || !totals ? (
+          // Task 715: while the own period is wrong, the figures of the previous one are not shown.
           error ? null : (
             <Spinner />
           )
