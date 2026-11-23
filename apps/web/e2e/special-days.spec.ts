@@ -170,8 +170,15 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await expect(absence.locator('#absence-start-error')).toHaveText('Uzupełnij to pole.');
   await expect(absence.locator('#absence-end-error')).toHaveText('Uzupełnij to pole.');
   await expect(absence.locator('input[type="datetime-local"]').first()).toBeFocused();
-  await absence.getByLabel('Od', { exact: true }).fill(`${warsawDate(5)}T15:00`);
-  await absence.getByLabel('Do', { exact: true }).fill(`${warsawDate(5)}T11:00`);
+  // By place: an error under a field becomes part of its label ("Od ! Uzupełnij to pole.").
+  await absence
+    .locator('input[type="datetime-local"]')
+    .first()
+    .fill(`${warsawDate(5)}T15:00`);
+  await absence
+    .locator('input[type="datetime-local"]')
+    .last()
+    .fill(`${warsawDate(5)}T11:00`);
   await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
   const absenceEnd = absence.locator('input[type="datetime-local"]').last();
   await expect(absenceEnd).toHaveAttribute('aria-invalid', 'true');
