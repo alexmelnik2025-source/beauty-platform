@@ -12,15 +12,15 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **743 (ветка `agent/743-reservation-days-save-error`, от main): «Mój sklep» → «Jak długo czekają odłożone produkty» — отказ «Zapisz» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~00:00 по Варшаве. 743 (ветка `agent/743-reservation-days-save-error`, от main): «Mój sklep» → «Jak długo czekają odłożone produkty» — отказ «Zapisz» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Ответ сервера (нет связи, слишком много
   попыток, изменено на другом устройстве) был строкой над полем — теперь под «Zapisz». e2e `shop-reservation-days`,
   скриншот `743-reservation-days-save-error`.
-- **744 (ветка `agent/744-promotion-errors`, от main): «Promocje» — отказ «Zapisz» в окне, отказ «Tak, usuń» у строки**
+- **744 (ветка `agent/744-745-stack` — вместе с 745, от main; влить, когда CI зелёный): «Promocje» — отказ «Zapisz» в окне, отказ «Tak, usuń» у строки**
   (полировка по правилу владельца «ошибки у поля», Q6/Q7, новых функций нет). Ответ сервера был строкой вверху
   страницы — за открытым окном его не было видно. e2e `happy-hours`, скриншоты `744-promotion-save-error`,
   `744-promotion-remove-error`.
-- **745 (ветка `agent/745-my-languages-error`, от main): «Mój grafik» → «Moje języki» — отказ «Zapisz» под кнопкой**
+- **745 (ветка `agent/744-745-stack` — вместе с 744): «Mój grafik» → «Moje języki» — отказ «Zapisz» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `team-invite`, скриншот
   `745-staff-my-languages-error`.
 - **741 (ветка `agent/741-salon-photo-errors`, от main): «Zdjęcia salonu» — отказ при добавлении и удалении у своего места**
