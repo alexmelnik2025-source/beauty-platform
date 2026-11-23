@@ -548,6 +548,8 @@ export const en: Dict = {
     sendCode: 'Send code',
     codeTitle: 'Code from the email',
     codeLead: 'We sent 6 digits to {email}.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Type all 6 digits of the code.',
     confirm: 'Confirm booking',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'You will pay in the salon for the earlier visit and this one',

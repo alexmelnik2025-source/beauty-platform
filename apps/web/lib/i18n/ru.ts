@@ -555,6 +555,8 @@ export const ru: Dict = {
     sendCode: 'Отправить код',
     codeTitle: 'Код из письма',
     codeLead: 'Мы отправили 6 цифр на {email}.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Введите все 6 цифр кода.',
     confirm: 'Подтвердить запись',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'В салоне вы оплатите прошлый и этот визит',

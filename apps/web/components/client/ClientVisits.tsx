@@ -132,7 +132,13 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
 
   async function verify(e: FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) return;
+    // Task 702: fewer than 6 digits — said under the code (the button was silently switched off).
+    if (code.length !== 6) {
+      setError('');
+      setCodeProblem(t.booking.codeIncomplete);
+      document.getElementById('visits-code')?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     setCodeProblem('');
@@ -188,6 +194,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
       <p className="muted">{fill(t.visits.codeSent, { email: sentTo })}</p>
       <ErrorBox>{error}</ErrorBox>
       <input
+        id="visits-code"
         className="code-input"
         inputMode="numeric"
         autoComplete="one-time-code"
@@ -204,7 +211,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
         }}
       />
       <FieldError id="visits-code-error" text={codeProblem || undefined} />
-      <button className="btn btn--block" disabled={busy || code.length !== 6}>
+      <button className="btn btn--block" disabled={busy}>
         {t.visits.signIn}
       </button>
       <div className="row">

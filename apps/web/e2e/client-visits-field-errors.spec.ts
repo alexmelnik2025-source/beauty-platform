@@ -43,6 +43,13 @@ test('the visits sign-in says a wrong e-mail and a wrong code under their fields
 
   // A wrong code: said under the code field.
   const code = page.getByLabel('Kod z e-maila');
+  // Task 702: fewer than 6 digits — said under the code, the cursor goes there.
+  await code.fill('12');
+  await page.getByRole('button', { name: 'Zaloguj się' }).click();
+  await expect(page.locator('#visits-code-error')).toHaveText('Wpisz wszystkie 6 cyfr kodu.');
+  await expect(code).toBeFocused();
+  await page.screenshot({ path: 'e2e/screenshots/702-visits-code-incomplete.png' });
+
   await code.fill(wrong);
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
   await expect(page.locator('#visits-code-error')).toHaveText('Nieprawidłowy kod.');

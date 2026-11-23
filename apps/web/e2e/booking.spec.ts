@@ -1348,6 +1348,12 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ola.getByRole('button', { name: 'Wyślij kod' }).click();
   const olaMail = await waitForEmail(CLIENT2, /Kod potwierdzenia/);
   const olaCode = /\b(\d{6})\b/.exec(olaMail.text)![1]!;
+  // Task 702: fewer than 6 digits — said under the code, the cursor goes there.
+  await ola.getByLabel('Kod z e-maila').fill('123');
+  await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(ola.locator('#code-error')).toHaveText('Wpisz wszystkie 6 cyfr kodu.');
+  await expect(ola.getByLabel('Kod z e-maila')).toBeFocused();
+  await shot(ola, '702-booking-code-incomplete');
   // Task Q5: a wrong code is marked at the code.
   await ola.getByLabel('Kod z e-maila').fill(olaCode === '000000' ? '111111' : '000000');
   await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();

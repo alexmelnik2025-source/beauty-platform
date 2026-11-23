@@ -580,6 +580,13 @@ export function BookingFlow({
   async function confirm(e: FormEvent) {
     e.preventDefault();
     if (!hold) return;
+    // Task 702: fewer than 6 digits — said under the code (the button was silently switched off).
+    if (code.length !== 6) {
+      setError('');
+      setProblems({ code: t.booking.codeIncomplete });
+      document.getElementById('booking-code')?.focus();
+      return;
+    }
     setBusy(true);
     setError('');
     setProblems({});
@@ -1225,7 +1232,7 @@ export function BookingFlow({
         ) : null}
 
         {step === 'code' && hold ? (
-          <form className="form" onSubmit={confirm}>
+          <form noValidate className="form" onSubmit={confirm}>
             <h2>{codeChannel === 'sms' ? t.booking.codeTitleSms : t.booking.codeTitle}</h2>
             <p className="muted">
               {codeChannel === 'sms'
@@ -1233,6 +1240,7 @@ export function BookingFlow({
                 : fill(t.booking.codeLead, { email: contact.email })}
             </p>
             <input
+              id="booking-code"
               className="code-input"
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -1250,7 +1258,7 @@ export function BookingFlow({
             />
             <FieldError id="code-error" text={problems.code} />
             {payNoticeBox}
-            <button className="btn btn--block" disabled={busy || code.length !== 6}>
+            <button className="btn btn--block" disabled={busy}>
               {confirmLabel}
             </button>
             {wishesFold}

@@ -246,6 +246,8 @@ export const sq: Dict = {
     sendCode: 'Dërgo kodin',
     codeTitle: 'Kodi nga emaili',
     codeLead: 'Dërguam 6 shifra në {email}.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Shkruani të 6 shifrat e kodit.',
     confirm: 'Konfirmo rezervimin',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'Në sallon do të paguani vizitën e mëparshme dhe këtë',

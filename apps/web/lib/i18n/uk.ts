@@ -549,6 +549,8 @@ export const uk: Dict = {
     sendCode: 'Надіслати код',
     codeTitle: 'Код із листа',
     codeLead: 'Ми надіслали 6 цифр на {email}.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Введіть усі 6 цифр коду.',
     confirm: 'Підтвердити запис',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'У салоні ви оплатите попередній і цей візит',

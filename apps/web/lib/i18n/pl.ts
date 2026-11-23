@@ -550,6 +550,8 @@ export const pl = {
     sendCode: 'Wyślij kod',
     codeTitle: 'Kod z e-maila',
     codeLead: 'Wysłaliśmy 6 cyfr na {email}.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Wpisz wszystkie 6 cyfr kodu.',
     confirm: 'Potwierdź wizytę',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'Zapłacisz w salonie za poprzednią i tę wizytę',

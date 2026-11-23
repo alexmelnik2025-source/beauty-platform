@@ -243,6 +243,8 @@ export const tr: Dict = {
     sendCode: 'Kod gönder',
     codeTitle: 'E-postadaki kod',
     codeLead: '{email} adresine 6 haneli bir kod gönderdik.',
+    /** Task 702: "Potwierdź" with fewer than 6 digits — said under the code. */
+    codeIncomplete: 'Kodun 6 hanesinin hepsini yazın.',
     confirm: 'Randevuyu onayla',
     /** Task Q9: the salon asks this client to pay missed visits in the salon with this one. */
     payNoticeTitle: 'Salonda önceki ve bu randevuyu ödeyeceksiniz',

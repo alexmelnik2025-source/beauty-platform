@@ -4587,3 +4587,7 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   e2e `category-order`, скриншот `700-category-name-error`.
 - **«Bony podarunkowe» → «Sprawdź bon» с пустым кодом** (задача 701): раньше кнопка молча ничего не делала; теперь
   «Uzupełnij to pole.» под «Kod bonu», курсор туда. e2e `gift-vouchers`, скриншот `701-voucher-check-empty`.
+- **Код из письма — меньше 6 цифр** (задача 702): на шаге кода записи («Potwierdź wizytę») и при входе в «Moje
+  wizyty» («Zaloguj się») кнопка молча была выключена, пока не набрано 6 цифр; теперь она нажимается и под кодом
+  написано «Wpisz wszystkie 6 cyfr kodu.», курсор туда. e2e `booking`, `client-visits-field-errors`, скриншоты
+  `702-booking-code-incomplete`, `702-visits-code-incomplete`.
