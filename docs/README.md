@@ -702,6 +702,16 @@ pnpm --filter @beauty/api-client generate
   Ввод убирает ошибку. e2e `team-invite`, `shop-reservation-days`, скриншоты `683-team-category-name-error`,
   `683-reservation-days-error`.
 
+## Смена каталога Base и пустые списки у поля (задача 707, 23.11.2026)
+
+- «Sklep» → «Integracje» → Base, шаг 2: при смене «Katalog» группа цен и склад подбираются под этот каталог
+  (`choiceFor` в `components/shop/ShopIntegrationsSection.tsx`: сохранённые → по умолчанию каталога → первые
+  подходящие). Раньше оставались прежние: в списке было видно одно, сохранялось другое, сервер отвечал
+  `BASE_INVALID_CHOICE` строкой вверху. Пустой список (нет каталога / цен в валюте салона / склада) —
+  `shopIntegrations.noInventory` / `noPriceGroup` / `noWarehouse` под полем; «Zapisz» не выключен молча, курсор в поле.
+  `BASE_INVALID_CHOICE` с `path` — тоже под своим полем. e2e `shop-integrations` (второй каталог «Hurtownia EU» в
+  заглушке Base), скриншот `707-base-choice-empty`.
+
 ## Ошибка токена Base у поля (задача 685, 23.11.2026)
 
 - «Sklep» → «Integracje» → Base: пустой токен — «Uzupełnij to pole.», короче 20 знаков — `shopIntegrations.tokenTooShort`,
