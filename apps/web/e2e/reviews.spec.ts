@@ -351,7 +351,7 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   );
   await csvButton.click();
   await expect(list.locator('#reviews-csv-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(csvButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(csvButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(cabinet.locator('.alert')).toHaveCount(0);
   await shot(cabinet, '731-cabinet-reviews-csv-error');
   await cabinet.unrouteAll({ behavior: 'wait' });
