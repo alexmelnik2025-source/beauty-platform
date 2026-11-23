@@ -189,6 +189,34 @@ test("the owner sees one specialist's week and moves a visit to another day", as
   expect(moved.date).toBe(friday);
   expect(moved.staff.id).toBe(staff[1]);
 
+  // Task 695: an empty date of "Nowy termin" and an empty reason of "Odwołaj wizytę" are said
+  // under their fields, not in the browser's bubble; nothing is sent.
+  await column(friday)
+    .getByRole('button', { name: /Jan Kowalski/ })
+    .click();
+  const card = page.getByRole('dialog');
+  await card.getByRole('button', { name: 'Przenieś', exact: true }).click();
+  const moveDate = card.locator('#visit-moveDate');
+  await moveDate.fill('');
+  await card.getByRole('button', { name: 'Przenieś wizytę' }).click();
+  await expect(moveDate).toBeFocused();
+  await expect(moveDate).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await shot(page, '695-visit-move-date-error');
+  await card.getByRole('button', { name: 'Wstecz' }).click();
+  await card.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+  await card.getByRole('button', { name: 'Odwołaj', exact: true }).click();
+  const reason = card.getByLabel('Powód odwołania');
+  await expect(reason).toBeFocused();
+  await expect(reason).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await shot(page, '695-visit-cancel-reason-error');
+  await card.getByRole('button', { name: 'Wstecz' }).click();
+  await card.getByRole('button', { name: 'Zamknij' }).click();
+  await expect(card).toBeHidden();
+  const still = await json<{ date: string }>(
+    await request.get(`${base}/appointments/${jan.id}`, { headers: owner }),
+  );
+  expect(still.date).toBe(friday);
+
   // A day's number opens that day with every specialist.
   await week.locator('.day-pick').nth(3).click();
   const day = page.getByTestId('calendar-day');

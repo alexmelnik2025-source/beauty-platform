@@ -4520,6 +4520,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   (пусто или не позже «Od»), «Przez ile tygodni» (2–26, `guard.numberRange`), имя, телефон (`PHONE_SHAPE` из
   `lib/contact-check.ts`), e-mail (`EMAIL_SHAPE`, если введён). Курсор на него. Новых ключей нет. e2e `booking`,
   скриншоты `694-new-visit-service-error`, `694-block-weeks-error`.
+- **Карточка визита → «Przenieś» / «Odwołaj wizytę» — пустые поля у поля** (задача 695): обе формы с `noValidate`;
+  пустая дата или время нового термина (`#visit-moveDate`, `#visit-moveTime`) и пустая причина отмены
+  (`#visit-reason`) — «Uzupełnij to pole.» под полем, курсор туда, ничего не отправляется; «Wstecz» убирает ошибку.
+  Ответы сервера (занято, вне часов работы) — по-прежнему строкой сверху карточки. e2e `calendar-week`, скриншоты
+  `695-visit-move-date-error`, `695-visit-cancel-reason-error`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

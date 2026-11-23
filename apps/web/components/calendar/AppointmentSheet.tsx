@@ -13,7 +13,7 @@ import type {
   VisitPhotoList,
 } from '@/lib/types';
 import { useSession } from '../Session';
-import { ErrorBox, Sheet, Spinner } from '../ui';
+import { ErrorBox, FieldError, Sheet, Spinner } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 import { ProductSales } from '../products/ProductSales';
 import { TipField } from './TipField';
@@ -21,6 +21,9 @@ import { VisitVouchers } from '../vouchers/VisitVouchers';
 import { VisitToHand } from '../shop/VisitToHand';
 
 type Mode = 'view' | 'move' | 'cancel';
+
+/** Task 695: the fields of the move and cancel forms that can show an error under them. */
+type SheetField = 'moveDate' | 'moveTime' | 'reason';
 
 export function AppointmentSheet({
   id,
@@ -57,6 +60,11 @@ export function AppointmentSheet({
   const [move, setMove] = useState({ date: '', time: '', staffId: '', outside: false });
   const [askOutside, setAskOutside] = useState(false);
   const [reason, setReason] = useState('');
+  /**
+   * Task 695 (owner's rule: errors at the field): an empty date or time of "Nowy termin" and an
+   * empty reason of "Odwołaj wizytę" are said under the field instead of the browser's bubble.
+   */
+  const [problem, setProblem] = useState<{ field: SheetField; text: string } | null>(null);
   /** Task 227: how the client paid, chosen before "Opłacono". */
   const [method, setMethod] = useState<PaymentMethod | null>(null);
 
@@ -107,6 +115,21 @@ export function AppointmentSheet({
   }
 
   const end = minutesToClock(clockToMinutes(a.time) + a.durationMinutes);
+  /** Task 695: editing a field takes its error away; the props tie it to the error under it. */
+  const clear = (field: SheetField) => {
+    if (problem?.field === field) setProblem(null);
+  };
+  const invalid = (field: SheetField) => ({
+    id: `visit-${field}`,
+    'aria-invalid': problem?.field === field || undefined,
+    'aria-describedby': problem?.field === field ? `visit-${field}-error` : undefined,
+  });
+  const fieldError = (field: SheetField) => (
+    <FieldError
+      id={`visit-${field}-error`}
+      text={problem?.field === field ? problem.text : undefined}
+    />
+  );
   const money = (hundredths: number) => formatPrice(hundredths, session.location.currency, tag);
   const live = a.status === 'confirmed';
   const started = Date.parse(a.start) <= Date.now();
@@ -475,9 +498,20 @@ export function AppointmentSheet({
 
       {mode === 'move' ? (
         <form
+          noValidate
           className="form"
           onSubmit={(e) => {
             e.preventDefault();
+            const missing: SheetField | null = !move.date
+              ? 'moveDate'
+              : !move.time
+                ? 'moveTime'
+                : null;
+            if (missing) {
+              setProblem({ field: missing, text: t.onboarding.fieldRequired });
+              document.getElementById(`visit-${missing}`)?.focus();
+              return;
+            }
             const minute = clockToMinutes(move.time);
             const start = new Date(zonedToInstant(move.date, minute, tz)).toISOString();
             const key = newIdempotencyKey();
@@ -503,8 +537,13 @@ export function AppointmentSheet({
                 type="date"
                 required
                 value={move.date}
-                onChange={(e) => setMove({ ...move, date: e.target.value })}
+                {...invalid('moveDate')}
+                onChange={(e) => {
+                  setMove({ ...move, date: e.target.value });
+                  clear('moveDate');
+                }}
               />
+              {fieldError('moveDate')}
             </label>
             <label className="field">
               <span>{t.appointment.time}</span>
@@ -513,8 +552,13 @@ export function AppointmentSheet({
                 step={300}
                 required
                 value={move.time}
-                onChange={(e) => setMove({ ...move, time: e.target.value })}
+                {...invalid('moveTime')}
+                onChange={(e) => {
+                  setMove({ ...move, time: e.target.value });
+                  clear('moveTime');
+                }}
               />
+              {fieldError('moveTime')}
             </label>
           </div>
           {manager ? (
@@ -545,7 +589,14 @@ export function AppointmentSheet({
             </label>
           ) : null}
           <div className="row">
-            <button type="button" className="btn btn--quiet" onClick={() => setMode('view')}>
+            <button
+              type="button"
+              className="btn btn--quiet"
+              onClick={() => {
+                setMode('view');
+                setProblem(null);
+              }}
+            >
               {t.common.back}
             </button>
             <button className="btn" disabled={busy}>
@@ -557,9 +608,15 @@ export function AppointmentSheet({
 
       {mode === 'cancel' ? (
         <form
+          noValidate
           className="form"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!reason.trim()) {
+              setProblem({ field: 'reason', text: t.onboarding.fieldRequired });
+              document.getElementById('visit-reason')?.focus();
+              return;
+            }
             void run(() =>
               api(`${base}/appointments/${a.id}/cancel`, {
                 method: 'POST',
@@ -570,10 +627,26 @@ export function AppointmentSheet({
         >
           <label className="field">
             <span>{t.appointment.cancelReason}</span>
-            <textarea required value={reason} onChange={(e) => setReason(e.target.value)} />
+            <textarea
+              required
+              value={reason}
+              {...invalid('reason')}
+              onChange={(e) => {
+                setReason(e.target.value);
+                clear('reason');
+              }}
+            />
+            {fieldError('reason')}
           </label>
           <div className="row">
-            <button type="button" className="btn btn--quiet" onClick={() => setMode('view')}>
+            <button
+              type="button"
+              className="btn btn--quiet"
+              onClick={() => {
+                setMode('view');
+                setProblem(null);
+              }}
+            >
               {t.common.back}
             </button>
             <button className="btn btn--danger" disabled={busy}>
