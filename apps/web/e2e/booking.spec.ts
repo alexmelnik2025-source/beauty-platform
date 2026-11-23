@@ -652,7 +652,13 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     .first()
     .click();
   const dialog = ownerPage.getByRole('dialog');
+  // Task 694: no service chosen — said under "Usługa", not in the browser's bubble.
+  await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(dialog.getByLabel('Usługa')).toBeFocused();
+  await expect(dialog.getByLabel('Usługa')).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
+  await shot(ownerPage, '694-new-visit-service-error');
   await dialog.getByLabel('Usługa').selectOption(services[2]!.id);
+  await expect(dialog.locator('.field-error')).toHaveCount(0);
   await dialog.getByLabel('Specjalista').selectOption(staffIds[1]!);
   await dialog.getByLabel('Data').fill(visit!.date);
   await dialog.getByLabel('Godzina').fill('20:00');
@@ -736,6 +742,14 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(weekly.locator('.field-error')).toHaveCount(0);
   await weekly.getByLabel('Powód (np. szkolenie)').fill('Booksy');
   await weekly.getByLabel('Powtarzaj co tydzień').check();
+  // Task 694: more weeks than allowed — said under the field.
+  await weekly.getByLabel('Przez ile tygodni').fill('30');
+  await weekly.getByRole('button', { name: 'Zablokuj', exact: true }).click();
+  await expect(weekly.getByLabel('Przez ile tygodni')).toBeFocused();
+  await expect(weekly.getByLabel('Przez ile tygodni')).toHaveAccessibleDescription(
+    /Wpisz liczbę od 2 do 26\.$/,
+  );
+  await shot(ownerPage, '694-block-weeks-error');
   await weekly.getByLabel('Przez ile tygodni').fill('3');
   await weekly.getByRole('button', { name: 'Zablokuj', exact: true }).click();
   await expect(weekly.getByRole('status')).toContainText('Zablokowano 2.');

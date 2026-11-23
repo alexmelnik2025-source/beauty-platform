@@ -7,20 +7,25 @@ import { useSubmitLock } from '@/lib/submit-lock';
 import { clockToMinutes, formatDay, formatPrice, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Customer, PaymentMethod, Service, Staff, TimeBlockSeries } from '@/lib/types';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
+import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
 import { ErrorBox, FieldError, Sheet } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 
-/** Task 672: the fields of a new visit or a blocked time that can show an error under them. */
-type ItemField = 'endTime' | 'name' | 'phone' | 'email';
+/**
+ * Task 672: the fields of a new visit or a blocked time that can show an error under them;
+ * task 694 added the ones the browser used to check with its bubble.
+ */
+type ItemField =
+  'service' | 'staff' | 'date' | 'time' | 'endTime' | 'weeks' | 'name' | 'phone' | 'email';
 
 /** Which new-client field the server's answer is about; null when it is about something else. */
-function itemFieldOf(err: unknown): ItemField | null {
+function itemFieldOf(err: unknown): 'name' | 'phone' | 'email' | null {
   if (!(err instanceof ApiError) || err.code !== 'VALIDATION_ERROR') return null;
   if (!Array.isArray(err.details)) return null;
   const paths = (err.details as { path?: string }[]).map((d) => d.path);
-  const fields: ItemField[] = ['name', 'phone', 'email'];
+  const fields = ['name', 'phone', 'email'] as const;
   return fields.find((f) => paths.includes(`customer.${f}`)) ?? null;
 }
 
@@ -127,12 +132,9 @@ export function NewItemSheet({
     e.preventDefault();
     setError('');
     setProblem(null);
-    if (kind === 'block' && clockToMinutes(endTime) <= clockToMinutes(time)) {
-      setProblem({ field: 'endTime', text: t.team.specialBadTime });
-      return;
-    }
-    if (kind === 'appointment' && !customer && !fresh.name.trim()) {
-      setProblem({ field: 'name', text: t.onboarding.fieldRequired });
+    const found = localProblem();
+    if (found) {
+      setProblem(found);
       return;
     }
     if (!lock()) return;
@@ -189,8 +191,7 @@ export function NewItemSheet({
         setAskOutside(true);
       }
       const field = kind === 'appointment' && !customer ? itemFieldOf(err) : null;
-      const text: Record<ItemField, string> = {
-        endTime: t.team.specialBadTime,
+      const text: Record<'name' | 'phone' | 'email', string> = {
         name: t.onboarding.fieldRequired,
         phone: t.booking.phoneInvalid,
         email: t.booking.emailInvalid,
@@ -199,6 +200,38 @@ export function NewItemSheet({
       else setError(calendarErrorText(t, err));
       unlock();
     }
+  }
+
+  /**
+   * Task 694 (owner's rule: errors at the field): the form has no browser checks (they showed a
+   * bubble), so the first empty or wrong field, in the order of the form, is said under it.
+   */
+  function localProblem(): { field: ItemField; text: string } | null {
+    const required = t.onboarding.fieldRequired;
+    const appointment = kind === 'appointment';
+    if (appointment && !serviceId) return { field: 'service', text: required };
+    if (appointment && !staffId) return { field: 'staff', text: required };
+    if (!date) return { field: 'date', text: required };
+    if (!time) return { field: 'time', text: required };
+    if (!appointment) {
+      if (!endTime) return { field: 'endTime', text: required };
+      if (clockToMinutes(endTime) <= clockToMinutes(time)) {
+        return { field: 'endTime', text: t.team.specialBadTime };
+      }
+      if (repeat && !(Number.isInteger(weeks) && weeks >= 2 && weeks <= 26)) {
+        return { field: 'weeks', text: fill(t.guard.numberRange, { min: '2', max: '26' }) };
+      }
+      return null;
+    }
+    if (customer) return null;
+    if (!fresh.name.trim()) return { field: 'name', text: required };
+    if (!PHONE_SHAPE.test(normalizePhone(fresh.phone, dial).replace(/[\s()-]/g, ''))) {
+      return { field: 'phone', text: t.booking.phoneInvalid };
+    }
+    if (fresh.email.trim() && !EMAIL_SHAPE.test(fresh.email.trim())) {
+      return { field: 'email', text: t.booking.emailInvalid };
+    }
+    return null;
   }
 
   /** Editing a field takes its error away. */
@@ -236,13 +269,21 @@ export function NewItemSheet({
         </div>
       ) : null}
 
-      <form className="form" ref={formRef} onSubmit={submit}>
+      <form noValidate className="form" ref={formRef} onSubmit={submit}>
         <ErrorBox>{error}</ErrorBox>
 
         {kind === 'appointment' ? (
           <label className="field">
             <span>{t.appointment.service}</span>
-            <select required value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
+            <select
+              required
+              value={serviceId}
+              {...invalid('service')}
+              onChange={(e) => {
+                setServiceId(e.target.value);
+                clear('service');
+              }}
+            >
               <option value="" disabled>
                 {t.appointment.chooseService}
               </option>
@@ -253,6 +294,7 @@ export function NewItemSheet({
                 </option>
               ))}
             </select>
+            {fieldError('service')}
           </label>
         ) : null}
 
@@ -261,7 +303,11 @@ export function NewItemSheet({
           <select
             required={kind === 'appointment'}
             value={staffId}
-            onChange={(e) => setStaffId(e.target.value)}
+            {...invalid('staff')}
+            onChange={(e) => {
+              setStaffId(e.target.value);
+              clear('staff');
+            }}
           >
             {kind === 'block' && manager ? (
               <option value="">{t.calendar.wholeSalon}</option>
@@ -278,12 +324,23 @@ export function NewItemSheet({
               ),
             )}
           </select>
+          {fieldError('staff')}
         </label>
 
         <div className="row">
           <label className="field">
             <span>{t.appointment.date}</span>
-            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+            <input
+              type="date"
+              required
+              value={date}
+              {...invalid('date')}
+              onChange={(e) => {
+                setDate(e.target.value);
+                clear('date');
+              }}
+            />
+            {fieldError('date')}
           </label>
           <label className="field">
             <span>{kind === 'block' ? t.appointment.from : t.appointment.time}</span>
@@ -292,11 +349,14 @@ export function NewItemSheet({
               step={300}
               required
               value={time}
+              {...invalid('time')}
               onChange={(e) => {
                 setTime(e.target.value);
+                clear('time');
                 clear('endTime');
               }}
             />
+            {fieldError('time')}
           </label>
           {kind === 'block' ? (
             <label className="field">
@@ -340,8 +400,13 @@ export function NewItemSheet({
                   max={26}
                   required
                   value={weeks}
-                  onChange={(e) => setWeeks(Number(e.target.value))}
+                  {...invalid('weeks')}
+                  onChange={(e) => {
+                    setWeeks(Number(e.target.value));
+                    clear('weeks');
+                  }}
                 />
+                {fieldError('weeks')}
                 <span className="small muted">{t.appointment.repeatHint}</span>
               </label>
             ) : null}

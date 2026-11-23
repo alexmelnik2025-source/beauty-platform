@@ -4515,6 +4515,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   запятой до 1 000 000 (`calendar.tillInvalid`), скидка — пусто (= 0) или целое 0–100 (`guard.numberRange`). Ошибки
   под полем, курсор на первое по порядку на экране. Повтор порога (задача 664) — как раньше. e2e `loyalty`, скриншот
   `697-loyalty-tier-number-errors`.
+- **Календарь → «Nowa wizyta» / «Zablokuj czas» — все поля у поля** (задача 694): форма с `noValidate`; до отправки
+  проверяется первое пустое или неверное поле по порядку формы — услуга, специалист (для визита), дата, время, «Do»
+  (пусто или не позже «Od»), «Przez ile tygodni» (2–26, `guard.numberRange`), имя, телефон (`PHONE_SHAPE` из
+  `lib/contact-check.ts`), e-mail (`EMAIL_SHAPE`, если введён). Курсор на него. Новых ключей нет. e2e `booking`,
+  скриншоты `694-new-visit-service-error`, `694-block-weeks-error`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
