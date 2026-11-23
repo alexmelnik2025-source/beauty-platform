@@ -1,13 +1,7 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, StaffList } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -40,7 +34,7 @@ export function TeamHoursScreen(props: {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<{ id: string; name: string; notice?: string } | null>(null);
   /** Task 328: the name typed for a new specialist (null = the form is closed). */
-  const [newName, setNewName] = useState<string | null>(null);
+  const [newName, setNewName] = useFormDraft<string | null>('teamHours.newName', null);
 
   /** Task 372: only the latest read is shown — an older answer arriving later is dropped. */
   const reads = useRef(0);
@@ -145,7 +139,7 @@ export function TeamHoursScreen(props: {
       </View>
       <Heading>{s.teamTitle}</Heading>
       <Text style={styles.muted}>{s.teamHint}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== p.noName ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
       {!team ? (
         !error ? (
@@ -208,7 +202,8 @@ export function TeamHoursScreen(props: {
       {team && newName !== null ? (
         <Card>
           <Text style={styles.label}>{p.newName}</Text>
-          <TextInput
+          <FormField
+            error={error === p.noName ? error : undefined}
             accessibilityLabel={p.newName}
             value={newName}
             maxLength={80}

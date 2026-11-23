@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FormField } from '../formFields';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CLIENT_LANGUAGES, type ContactsForm } from '../clientContacts';
 import type { Dictionary } from '../i18n';
 import { LANGUAGE_NAMES } from '../i18n';
 import type { ClientProblem } from '../newVisit';
 import { dialForTimeZone } from '../phone';
-import { colors, ErrorText } from '../ui';
+import { colors } from '../ui';
 
 /**
  * Tasks 332–333: the client's name, phone, email and the language of their messages — the same
@@ -15,6 +16,7 @@ export function ClientContactsFields(props: {
   form: ContactsForm;
   onChange: (form: ContactsForm) => void;
   problem: ClientProblem | null;
+  duplicate?: { field: 'phone' | 'email' };
   timeZone: string;
 }) {
   const { t, form, onChange, problem } = props;
@@ -26,7 +28,20 @@ export function ClientContactsFields(props: {
   ) => (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
+      <FormField
+        error={
+          props.duplicate?.field === key
+            ? key === 'phone'
+              ? k.phoneExists
+              : k.emailExists
+            : problem === key
+              ? key === 'name'
+                ? k.badName
+                : key === 'phone'
+                  ? k.badPhone
+                  : k.badEmail
+              : undefined
+        }
         accessibilityLabel={label}
         placeholder={extra.placeholder}
         placeholderTextColor={colors.placeholder}
@@ -38,11 +53,6 @@ export function ClientContactsFields(props: {
         onChangeText={(value) => onChange({ ...form, [key]: value })}
         style={styles.input}
       />
-      {problem === key ? (
-        <ErrorText>
-          {key === 'name' ? k.badName : key === 'phone' ? k.badPhone : k.badEmail}
-        </ErrorText>
-      ) : null}
     </View>
   );
   // A language the app does not offer (set elsewhere) stays shown and chosen.

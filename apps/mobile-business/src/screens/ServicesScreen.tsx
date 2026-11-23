@@ -1,3 +1,5 @@
+import { FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   BackHandler,
@@ -71,10 +73,17 @@ export function ServicesScreen(props: {
   const u = t.services;
   const [groups, setGroups] = useState<ServiceGroup[] | null>(null);
   const [categories, setCategories] = useState<ServiceCategoryList>([]);
+  const [fieldError, setFieldError] = useState<{
+    field: string;
+    message: string;
+    staffId?: string;
+  } | null>(null);
+  const problemAt = (field: string, staffId?: string) =>
+    fieldError?.field === field && fieldError.staffId === staffId ? fieldError.message : undefined;
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<{
+  const [editId, setEditId] = useFormDraft<string | null>('services.editId', null);
+  const [form, setForm] = useFormDraft<{
     name: string;
     description: string;
     buffer: string;
@@ -84,7 +93,7 @@ export function ServicesScreen(props: {
     active: boolean;
     categoryId: string | null;
     staffIds: string[];
-  }>({
+  }>('services.form', {
     name: '',
     description: '',
     buffer: '0',
@@ -97,26 +106,29 @@ export function ServicesScreen(props: {
   });
   /** Task 318: the specialists' own prices and durations, and the ones typed in "Zmień". */
   const [rates, setRates] = useState<StaffPrices>({ prices: [], durations: [] });
-  const [rateForm, setRateForm] = useState<RatesForm>({});
+  const [rateForm, setRateForm] = useFormDraft<RatesForm>('services.rateForm', {});
   /** Task 315: the service whose "Usuń" waits for a confirmation. */
   const [removeId, setRemoveId] = useState<string | null>(null);
   /** Task 316: the category being renamed (or deleted), with the name as typed. */
-  const [categoryEdit, setCategoryEdit] = useState<{ id: string; name: string } | null>(null);
+  const [categoryEdit, setCategoryEdit] = useFormDraft<{ id: string; name: string } | null>(
+    'services.categoryEdit',
+    null,
+  );
   /** Task 313: the form of a new service; null = closed. */
-  const [fresh, setFresh] = useState<NewServiceForm | null>(null);
+  const [fresh, setFresh] = useFormDraft<NewServiceForm | null>('services.fresh', null);
   /** Task 312: the salon's specialists (who performs a service). */
   const [staff, setStaff] = useState<StaffList>([]);
   /** Task 311: the name of a new category, as typed. */
   const [query, setQuery] = useState('');
   const [activeOnly, setActiveOnly] = useState(false);
   const [options, setOptions] = useState(false);
-  const [serviceOptions, setServiceOptions] = useState(false);
+  const [serviceOptions, setServiceOptions] = useFormDraft('services.serviceOptions', false);
   const [rowOptions, setRowOptions] = useState<string | null>(null);
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategory, setNewCategory] = useFormDraft('services.newCategory', '');
   const [busy, setBusy] = useState(false);
   /** Task 310: the service being copied, and the copy's name, price, duration, online. */
-  const [copyId, setCopyId] = useState<string | null>(null);
-  const [copy, setCopy] = useState<CopyForm>({
+  const [copyId, setCopyId] = useFormDraft<string | null>('services.copyId', null);
+  const [copy, setCopy] = useFormDraft<CopyForm>('services.copy', {
     name: '',
     price: '',
     duration: '',
@@ -137,6 +149,7 @@ export function ServicesScreen(props: {
       setStaff(staff);
       setRates(rates);
       setError('');
+      setFieldError(null);
     } catch (e) {
       setError(errorText(e, t));
     }
@@ -171,12 +184,17 @@ export function ServicesScreen(props: {
     });
     setRateForm(ratesForm(rates, service.id));
     setError('');
+    setFieldError(null);
     setInfo('');
   }
 
   async function save(service: Service) {
     const checked = serviceChange(service, form);
-    if (!checked.ok) return setError(u.problem[checked.problem]);
+    setFieldError(null);
+    if (!checked.ok) {
+      if (checked.problem === 'buffer') setServiceOptions(true);
+      return setFieldError({ field: checked.problem, message: u.problem[checked.problem] });
+    }
     const people = staffChange(service, form.staffIds);
     // Task 318: own prices and durations — checked against the new price and duration.
     const own = ratesChange(
@@ -191,7 +209,11 @@ export function ServicesScreen(props: {
     );
     if (!own.ok) {
       const who = staff.find((m) => m.id === own.staffId)?.displayName ?? '';
-      return setError(fill(u.problem[own.problem], { name: who }));
+      return setFieldError({
+        field: own.problem,
+        staffId: own.staffId,
+        message: fill(u.problem[own.problem], { name: who }),
+      });
     }
     if (!checked.change && !people && !own.prices && !own.durations) {
       setEditId(null);
@@ -214,6 +236,7 @@ export function ServicesScreen(props: {
       setEditId(null);
       setInfo(fill(u.saved, { name: checked.change?.name ?? service.name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
@@ -235,6 +258,7 @@ export function ServicesScreen(props: {
     setCopyId(service.id);
     setCopy(copyForm(service, u.copyName));
     setError('');
+    setFieldError(null);
     setInfo('');
   }
 
@@ -244,7 +268,9 @@ export function ServicesScreen(props: {
    */
   async function saveCopy(source: Service) {
     const checked = serviceCopy(source, copy);
-    if (!checked.ok) return setError(u.problem[checked.problem]);
+    setFieldError(null);
+    if (!checked.ok)
+      return setFieldError({ field: checked.problem, message: u.problem[checked.problem] });
     setBusy(true);
     try {
       const rates = await api.staffPrices(salon.orgId, salon.locationId);
@@ -259,6 +285,7 @@ export function ServicesScreen(props: {
       setCopyId(null);
       setInfo(fill(u.copied, { name: created.name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -278,6 +305,7 @@ export function ServicesScreen(props: {
       setRemoveId(null);
       setInfo(fill(u.removed, { name: service.name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setRemoveId(null);
@@ -297,7 +325,8 @@ export function ServicesScreen(props: {
     const category = categories.find((c) => c.id === categoryEdit.id);
     const name = categoryName(categoryEdit.name);
     if (!category) return setCategoryEdit(null);
-    if (!name) return setError(u.problem.category);
+    setFieldError(null);
+    if (!name) return setFieldError({ field: 'category', message: u.problem.category });
     if (name === category.name) {
       setCategoryEdit(null);
       return setInfo(u.nothing);
@@ -314,6 +343,7 @@ export function ServicesScreen(props: {
       setCategoryEdit(null);
       setInfo(fill(u.saved, { name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setCategoryEdit(null);
@@ -334,6 +364,7 @@ export function ServicesScreen(props: {
       setCategoryEdit(null);
       setInfo(fill(u.categoryRemoved, { name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -348,6 +379,7 @@ export function ServicesScreen(props: {
     setCopyId(null);
     setFresh(newServiceForm(categories, staff));
     setError('');
+    setFieldError(null);
     setInfo('');
   }
 
@@ -355,13 +387,16 @@ export function ServicesScreen(props: {
   async function saveNew() {
     if (!fresh) return;
     const checked = newService(fresh);
-    if (!checked.ok) return setError(u.problem[checked.problem]);
+    setFieldError(null);
+    if (!checked.ok)
+      return setFieldError({ field: checked.problem, message: u.problem[checked.problem] });
     setBusy(true);
     try {
       const created = await api.createService(salon.orgId, salon.locationId, checked.service);
       setFresh(null);
       setInfo(fill(u.copied, { name: created.name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -420,7 +455,8 @@ export function ServicesScreen(props: {
       <View style={{ gap: 6, paddingLeft: 34 }}>
         <Text style={styles.muted}>{fill(u.ownHint, { name })}</Text>
         <View style={styles.row}>
-          <TextInput
+          <FormField
+            error={problemAt('staffPrice', staffId)}
             accessibilityLabel={priceLabel}
             value={row.price}
             onChangeText={(price) => set({ price })}
@@ -428,7 +464,8 @@ export function ServicesScreen(props: {
             placeholder={`${priceInput(service.priceGrosze)} ${salon.currency}`}
             style={[styles.input, styles.small]}
           />
-          <TextInput
+          <FormField
+            error={problemAt('staffDuration', staffId)}
             accessibilityLabel={durationLabel}
             value={row.duration}
             onChangeText={(duration) => set({ duration })}
@@ -449,7 +486,8 @@ export function ServicesScreen(props: {
     return (
       <>
         <Text style={styles.label}>{u.name}</Text>
-        <TextInput
+        <FormField
+          error={problemAt('name')}
           accessibilityLabel={u.name}
           value={value.name}
           onChangeText={(name) => onChange({ name })}
@@ -457,7 +495,8 @@ export function ServicesScreen(props: {
           style={styles.input}
         />
         <Text style={styles.label}>{u.description}</Text>
-        <TextInput
+        <FormField
+          error={problemAt('description')}
           accessibilityLabel={u.description}
           value={value.description}
           onChangeText={(description) => onChange({ description })}
@@ -478,7 +517,8 @@ export function ServicesScreen(props: {
     return (
       <>
         <Text style={styles.label}>{u.buffer}</Text>
-        <TextInput
+        <FormField
+          error={problemAt('buffer')}
           accessibilityLabel={u.buffer}
           value={value.buffer}
           onChangeText={(buffer) => onChange({ buffer })}
@@ -509,13 +549,15 @@ export function ServicesScreen(props: {
   /** Task 311: a new category at the end of the order; the owner then puts services in it. */
   async function addCategory() {
     const name = categoryName(newCategory);
-    if (!name) return setError(u.problem.category);
+    setFieldError(null);
+    if (!name) return setFieldError({ field: 'category', message: u.problem.category });
     setBusy(true);
     try {
       await api.createServiceCategory(salon.orgId, salon.locationId, name);
       setNewCategory('');
       setInfo(fill(u.categoryAdded, { name }));
       setError('');
+      setFieldError(null);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -567,6 +609,7 @@ export function ServicesScreen(props: {
       setCategories(categories);
       setInfo(u.orderSaved);
       setError('');
+      setFieldError(null);
     } catch (e) {
       setError(errorText(e, t));
       await load();
@@ -589,6 +632,7 @@ export function ServicesScreen(props: {
       setCategories(sorted);
       setInfo(u.orderSaved);
       setError('');
+      setFieldError(null);
     } catch (e) {
       setError(errorText(e, t));
       await load();
@@ -634,7 +678,8 @@ export function ServicesScreen(props: {
           <View style={{ gap: 10 }}>
             {nameFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
             <Text style={styles.label}>{fill(u.price, { currency: salon.currency })}</Text>
-            <TextInput
+            <FormField
+              error={problemAt('price')}
               accessibilityLabel={fill(u.price, { currency: salon.currency })}
               value={fresh.price}
               onChangeText={(price) => setFresh((f) => (f ? { ...f, price } : f))}
@@ -643,7 +688,8 @@ export function ServicesScreen(props: {
               style={styles.input}
             />
             <Text style={styles.label}>{u.duration}</Text>
-            <TextInput
+            <FormField
+              error={problemAt('duration')}
               accessibilityLabel={u.duration}
               value={fresh.duration}
               onChangeText={(duration) => setFresh((f) => (f ? { ...f, duration } : f))}
@@ -770,6 +816,7 @@ export function ServicesScreen(props: {
                     onPress={() => {
                       setCategoryEdit({ id, name: group.name ?? '' });
                       setError('');
+                      setFieldError(null);
                       setInfo('');
                     }}
                   />
@@ -779,7 +826,8 @@ export function ServicesScreen(props: {
                 <Card>
                   <View style={{ gap: 10 }}>
                     <Text style={styles.label}>{u.categoryNameLabel}</Text>
-                    <TextInput
+                    <FormField
+                      error={problemAt('category')}
                       accessibilityLabel={u.categoryNameLabel}
                       value={categoryEdit.name}
                       onChangeText={(name) => setCategoryEdit({ id, name })}
@@ -850,7 +898,8 @@ export function ServicesScreen(props: {
                         <Text style={styles.label}>
                           {fill(u.price, { currency: salon.currency })}
                         </Text>
-                        <TextInput
+                        <FormField
+                          error={problemAt('price')}
                           accessibilityLabel={fill(u.price, { currency: salon.currency })}
                           value={form.price}
                           onChangeText={(price) => setForm((f) => ({ ...f, price }))}
@@ -858,7 +907,8 @@ export function ServicesScreen(props: {
                           style={styles.input}
                         />
                         <Text style={styles.label}>{u.duration}</Text>
-                        <TextInput
+                        <FormField
+                          error={problemAt('duration')}
                           accessibilityLabel={u.duration}
                           value={form.duration}
                           onChangeText={(duration) => setForm((f) => ({ ...f, duration }))}
@@ -902,7 +952,8 @@ export function ServicesScreen(props: {
                         </Text>
                         <Text style={styles.muted}>{u.copyHint}</Text>
                         <Text style={styles.label}>{u.name}</Text>
-                        <TextInput
+                        <FormField
+                          error={problemAt('name')}
                           accessibilityLabel={u.name}
                           value={copy.name}
                           onChangeText={(name) => setCopy((f) => ({ ...f, name }))}
@@ -912,7 +963,8 @@ export function ServicesScreen(props: {
                         <Text style={styles.label}>
                           {fill(u.price, { currency: salon.currency })}
                         </Text>
-                        <TextInput
+                        <FormField
+                          error={problemAt('price')}
                           accessibilityLabel={fill(u.price, { currency: salon.currency })}
                           value={copy.price}
                           onChangeText={(price) => setCopy((f) => ({ ...f, price }))}
@@ -920,7 +972,8 @@ export function ServicesScreen(props: {
                           style={styles.input}
                         />
                         <Text style={styles.label}>{u.duration}</Text>
-                        <TextInput
+                        <FormField
+                          error={problemAt('duration')}
                           accessibilityLabel={u.duration}
                           value={copy.duration}
                           onChangeText={(duration) => setCopy((f) => ({ ...f, duration }))}
@@ -995,6 +1048,7 @@ export function ServicesScreen(props: {
                             setCopyId(null);
                             setRemoveId(service.id);
                             setError('');
+                            setFieldError(null);
                             setInfo('');
                           }}
                         />
@@ -1030,7 +1084,8 @@ export function ServicesScreen(props: {
               <Text role="heading" aria-level={2} style={styles.section}>
                 {u.newCategory}
               </Text>
-              <TextInput
+              <FormField
+                error={!categoryEdit ? problemAt('category') : undefined}
                 accessibilityLabel={u.newCategory}
                 value={newCategory}
                 onChangeText={setNewCategory}

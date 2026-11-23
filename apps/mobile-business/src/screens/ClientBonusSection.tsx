@@ -1,5 +1,7 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyAccount, LoyaltyReward } from '../api';
 import {
   bonusErrorText,
@@ -37,7 +39,11 @@ export function ClientBonusSection(props: {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
   const [ask, setAsk] = useState<{ kind: 'redeem' | 'cancel'; id: string } | null>(null);
-  const [adjust, setAdjust] = useState<{ points: string; reason: string } | null>(null);
+  const [adjust, setAdjust] = useFormDraft<{ points: string; reason: string } | null>(
+    `clientBonus.${customerId}.adjust`,
+    null,
+  );
+  const [adjustProblem, setAdjustProblem] = useState<'points' | 'reason' | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -77,7 +83,8 @@ export function ClientBonusSection(props: {
   function saveAdjust() {
     if (!adjust) return;
     const checked = parseAdjustment(adjust.points, adjust.reason);
-    if (!checked.ok) return setNote({ text: b.problem[checked.problem], bad: true });
+    setAdjustProblem(null);
+    if (!checked.ok) return setAdjustProblem(checked.problem);
     void run(async () => {
       props.onAccount(
         await api.adjustLoyaltyBalance(salon.orgId, customerId, checked.points, checked.reason),
@@ -233,7 +240,8 @@ export function ClientBonusSection(props: {
       {adjust ? (
         <View style={{ gap: 8 }}>
           <Text style={styles.label}>{b.adjustTitle}</Text>
-          <TextInput
+          <FormField
+            error={adjustProblem === 'points' ? b.problem.points : undefined}
             accessibilityLabel={b.adjustPoints}
             placeholder={b.adjustPoints}
             placeholderTextColor={colors.placeholder}
@@ -242,7 +250,8 @@ export function ClientBonusSection(props: {
             keyboardType="numbers-and-punctuation"
             style={styles.input}
           />
-          <TextInput
+          <FormField
+            error={adjustProblem === 'reason' ? b.problem.reason : undefined}
             accessibilityLabel={b.adjustReason}
             placeholder={b.adjustReason}
             placeholderTextColor={colors.placeholder}

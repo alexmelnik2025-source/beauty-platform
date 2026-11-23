@@ -1,10 +1,11 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   type ScrollViewInstance,
 } from 'react-native';
@@ -34,12 +35,14 @@ function Input(props: {
   value: string;
   onChange: (value: string) => void;
   numeric?: boolean;
+  error?: string;
   caps?: boolean;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{props.label}</Text>
-      <TextInput
+      <FormField
+        error={props.error}
         accessibilityLabel={props.label}
         value={props.value}
         onChangeText={props.onChange}
@@ -66,16 +69,19 @@ function VoucherCard(props: {
   const v = t.vouchers;
   const { voucher, uses } = details;
   const money = (n: number) => formatPrice(n, salon.currency, locale);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const [amount, setAmount] = useFormDraft(`voucher.${voucher.id}.amount`, '');
+  const [note, setNote] = useFormDraft(`voucher.${voucher.id}.note`, '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [editing, setEditing] = useState(false);
-  const [editUntil, setEditUntil] = useState('');
-  const [editRecipient, setEditRecipient] = useState('');
-  const [editNote, setEditNote] = useState('');
-  const [editPayment, setEditPayment] = useState<PaymentMethod | null>(null);
+  const [editing, setEditing] = useFormDraft(`voucher.${voucher.id}.editing`, false);
+  const [editUntil, setEditUntil] = useFormDraft(`voucher.${voucher.id}.editUntil`, '');
+  const [editRecipient, setEditRecipient] = useFormDraft(`voucher.${voucher.id}.editRecipient`, '');
+  const [editNote, setEditNote] = useFormDraft(`voucher.${voucher.id}.editNote`, '');
+  const [editPayment, setEditPayment] = useFormDraft<PaymentMethod | null>(
+    `voucher.${voucher.id}.editPayment`,
+    null,
+  );
   // Task 532: the payment the owner or a manager is asked about before undoing it.
   const [undoing, setUndoing] = useState<string | null>(null);
   // Task 539: while the salon page is public, "Wyślij bon" adds the link that shows what is left.
@@ -185,7 +191,9 @@ function VoucherCard(props: {
         <Text style={styles.text}>{fill(v.forWhom, { name: voucher.recipient })}</Text>
       ) : null}
       {voucher.note ? <Text style={styles.muted}>{voucher.note}</Text> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== v.wrongAmount && error !== v.wrongDate ? (
+        <ErrorText>{error}</ErrorText>
+      ) : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -193,7 +201,13 @@ function VoucherCard(props: {
       ) : null}
       {voucher.status === 'active' ? (
         <>
-          <Input label={v.payAmount} value={amount} onChange={setAmount} numeric />
+          <Input
+            error={error === v.wrongAmount ? error : undefined}
+            label={v.payAmount}
+            value={amount}
+            onChange={setAmount}
+            numeric
+          />
           <Input label={v.payNote} value={note} onChange={setNote} />
           <Button label={v.pay} busy={busy} onPress={() => void pay()} />
           <Button
@@ -226,7 +240,12 @@ function VoucherCard(props: {
           <View style={styles.confirm}>
             <Text style={styles.subheading}>{v.edit}</Text>
             <Text style={styles.muted}>{v.editHint}</Text>
-            <Input label={v.validUntilField} value={editUntil} onChange={setEditUntil} />
+            <Input
+              error={error === v.wrongDate ? error : undefined}
+              label={v.validUntilField}
+              value={editUntil}
+              onChange={setEditUntil}
+            />
             <Input label={v.recipient} value={editRecipient} onChange={setEditRecipient} />
             <Input label={v.note} value={editNote} onChange={setEditNote} />
             <PaymentMethodPicker
@@ -316,17 +335,17 @@ export function VouchersScreen(props: {
   const v = t.vouchers;
   const manager = salon.role !== 'staff';
   const money = (n: number) => formatPrice(n, salon.currency, locale);
-  const [code, setCode] = useState('');
-  const [found, setFound] = useState<GiftVoucherDetails | null>(null);
+  const [code, setCode] = useFormDraft('vouchers.code', '');
+  const [found, setFound] = useFormDraft<GiftVoucherDetails | null>('vouchers.found', null);
   const [checkError, setCheckError] = useState('');
   const [checking, setChecking] = useState(false);
   const [list, setList] = useState<GiftVoucherList | null>(null);
   const [listError, setListError] = useState('');
-  const [amount, setAmount] = useState('');
-  const [validUntil, setValidUntil] = useState('');
-  const [recipient, setRecipient] = useState('');
-  const [payment, setPayment] = useState<PaymentMethod | null>(null);
-  const [note, setNote] = useState('');
+  const [amount, setAmount] = useFormDraft('vouchers.amount', '');
+  const [validUntil, setValidUntil] = useFormDraft('vouchers.validUntil', '');
+  const [recipient, setRecipient] = useFormDraft('vouchers.recipient', '');
+  const [payment, setPayment] = useFormDraft<PaymentMethod | null>('vouchers.payment', null);
+  const [note, setNote] = useFormDraft('vouchers.note', '');
   const [sellError, setSellError] = useState('');
   const [sold, setSold] = useState<GiftVoucher | null>(null);
   const [selling, setSelling] = useState(false);
@@ -461,9 +480,9 @@ export function VouchersScreen(props: {
       <Text role="heading" aria-level={2} style={styles.subheading}>
         {v.checkTitle}
       </Text>
-      <Input label={v.code} value={code} onChange={setCode} caps />
+      <Input error={checkError} label={v.code} value={code} onChange={setCode} caps />
       <Button kind="secondary" label={v.check} busy={checking} onPress={() => void check()} />
-      {checkError ? <ErrorText>{checkError}</ErrorText> : null}
+
       {found ? (
         <VoucherCard
           api={api}
@@ -483,8 +502,19 @@ export function VouchersScreen(props: {
           <Text role="heading" aria-level={2} style={styles.subheading}>
             {v.newTitle}
           </Text>
-          <Input label={v.amount} value={amount} onChange={setAmount} numeric />
-          <Input label={v.validUntilField} value={validUntil} onChange={setValidUntil} />
+          <Input
+            error={sellError === v.wrongAmount ? sellError : undefined}
+            label={v.amount}
+            value={amount}
+            onChange={setAmount}
+            numeric
+          />
+          <Input
+            error={sellError === v.wrongDate ? sellError : undefined}
+            label={v.validUntilField}
+            value={validUntil}
+            onChange={setValidUntil}
+          />
           <Input label={v.recipient} value={recipient} onChange={setRecipient} />
           <Input label={v.note} value={note} onChange={setNote} />
           <PaymentMethodPicker
@@ -495,7 +525,9 @@ export function VouchersScreen(props: {
             disabled={selling}
           />
           <Text style={styles.muted}>{v.paymentHint}</Text>
-          {sellError ? <ErrorText>{sellError}</ErrorText> : null}
+          {sellError && sellError !== v.wrongAmount && sellError !== v.wrongDate ? (
+            <ErrorText>{sellError}</ErrorText>
+          ) : null}
           <Button label={v.sell} busy={selling} onPress={() => void sell()} />
           {sold ? (
             <Text role="status" style={styles.info}>

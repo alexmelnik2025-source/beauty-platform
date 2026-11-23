@@ -1,5 +1,8 @@
+import { FormField } from '../formFields';
+import { FieldError } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyBonusRules } from '../api';
 import {
   bonusGives,
@@ -33,7 +36,11 @@ export function BonusRulesSection(props: {
   const l = t.loyalty;
   const [data, setData] = useState<LoyaltyBonusRules | null>(null);
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
-  const [rows, setRows] = useState<BonusRow[] | null>(null);
+  const [rows, setRows] = useFormDraft<BonusRow[] | null>('loyaltyBonus.rows', null);
+  const [invalid, setInvalid] = useState<Extract<
+    ReturnType<typeof bonusToSave>,
+    { ok: false }
+  > | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -65,12 +72,8 @@ export function BonusRulesSection(props: {
   async function save() {
     if (!rows) return;
     const checked = bonusToSave(rows);
-    if (!checked.ok) {
-      return setNote({
-        text: fill(l.bonusProblem[checked.problem], { n: String((checked.row ?? 0) + 1) }),
-        bad: true,
-      });
-    }
+    setInvalid(null);
+    if (!checked.ok) return setInvalid(checked);
     setBusy(true);
     setNote(null);
     try {
@@ -86,6 +89,11 @@ export function BonusRulesSection(props: {
 
   const setRow = (index: number, change: Partial<BonusRow>) =>
     rows && setRows(rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
+
+  const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
+    invalid?.problem === problem && invalid.row === row
+      ? fill(l.bonusProblem[problem], { n: String((row ?? 0) + 1) })
+      : undefined;
 
   const message = note ? (
     note.bad ? (
@@ -146,7 +154,8 @@ export function BonusRulesSection(props: {
         const n = { n: String(i + 1) };
         return (
           <View key={i} style={styles.item}>
-            <TextInput
+            <FormField
+              error={errorAt('name', i)}
               accessibilityLabel={fill(l.bonusName, n)}
               placeholder={fill(l.bonusName, n)}
               placeholderTextColor={colors.placeholder}
@@ -157,11 +166,13 @@ export function BonusRulesSection(props: {
             />
             <View style={styles.row}>
               <Labeled
+                error={errorAt('multiplier', i) || errorAt('nothing', i)}
                 label={fill(l.bonusMultiplier, n)}
                 value={row.multiplier}
                 onChange={(multiplier) => setRow(i, { multiplier })}
               />
               <Labeled
+                error={errorAt('extra', i)}
                 label={fill(l.bonusExtra, n)}
                 value={row.extraPoints}
                 onChange={(extraPoints) => setRow(i, { extraPoints })}
@@ -194,6 +205,7 @@ export function BonusRulesSection(props: {
               </>
             ) : null}
             <Labeled
+              error={errorAt('within', i)}
               label={fill(l.bonusWithin, n)}
               value={row.withinDays}
               onChange={(withinDays) => setRow(i, { withinDays })}
@@ -215,6 +227,7 @@ export function BonusRulesSection(props: {
           onPress={() => setRows([...rows, { ...EMPTY_BONUS }])}
         />
       ) : null}
+      <FieldError message={errorAt('tooMany')} />
       {message}
       <View style={styles.row}>
         <Button label={l.bonusSave} busy={busy} onPress={() => void save()} />
@@ -231,11 +244,17 @@ export function BonusRulesSection(props: {
   );
 }
 
-function Labeled(props: { label: string; value: string; onChange: (value: string) => void }) {
+function Labeled(props: {
+  label: string;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <View style={styles.labeled}>
       <Text style={styles.label}>{props.label}</Text>
-      <TextInput
+      <FormField
+        error={props.error}
         accessibilityLabel={props.label}
         value={props.value}
         onChangeText={props.onChange}

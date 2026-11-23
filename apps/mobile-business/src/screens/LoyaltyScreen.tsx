@@ -1,13 +1,7 @@
+import { FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  BackHandler,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -68,14 +62,18 @@ export function LoyaltyScreen(props: {
   const [operations, setOperations] = useState<LoyaltyTransaction[]>([]);
   const [services, setServices] = useState<{ id: string; name: string }[]>([]);
   const [serviceNames, setServiceNames] = useState(new Map<string, string>());
+  const [rulesProblem, setRulesProblem] = useState<import('../loyalty').RulesProblem | null>(null);
+  const [rewardProblem, setRewardProblem] = useState<
+    import('../rewardEdit').RewardFullProblem | null
+  >(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [askOff, setAskOff] = useState(false);
-  const [form, setForm] = useState<RewardFormFull | null>(null);
+  const [form, setForm] = useFormDraft<RewardFormFull | null>('loyalty.form', null);
   /** Task 348: the reward being changed (null = the form adds a new one). */
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useFormDraft<string | null>('loyalty.editingId', null);
   const [removeId, setRemoveId] = useState<string | null>(null);
-  const [rules, setRules] = useState<RulesForm | null>(null);
+  const [rules, setRules] = useFormDraft<RulesForm | null>('loyalty.rules', null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -141,7 +139,8 @@ export function LoyaltyScreen(props: {
   function saveRules() {
     if (!program || !rules) return;
     const checked = rulesToSave(program, rules);
-    if (!checked.ok) return setError(l.rulesProblem[checked.problem]);
+    setRulesProblem(null);
+    if (!checked.ok) return setRulesProblem(checked.problem);
     void run(async () => {
       setProgram(await api.saveLoyaltyProgram(salon.orgId, checked.save));
       setRules(null);
@@ -157,7 +156,8 @@ export function LoyaltyScreen(props: {
   function saveReward() {
     if (!form) return;
     const checked = rewardToSave(form);
-    if (!checked.ok) return setError(l.problem[checked.problem]);
+    setRewardProblem(null);
+    if (!checked.ok) return setRewardProblem(checked.problem);
     const saved = editingId ? rewards.find((r) => r.id === editingId) : undefined;
     setBusy(true);
     void (async () => {
@@ -201,7 +201,8 @@ export function LoyaltyScreen(props: {
 
   const editor = form ? (
     <Card>
-      <TextInput
+      <FormField
+        error={rewardProblem === 'name' ? l.problem.name : undefined}
         accessibilityLabel={l.name}
         placeholder={l.name}
         placeholderTextColor={colors.placeholder}
@@ -222,7 +223,8 @@ export function LoyaltyScreen(props: {
         />
       </View>
       {form.kind === 'discount_percent' ? (
-        <TextInput
+        <FormField
+          error={rewardProblem === 'percent' ? l.problem.percent : undefined}
           accessibilityLabel={l.percent}
           placeholder={l.percent}
           placeholderTextColor={colors.placeholder}
@@ -234,6 +236,7 @@ export function LoyaltyScreen(props: {
       ) : (
         <>
           <Text style={styles.label}>{l.service}</Text>
+          {rewardProblem === 'service' ? <ErrorText>! {l.problem.service}</ErrorText> : null}
           {services.length === 0 ? (
             <Text style={styles.muted}>{l.noServices}</Text>
           ) : (
@@ -250,7 +253,8 @@ export function LoyaltyScreen(props: {
           )}
         </>
       )}
-      <TextInput
+      <FormField
+        error={rewardProblem === 'cost' ? l.problem.cost : undefined}
         accessibilityLabel={mode === 'stamps' ? l.costStamps : l.costPoints}
         placeholder={mode === 'stamps' ? l.costStamps : l.costPoints}
         placeholderTextColor={colors.placeholder}
@@ -259,7 +263,8 @@ export function LoyaltyScreen(props: {
         keyboardType="number-pad"
         style={styles.input}
       />
-      <TextInput
+      <FormField
+        error={rewardProblem === 'validity' ? l.problem.validity : undefined}
         accessibilityLabel={l.couponValidityDays}
         placeholder={l.couponValidityDays}
         placeholderTextColor={colors.placeholder}
@@ -354,6 +359,9 @@ export function LoyaltyScreen(props: {
               </Text>
               {rules.mode === 'stamps' ? (
                 <Field
+                  error={
+                    rulesProblem === 'stampsPerVisit' ? l.rulesProblem.stampsPerVisit : undefined
+                  }
                   label={l.stampsPerVisit}
                   value={rules.stampsPerVisit}
                   onChange={(stampsPerVisit) => setRules({ ...rules, stampsPerVisit })}
@@ -361,17 +369,24 @@ export function LoyaltyScreen(props: {
               ) : (
                 <>
                   <Field
+                    error={
+                      rulesProblem === 'pointsPerUnit' ? l.rulesProblem.pointsPerUnit : undefined
+                    }
                     label={l.pointsPerUnit}
                     value={rules.pointsPerUnit}
                     onChange={(pointsPerUnit) => setRules({ ...rules, pointsPerUnit })}
                   />
                   <Field
+                    error={rulesProblem === 'spendUnit' ? l.rulesProblem.spendUnit : undefined}
                     label={fill(l.spendUnit, { currency: salon.currency })}
                     value={rules.spendUnit}
                     decimal
                     onChange={(spendUnit) => setRules({ ...rules, spendUnit })}
                   />
                   <Field
+                    error={
+                      rulesProblem === 'validityDays' ? l.rulesProblem.validityDays : undefined
+                    }
                     label={l.validityDays}
                     value={rules.validityDays}
                     onChange={(validityDays) => setRules({ ...rules, validityDays })}
@@ -379,12 +394,18 @@ export function LoyaltyScreen(props: {
                 </>
               )}
               <Field
+                error={rulesProblem === 'minSpend' ? l.rulesProblem.minSpend : undefined}
                 label={fill(l.minSpend, { currency: salon.currency })}
                 value={rules.minSpend}
                 decimal
                 onChange={(minSpend) => setRules({ ...rules, minSpend })}
               />
               <Field
+                error={
+                  rulesProblem === 'maxDiscountPercent'
+                    ? l.rulesProblem.maxDiscountPercent
+                    : undefined
+                }
                 label={l.maxDiscount}
                 value={rules.maxDiscountPercent}
                 onChange={(maxDiscountPercent) => setRules({ ...rules, maxDiscountPercent })}
@@ -550,12 +571,14 @@ function Field(props: {
   label: string;
   value: string;
   decimal?: boolean;
+  error?: string;
   onChange: (value: string) => void;
 }) {
   return (
     <View style={{ gap: 4 }}>
       <Text style={styles.label}>{props.label}</Text>
-      <TextInput
+      <FormField
+        error={props.error}
         accessibilityLabel={props.label}
         value={props.value}
         onChangeText={props.onChange}
