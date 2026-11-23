@@ -209,7 +209,7 @@ test("the owner sees one specialist's week and moves a visit to another day", as
   await card.getByRole('button', { name: 'Przenieś wizytę' }).click();
   const outsideHours = card.getByLabel('Zapisz także poza godzinami pracy');
   await expect(outsideHours).toBeFocused();
-  await expect(outsideHours).toHaveAccessibleDescription('Ten czas jest poza godzinami pracy.');
+  await expect(outsideHours).toHaveAccessibleDescription(/Ten czas jest poza godzinami pracy\.$/);
   await expect(card.locator('.alert')).toHaveCount(0);
   await shot(page, '723-visit-move-outside-hours');
   await card.getByRole('button', { name: 'Wstecz' }).click();

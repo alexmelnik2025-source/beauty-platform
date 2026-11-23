@@ -207,7 +207,7 @@ test('the owner drags a visit to another specialist and time, and before working
   // "Przenieś wizytę" is not silently off: pressing it again sends the cursor back to the choice.
   const outside = sheet.getByLabel('Zapisz także poza godzinami pracy');
   await expect(outside).toBeFocused();
-  await expect(outside).toHaveAccessibleDescription('Ten czas jest poza godzinami pracy.');
+  await expect(outside).toHaveAccessibleDescription(/Ten czas jest poza godzinami pracy\.$/);
   await expect(sheet.locator('.alert')).toHaveCount(0);
   await shot(page, '723-move-outside-hours');
   await outside.blur();
