@@ -4174,6 +4174,10 @@ zaznaczone (n)»; затем статус (токен …1234, каталог, �
 **Importuj z pliku** — выбор CSV/XML и тот же список с галочками. Ошибки API — понятными словами на 4 языках
 кабинета. e2e `apps/web/e2e/shop-integrations.spec.ts` поднимает заглушку Base на `BASE_API_URL` (в CI —
 `http://127.0.0.1:4790/connector.php`), скриншоты Q4-base-connect, Q4-base-pick, Q4-base-done, Q4-feed (телефон).
+
+Задача 724 (ошибки у поля, 23.11.2026): «Importuj zaznaczone (0)» больше не выключена молча — нажатие без галочек
+пишет под списком «Nic nie zaznaczono — zaznacz produkty z ceną.» и ставит курсор на первую галочку; отмеченный товар
+убирает текст. e2e `shop-integrations`, скриншот `724-import-none-ticked`.
 Когда «Mój sklep» (Q3) будет в main, ссылку на «Integracje» стоит поставить и туда.
 
 ## Base в бизнес-приложении (задача Q4)

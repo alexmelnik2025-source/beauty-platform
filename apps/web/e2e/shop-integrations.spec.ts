@@ -243,7 +243,16 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await baseCard.getByRole('button', { name: 'Wybierz produkty' }).click();
   const picker = baseCard.getByTestId('integration-picker');
   await expect(picker.getByText('Olejek do brody Cedr')).toBeVisible();
+  // Task 724: "Importuj zaznaczone (0)" is not silently off — it says so under the list and puts
+  // the cursor on the first box; ticking a product takes the text away.
+  await picker.getByRole('button', { name: 'Importuj zaznaczone (0)' }).click();
+  await expect(picker.locator('.field-error')).toHaveText(
+    'Nic nie zaznaczono — zaznacz produkty z ceną.',
+  );
+  await expect(picker.locator('ul input[type="checkbox"]:not([disabled])').first()).toBeFocused();
+  await shot(page, '724-import-none-ticked');
   await picker.getByRole('checkbox', { name: /Reuzel Pink Pomade/ }).check();
+  await expect(picker.locator('.field-error')).toHaveCount(0);
   await picker.getByRole('checkbox', { name: 'też online w Sklepie' }).check();
   await shot(page, 'Q4-base-pick');
   await picker.getByRole('button', { name: 'Importuj zaznaczone (1)' }).click();

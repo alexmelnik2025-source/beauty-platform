@@ -2182,6 +2182,7 @@ export const pl = {
     alsoOnline: 'też online w Sklepie',
     narrowDown: 'Pokazano 500 pierwszych — zawęź wyszukiwanie.',
     importTicked: 'Importuj zaznaczone ({n})',
+    noneTicked: 'Nic nie zaznaczono — zaznacz produkty z ceną.',
     imported: 'Gotowe: nowych {created}, zaktualizowanych {updated}, pominiętych {skipped}.',
     importedPhotos: 'Zdjęcia produktów pobrane z linków: {n}.',
     ordersTitle: 'Zamówienia do Base',

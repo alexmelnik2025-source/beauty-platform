@@ -2189,6 +2189,7 @@ export const en: Dict = {
     alsoOnline: 'also online in Shop',
     narrowDown: 'The first 500 are shown — narrow the search.',
     importTicked: 'Import ticked ({n})',
+    noneTicked: 'Nothing is ticked — tick products with a price.',
     imported: 'Done: {created} new, {updated} updated, {skipped} skipped.',
     importedPhotos: 'Product photos taken from links: {n}.',
     ordersTitle: 'Orders to Base',
