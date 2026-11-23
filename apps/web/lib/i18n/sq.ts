@@ -261,6 +261,8 @@ export const sq: Dict = {
     nameInvalid: 'Shkruani emrin.',
     phoneInvalid: 'Kontrolloni numrin e telefonit.',
     emailInvalid: 'Kontrolloni adresën e e-mailit.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Pranoni kushtet për të vazhduar.',
     doneTitle: 'Shihemi së shpejti!',
     doneLead: 'Rezervimi juaj është konfirmuar. Ju dërguam detajet me email.',
     doneTitleApproval: 'Rezervimi u dërgua',

@@ -378,7 +378,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await client.locator('.times button').first().click();
 
   await expect(client.getByText(/Termin czeka na Ciebie/)).toBeVisible();
+  // Task 688 (errors at the field): "Wyślij kod" with nothing typed — each field says what is
+  // missing under it (no browser bubble, no line on top), the cursor on the first one.
+  await client.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(client.locator('#name-error')).toHaveText('Podaj imię.');
+  await expect(client.getByText('Sprawdź numer telefonu.')).toBeVisible();
+  await expect(client.locator('#email-error')).toHaveText('Sprawdź adres e-mail.');
+  await expect(client.locator('#terms-error')).toHaveText('Zaakceptuj regulamin, aby kontynuować.');
+  await expect(client.locator('#booking-name')).toBeFocused();
+  await expect(client.locator('.alert')).toHaveCount(0);
+  await shot(client, '688-booking-details-field-errors');
   await client.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
+  await expect(client.locator('#name-error')).toHaveCount(0);
   // Launch task L5: the salon's country code comes first; another country replaces the code.
   const country = client.getByLabel('Kod kraju');
   await expect(country).toHaveValue('PL');
@@ -394,6 +405,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Task 608: a typo in the address is noticed on the code step and fixed there.
   await client.getByLabel('E-mail').fill(CLIENT.replace('@', '.typo@'));
   await client.getByLabel(/Akceptuję regulamin rezerwacji/).check();
+  await expect(client.locator('#terms-error')).toHaveCount(0);
   await shot(client, '04-client-details');
   // Launch task L1: the consent links to the salon's own booking terms and privacy policy.
   await expect(client.getByRole('link', { name: 'regulamin rezerwacji' })).toHaveAttribute(

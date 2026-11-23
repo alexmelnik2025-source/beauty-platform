@@ -4480,6 +4480,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   5 minut.»), цена не числом, перерыв не 0–120 — каждое под своим полем, курсор на первое (`stepped`, id
   `service-field-*`). «Nowy bon» и «Zapłać bonem»: пустая сумма — «Wpisz kwotę…» под полем. e2e `service-field-errors`,
   `gift-vouchers`, скриншоты `687-service-empty-fields`, `687-voucher-amount-required`.
+- **Шаг «Dane» и «Powiadom mnie, gdy zwolni się termin» — без подсказок браузера** (задача 688): формы с
+  `noValidate`; до отправки `lib/contact-check.ts` (`contactProblems`) проверяет имя, телефон (`+` и 7–15 цифр, как
+  сервер), e-mail (у вошедшего клиента не проверяется — адрес сессии) и галочку регламента — новый ключ
+  `booking.termsRequired` во всех словарях. Ответ сервера `acceptTerms` тоже показывается под галочкой. e2e `booking`,
+  `waitlist`, скриншоты `688-booking-details-field-errors`, `688-waitlist-field-errors`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 

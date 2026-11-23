@@ -570,6 +570,8 @@ export const ru: Dict = {
     nameInvalid: 'Укажите имя.',
     phoneInvalid: 'Проверьте номер телефона.',
     emailInvalid: 'Проверьте адрес e-mail.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Примите правила, чтобы продолжить.',
     doneTitle: 'До встречи!',
     doneLead: 'Запись подтверждена. Детали отправили на e-mail.',
     doneTitleApproval: 'Запись отправлена',

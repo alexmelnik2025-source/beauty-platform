@@ -25,6 +25,7 @@ import type {
   Slot,
 } from '@/lib/types';
 import { formatRating } from '@/lib/location';
+import { CONTACT_ORDER, contactProblems, type ContactField } from '@/lib/contact-check';
 import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { PhoneField } from '../PhoneField';
 import { LanguageBadges, SPOKEN, SPOKEN_SHORT, type Spoken } from '../Languages';
@@ -130,7 +131,7 @@ function saveRemembered(value: RememberedContact | null): void {
   }
 }
 
-type Problems = Partial<Record<'name' | 'phone' | 'email' | 'code', string>>;
+type Problems = Partial<Record<'name' | 'phone' | 'email' | 'code' | 'terms', string>>;
 
 /**
  * Task Q5: the server's answer about the "Dane" or code fields as errors at those fields; null when
@@ -145,14 +146,23 @@ function fieldProblems(t: ReturnType<typeof useI18n>['t'], err: unknown): Proble
     name: t.booking.nameInvalid,
     phone: t.booking.phoneInvalid,
     email: t.booking.emailInvalid,
+    acceptTerms: t.booking.termsRequired,
   } as const;
   const found: Problems = {};
   for (const detail of err.details as { path?: string }[]) {
     const field = detail.path as keyof typeof texts;
-    if (field in texts) found[field] = texts[field];
+    if (field in texts) found[field === 'acceptTerms' ? 'terms' : field] = texts[field];
   }
   return Object.keys(found).length > 0 ? found : null;
 }
+
+/** Task 688: where the cursor goes for an error found before sending ("Dane" step). */
+const DETAILS_FIELD: Record<ContactField, string> = {
+  name: '#booking-name',
+  phone: 'input[type="tel"]',
+  email: 'input[type="email"]',
+  terms: '#booking-terms',
+};
 
 export function BookingFlow({
   slug,
@@ -427,9 +437,39 @@ export function BookingFlow({
     setStep('time');
   }
 
-  async function sendCode(e?: FormEvent) {
+  /**
+   * Task 688 (owner's rule: errors at the field): the "Dane" form has no browser checks (they showed
+   * a bubble), so an empty or wrong name, phone, e-mail or the unticked terms are said under their
+   * field before anything is sent; the cursor goes to the first one. True when all is fine.
+   */
+  function detailsReady(form: HTMLFormElement | null): boolean {
+    const found = contactProblems(
+      {
+        name: contact.name,
+        phone: normalizePhone(contact.phone, dial),
+        // A signed-in client's address is their session's: not typed, not checked here.
+        email: signedInAs ? undefined : contact.email,
+        acceptTerms: contact.acceptTerms,
+      },
+      {
+        name: t.booking.nameInvalid,
+        phone: t.booking.phoneInvalid,
+        email: t.booking.emailInvalid,
+        terms: t.booking.termsRequired,
+      },
+    );
+    const first = CONTACT_ORDER.find((field) => found[field]);
+    if (!first) return true;
+    setError('');
+    setProblems(found);
+    form?.querySelector<HTMLInputElement>(DETAILS_FIELD[first])?.focus();
+    return false;
+  }
+
+  async function sendCode(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
     if (!hold) return;
+    if (step === 'details' && !detailsReady(e?.currentTarget ?? null)) return;
     setBusy(true);
     setError('');
     setProblems({});
@@ -484,9 +524,10 @@ export function BookingFlow({
   }
 
   /** Task 180e: signed in to "My visits" - the session proved the email, no code is needed. */
-  async function confirmSignedIn(e: FormEvent) {
+  async function confirmSignedIn(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!hold) return;
+    if (!detailsReady(e.currentTarget)) return;
     setBusy(true);
     setError('');
     setProblems({});
@@ -1045,7 +1086,11 @@ export function BookingFlow({
         ) : null}
 
         {step === 'details' && hold ? (
-          <form className="form" onSubmit={signedInAs ? confirmSignedIn : sendCode}>
+          <form
+            noValidate
+            className="form"
+            onSubmit={(e) => void (signedInAs ? confirmSignedIn(e) : sendCode(e))}
+          >
             <h2>{t.booking.yourDetails}</h2>
             {signedInAs ? (
               <p className="note small" data-testid="signed-in-as">
@@ -1060,6 +1105,7 @@ export function BookingFlow({
             <label className="field">
               <span>{t.booking.name}</span>
               <input
+                id="booking-name"
                 autoComplete="name"
                 required
                 aria-invalid={problems.name ? true : undefined}
@@ -1104,10 +1150,16 @@ export function BookingFlow({
             </label>
             <label className="check">
               <input
+                id="booking-terms"
                 type="checkbox"
                 required
                 checked={contact.acceptTerms}
-                onChange={(e) => setContact({ ...contact, acceptTerms: e.target.checked })}
+                aria-invalid={problems.terms ? true : undefined}
+                aria-describedby={problems.terms ? 'terms-error' : undefined}
+                onChange={(e) => {
+                  fixed('terms');
+                  setContact({ ...contact, acceptTerms: e.target.checked });
+                }}
               />
               <span>
                 {t.legal.acceptBefore}
@@ -1119,6 +1171,7 @@ export function BookingFlow({
                   {t.legal.acceptPrivacy}
                 </a>
                 {t.legal.acceptAfter}
+                <FieldError id="terms-error" text={problems.terms} />
               </span>
             </label>
             <label className="check">

@@ -155,6 +155,16 @@ test('a full day: the client joins the waiting list and leaves it from the email
   const form = page.getByRole('form', { name: 'Powiadom mnie, gdy zwolni się termin' });
   // The pressed button is gone — the cursor waits in the first field.
   await expect(form.getByLabel('Imię i nazwisko')).toBeFocused();
+  // Task 688 (errors at the field): sent empty — each field says what is missing under it.
+  await form.getByRole('button', { name: 'Zapisz mnie na listę' }).click();
+  await expect(form.locator('#waitlist-name-error')).toHaveText('Podaj imię.');
+  await expect(form.locator('#waitlist-email-error')).toHaveText('Sprawdź adres e-mail.');
+  await expect(form.locator('#waitlist-terms-error')).toHaveText(
+    'Zaakceptuj regulamin, aby kontynuować.',
+  );
+  await expect(form.getByLabel('Imię i nazwisko')).toBeFocused();
+  await expect(form.locator('.alert')).toHaveCount(0);
+  await shot(page, '688-waitlist-field-errors');
   await form.getByLabel('Imię i nazwisko').fill('Anna Kowalska');
   await form.getByLabel('E-mail').fill(ANNA);
   await form.getByRole('checkbox').check();

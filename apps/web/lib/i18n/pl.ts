@@ -565,6 +565,8 @@ export const pl = {
     nameInvalid: 'Podaj imię.',
     phoneInvalid: 'Sprawdź numer telefonu.',
     emailInvalid: 'Sprawdź adres e-mail.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Zaakceptuj regulamin, aby kontynuować.',
     doneTitle: 'Do zobaczenia!',
     doneLead: 'Wizyta jest potwierdzona. Szczegóły wysłaliśmy e-mailem.',
     doneTitleApproval: 'Rezerwacja wysłana',

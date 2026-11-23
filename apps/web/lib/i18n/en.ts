@@ -563,6 +563,8 @@ export const en: Dict = {
     nameInvalid: 'Enter your name.',
     phoneInvalid: 'Check the phone number.',
     emailInvalid: 'Check the e-mail address.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Accept the terms to continue.',
     doneTitle: 'See you soon!',
     doneLead: 'Your booking is confirmed. We emailed you the details.',
     doneTitleApproval: 'Booking sent',

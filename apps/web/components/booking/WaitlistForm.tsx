@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
+import { CONTACT_ORDER, contactProblems, type ContactField } from '@/lib/contact-check';
 import { normalizePhone } from '@/lib/phone';
 import type { WaitlistJoined } from '@/lib/types';
 import { ErrorBox, FieldError } from '../ui';
@@ -13,7 +14,7 @@ import { ErrorBox, FieldError } from '../ui';
  * Task Q8: a client signed in to "My visits" can tick "Zapisz mnie automatycznie, gdy zwolni się
  * termin" (with a phone): the first time that frees up is booked for them at once.
  */
-type Problems = Partial<Record<'name' | 'phone' | 'email', string>>;
+type Problems = Partial<Record<'name' | 'phone' | 'email' | 'terms', string>>;
 
 /**
  * Task Q5 (errors at the field): the server's answer about the name, phone or e-mail as errors at
@@ -26,14 +27,23 @@ function fieldProblems(t: ReturnType<typeof useI18n>['t'], err: unknown): Proble
     name: t.booking.nameInvalid,
     phone: t.booking.phoneInvalid,
     email: t.booking.emailInvalid,
+    acceptTerms: t.booking.termsRequired,
   } as const;
   const found: Problems = {};
   for (const detail of err.details as { path?: string }[]) {
     const field = detail.path as keyof typeof texts;
-    if (field in texts) found[field] = texts[field];
+    if (field in texts) found[field === 'acceptTerms' ? 'terms' : field] = texts[field];
   }
   return Object.keys(found).length > 0 ? found : null;
 }
+
+/** Task 688: where the cursor goes for an error found before sending. */
+const WAITLIST_FIELD: Record<ContactField, string> = {
+  name: '#waitlist-name',
+  phone: 'input[type="tel"]',
+  email: 'input[type="email"]',
+  terms: '#waitlist-terms',
+};
 
 export function WaitlistForm(props: {
   slug: string;
@@ -63,9 +73,9 @@ export function WaitlistForm(props: {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
+    const form = e.currentTarget;
     setError('');
     setProblems({});
     const common = {
@@ -77,11 +87,30 @@ export function WaitlistForm(props: {
       acceptTerms: accept,
     };
     const typedPhone = phone.trim() ? normalizePhone(phone, props.dial) : '';
-    if (signedIn && auto && !typedPhone) {
-      setBusy(false);
-      setProblems({ phone: t.booking.waitlistAutoPhone });
+    // Task 688 (owner's rule: errors at the field): no browser checks (they showed a bubble) — an
+    // empty or wrong field and the unticked terms are said under them; the cursor to the first.
+    const found = contactProblems(
+      {
+        name,
+        phone: signedIn && auto && typedPhone ? typedPhone : undefined,
+        email: signedIn ? undefined : email,
+        acceptTerms: accept,
+      },
+      {
+        name: t.booking.nameInvalid,
+        phone: t.booking.phoneInvalid,
+        email: t.booking.emailInvalid,
+        terms: t.booking.termsRequired,
+      },
+    );
+    if (signedIn && auto && !typedPhone) found.phone = t.booking.waitlistAutoPhone;
+    const first = CONTACT_ORDER.find((field) => found[field]);
+    if (first) {
+      setProblems(found);
+      form.querySelector<HTMLInputElement>(WAITLIST_FIELD[first])?.focus();
       return;
     }
+    setBusy(true);
     try {
       if (signedIn) {
         // Task Q8: the signed-in client's own list (the email is theirs, confirmed already).
@@ -134,12 +163,18 @@ export function WaitlistForm(props: {
     );
   }
   return (
-    <form className="form stack" onSubmit={submit} aria-label={t.booking.waitlistOpen}>
+    <form
+      noValidate
+      className="form stack"
+      onSubmit={(e) => void submit(e)}
+      aria-label={t.booking.waitlistOpen}
+    >
       <p className="small muted">{t.booking.waitlistHint}</p>
       <ErrorBox>{error}</ErrorBox>
       <label className="field">
         <span>{t.booking.name}</span>
         <input
+          id="waitlist-name"
           required
           maxLength={100}
           // The button the client pressed is gone — the cursor goes to the first field.
@@ -210,10 +245,16 @@ export function WaitlistForm(props: {
       ) : null}
       <label className="check">
         <input
+          id="waitlist-terms"
           type="checkbox"
           required
           checked={accept}
-          onChange={(e) => setAccept(e.target.checked)}
+          aria-invalid={problems.terms ? true : undefined}
+          aria-describedby={problems.terms ? 'waitlist-terms-error' : undefined}
+          onChange={(e) => {
+            fixed('terms');
+            setAccept(e.target.checked);
+          }}
         />
         <span>
           {t.legal.acceptBefore}
@@ -225,6 +266,7 @@ export function WaitlistForm(props: {
             {t.legal.acceptPrivacy}
           </a>
           {t.legal.acceptAfter}
+          <FieldError id="waitlist-terms-error" text={problems.terms} />
         </span>
       </label>
       <button className="btn" disabled={busy}>

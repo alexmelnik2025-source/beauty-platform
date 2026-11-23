@@ -4050,3 +4050,9 @@ ul.wish-photos {
   border-color: var(--signal);
   box-shadow: 0 0 0 1px var(--signal);
 }
+
+/* Task 688: the terms box left unticked — a red ring around it, the line under its text. */
+.check input[type='checkbox'][aria-invalid='true'] {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}

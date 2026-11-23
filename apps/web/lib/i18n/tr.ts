@@ -258,6 +258,8 @@ export const tr: Dict = {
     nameInvalid: 'Adınızı yazın.',
     phoneInvalid: 'Telefon numarasını kontrol edin.',
     emailInvalid: 'E-posta adresini kontrol edin.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Devam etmek için koşulları kabul edin.',
     doneTitle: 'Görüşmek üzere!',
     doneLead: 'Randevunuz onaylandı. Ayrıntıları e-postayla gönderdik.',
     doneTitleApproval: 'Rezervasyon gönderildi',

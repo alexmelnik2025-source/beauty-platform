@@ -564,6 +564,8 @@ export const uk: Dict = {
     nameInvalid: 'Вкажіть ім’я.',
     phoneInvalid: 'Перевірте номер телефону.',
     emailInvalid: 'Перевірте адресу e-mail.',
+    /** Task 688: the terms box left unticked, said under it. */
+    termsRequired: 'Прийміть правила, щоб продовжити.',
     doneTitle: 'До зустрічі!',
     doneLead: 'Запис підтверджено. Деталі надіслали на e-mail.',
     doneTitleApproval: 'Запис надіслано',
