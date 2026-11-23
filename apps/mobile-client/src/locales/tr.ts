@@ -109,6 +109,8 @@ export const tr: Dictionary = {
     loadingSlots: 'Boş saatler aranıyor…',
   },
   review: {
+    badRating: '1 ile 5 arasında bir puan seçin.',
+    badText: 'Yorumunuzu 1000 karakterle sınırlayın.',
     title: 'Yorumunuz',
     ask: '{staff} ile ziyaretiniz nasıldı?',
     rating: 'Puan',
@@ -174,6 +176,8 @@ export const tr: Dictionary = {
     coupon: { active: 'aktif', used: 'kullanıldı', expired: 'süresi doldu' },
   },
   wishStep: {
+    badChoice: 'Mevcut yanıtlardan birini seçin.',
+    badNote: 'Notunuzu 200 karakterle sınırlayın.',
     title: 'İstekleriniz',
     add: '+ İstek ekle',
     lead: 'İsteğe bağlı — tek dokunuş veya “Atla”. Uzman ziyaretten önce görür.',
@@ -487,6 +491,7 @@ export const tr: Dictionary = {
     massage: 'Masaj',
   },
   language: 'Dil',
+  badLanguage: 'Mevcut dillerden birini seçin.',
   retry: 'Tekrar dene',
   error: {
     bookByPhone: 'Bu salon randevunuzu telefonla almanızı istiyor. Lütfen salonu arayın.',

@@ -3,6 +3,7 @@ import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Text, View } f
 import {
   addDays,
   ApiError,
+  newRequestKey,
   todayIn,
   type BookingConfirmed,
   type ClientApi,
@@ -31,10 +32,20 @@ import {
   type ContactProblem,
 } from '../booking';
 import { API_URL, WEB_URL } from '../config';
+import { FormFeedback } from '../FormFeedback';
 import { WishesPicker } from '../WishesPicker';
 import { WishPhotosPicker } from '../WishPhotosPicker';
 import { asksWishes, NO_WISHES, wishesToSend, type VisitWishes } from '../wishes';
-import { errorText, isCodeError, validationField } from '../errors';
+import {
+  errorText,
+  formFailure,
+  isCodeError,
+  isNetworkError,
+  validationField,
+  wishFields,
+  type FormFailure,
+  type WishField,
+} from '../errors';
 import { paymentNoticeAmount } from '../paymentNotice';
 import {
   ANY_STAFF,
@@ -141,7 +152,14 @@ export function BookingScreen(props: {
   const [shareInfo, setShareInfo] = useState('');
   const [invalidContact, setInvalidContact] = useState<ContactProblem | null>(null);
   const [codeError, setCodeError] = useState('');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FormFailure | null>(null);
+  const [invalidWish, setInvalidWish] = useState<WishField>();
+  const setError = useCallback((message: string) => setFailure(message ? { message } : null), []);
+  const fail = useCallback(
+    (error: unknown, retry: () => void) =>
+      setFailure(formFailure(error, t, retry, bookingErrorText(error, t))),
+    [t],
+  );
   const [busy, setBusy] = useState(false);
   const [, tick] = useState(0);
   const holdRef = useRef<Hold | null>(null);
@@ -184,6 +202,7 @@ export function BookingScreen(props: {
 
   const loadSlots = useCallback(async () => {
     setSlots(null);
+    setFailure((current) => (current?.retry ? null : current));
     const from = todayIn(salon.timezone);
     try {
       const res = await api.availability(salon.slug, {
@@ -199,9 +218,9 @@ export function BookingScreen(props: {
       );
     } catch (e) {
       setSlots([]);
-      setError(bookingErrorText(e, t));
+      fail(e, () => void loadSlots());
     }
-  }, [api, salon.slug, salon.timezone, serviceId, staffId, rowStaff, t]);
+  }, [api, salon.slug, salon.timezone, serviceId, staffId, rowStaff, fail]);
 
   useEffect(() => {
     if (step === 'time') void loadSlots();
@@ -270,7 +289,7 @@ export function BookingScreen(props: {
     else if (step === 'details') setStep('time');
     else if (step === 'code') setStep('details');
     else props.onBack();
-  }, [step, staffList.length, props, presetStep, fromList, currentNotice]);
+  }, [step, staffList.length, props, presetStep, fromList, currentNotice, setError]);
 
   // Android "back" goes one step back.
   useEffect(() => {
@@ -316,21 +335,26 @@ export function BookingScreen(props: {
     }
   }
 
-  async function pickTime(slot: Slot) {
+  async function pickTime(slot: Slot, key = newRequestKey()) {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const created = await api.hold(salon.slug, {
-        serviceId,
-        ...(staffId ? { staffId } : rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
-        start: slot.start,
-        ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
-      });
+      const created = await api.hold(
+        salon.slug,
+        {
+          serviceId,
+          ...(staffId ? { staffId } : rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
+          start: slot.start,
+          ...(hold ? { releaseHoldToken: hold.holdToken } : {}),
+        },
+        key,
+      );
       setPayNotice(null);
       setHold(created);
       setStep('details');
     } catch (e) {
-      setError(bookingErrorText(e, t));
+      fail(e, () => void pickTime(slot, key));
       if (afterBookingError(e) === 'reloadTimes') await loadSlots();
     } finally {
       setBusy(false);
@@ -345,18 +369,30 @@ export function BookingScreen(props: {
   }
 
   function updateContact(field: 'name' | 'email' | 'phone', value: string) {
+    setFailure(null);
     if (invalidContact === field) setInvalidContact(null);
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function contactError(e: unknown) {
+  function contactError(e: unknown, retry: () => void) {
     const field = validationField(e, ['name', 'phone', 'email', 'acceptTerms']);
     if (field) {
       setInvalidContact(field === 'acceptTerms' ? 'terms' : field);
       setStep('details');
     } else {
-      setError(bookingErrorText(e, t));
+      fail(e, retry);
     }
+  }
+
+  function showWishError(error: unknown): boolean {
+    const field = validationField(
+      error,
+      wishFields.map((field) => `wishes.${field}` as const),
+    );
+    if (!field) return false;
+    setInvalidWish(wishFields.find((key) => field === `wishes.${key}`));
+    setWishesOpen(true);
+    return true;
   }
 
   async function sendCode() {
@@ -379,7 +415,7 @@ export function BookingScreen(props: {
       setStep('code');
     } catch (e) {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else contactError(e);
+      else contactError(e, () => void sendCode());
     } finally {
       setBusy(false);
     }
@@ -390,13 +426,14 @@ export function BookingScreen(props: {
       setPayNotice({ holdId, amount: paymentNoticeAmount(error.details) });
       return true;
     }
-    setPayNotice(null);
+    if (!isNetworkError(error)) setPayNotice(null);
     return false;
   }
 
   /** Task 180e: signed in - no code; the visit is booked with the session's email. */
   async function confirmSignedIn(payNoticeAccepted = false) {
     if (!hold || busy) return;
+    setInvalidWish(undefined);
     setError('');
     setCodeError('');
     setInvalidContact(null);
@@ -424,15 +461,17 @@ export function BookingScreen(props: {
     } catch (e) {
       if (showPayNotice(e, hold.holdId)) return;
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
-      else contactError(e);
+      else if (!showWishError(e)) contactError(e, () => void confirmSignedIn(payNoticeAccepted));
     } finally {
       setBusy(false);
     }
   }
 
   async function confirm(payNoticeAccepted = false) {
-    if (!hold || code.length !== 6 || busy) return;
+    if (!hold || busy) return;
+    if (code.length !== 6) return setCodeError(t.signIn.badCode);
     setCodeError('');
+    setInvalidWish(undefined);
     setBusy(true);
     setError('');
     try {
@@ -450,7 +489,8 @@ export function BookingScreen(props: {
       if (showPayNotice(e, hold.holdId)) return;
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
       else if (isCodeError(e)) setCodeError(bookingErrorText(e, t));
-      else setError(bookingErrorText(e, t));
+      else if (validationField(e, ['code'])) setCodeError(t.signIn.badCode);
+      else if (!showWishError(e)) fail(e, () => void confirm(payNoticeAccepted));
     } finally {
       setBusy(false);
     }
@@ -533,7 +573,7 @@ export function BookingScreen(props: {
         </Text>
       ) : null}
 
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
 
       {step === 'service' ? (
         <View style={{ gap: 12 }}>
@@ -852,6 +892,7 @@ export function BookingScreen(props: {
             <FieldInput
               accessibilityLabel={b.name}
               error={invalidContact === 'name' ? PROBLEM_TEXT.name(t) : undefined}
+              editable={!busy}
               value={form.name}
               onChangeText={(value) => updateContact('name', value)}
               autoComplete="name"
@@ -863,6 +904,7 @@ export function BookingScreen(props: {
             <FieldInput
               accessibilityLabel={b.phone}
               error={invalidContact === 'phone' ? PROBLEM_TEXT.phone(t) : undefined}
+              editable={!busy}
               value={form.phone}
               onChangeText={(value) => updateContact('phone', value)}
               autoComplete="tel"
@@ -876,7 +918,7 @@ export function BookingScreen(props: {
               accessibilityLabel={b.email}
               error={invalidContact === 'email' ? PROBLEM_TEXT.email(t) : undefined}
               // Task 180e: the email of the signed-in client - the visit goes to their account.
-              editable={!props.signedIn}
+              editable={!props.signedIn && !busy}
               value={form.email}
               onChangeText={(value) => updateContact('email', value)}
               autoCapitalize="none"
@@ -891,6 +933,8 @@ export function BookingScreen(props: {
             checked={form.acceptTerms}
             error={invalidContact === 'terms'}
             onChange={(acceptTerms) => {
+              if (busy) return;
+              setFailure(null);
               if (invalidContact === 'terms') setInvalidContact(null);
               setForm({ ...form, acceptTerms });
             }}
@@ -911,7 +955,11 @@ export function BookingScreen(props: {
           <Check
             label={b.marketing}
             checked={form.marketingConsent}
-            onChange={(marketingConsent) => setForm({ ...form, marketingConsent })}
+            onChange={(marketingConsent) => {
+              if (busy) return;
+              setFailure(null);
+              setForm({ ...form, marketingConsent });
+            }}
           />
           {props.signedIn ? (
             <Button label={b.confirm} onPress={() => void confirmSignedIn()} busy={busy} />
@@ -928,7 +976,13 @@ export function BookingScreen(props: {
               t={t}
               questions={salon.wishQuestions}
               value={wishes}
-              onChange={setWishes}
+              invalid={invalidWish}
+              onChange={(value) => {
+                if (busy) return;
+                setWishes(value);
+                setInvalidWish(undefined);
+                setFailure(null);
+              }}
             />
           ) : null}
           {props.signedIn && wishesOpen && service?.wishPhotos ? (
@@ -949,8 +1003,10 @@ export function BookingScreen(props: {
             placeholder="000000"
             placeholderTextColor={colors.line}
             value={code}
+            editable={!busy}
             onChangeText={(v) => {
               setCodeError('');
+              setFailure(null);
               setCode(v.replace(/\D/g, '').slice(0, 6));
             }}
             onSubmitEditing={() => void confirm()}
@@ -976,7 +1032,13 @@ export function BookingScreen(props: {
               t={t}
               questions={salon.wishQuestions}
               value={wishes}
-              onChange={setWishes}
+              invalid={invalidWish}
+              onChange={(value) => {
+                if (busy) return;
+                setWishes(value);
+                setInvalidWish(undefined);
+                setFailure(null);
+              }}
             />
           ) : null}
           {wishesOpen && service?.wishPhotos ? (
