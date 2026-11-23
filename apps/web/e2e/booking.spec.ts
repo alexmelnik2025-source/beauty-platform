@@ -1269,7 +1269,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     .setInputFiles([await testPhoto(ownerPage, 'lustro.png', 800, 600)]);
   await expect(photosCard.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(ownerPage.getByLabel('Dodaj zdjęcia')).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    '! Zbyt wiele prób. Odczekaj chwilę.',
   );
   await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
   await ownerPage.unrouteAll({ behavior: 'wait' });
@@ -1280,7 +1280,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Zdjęcie salonu 1: Zbyt wiele prób. Odczekaj chwilę.',
   );
   await expect(removeFirst).toHaveAccessibleDescription(
-    'Zdjęcie salonu 1: Zbyt wiele prób. Odczekaj chwilę.',
+    '! Zdjęcie salonu 1: Zbyt wiele prób. Odczekaj chwilę.',
   );
   await expect(photosCard.locator('.alert')).toHaveCount(0);
   await expect(ownerPage.getByText('2 z 10', { exact: true })).toBeVisible();
