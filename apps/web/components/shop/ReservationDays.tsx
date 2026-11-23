@@ -37,6 +37,12 @@ export function ReservationDays({ base }: { base: string }) {
    * and the server's answer about the number, too. Typing takes it away.
    */
   const [daysProblem, setDaysProblem] = useState('');
+  /**
+   * Task 743 (owner's rule: errors where the action is): any other refusal of "Zapisz" (no
+   * connection, too many tries, changed on another device) is said under the button, not as a
+   * line above the field. The top line stays only for a card that failed to load.
+   */
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     api<Location>(base)
@@ -54,13 +60,13 @@ export function ReservationDays({ base }: { base: string }) {
     setSaved(false);
     const n = Number(days);
     if (!/^\d{1,2}$/.test(days.trim()) || n < 1 || n > 90) {
-      setError('');
+      setSaveError('');
       setDaysProblem(s.reservationDaysInvalid);
       e.currentTarget.querySelector<HTMLInputElement>('input[name="reservation-days"]')?.focus();
       return;
     }
     setBusy(true);
-    setError('');
+    setSaveError('');
     setDaysProblem('');
     try {
       const next = await api<Location>(base, {
@@ -72,7 +78,7 @@ export function ReservationDays({ base }: { base: string }) {
       setSaved(true);
     } catch (err) {
       if (daysPathOf(err)) setDaysProblem(s.reservationDaysInvalid);
-      else setError(errorText(t, err));
+      else setSaveError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -92,7 +98,6 @@ export function ReservationDays({ base }: { base: string }) {
       {canEdit ? (
         <>
           <p className="small muted">{s.reservationDaysHint}</p>
-          {error ? <ErrorBox>{error}</ErrorBox> : null}
           <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <label className="field">
               <span>{s.reservationDays}</span>
@@ -108,14 +113,21 @@ export function ReservationDays({ base }: { base: string }) {
                   setDays(e.target.value);
                   setSaved(false);
                   setDaysProblem('');
+                  setSaveError('');
                 }}
               />
               <FieldError id="reservation-days-error" text={daysProblem} />
             </label>
-            <button type="submit" className="btn" disabled={busy}>
+            <button
+              type="submit"
+              className="btn"
+              disabled={busy}
+              aria-describedby={saveError ? 'reservation-days-save-error' : undefined}
+            >
               {t.common.save}
             </button>
           </div>
+          <FieldError id="reservation-days-save-error" text={saveError} />
           {saved ? (
             <p className="note" role="status">
               {t.actions.saved}

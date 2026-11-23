@@ -93,7 +93,28 @@ test('"Mój sklep": how long a product put aside waits after the visit (task Q3)
 
   await field.fill('7');
   await expect(box.locator('.field-error')).toHaveCount(0);
-  await box.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 743: any other refusal of "Zapisz" is said under the button, not above the field.
+  await page.route('**/locations/*', (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveButton = box.getByRole('button', { name: 'Zapisz' });
+  await saveButton.click();
+  await expect(box.locator('#reservation-days-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(box.locator('.alert')).toHaveCount(0);
+  await expect(field).not.toHaveAttribute('aria-invalid', 'true');
+  await box.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'e2e/screenshots/743-reservation-days-save-error.png' });
+  await page.unrouteAll({ behavior: 'wait' });
+  await saveButton.click();
+  await expect(box.locator('.field-error')).toHaveCount(0);
   await expect(box.getByRole('status')).toHaveText('Zapisano');
   await box.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'e2e/screenshots/Q3-reservation-days.png', fullPage: true });

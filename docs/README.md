@@ -748,6 +748,9 @@ pnpm --filter @beauty/api-client generate
   «Dni po wizycie» (раньше — строкой над полем), курсор туда; ответ сервера о `shopReservationDays` — тоже у поля.
   Ввод убирает ошибку. e2e `team-invite`, `shop-reservation-days`, скриншоты `683-team-category-name-error`,
   `683-reservation-days-error`.
+- Задача 743 (24.11.2026): любой другой отказ «Zapisz» в этой карточке (нет связи, «Zbyt wiele prób», изменено на
+  другом устройстве) — под кнопкой «Zapisz» (с «!»), а не строкой над полем; строка сверху осталась только для
+  карточки, которая не загрузилась. Ввод убирает ошибку. Скриншот `743-reservation-days-save-error`.
 
 ## Смена каталога Base и пустые списки у поля (задача 707, 23.11.2026)
 
