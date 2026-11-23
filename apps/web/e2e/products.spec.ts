@@ -180,6 +180,12 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await newBarcode.fill('');
   await newForm.getByLabel('Nowy produkt').fill('');
   await newPrice.fill('');
+  // Task 708: "+ Dodaj produkt" is not silently off — an empty name and price say so under them.
+  await newForm.getByRole('button', { name: '+ Dodaj produkt' }).click();
+  await expect(newForm.getByText('Uzupełnij to pole.')).toHaveCount(2);
+  await expect(newForm.getByLabel('Nowy produkt')).toBeFocused();
+  await expect(products.getByTestId('product-row')).toHaveCount(2);
+  await shot(page, '708-product-new-required');
   await products.getByText('Więcej ▸', { exact: true }).click();
   await products.getByLabel('Cena — Pomada matowa').fill('49');
   // Task 430: the salon counts the pomades — two left in stock.

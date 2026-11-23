@@ -30,7 +30,7 @@ function parseCost(value: string): number | null | undefined {
 }
 
 /** Task 663: the fields of the new-product form that can be wrong. */
-type NewField = 'price' | 'stock' | 'cost' | 'low' | 'barcode';
+type NewField = 'name' | 'price' | 'stock' | 'cost' | 'low' | 'barcode';
 
 /**
  * Task 663 (owner's rule: errors at the field): which field of the new-product form the server's
@@ -43,6 +43,7 @@ function newProductFieldOf(err: unknown): NewField | null {
   if (err.code !== 'VALIDATION_ERROR' || !Array.isArray(err.details)) return null;
   const paths = (err.details as { path?: string }[]).map((d) => d.path);
   const byPath: [string, NewField][] = [
+    ['name', 'name'],
     ['priceGrosze', 'price'],
     ['stockQuantity', 'stock'],
     ['purchasePriceGrosze', 'cost'],
@@ -120,6 +121,8 @@ export function ProductsSection({ base }: { base: string }) {
    * field, the other answers under the form, and "Więcej ▸" opened when a wrong field is inside.
    */
   const [left, setLeft] = useState<Set<NewField>>(new Set());
+  /** Task 708: "+ Dodaj" was pressed — an empty name or price is said under it from then on. */
+  const [tried, setTried] = useState(false);
   const [serverError, setServerError] = useState<{ field: NewField; text: string } | null>(null);
   const [addError, setAddError] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
@@ -283,8 +286,17 @@ export function ProductsSection({ base }: { base: string }) {
   const csvFor = suppliers.includes(csvSupplier) ? csvSupplier : '';
   const toOrder = (products ?? []).filter((x) => x.active && (x.lowStock || x.stockQuantity === 0));
   /** Task 663: what is wrong in each field of the new-product form ('' = fine). */
+  const missingName = name.trim() === '';
+  const missingPrice = price.trim() === '';
   const wrongNow: Record<NewField, string> = {
-    price: price.trim() !== '' && newPrice === null ? p.wrongPrice : '',
+    name: tried && missingName ? t.onboarding.fieldRequired : '',
+    price: missingPrice
+      ? tried
+        ? t.onboarding.fieldRequired
+        : ''
+      : newPrice === null
+        ? p.wrongPrice
+        : '',
     stock: newStock === undefined ? p.wrongStock : '',
     cost: newCost === undefined ? p.wrongPrice : '',
     low: newLow === undefined ? p.wrongStock : '',
@@ -305,13 +317,17 @@ export function ProductsSection({ base }: { base: string }) {
   const clearServer = (field: NewField) => {
     if (serverError?.field === field) setServerError(null);
   };
-  // Task 663: the button works once there is a name and a price; a wrong field then says why.
-  const canAdd = name.trim() !== '' && price.trim() !== '' && !busy;
+  // Task 708: the button always works (not silently off) — an empty name or price says so under it.
+  const canAdd = !busy;
 
   async function addProduct() {
     const fields = Object.keys(wrongNow) as NewField[];
-    const wrong = fields.filter((field) => wrongNow[field]);
+    const wrong = fields.filter(
+      (field) =>
+        wrongNow[field] || (field === 'name' && missingName) || (field === 'price' && missingPrice),
+    );
     if (wrong.length > 0) {
+      setTried(true);
       setLeft(new Set(fields));
       if (wrong.some((field) => field === 'cost' || field === 'low' || field === 'barcode')) {
         setMoreOpen(true);
@@ -346,6 +362,7 @@ export function ProductsSection({ base }: { base: string }) {
       setSupplier('');
       setBarcode('');
       setLeft(new Set());
+      setTried(false);
       await load();
     } catch (err) {
       const field = newProductFieldOf(err);
@@ -934,7 +951,16 @@ export function ProductsSection({ base }: { base: string }) {
         <div className="row" style={{ alignItems: 'end', flexWrap: 'wrap' }}>
           <label className="field">
             <span>{p.newName}</span>
-            <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+            <input
+              value={name}
+              maxLength={80}
+              {...newFieldProps('name')}
+              onChange={(e) => {
+                setName(e.target.value);
+                clearServer('name');
+              }}
+            />
+            <FieldError id="product-new-name-error" text={newFieldError('name')} />
           </label>
           <label className="field">
             <span>
