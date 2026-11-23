@@ -636,6 +636,19 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   });
   await expect(client.getByRole('button', { name: 'Zainstaluj aplikację' })).toBeVisible();
   await shot(client, '07f-client-install-app');
+  // Task 733 (owner's rule: errors where the action is): a failed "Pobierz moje dane" is said
+  // under that button, not as a line above the visits.
+  await client.route('**/v1/client/export', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const dataButton = client.getByRole('button', { name: 'Pobierz moje dane' });
+  await dataButton.click();
+  await expect(dataButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(client.locator('#visits-download-error')).toBeVisible();
+  await expect(client.locator('.alert')).toHaveCount(0);
+  await dataButton.scrollIntoViewIfNeeded();
+  await shot(client, '733-client-download-data-error');
+  await client.unrouteAll({ behavior: 'wait' });
   // "Download my data" (GDPR): a JSON file with the card, visits and bonuses in every salon.
   const [download] = await Promise.all([
     client.waitForEvent('download'),

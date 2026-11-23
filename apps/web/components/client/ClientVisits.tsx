@@ -292,11 +292,14 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
   }, [load]);
 
   const [downloading, setDownloading] = useState(false);
+  // Task 733 (owner's rule: errors where the action is): a failed "Pobierz moje dane" is said under
+  // that button at the bottom, not as a line above the visits where nobody looking at it sees it.
+  const [downloadError, setDownloadError] = useState('');
 
   /** GDPR access and portability (task 40): everything the salons keep, as a JSON file. */
   async function downloadData() {
     setDownloading(true);
-    setError('');
+    setDownloadError('');
     try {
       const data = await api<ClientDataExport>('/v1/client/export', { auth: false });
       const url = URL.createObjectURL(
@@ -311,7 +314,7 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onSignedOut();
-      else setError(errorText(t, err));
+      else setDownloadError(errorText(t, err));
     } finally {
       setDownloading(false);
     }
@@ -432,10 +435,12 @@ function VisitList({ person, onSignedOut }: { person: ClientPerson; onSignedOut:
         type="button"
         className="link-btn small"
         disabled={downloading}
+        aria-describedby={downloadError ? 'visits-download-error' : undefined}
         onClick={() => void downloadData()}
       >
         {t.visits.downloadData}
       </button>
+      <FieldError id="visits-download-error" text={downloadError || undefined} />
       <button type="button" className="link-btn small" onClick={() => void signOut()}>
         {t.common.signOut}
       </button>

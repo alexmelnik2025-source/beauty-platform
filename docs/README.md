@@ -699,6 +699,11 @@ pnpm --filter @beauty/api-client generate
   «Pokaż więcej» выключена — второе нажатие больше не добавляет те же отзывы дважды. Смена фильтра убирает старые
   ошибки. e2e `reviews`, скриншот `731-cabinet-reviews-csv-error`.
 
+## Ошибка у кнопки: «Pobierz moje dane» в «Moje wizyty» (задача 733, 23.11.2026)
+
+- Клиент → «Moje wizyty» → «Pobierz moje dane»: если файл не удалось получить, ответ стоит прямо под кнопкой (красный
+  «!»), а не строкой над списком визитов вверху страницы. e2e `booking`, скриншот `733-client-download-data-error`.
+
 ## Ошибки у строки: «Cofnij płatność» и «Zapłać bonem» в «Bony podarunkowe» (задача 732, 23.11.2026)
 
 - Кабинет → «Bony podarunkowe» → карточка бона: если сервер не дал отменить плату («Cofnij płatność» → «Tak, cofnij»),
