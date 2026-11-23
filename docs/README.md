@@ -699,6 +699,12 @@ pnpm --filter @beauty/api-client generate
   «Pokaż więcej» выключена — второе нажатие больше не добавляет те же отзывы дважды. Смена фильтра убирает старые
   ошибки. e2e `reviews`, скриншот `731-cabinet-reviews-csv-error`.
 
+## Ошибка у салона: «Usuń z ulubionych» в «Ulubione» (задача 734, 23.11.2026)
+
+- Клиент → «Moje wizyty» → «Ulubione» → «Usuń z ulubionych»: если сервер отказал, ответ стоит под кнопками этого салона
+  (красный «!»), салон остаётся в списке; вверху списка общей строки нет. e2e `web-favorites`, скриншот
+  `734-site-favorite-remove-error`.
+
 ## Ошибка у кнопки: «Pobierz moje dane» в «Moje wizyty» (задача 733, 23.11.2026)
 
 - Клиент → «Moje wizyty» → «Pobierz moje dane»: если файл не удалось получить, ответ стоит прямо под кнопкой (красный

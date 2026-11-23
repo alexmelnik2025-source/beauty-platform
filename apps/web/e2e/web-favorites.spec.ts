@@ -202,7 +202,24 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     const card = page.getByRole('article', { name: SALON });
     await expect(card.getByRole('link', { name: 'Umów wizytę' })).toBeVisible();
     await shot(page, '404-site-favorites');
-    await card.getByRole('button', { name: `Usuń z ulubionych: ${SALON}` }).click();
+    // Task 734 (owner's rule: errors where the action is): a refused removal is said under the
+    // salon's buttons, not as a line above the list; the salon stays.
+    await page.route('**/v1/client/favorites/*', (route) =>
+      route.request().method() === 'DELETE'
+        ? route.fulfill({
+            status: 429,
+            json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+          })
+        : route.fallback(),
+    );
+    const removeButton = card.getByRole('button', { name: `Usuń z ulubionych: ${SALON}` });
+    await removeButton.click();
+    await expect(card.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+    await expect(removeButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+    await expect(page.locator('.alert')).toHaveCount(0);
+    await shot(page, '734-site-favorite-remove-error');
+    await page.unrouteAll({ behavior: 'wait' });
+    await removeButton.click();
     await expect(page.getByRole('article', { name: SALON })).toHaveCount(0);
     await expect(
       page.getByText('Nie masz jeszcze ulubionych salonów.', { exact: false }),

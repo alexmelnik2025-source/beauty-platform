@@ -6,7 +6,7 @@ import { OpenNow } from '@/components/OpenNow';
 import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import type { ClientFavorites as Favorites, FavoriteSalon } from '@/lib/types';
-import { ErrorBox, Spinner } from '../ui';
+import { ErrorBox, FieldError, Spinner } from '../ui';
 
 /**
  * Task 404: "Ulubione" in "Moje wizyty" on the site, as in the client app (task 61): the saved
@@ -18,6 +18,9 @@ export function ClientFavorites({ onSignedOut }: { onSignedOut: () => void }) {
   const [items, setItems] = useState<FavoriteSalon[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  // Task 734 (owner's rule: errors where the action is): a refused "Usuń z ulubionych" is said
+  // under that salon's buttons, not as a line above the list.
+  const [removeError, setRemoveError] = useState<{ slug: string; text: string } | null>(null);
 
   useEffect(() => {
     api<Favorites>('/v1/client/favorites', { auth: false })
@@ -30,7 +33,7 @@ export function ClientFavorites({ onSignedOut }: { onSignedOut: () => void }) {
 
   async function remove(slug: string) {
     setBusy(slug);
-    setError('');
+    setRemoveError(null);
     try {
       await api(`/v1/client/favorites/${encodeURIComponent(slug)}`, {
         method: 'DELETE',
@@ -39,7 +42,7 @@ export function ClientFavorites({ onSignedOut }: { onSignedOut: () => void }) {
       setItems((list) => (list ?? []).filter((s) => s.slug !== slug));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onSignedOut();
-      else setError(errorText(t, err));
+      else setRemoveError({ slug, text: errorText(t, err) });
     } finally {
       setBusy(null);
     }
@@ -76,11 +79,19 @@ export function ClientFavorites({ onSignedOut }: { onSignedOut: () => void }) {
                   className="btn btn--quiet btn--small"
                   aria-label={`${t.favorites.remove}: ${salon.name}`}
                   disabled={busy === salon.slug}
+                  aria-describedby={
+                    removeError?.slug === salon.slug
+                      ? `favorite-remove-error-${salon.slug}`
+                      : undefined
+                  }
                   onClick={() => void remove(salon.slug)}
                 >
                   {t.favorites.remove}
                 </button>
               </div>
+              {removeError?.slug === salon.slug ? (
+                <FieldError id={`favorite-remove-error-${salon.slug}`} text={removeError.text} />
+              ) : null}
             </article>
           </li>
         ))}
