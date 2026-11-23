@@ -699,6 +699,13 @@ pnpm --filter @beauty/api-client generate
   «Pokaż więcej» выключена — второе нажатие больше не добавляет те же отзывы дважды. Смена фильтра убирает старые
   ошибки. e2e `reviews`, скриншот `731-cabinet-reviews-csv-error`.
 
+## Ошибки у строки: «Cofnij płatność» и «Zapłać bonem» в «Bony podarunkowe» (задача 732, 23.11.2026)
+
+- Кабинет → «Bony podarunkowe» → карточка бона: если сервер не дал отменить плату («Cofnij płatność» → «Tak, cofnij»),
+  ответ стоит под строкой этой платы (красный «!»), плата остаётся; отказ «Zapłać bonem», не связанный с суммой, —
+  под кнопкой «Zapłać bonem». Вверху карточки общей строки больше нет. e2e `gift-vouchers`, скриншот
+  `732-voucher-undo-error`.
+
 ## Ошибки у строки: «Usuń z listy» в «Lista oczekujących» (задача 729, 23.11.2026)
 
 - Кабинет → «Lista oczekujących» → «Usuń z listy» → «Tak, usuń»: если сервер отказал, ответ стоит под строкой этого

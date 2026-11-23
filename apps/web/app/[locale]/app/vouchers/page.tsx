@@ -353,9 +353,15 @@ function VoucherDetails({
   const money = (n: number) => formatPrice(n, location.currency, tag);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [error, setError] = useState('');
+  /**
+   * Task 732 (owner's rule: errors where the action is): a refused "Zapłać bonem" that is not about
+   * the amount is said under that button, not as a line at the top of the card.
+   */
+  const [payError, setPayError] = useState('');
   /** Task 662: a wrong amount or one above what is left — said under "Kwota do zapłaty bonem". */
   const [amountError, setAmountError] = useState('');
+  /** Task 732: a refused "Tak, cofnij" is said under that payment's row. */
+  const [undoError, setUndoError] = useState<{ id: string; text: string } | null>(null);
   const [info, setInfo] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
   const { voucher, uses } = details;
@@ -364,7 +370,8 @@ function VoucherDetails({
   const canUndo = role !== 'staff' && voucher.status !== 'cancelled';
 
   async function undo(useId: string, amountGrosze: number) {
-    setError('');
+    setUndoError(null);
+    setPayError('');
     setInfo('');
     if (!lock()) return;
     try {
@@ -380,7 +387,8 @@ function VoucherDetails({
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      setUndoError({ id: useId, text: errorText(t, err) });
+      setUndoing(null);
     } finally {
       unlock();
     }
@@ -388,7 +396,8 @@ function VoucherDetails({
 
   async function pay(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setPayError('');
+    setUndoError(null);
     setAmountError('');
     setInfo('');
     const grosze = parseAmount(amount);
@@ -410,7 +419,7 @@ function VoucherDetails({
       );
     } catch (err) {
       if (voucherFieldOf(err) === 'amount') setAmountError(errorText(t, err));
-      else setError(errorText(t, err));
+      else setPayError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -423,7 +432,6 @@ function VoucherDetails({
           <VoucherSummary voucher={voucher} />
         </span>
       </div>
-      <ErrorBox>{error}</ErrorBox>
       {info ? (
         <p className="note" role="status">
           {info}
@@ -462,9 +470,14 @@ function VoucherDetails({
               <input maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} />
             </label>
           </div>
-          <button className="btn" disabled={busy}>
+          <button
+            className="btn"
+            disabled={busy}
+            aria-describedby={payError ? `voucher-pay-error-${voucher.id}` : undefined}
+          >
             {t.vouchers.pay}
           </button>
+          <FieldError id={`voucher-pay-error-${voucher.id}`} text={payError} />
         </form>
       ) : null}
       <h3>{t.vouchers.uses}</h3>
@@ -473,7 +486,10 @@ function VoucherDetails({
       ) : (
         <ul className="list">
           {uses.map((u) => (
-            <li key={u.id} className="list-row">
+            <li
+              key={u.id}
+              className={`list-row${undoError?.id === u.id ? ' list-row--error' : ''}`}
+            >
               <span className="grow">
                 {u.undoneDate ? (
                   <s>{money(u.amountGrosze)}</s>
@@ -519,10 +535,23 @@ function VoucherDetails({
                     </button>
                   </span>
                 ) : (
-                  <button type="button" className="link-btn small" onClick={() => setUndoing(u.id)}>
+                  <button
+                    type="button"
+                    className="link-btn small"
+                    aria-describedby={
+                      undoError?.id === u.id ? `voucher-undo-error-${u.id}` : undefined
+                    }
+                    onClick={() => {
+                      setUndoError(null);
+                      setUndoing(u.id);
+                    }}
+                  >
                     {t.vouchers.undoUse}
                   </button>
                 )
+              ) : null}
+              {undoError?.id === u.id ? (
+                <FieldError id={`voucher-undo-error-${u.id}`} text={undoError.text} />
               ) : null}
             </li>
           ))}

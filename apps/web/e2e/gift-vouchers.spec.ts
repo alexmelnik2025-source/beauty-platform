@@ -206,7 +206,22 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card.getByRole('status')).toHaveText(/Zostało 50,00\s?zł\./);
   const wrong = card.getByRole('listitem').filter({ hasText: /\b30,00/ });
+  // Task 732 (owner's rule: errors where the action is): a refused undo is said under that
+  // payment's row, not as a line at the top of the card; the payment stays.
+  await page.route('**/gift-vouchers/*/uses/*/undo', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
   await wrong.getByRole('button', { name: 'Cofnij płatność' }).click();
+  await wrong.getByRole('button', { name: 'Tak, cofnij' }).click();
+  await expect(wrong.getByRole('alert')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(wrong.getByRole('button', { name: 'Cofnij płatność' })).toHaveAccessibleDescription(
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
+  );
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await shot(page, '732-voucher-undo-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await wrong.getByRole('button', { name: 'Cofnij płatność' }).click();
+  await expect(wrong.getByRole('alert')).toHaveCount(0);
   await wrong.getByRole('button', { name: 'Tak, cofnij' }).click();
   await expect(card.getByRole('status')).toHaveText(
     /Płatność 30,00\s?zł cofnięta — na bonie zostało 80,00\s?zł\./,
