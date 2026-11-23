@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,7 +31,10 @@ export function MyShopScreen(props: {
   const { api, t, salon, onBack } = props;
   const s = t.shop;
   const [tab, setTab] = useState<ShopTab>('products');
-  const [products, setProducts] = useState<Product[] | null>(null);
+  const [inventory, setInventory] = useState<Awaited<ReturnType<BusinessApi['products']>> | null>(
+    null,
+  );
+  const products = useMemo(() => inventory?.products.filter((p) => p.active) ?? null, [inventory]);
   const [cards, setCards] = useState<Record<string, CatalogProduct>>({});
   const [picking, setPicking] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -40,7 +44,7 @@ export function MyShopScreen(props: {
 
   const load = useCallback(async () => {
     const list = await api.products(salon.orgId, salon.locationId);
-    setProducts(list.products.filter((p) => p.active));
+    setInventory(list);
     const ids = [...new Set(list.products.map((p) => p.catalogProductId).filter(Boolean))];
     const got = await Promise.all(
       ids.map((id) =>
@@ -50,11 +54,15 @@ export function MyShopScreen(props: {
     setCards(
       Object.fromEntries(got.filter((c): c is CatalogProduct => c !== null).map((c) => [c.id, c])),
     );
-  }, [api, salon]);
+  }, [api, salon.orgId, salon.locationId]);
 
+  const texts = useRef(t);
+  texts.current = t;
+  const showProducts = tab !== 'integrations';
+  const needsProducts = showProducts && inventory === null;
   useEffect(() => {
-    if (tab !== 'integrations') void load().catch((e: unknown) => setError(errorText(e, t)));
-  }, [load, t, tab]);
+    if (needsProducts) void load().catch((e: unknown) => setError(errorText(e, texts.current)));
+  }, [load, needsProducts]);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -101,8 +109,8 @@ export function MyShopScreen(props: {
   const shown = products ?? [];
   const inShop = shown.filter((p) => p.inSalonShop).length;
 
-  return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+  const header = (
+    <>
       <Button kind="link" label={s.back} onPress={onBack} />
       <Heading>{s.title}</Heading>
       <View style={styles.tabs} accessibilityRole="tablist">
@@ -127,10 +135,29 @@ export function MyShopScreen(props: {
         ))}
       </View>
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {tab === 'products' ? (
-        <ProductListSection {...props} catalogCards={cards} />
-      ) : tab === 'integrations' ? (
-        canSeeBase(salon.role) ? (
+    </>
+  );
+
+  if (tab === 'products') {
+    return (
+      <ProductListSection
+        {...props}
+        catalogCards={cards}
+        inventory={inventory}
+        onReload={load}
+        onProductsChanged={(products) =>
+          setInventory((current) => current && { ...current, products })
+        }
+        header={header}
+      />
+    );
+  }
+
+  if (tab === 'integrations') {
+    return (
+      <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+        {header}
+        {canSeeBase(salon.role) ? (
           <BaseStatusCard
             api={api}
             t={t}
@@ -139,156 +166,170 @@ export function MyShopScreen(props: {
           />
         ) : (
           <Text style={styles.muted}>{t.navigation.noIntegrations}</Text>
-        )
-      ) : (
-        <>
-          <Text style={styles.muted}>{s.pickupOnly}</Text>
-          {products ? (
-            <Text style={styles.summary}>
-              {fill(s.summary, { shown: String(inShop), all: String(shown.length) })}
-            </Text>
-          ) : (
-            <Text style={styles.muted}>{t.loading}</Text>
-          )}
-          {products && shown.length === 0 ? <Text style={styles.muted}>{s.empty}</Text> : null}
+        )}
+      </ScrollView>
+    );
+  }
 
-          {shown.map((x) => {
-            const card = x.catalogProductId ? cards[x.catalogProductId] : undefined;
-            const canMarket = x.inSalonShop && Boolean(x.catalogProductId);
-            return (
-              <Card key={x.id}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.name}>{x.name}</Text>
-                  <Text style={styles.muted}>
-                    {formatPrice(x.priceGrosze, salon.currency, props.locale)}
-                    {x.stockQuantity !== null
-                      ? ` · ${fill(s.pieces, { n: String(x.stockQuantity) })}`
-                      : ''}
+  const onlineHeader = (
+    <View style={{ gap: 12, paddingBottom: shown.length ? 12 : 0 }}>
+      {header}
+      <Text style={styles.muted}>{s.pickupOnly}</Text>
+      {products ? (
+        <Text style={styles.summary}>
+          {fill(s.summary, { shown: String(inShop), all: String(shown.length) })}
+        </Text>
+      ) : (
+        <Text style={styles.muted}>{t.loading}</Text>
+      )}
+      {products && shown.length === 0 ? <Text style={styles.muted}>{s.empty}</Text> : null}
+    </View>
+  );
+  const renderProduct = ({ item: x }: { item: Product }) => {
+    const card = x.catalogProductId ? cards[x.catalogProductId] : undefined;
+    const canMarket = x.inSalonShop && Boolean(x.catalogProductId);
+    return (
+      <Card key={x.id}>
+        <View style={styles.titleRow}>
+          <Text style={styles.name}>{x.name}</Text>
+          <Text style={styles.muted}>
+            {formatPrice(x.priceGrosze, salon.currency, props.locale)}
+            {x.stockQuantity !== null ? ` · ${fill(s.pieces, { n: String(x.stockQuantity) })}` : ''}
+          </Text>
+        </View>
+        <Button
+          kind="secondary"
+          label={x.inSalonShop ? s.hideFromSalon : s.showInSalon}
+          disabled={busy}
+          onPress={() =>
+            void patch(x.id, {
+              inSalonShop: !x.inSalonShop,
+              ...(x.inSalonShop ? { inMarketplace: false } : {}),
+            })
+          }
+        />
+        {canMarket ? (
+          <Button
+            kind="secondary"
+            label={x.inMarketplace ? s.stopMarketplace : s.startMarketplace}
+            disabled={busy}
+            onPress={() => void patch(x.id, { inMarketplace: !x.inMarketplace })}
+          />
+        ) : (
+          <Text style={styles.small}>
+            {!x.inSalonShop ? s.marketNeedsSalonShop : s.marketNeedsCard}
+          </Text>
+        )}
+        {card ? (
+          <View style={styles.cardRow}>
+            <Text style={styles.small}>
+              {s.card}: {card.name}
+              {card.brand ? ` · ${card.brand}` : ''}
+              {card.ean ? ` · EAN ${card.ean}` : ''}
+              {card.sellers > 1 ? ` · ${fill(s.sellers, { n: String(card.sellers) })}` : ''}
+            </Text>
+            <Button
+              kind="link"
+              label={s.unlink}
+              disabled={busy}
+              onPress={() => void patch(x.id, { catalogProductId: null, inMarketplace: false })}
+            />
+          </View>
+        ) : (
+          <View style={styles.cardRow}>
+            <Text style={styles.small}>{s.noCard}</Text>
+            <Button
+              kind="link"
+              label={picking === x.id ? s.pickClose : s.pick}
+              disabled={busy}
+              onPress={() => {
+                if (picking === x.id) {
+                  setPicking(null);
+                  return;
+                }
+                setPicking(x.id);
+                setFound(null);
+                void search(x.barcode ?? x.name);
+              }}
+            />
+          </View>
+        )}
+        {picking === x.id ? (
+          <View style={styles.picker}>
+            <Text style={styles.label}>{s.search}</Text>
+            <TextInput
+              accessibilityLabel={s.search}
+              value={query}
+              onChangeText={(v) => void search(v)}
+              style={styles.input}
+              autoFocus
+            />
+            {found && found.length > 0 ? (
+              found.map((c) => (
+                <View key={c.id} style={styles.foundRow}>
+                  <Text style={styles.small}>
+                    {c.name}
+                    {c.brand ? ` · ${c.brand}` : ''}
+                    {c.ean ? ` · EAN ${c.ean}` : ''}
+                    {c.sellers > 0 ? ` · ${fill(s.sellers, { n: String(c.sellers) })}` : ''}
                   </Text>
-                </View>
-                <Button
-                  kind="secondary"
-                  label={x.inSalonShop ? s.hideFromSalon : s.showInSalon}
-                  disabled={busy}
-                  onPress={() =>
-                    void patch(x.id, {
-                      inSalonShop: !x.inSalonShop,
-                      ...(x.inSalonShop ? { inMarketplace: false } : {}),
-                    })
-                  }
-                />
-                {canMarket ? (
                   <Button
                     kind="secondary"
-                    label={x.inMarketplace ? s.stopMarketplace : s.startMarketplace}
+                    label={s.choose}
+                    a11yLabel={fill(s.chooseCard, { name: c.name })}
                     disabled={busy}
-                    onPress={() => void patch(x.id, { inMarketplace: !x.inMarketplace })}
+                    onPress={() =>
+                      void run(async () => {
+                        await api.updateProduct(salon.orgId, salon.locationId, x.id, {
+                          catalogProductId: c.id,
+                        });
+                        setPicking(null);
+                      })
+                    }
                   />
-                ) : (
-                  <Text style={styles.small}>
-                    {!x.inSalonShop ? s.marketNeedsSalonShop : s.marketNeedsCard}
-                  </Text>
-                )}
-                {card ? (
-                  <View style={styles.cardRow}>
-                    <Text style={styles.small}>
-                      {s.card}: {card.name}
-                      {card.brand ? ` · ${card.brand}` : ''}
-                      {card.ean ? ` · EAN ${card.ean}` : ''}
-                      {card.sellers > 1 ? ` · ${fill(s.sellers, { n: String(card.sellers) })}` : ''}
-                    </Text>
-                    <Button
-                      kind="link"
-                      label={s.unlink}
-                      disabled={busy}
-                      onPress={() =>
-                        void patch(x.id, { catalogProductId: null, inMarketplace: false })
-                      }
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.cardRow}>
-                    <Text style={styles.small}>{s.noCard}</Text>
-                    <Button
-                      kind="link"
-                      label={picking === x.id ? s.pickClose : s.pick}
-                      disabled={busy}
-                      onPress={() => {
-                        if (picking === x.id) {
-                          setPicking(null);
-                          return;
-                        }
-                        setPicking(x.id);
-                        setFound(null);
-                        void search(x.barcode ?? x.name);
-                      }}
-                    />
-                  </View>
-                )}
-                {picking === x.id ? (
-                  <View style={styles.picker}>
-                    <Text style={styles.label}>{s.search}</Text>
-                    <TextInput
-                      accessibilityLabel={s.search}
-                      value={query}
-                      onChangeText={(v) => void search(v)}
-                      style={styles.input}
-                      autoFocus
-                    />
-                    {found && found.length > 0 ? (
-                      found.map((c) => (
-                        <View key={c.id} style={styles.foundRow}>
-                          <Text style={styles.small}>
-                            {c.name}
-                            {c.brand ? ` · ${c.brand}` : ''}
-                            {c.ean ? ` · EAN ${c.ean}` : ''}
-                            {c.sellers > 0 ? ` · ${fill(s.sellers, { n: String(c.sellers) })}` : ''}
-                          </Text>
-                          <Button
-                            kind="secondary"
-                            label={s.choose}
-                            a11yLabel={fill(s.chooseCard, { name: c.name })}
-                            disabled={busy}
-                            onPress={() =>
-                              void run(async () => {
-                                await api.updateProduct(salon.orgId, salon.locationId, x.id, {
-                                  catalogProductId: c.id,
-                                });
-                                setPicking(null);
-                              })
-                            }
-                          />
-                        </View>
-                      ))
-                    ) : found ? (
-                      <Text style={styles.small}>{s.nothingFound}</Text>
-                    ) : null}
-                    <Button
-                      kind="secondary"
-                      label={fill(s.newCard, { name: x.name })}
-                      disabled={busy}
-                      onPress={() =>
-                        void run(async () => {
-                          const made = await api.createCatalogCard(salon.orgId, salon.locationId, {
-                            name: x.name,
-                            ean: x.barcode && /^\d{8,14}$/.test(x.barcode) ? x.barcode : null,
-                          });
-                          await api.updateProduct(salon.orgId, salon.locationId, x.id, {
-                            catalogProductId: made.id,
-                          });
-                          setPicking(null);
-                        })
-                      }
-                    />
-                  </View>
-                ) : null}
-              </Card>
-            );
-          })}
-        </>
-      )}
-    </ScrollView>
+                </View>
+              ))
+            ) : found ? (
+              <Text style={styles.small}>{s.nothingFound}</Text>
+            ) : null}
+            <Button
+              kind="secondary"
+              label={fill(s.newCard, { name: x.name })}
+              disabled={busy}
+              onPress={() =>
+                void run(async () => {
+                  const made = await api.createCatalogCard(salon.orgId, salon.locationId, {
+                    name: x.name,
+                    ean: x.barcode && /^\d{8,14}$/.test(x.barcode) ? x.barcode : null,
+                  });
+                  await api.updateProduct(salon.orgId, salon.locationId, x.id, {
+                    catalogProductId: made.id,
+                  });
+                  setPicking(null);
+                })
+              }
+            />
+          </View>
+        ) : null}
+      </Card>
+    );
+  };
+
+  return (
+    <FlatList
+      contentContainerStyle={{ padding: 16 }}
+      keyboardShouldPersistTaps="handled"
+      data={shown}
+      keyExtractor={(product) => product.id}
+      ItemSeparatorComponent={OnlineProductGap}
+      ListHeaderComponent={onlineHeader}
+      renderItem={renderProduct}
+    />
   );
+}
+
+function OnlineProductGap() {
+  return <View style={{ height: 12 }} />;
 }
 
 const styles = StyleSheet.create({

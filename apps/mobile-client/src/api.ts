@@ -168,6 +168,16 @@ type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 export class ClientApi {
   private token: string | null = null;
+  private readonly directoryCache = new Map<
+    string,
+    { value: PublicSalonDirectory; expires: number }
+  >();
+  private readonly salonCache = new Map<string, { value: PublicLocation; expires: number }>();
+
+  private readonly availabilityCache = new Map<
+    string,
+    { value: PublicFreeToday; expires: number }
+  >();
 
   constructor(
     private readonly baseUrl: string,
@@ -617,6 +627,7 @@ export class ClientApi {
       nearSalon?: string;
       pageSize?: number;
     } = {},
+    signal?: AbortSignal,
   ): Promise<PublicSalonDirectory> {
     const params = new URLSearchParams({
       page: String(query.page ?? 1),
@@ -632,7 +643,7 @@ export class ClientApi {
       const { latitude, longitude } = query.near;
       params.set('near', `${latitude.toFixed(4)},${longitude.toFixed(4)}`);
     }
-    return this.call<PublicSalonDirectory>('GET', `/v1/public/locations?${params.toString()}`);
+    return this.cachedPublic(this.directoryCache, `/v1/public/locations?${params}`, signal);
   }
 
   /**
@@ -664,8 +675,12 @@ export class ClientApi {
   }
 
   /** A salon's page: address, description, hours, price list, specialists. No sign-in. */
-  salon(slug: string): Promise<PublicLocation> {
-    return this.call<PublicLocation>('GET', `/v1/public/locations/${encodeURIComponent(slug)}`);
+  salon(slug: string, signal?: AbortSignal): Promise<PublicLocation> {
+    return this.cachedPublic(
+      this.salonCache,
+      `/v1/public/locations/${encodeURIComponent(slug)}`,
+      signal,
+    );
   }
 
   /**
@@ -689,10 +704,11 @@ export class ClientApi {
   }
 
   /** Task 120: "Wolne dziś" — the specialists who can still be booked today. No sign-in. */
-  freeToday(slug: string): Promise<PublicFreeToday> {
-    return this.call<PublicFreeToday>(
-      'GET',
+  freeToday(slug: string, signal?: AbortSignal): Promise<PublicFreeToday> {
+    return this.cachedPublic(
+      this.availabilityCache,
       `/v1/public/locations/${encodeURIComponent(slug)}/free-today`,
+      signal,
     );
   }
 
@@ -768,12 +784,34 @@ export class ClientApi {
     }
   }
 
+  private async cachedPublic<T>(
+    cache: Map<string, { value: T; expires: number }>,
+    path: string,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    if (signal?.aborted) throw new Error('Request aborted');
+    const cached = cache.get(path);
+    if (cached && cached.expires > Date.now()) return cached.value;
+
+    const value = await this.call<T>('GET', path, undefined, undefined, {}, signal);
+    if (!signal?.aborted) {
+      cache.delete(path);
+      cache.set(path, { value, expires: Date.now() + 30_000 });
+      if (cache.size > 32) {
+        const oldest = cache.keys().next().value;
+        if (oldest !== undefined) cache.delete(oldest);
+      }
+    }
+    return value;
+  }
+
   private async call<T>(
     method: string,
     path: string,
     body?: unknown,
     token?: string,
     extraHeaders: Record<string, string> = {},
+    signal?: AbortSignal,
   ): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json', ...extraHeaders };
     if (body !== undefined) headers['content-type'] = 'application/json';
@@ -781,6 +819,7 @@ export class ClientApi {
     const res = await this.fetchFn(`${this.baseUrl}${path}`, {
       method,
       headers,
+      ...(signal && { signal }),
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return this.answer<T>(res);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, DirectorySalon, Locale, SpokenLanguage } from './api';
 import { API_URL } from './config';
@@ -34,20 +34,20 @@ export function SalonMap(props: {
   const [selected, setSelected] = useState<string | null>(null);
   const [freeToday, setFreeToday] = useState<boolean | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
-  const points = props.salons.filter(located);
-  const layout = mapLayout(points, width, HEIGHT);
+  const points = useMemo(() => props.salons.filter(located), [props.salons]);
+  const layout = useMemo(() => mapLayout(points, width, HEIGHT), [points, width]);
   const salon = points.find((s) => s.slug === selected) ?? null;
 
   useEffect(() => {
     setFreeToday(null);
     if (!selected) return;
-    let live = true;
+    const controller = new AbortController();
     props.api
-      .freeToday(selected)
-      .then((res) => live && setFreeToday(res.staffIds.length > 0))
+      .freeToday(selected, controller.signal)
+      .then((res) => !controller.signal.aborted && setFreeToday(res.staffIds.length > 0))
       .catch(() => undefined);
     return () => {
-      live = false;
+      controller.abort();
     };
   }, [props.api, selected]);
 

@@ -71,6 +71,7 @@ export function SalonScreen(props: {
   // Task 120: "Wolne dziś" — who can still be booked today.
   const [freeToday, setFreeToday] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   // Task 362: "Otwarte · do 20:00" — refreshed every minute while the page is open.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -91,28 +92,32 @@ export function SalonScreen(props: {
   const viewedRef = useRef(props.onViewed);
   viewedRef.current = props.onViewed;
 
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const [loaded, chosen] = await Promise.all([
-        api.salon(props.slug),
-        catalogLanguagesStore.get(),
-      ]);
-      // Task 160c: specialists speaking a language chosen in the catalogue come first.
-      setSalon({ ...loaded, staff: speakersFirst(loaded.staff, chosen) });
-      viewedRef.current?.({ slug: loaded.slug, name: loaded.name });
-      api
-        .freeToday(props.slug)
-        .then((res) => setFreeToday(new Set(res.staffIds)))
-        .catch(() => undefined);
-    } catch (e) {
-      setError(errorText(e, tRef.current));
-    }
-  }, [api, props.slug]);
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    const slug = props.slug;
+    setSalon(null);
+    setFreeToday(new Set());
+    setError('');
+
+    void api
+      .freeToday(slug, signal)
+      .then((res) => {
+        if (!signal.aborted) setFreeToday(new Set(res.staffIds));
+      })
+      .catch(() => undefined);
+
+    void Promise.all([api.salon(slug, signal), catalogLanguagesStore.get()])
+      .then(([loaded, chosen]) => {
+        if (signal.aborted) return;
+        setSalon({ ...loaded, staff: speakersFirst(loaded.staff, chosen) });
+        viewedRef.current?.({ slug: loaded.slug, name: loaded.name });
+      })
+      .catch((e: unknown) => {
+        if (!signal.aborted) setError(errorText(e, tRef.current));
+      });
+    return () => controller.abort();
+  }, [api, props.slug, attempt]);
 
   useEffect(() => {
     if (!signedIn) {
@@ -165,7 +170,11 @@ export function SalonScreen(props: {
         {error ? (
           <>
             <ErrorText>{error}</ErrorText>
-            <Button kind="secondary" label={t.retry} onPress={load} />
+            <Button
+              kind="secondary"
+              label={t.retry}
+              onPress={() => setAttempt((value) => value + 1)}
+            />
           </>
         ) : (
           <ActivityIndicator style={{ marginTop: 24 }} color={colors.ink} />

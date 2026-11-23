@@ -224,6 +224,34 @@ describe('catalogue (no sign-in)', () => {
     expect(calls.map((c) => c.auth)).toEqual([undefined, undefined, undefined]);
   });
 
+  it('reuses a fresh search result but fetches a different page', async () => {
+    const { fetchFn, calls } = fakeServer({
+      [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}&q=salon`]: () => [200, directory],
+      [`GET /v1/public/locations?page=2&pageSize=${PAGE_SIZE}&q=salon`]: () => [
+        200,
+        { ...directory, page: 2 },
+      ],
+    });
+    const api = new ClientApi('https://api.test', memoryStore(), fetchFn);
+    await api.directory({ q: 'salon' });
+    await api.directory({ q: ' salon ' });
+    expect((await api.directory({ q: 'salon', page: 2 })).page).toBe(2);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('passes cancellation to fetch and does not cache an aborted response', async () => {
+    const controller = new AbortController();
+    const signals: Array<RequestInit['signal']> = [];
+    const api = new ClientApi('https://api.test', memoryStore(), async (_url, init) => {
+      signals.push(init?.signal);
+      controller.abort();
+      return new Response(JSON.stringify(directory));
+    });
+    await api.directory({}, controller.signal);
+    await api.directory();
+    expect(signals).toEqual([controller.signal, undefined]);
+  });
+
   it('searches by words and asks for the nearest salons (task 180b)', async () => {
     const { fetchFn } = fakeServer({
       [`GET /v1/public/locations?page=1&pageSize=${PAGE_SIZE}`]: () => [200, directory],

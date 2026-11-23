@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Platform,
   Pressable,
   RefreshControl,
+  FlatList,
   ScrollView,
   Share,
   StyleSheet,
@@ -224,13 +225,18 @@ export function DayScreen(props: {
   }, [api, salon, date, today, canReport, calendar]);
   const till = tillOf(dayReport, date);
 
-  const all = calendar && calendar.from === date ? visitsOfDay(calendar, date) : null;
   const canBrowseSalon = salon.role !== 'staff';
   const selectedStaff = staffList.find((staff) => staff.id === staffId);
   const staffLabel = canBrowseSalon
     ? (selectedStaff?.displayName ?? t.navigation.allStaff)
     : (staffList.find((staff) => staff.id === mineId)?.displayName ?? t.navigation.myCalendar);
-  const visits = all ? onlyMine(all, canBrowseSalon ? staffId : null) : null;
+  const visits = useMemo(
+    () =>
+      calendar?.from === date
+        ? onlyMine(visitsOfDay(calendar, date), canBrowseSalon ? staffId : null)
+        : null,
+    [calendar, date, canBrowseSalon, staffId],
+  );
 
   useEffect(() => {
     if (tab !== 'more') return;
@@ -710,11 +716,8 @@ export function DayScreen(props: {
     );
   }
 
-  return withNavigation(
-    <ScrollView
-      contentContainerStyle={styles.screen}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-    >
+  const header = (
+    <View style={{ gap: 12, paddingBottom: visits?.length ? 12 : 0 }}>
       <View style={styles.top}>
         <Text numberOfLines={1} style={styles.salon}>
           {salonName}
@@ -973,37 +976,53 @@ export function DayScreen(props: {
             </View>
           ) : null}
           {visits.length === 0 ? <Text style={styles.muted}>{t.day.empty}</Text> : null}
-          {visits.map((v) => (
-            <Pressable
-              key={v.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.birthday ? '🎂 ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
-              onPress={() => setOpenId(v.id)}
-              style={({ pressed }) => pressed && { opacity: 0.7 }}
-            >
-              <Card>
-                <View style={styles.cardTop}>
-                  <Text style={styles.time}>
-                    {v.start}–{v.end}
-                  </Text>
-                  <Text style={[styles.badge, v.status === 'no_show' && styles.badgeBad]}>
-                    {t.day.status[v.status as keyof Dictionary['day']['status']] ?? v.status}
-                  </Text>
-                </View>
-                <Text style={styles.customer}>
-                  {v.waiting ? '⏳ ' : ''}
-                  {v.birthday ? '🎂 ' : ''}
-                  {v.customer ?? t.day.walkIn}
-                </Text>
-                <Text style={styles.muted}>
-                  {v.service} · {v.staff}
-                </Text>
-                {v.phone ? <Text style={styles.muted}>{v.phone}</Text> : null}
-              </Card>
-            </Pressable>
-          ))}
+        </>
+      ) : !error ? (
+        <Text style={styles.muted}>{t.loading}</Text>
+      ) : null}
+    </View>
+  );
 
-          {salon.role !== 'staff' && rights ? (
+  return withNavigation(
+    <FlatList
+      contentContainerStyle={{ padding: 16 }}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      data={visits ?? undefined}
+      keyExtractor={(visit) => visit.id}
+      ItemSeparatorComponent={VisitRowGap}
+      ListHeaderComponent={header}
+      renderItem={({ item: v }) => (
+        <Pressable
+          key={v.id}
+          accessibilityRole="button"
+          accessibilityLabel={`${v.start} ${v.waiting ? '⏳ ' : ''}${v.birthday ? '🎂 ' : ''}${v.customer ?? t.day.walkIn} · ${v.service}`}
+          onPress={() => setOpenId(v.id)}
+          style={({ pressed }) => pressed && { opacity: 0.7 }}
+        >
+          <Card>
+            <View style={styles.cardTop}>
+              <Text style={styles.time}>
+                {v.start}–{v.end}
+              </Text>
+              <Text style={[styles.badge, v.status === 'no_show' && styles.badgeBad]}>
+                {t.day.status[v.status as keyof Dictionary['day']['status']] ?? v.status}
+              </Text>
+            </View>
+            <Text style={styles.customer}>
+              {v.waiting ? '⏳ ' : ''}
+              {v.birthday ? '🎂 ' : ''}
+              {v.customer ?? t.day.walkIn}
+            </Text>
+            <Text style={styles.muted}>
+              {v.service} · {v.staff}
+            </Text>
+            {v.phone ? <Text style={styles.muted}>{v.phone}</Text> : null}
+          </Card>
+        </Pressable>
+      )}
+      ListFooterComponent={
+        visits && salon.role !== 'staff' && rights ? (
+          <View style={{ paddingTop: visits.length ? 12 : 0 }}>
             <WaitlistSection
               api={api}
               t={t}
@@ -1017,13 +1036,15 @@ export function DayScreen(props: {
                 setAdding(true);
               }}
             />
-          ) : null}
-        </>
-      ) : !error ? (
-        <Text style={styles.muted}>{t.loading}</Text>
-      ) : null}
-    </ScrollView>,
+          </View>
+        ) : undefined
+      }
+    />,
   );
+}
+
+function VisitRowGap() {
+  return <View style={{ height: 12 }} />;
 }
 
 /** Task 351: the share sheet on phones; in the web preview the browser's menu or the clipboard. */

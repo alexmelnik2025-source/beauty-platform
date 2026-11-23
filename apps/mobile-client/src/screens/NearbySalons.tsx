@@ -25,13 +25,13 @@ export function NearbySalons(props: {
   const [salons, setSalons] = useState<DirectorySalon[]>([]);
 
   useEffect(() => {
-    let live = true;
+    const controller = new AbortController();
     api
-      .directory({ nearSalon: slug, pageSize: NEARBY_COUNT })
-      .then((res) => live && setSalons(nearbyOnly(res.items)))
-      .catch(() => live && setSalons([]));
+      .directory({ nearSalon: slug, pageSize: NEARBY_COUNT }, controller.signal)
+      .then((res) => !controller.signal.aborted && setSalons(nearbyOnly(res.items)))
+      .catch(() => !controller.signal.aborted && setSalons([]));
     return () => {
-      live = false;
+      controller.abort();
     };
   }, [api, slug]);
 
