@@ -580,7 +580,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(client, '720-client-move-slot-taken');
   // Back on the visit, the panel's error went with it.
   await movePanel.getByRole('button', { name: 'Wstecz' }).click();
-  await expect(client.getByRole('alert')).toBeHidden();
+  await expect(client.locator('.alert')).toBeHidden();
   // "Odwołaj wizytę": the answer stands above "Tak, odwołaj", not at the top of the page.
   await client.route('**/cancel', (route) =>
     route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
@@ -589,7 +589,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const cancelPanel = client.getByRole('form', { name: 'Odwołaj wizytę' });
   await cancelPanel.getByRole('button', { name: 'Tak, odwołaj' }).click();
   await expect(cancelPanel.getByRole('alert')).toBeVisible();
-  await expect(client.getByRole('alert')).toHaveCount(1);
+  await expect(client.locator('.alert')).toHaveCount(1);
   await shot(client, '720-client-cancel-error');
   await client.unrouteAll({ behavior: 'wait' });
   await client.goto(manageLink);
