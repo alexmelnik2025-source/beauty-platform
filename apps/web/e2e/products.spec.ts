@@ -188,19 +188,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await shot(page, '708-product-new-required');
   await products.getByText('Więcej ▸', { exact: true }).click();
   // Task 722: a wrong price in a product row is said under the row; "Zapisz" sends the cursor there.
-  const pomadeRow = products
+  const pomadeEditRow = products
     .getByTestId('product-row')
     .filter({ has: page.getByLabel('Nazwa — Pomada matowa') });
   await products.getByLabel('Cena — Pomada matowa').fill('4x');
   await expect(products.getByLabel('Cena — Pomada matowa')).toHaveAccessibleDescription(
     /Cena: Wpisz kwotę, np\. 45 lub 45,50\.$/,
   );
-  await pomadeRow.getByRole('button', { name: 'Zapisz' }).click();
+  await pomadeEditRow.getByRole('button', { name: 'Zapisz' }).click();
   await expect(products.getByLabel('Cena — Pomada matowa')).toBeFocused();
-  await pomadeRow.scrollIntoViewIfNeeded();
+  await pomadeEditRow.scrollIntoViewIfNeeded();
   await shot(page, '722-product-row-price-error');
   await products.getByLabel('Cena — Pomada matowa').fill('49');
-  await expect(pomadeRow.getByTestId('product-row-errors')).toHaveCount(0);
+  await expect(pomadeEditRow.getByTestId('product-row-errors')).toHaveCount(0);
   // Task 430: the salon counts the pomades — two left in stock.
   await products.getByLabel('W magazynie — Pomada matowa').fill('2');
   // Task 448: "Cena zakupu" — the salon pays 20 zł for a pomade (only the owner sees it).
