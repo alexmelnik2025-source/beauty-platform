@@ -215,9 +215,19 @@ test('the catalogue map draws tiles and markers; salons without a place stay in 
     // A salon without a place: in the list, the map shows the country and says why.
     await app.getByLabel('Czego szukasz? Usługa, salon, miasto lub ulica').fill(NO_PLACE);
     await expect(app.getByRole('article', { name: NO_PLACE })).toBeVisible();
-    await expect(app.getByRole('region', { name: 'Mapa salonów' })).toBeVisible();
-    await expect(app.getByText('Te salony nie zaznaczyły jeszcze miejsca na mapie.')).toBeVisible();
-    await expect(app.getByRole('button', { name: /^Salon na mapie:/ })).toHaveCount(0);
+    const appMap = app.getByRole('region', { name: 'Mapa salonów' });
+    await expect(appMap).toBeVisible();
+    // A tile request can fail independently of the search and show the map's offline message.
+    await expect(
+      appMap
+        .getByText('Te salony nie zaznaczyły jeszcze miejsca na mapie.')
+        .or(
+          appMap
+            .getByRole('alert')
+            .filter({ hasText: 'Nie udało się wczytać mapy (OpenStreetMap)' }),
+        ),
+    ).toBeVisible();
+    await expect(appMap.getByRole('button', { name: /^Salon na mapie:/ })).toHaveCount(0);
     await shot(app, '191b-client-app-map-no-place');
   } finally {
     await closeQuietly(phone);
