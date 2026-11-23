@@ -4491,6 +4491,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
   клиента: пустое имя — «Podaj imię.», телефон только с кодом страны — «Uzupełnij to pole.», неверный телефон или
   e-mail (`PHONE_SHAPE`/`EMAIL_SHAPE` из `lib/contact-check.ts`) — под полем. e2e `onboarding-retry`,
   `client-field-errors`, скриншоты `689-onboarding-empty-fields`, `689-client-empty-fields`.
+- **«Moje wizyty» — вход по коду без подсказок браузера** (задача 690): формы с `noValidate`. Пустой e-mail —
+  «Uzupełnij to pole.», неверный (или не принятый сервером) — «Sprawdź adres e-mail.» под полем, курсор туда.
+  Неверный код (`INVALID_CODE`) и «Ten kod już nie działa. Wyślij nowy.» (`CODE_EXPIRED` и др.) — под полем кода
+  (`#visits-code-error`), а не строкой сверху. e2e `client-visits-field-errors`, скриншоты `690-visits-email-error`,
+  `690-visits-code-error`.
 
 ## Минимализм кабинета (задача Q6, веб-часть)
 
