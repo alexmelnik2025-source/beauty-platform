@@ -1066,6 +1066,9 @@ pnpm --filter @beauty/api-client generate
   są w nich wizyty: …» и кнопку «Gotowe». Если свободной недели нет — ошибка «есть визиты в это время».
 - В карточке блока серии — «Powtarza się co tydzień» и «Usuń całą serię» (удаляет блоки, которые ещё не
   закончились; прошедшие остаются). «Usuń blokadę» по-прежнему удаляет один блок.
+- Задача 727 (23.11.2026): ответ сервера на «Usuń blokadę» / «Usuń całą serię» стоит прямо над кнопками внизу
+  карточки, а не вверху. Если блок уже удалили на другом устройстве — карточка закрывается, календарь обновляется
+  (без «Nie znaleziono.»). e2e `booking`, скриншот `727-block-remove-error`.
 - API: `POST /v1/organizations/:org/locations/:loc/time-blocks/series` (`weeks`, ответ `items`, `skippedDates`,
   `seriesId`), `DELETE …/time-blocks/series/:seriesId`; у блока поле `seriesId`. Права те же, что у обычного блока.
   Миграция `20261104170000_time_block_series`, тесты в `test/time-blocks.spec.ts` и проверка изоляции.

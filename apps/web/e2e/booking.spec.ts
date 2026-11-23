@@ -795,6 +795,34 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const seriesSheet = ownerPage.getByRole('dialog');
   await expect(seriesSheet).toContainText('Powtarza się co tydzień');
   await shot(ownerPage, '70b-owner-weekly-block-card');
+  // Task 727 (owner's rule: errors where the action is): a refused removal is said right above
+  // the buttons, not at the top of the sheet.
+  await ownerPage.route('**/time-blocks/series/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.continue(),
+  );
+  await seriesSheet.getByRole('button', { name: 'Usuń całą serię' }).click();
+  await expect(seriesSheet.locator('.sheet-foot').getByRole('alert')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(seriesSheet.locator('.alert')).toHaveCount(1);
+  await shot(ownerPage, '727-block-remove-error');
+  // Removed meanwhile on another device: the sheet closes, as after a removal, with no error.
+  await ownerPage.unrouteAll({ behavior: 'wait' });
+  await ownerPage.route('**/time-blocks/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 404, json: { error: { code: 'NOT_FOUND', message: 'gone' } } })
+      : route.continue(),
+  );
+  await seriesSheet.getByRole('button', { name: 'Usuń blokadę' }).click();
+  await expect(seriesSheet).toBeHidden();
+  await ownerPage.unrouteAll({ behavior: 'wait' });
+  await ownerPage.getByRole('button', { name: 'Booksy' }).first().click();
+  await expect(seriesSheet).toContainText('Powtarza się co tydzień');
   await seriesSheet.getByRole('button', { name: 'Usuń całą serię' }).click();
   await expect(seriesSheet).toBeHidden();
   await expect(ownerPage.getByRole('button', { name: 'Booksy' })).toHaveCount(0);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, toLocal } from '@/lib/time';
 import type { Staff, TimeBlock } from '@/lib/types';
@@ -32,6 +32,7 @@ export function BlockSheet({
 
   async function remove(series = false) {
     setBusy(true);
+    setError('');
     try {
       await api(
         series && block.seriesId
@@ -42,6 +43,13 @@ export function BlockSheet({
       onChanged();
       onClose();
     } catch (err) {
+      // Task 727: someone else (another device, the app) has already removed it — the calendar
+      // is refreshed and the sheet closes, as after a removal, instead of "Nie znaleziono.".
+      if (err instanceof ApiError && err.code === 'NOT_FOUND') {
+        onChanged();
+        onClose();
+        return;
+      }
       setError(errorText(t, err));
       setBusy(false);
     }
@@ -53,6 +61,13 @@ export function BlockSheet({
       onClose={onClose}
       footer={
         <>
+          {/* Task 727 (owner's rule: errors where the action is): the answer to "Usuń blokadę"
+              stands right above the buttons, not at the top of the sheet. */}
+          {error ? (
+            <div style={{ flexBasis: '100%' }}>
+              <ErrorBox>{error}</ErrorBox>
+            </div>
+          ) : null}
           <button
             type="button"
             className="btn btn--danger"
@@ -74,7 +89,6 @@ export function BlockSheet({
         </>
       }
     >
-      <ErrorBox>{error}</ErrorBox>
       <div>
         <div className="display" style={{ fontSize: '1.6rem' }}>
           {start.time}–{end.time}
