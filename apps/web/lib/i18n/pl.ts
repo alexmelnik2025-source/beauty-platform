@@ -2129,6 +2129,8 @@ export const pl = {
     baseTitle: 'Base (BaseLinker)',
     baseHint: 'Produkty, ceny i stany z Twojego Base — jak w Allegro czy Empiku.',
     token: 'Token API z Base',
+    /** Task 685: a too short token — said under the field. */
+    tokenTooShort: 'Token z Base ma co najmniej 20 znaków — skopiuj go w całości.',
     tokenWhere: 'W Base: Moje konto → API → wygeneruj token. Przechowujemy go zaszyfrowany.',
     connect: 'Połącz',
     connected: 'Połączono (token …{hint})',

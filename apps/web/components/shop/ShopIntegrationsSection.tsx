@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import { useSession } from '../Session';
-import { ErrorBox, Spinner } from '../ui';
+import { ErrorBox, FieldError, Spinner } from '../ui';
 
 interface BaseStatus {
   connected: boolean;
@@ -116,6 +116,13 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
   const [options, setOptions] = useState<BaseOptions | null>(null);
   const [editing, setEditing] = useState(false);
   const [token, setToken] = useState('');
+  /**
+   * Task 685 (owner's rule: errors at the field): a too short token used to switch "Połącz" off
+   * without a word, and "Base nie przyjął tego tokenu" was a line at the top of the page — both
+   * are said under "Token API z Base" now, with the focus in the field. Typing takes it away.
+   */
+  const [tokenProblem, setTokenProblem] = useState('');
+  const tokenRef = useRef<HTMLInputElement>(null);
   const [choice, setChoice] = useState({ inventoryId: '', priceGroupId: '', warehouseId: '' });
   const [every, setEvery] = useState(60);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -170,8 +177,25 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
 
   const connect = (e: FormEvent) => {
     e.preventDefault();
+    const trimmed = token.trim();
+    if (trimmed.length < 20) {
+      onError('');
+      setTokenProblem(trimmed ? s.tokenTooShort : t.onboarding.fieldRequired);
+      tokenRef.current?.focus();
+      return;
+    }
+    setTokenProblem('');
     void run(async () => {
-      await api(base, { method: 'PUT', body: { token: token.trim() } });
+      try {
+        await api(base, { method: 'PUT', body: { token: trimmed } });
+      } catch (err) {
+        if (err instanceof ApiError && err.code === 'BASE_TOKEN_INVALID') {
+          setTokenProblem(errorText(t, err));
+          tokenRef.current?.focus();
+          return;
+        }
+        throw err;
+      }
       setToken('');
       const got = await api<BaseOptions>(`${base}/options`);
       setOptions(got);
@@ -223,23 +247,28 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
     <div className="card stack" data-testid="integration-base">
       <h2>{s.baseTitle}</h2>
       {!status.connected ? (
-        <form className="stack" onSubmit={connect}>
+        <form className="stack" noValidate onSubmit={connect}>
           <p className="small muted">{s.baseHint}</p>
           <label className="field">
             <span>{s.token}</span>
             <input
+              ref={tokenRef}
               value={token}
               autoComplete="off"
               spellCheck={false}
-              minLength={20}
               maxLength={200}
-              required
-              onChange={(e) => setToken(e.target.value)}
+              aria-invalid={tokenProblem ? true : undefined}
+              aria-describedby={tokenProblem ? 'base-token-error' : undefined}
+              onChange={(e) => {
+                setToken(e.target.value);
+                setTokenProblem('');
+              }}
             />
+            <FieldError id="base-token-error" text={tokenProblem || undefined} />
           </label>
           <p className="small muted">{s.tokenWhere}</p>
           <div>
-            <button type="submit" className="btn" disabled={busy || token.trim().length < 20}>
+            <button type="submit" className="btn" disabled={busy}>
               {s.connect}
             </button>
           </div>

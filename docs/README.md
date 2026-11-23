@@ -702,6 +702,13 @@ pnpm --filter @beauty/api-client generate
   Ввод убирает ошибку. e2e `team-invite`, `shop-reservation-days`, скриншоты `683-team-category-name-error`,
   `683-reservation-days-error`.
 
+## Ошибка токена Base у поля (задача 685, 23.11.2026)
+
+- «Sklep» → «Integracje» → Base: пустой токен — «Uzupełnij to pole.», короче 20 знаков — `shopIntegrations.tokenTooShort`,
+  ответ сервера `BASE_TOKEN_INVALID` — под полем «Token API z Base» (красная рамка, «!»), курсор в поле; кнопка «Połącz»
+  больше не выключается молча. Другие ошибки Base — как раньше, строкой вверху раздела. e2e `shop-integrations`,
+  скриншот `685-base-token-error`.
+
 ## Ошибки у поля в отзыве клиента и в чаевых (задача 684, 23.11.2026)
 
 - Отзыв клиента «Twoja opinia» (`VisitReviewForm`): «Wyślij opinię» без выбранной звезды — «Wybierz ocenę.» под

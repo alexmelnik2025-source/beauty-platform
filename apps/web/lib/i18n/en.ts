@@ -2136,6 +2136,8 @@ export const en: Dict = {
     baseTitle: 'Base (BaseLinker)',
     baseHint: 'Products, prices and stock from your Base — like Allegro or Empik.',
     token: 'Base API token',
+    /** Task 685: a too short token — said under the field. */
+    tokenTooShort: 'A Base token has at least 20 characters — copy all of it.',
     tokenWhere: 'In Base: My account → API → generate a token. We keep it encrypted.',
     connect: 'Connect',
     connected: 'Connected (token …{hint})',

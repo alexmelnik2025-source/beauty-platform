@@ -2135,6 +2135,8 @@ export const ru: Dict = {
     baseTitle: 'Base (BaseLinker)',
     baseHint: 'Товары, цены и остатки из вашего Base — как в Allegro или Empik.',
     token: 'Токен API из Base',
+    /** Task 685: a too short token — said under the field. */
+    tokenTooShort: 'Токен Base — не короче 20 знаков. Скопируйте его целиком.',
     tokenWhere: 'В Base: Мой аккаунт → API → создать токен. Мы храним его в зашифрованном виде.',
     connect: 'Подключить',
     connected: 'Подключено (токен …{hint})',

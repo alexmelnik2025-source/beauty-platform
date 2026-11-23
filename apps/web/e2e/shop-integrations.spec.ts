@@ -178,10 +178,24 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
 
   // Step 1: a wrong token is refused in plain words; the right one connects.
   const baseCard = page.getByTestId('integration-base');
-  await baseCard.getByLabel('Token API z Base').fill('wrong-token-0000000000000000');
+  const tokenField = baseCard.getByLabel('Token API z Base');
+  const tokenError = baseCard.locator('.field-error');
+  // Task 685: errors are said under the token field (not a silently switched-off button or a
+  // line at the top of the page), with the focus in the field.
   await baseCard.getByRole('button', { name: 'Połącz' }).click();
-  await expect(page.getByText('Base nie przyjął tego tokenu.', { exact: false })).toBeVisible();
-  await baseCard.getByLabel('Token API z Base').fill(TOKEN);
+  await expect(tokenError).toHaveText('Uzupełnij to pole.');
+  await tokenField.fill('short-token');
+  await baseCard.getByRole('button', { name: 'Połącz' }).click();
+  await expect(tokenError).toHaveText(/co najmniej 20 znaków/);
+  await expect(tokenField).toHaveAttribute('aria-invalid', 'true');
+  await expect(tokenField).toBeFocused();
+  await tokenField.fill('wrong-token-0000000000000000');
+  await expect(tokenError).toHaveCount(0);
+  await baseCard.getByRole('button', { name: 'Połącz' }).click();
+  await expect(tokenError).toContainText('Base nie przyjął tego tokenu.');
+  await expect(tokenField).toBeFocused();
+  await shot(page, '685-base-token-error');
+  await tokenField.fill(TOKEN);
   await shot(page, 'Q4-base-connect');
   await baseCard.getByRole('button', { name: 'Połącz' }).click();
 
