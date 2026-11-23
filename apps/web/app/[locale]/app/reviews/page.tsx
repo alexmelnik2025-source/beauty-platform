@@ -38,12 +38,21 @@ export default function ReviewsPage() {
   const [staffId, setStaffId] = useState<string | null>(null);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  /**
+   * Task 731 (owner's rule: errors where the action is): a failed "Pobierz CSV opinii" is said
+   * under that button and a failed "Pokaż więcej" under that button — not as a line at the top of
+   * the list, far from the button on a phone. "Pokaż więcej" is off while it loads, so a second tap
+   * no longer adds the same reviews twice.
+   */
+  const [csvError, setCsvError] = useState('');
+  const [moreError, setMoreError] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
 
   /** Task 385: the reviews with the chosen filters as a CSV file (column names in the cabinet language). */
   async function exportCsv(): Promise<void> {
     if (exporting) return;
     setExporting(true);
-    setError('');
+    setCsvError('');
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
       const res = await apiResponse(`${base}/reviews/export.csv`, {
@@ -64,13 +73,15 @@ export default function ReviewsPage() {
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (err) {
-      setError(errorText(t, err));
+      setCsvError(errorText(t, err));
     } finally {
       setExporting(false);
     }
   }
 
   const load = useCallback(async () => {
+    setCsvError('');
+    setMoreError('');
     try {
       setList(
         await api<SalonReviews>(`${base}/reviews`, {
@@ -92,7 +103,9 @@ export default function ReviewsPage() {
   }, [load]);
 
   async function more() {
-    if (!list?.nextBefore) return;
+    if (!list?.nextBefore || loadingMore) return;
+    setLoadingMore(true);
+    setMoreError('');
     try {
       const next = await api<SalonReviews>(`${base}/reviews`, {
         query: {
@@ -105,7 +118,9 @@ export default function ReviewsPage() {
       });
       setList({ ...next, items: [...list.items, ...next.items] });
     } catch (err) {
-      setError(errorText(t, err));
+      setMoreError(errorText(t, err));
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -139,12 +154,14 @@ export default function ReviewsPage() {
                   type="button"
                   className="btn btn--quiet"
                   disabled={exporting}
+                  aria-describedby={csvError ? 'reviews-csv-error' : undefined}
                   onClick={() => void exportCsv()}
                 >
                   {t.reviewsCabinet.csv}
                 </button>
               </div>
             ) : null}
+            <FieldError id="reviews-csv-error" text={csvError} />
             {list.average !== null ? (
               <p>
                 <Stars value={list.average} />{' '}
@@ -249,9 +266,18 @@ export default function ReviewsPage() {
               </ul>
             )}
             {list.nextBefore ? (
-              <button type="button" className="btn btn--quiet" onClick={() => void more()}>
-                {t.reviews.more}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={loadingMore}
+                  aria-describedby={moreError ? 'reviews-more-error' : undefined}
+                  onClick={() => void more()}
+                >
+                  {t.reviews.more}
+                </button>
+                <FieldError id="reviews-more-error" text={moreError} />
+              </>
             ) : null}
           </section>
         )}

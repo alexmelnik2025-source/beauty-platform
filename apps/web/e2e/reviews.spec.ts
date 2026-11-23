@@ -344,6 +344,17 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   expect(reviewsText).toContain('"Najlepszy fade w Warszawie. Polecam!"');
   expect(reviewsText).toContain('"Marta Nowak"');
   await shot(cabinet, '385-cabinet-reviews-csv');
+  // Task 731 (owner's rule: errors where the action is): a failed file is said under
+  // "Pobierz CSV opinii", not as a line above the list.
+  await cabinet.route('**/reviews/export.csv*', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await csvButton.click();
+  await expect(list.locator('#reviews-csv-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(csvButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(cabinet.locator('.alert')).toHaveCount(0);
+  await shot(cabinet, '731-cabinet-reviews-csv-error');
+  await cabinet.unrouteAll({ behavior: 'wait' });
   const saved = await json<{ requestHours: number; version: number }>(
     await request.get(`${base}/review-settings`, { headers: owner }),
   );
