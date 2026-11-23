@@ -38,7 +38,7 @@ import { contactsChange, contactsForm, type ContactsForm } from '../clientContac
 import type { ClientProblem } from '../newVisit';
 import { dialForTimeZone } from '../phone';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading } from '../ui';
+import { Button, Card, colors, Disclosure, ErrorText, Heading, LoadingCards } from '../ui';
 import { ClientBonusSection } from './ClientBonusSection';
 import { ClientContactsFields } from './ClientContactsFields';
 import { csvTools } from './csvTools';
@@ -316,7 +316,7 @@ export function ClientScreen(props: {
     return (
       <View style={styles.screen}>
         <View style={styles.row}>{back}</View>
-        {error ? <ErrorText>{error}</ErrorText> : <Text style={styles.muted}>{t.loading}</Text>}
+        {error ? <ErrorText>{error}</ErrorText> : <LoadingCards label={t.loading} />}
       </View>
     );
   }
@@ -640,205 +640,209 @@ export function ClientScreen(props: {
             <Text style={client.note ? styles.value : styles.muted}>{client.note ?? c.noNote}</Text>
             {mayEdit ? (
               <View style={styles.row}>
-                <Button kind="secondary" label={c.edit} onPress={() => startEditing(client)} />
+                <Button label={c.edit} onPress={() => startEditing(client)} />
               </View>
             ) : null}
           </>
         )}
       </Card>
 
-      {account ? (
-        <ClientBonusSection
-          api={api}
-          t={t}
-          locale={props.locale}
-          salon={salon}
-          customerId={id}
-          timeZone={props.timeZone}
-          account={account}
-          onAccount={setAccount}
-        />
-      ) : null}
+      {account || guard || salon.role === 'owner' ? (
+        <Disclosure label={t.navigation.more}>
+          {account ? (
+            <ClientBonusSection
+              api={api}
+              t={t}
+              locale={props.locale}
+              salon={salon}
+              customerId={id}
+              timeZone={props.timeZone}
+              account={account}
+              onAccount={setAccount}
+            />
+          ) : null}
 
-      {guard ? (
-        <Card>
-          <Text style={styles.label}>{c.guard.title}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={c.guard.rulesTitle}
-            accessibilityState={{ expanded: ruleOpen }}
-            aria-expanded={ruleOpen}
-            disabled={busy}
-            onPress={() => {
-              setRuleOpen(!ruleOpen);
-              setRuleFeedback(null);
-            }}
-            style={styles.ruleOption}
-          >
-            <Text style={styles.label}>
-              {c.guard.rulesTitle} {ruleOpen ? '▾' : '▸'}
-            </Text>
-            <Text style={styles.muted}>{c.guard.rules[guard.rule]}</Text>
-          </Pressable>
-          {ruleOpen ? (
-            <View role="radiogroup" accessibilityLabel={c.guard.rulesTitle}>
-              {(Object.keys(c.guard.rules) as GuardedClient['rule'][]).map((rule) => (
-                <Pressable
-                  key={rule}
-                  accessibilityRole="radio"
-                  accessibilityLabel={c.guard.rules[rule]}
-                  accessibilityState={{ checked: guard.rule === rule }}
-                  aria-checked={guard.rule === rule}
-                  disabled={busy}
-                  onPress={() => void saveRule(rule)}
-                  style={styles.ruleOption}
-                >
-                  <Text style={styles.value}>
-                    {guard.rule === rule ? '◉' : '○'} {c.guard.rules[rule]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-          {ruleFeedback?.bad ? <ErrorText>{ruleFeedback.text}</ErrorText> : null}
-          {ruleFeedback && !ruleFeedback.bad ? (
-            <Text style={styles.muted} accessibilityRole="alert">
-              {ruleFeedback.text}
-            </Text>
-          ) : null}
-          {guard.flagged ? (
-            <>
-              <Text style={styles.value}>{c.guard.marked}</Text>
-              <Text style={styles.small}>
-                {[
-                  guard.reasons.includes('changes') &&
-                    fill(c.guard.reasonChanges, { n: String(guard.changes) }),
-                  guard.reasons.includes('late_cancel') &&
-                    fill(c.guard.reasonLate, { n: String(guard.lateCancellations) }),
-                  guard.reasons.includes('no_shows') &&
-                    fill(c.guard.reasonNoShows, { n: String(guard.noShows) }),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-              {guard.noShowAmountGrosze > 0 ? (
-                <Text style={styles.value}>
-                  {fill(c.guard.owes, {
-                    sum: formatPrice(guard.noShowAmountGrosze, guard.currency, props.locale),
-                  })}
+          {guard ? (
+            <Card>
+              <Text style={styles.label}>{c.guard.title}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={c.guard.rulesTitle}
+                accessibilityState={{ expanded: ruleOpen }}
+                aria-expanded={ruleOpen}
+                disabled={busy}
+                onPress={() => {
+                  setRuleOpen(!ruleOpen);
+                  setRuleFeedback(null);
+                }}
+                style={styles.ruleOption}
+              >
+                <Text style={styles.label}>
+                  {c.guard.rulesTitle} {ruleOpen ? '▾' : '▸'}
+                </Text>
+                <Text style={styles.muted}>{c.guard.rules[guard.rule]}</Text>
+              </Pressable>
+              {ruleOpen ? (
+                <View role="radiogroup" accessibilityLabel={c.guard.rulesTitle}>
+                  {(Object.keys(c.guard.rules) as GuardedClient['rule'][]).map((rule) => (
+                    <Pressable
+                      key={rule}
+                      accessibilityRole="radio"
+                      accessibilityLabel={c.guard.rules[rule]}
+                      accessibilityState={{ checked: guard.rule === rule }}
+                      aria-checked={guard.rule === rule}
+                      disabled={busy}
+                      onPress={() => void saveRule(rule)}
+                      style={styles.ruleOption}
+                    >
+                      <Text style={styles.value}>
+                        {guard.rule === rule ? '◉' : '○'} {c.guard.rules[rule]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              {ruleFeedback?.bad ? <ErrorText>{ruleFeedback.text}</ErrorText> : null}
+              {ruleFeedback && !ruleFeedback.bad ? (
+                <Text style={styles.muted} accessibilityRole="alert">
+                  {ruleFeedback.text}
                 </Text>
               ) : null}
-              {releasing ? (
-                <View style={styles.form}>
-                  <Text style={styles.muted}>{c.guard.releaseAsk}</Text>
-                  <TextInput
-                    accessibilityLabel={c.guard.note}
-                    placeholder={c.guard.note}
-                    value={releaseNote}
-                    maxLength={300}
-                    onChangeText={setReleaseNote}
-                    style={styles.input}
-                  />
-                  <View style={styles.row}>
-                    <Button
-                      label={c.guard.releaseYes}
-                      busy={busy}
-                      onPress={() => void releaseGuard()}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={c.guard.no}
-                      onPress={() => setReleasing(false)}
-                    />
-                  </View>
-                </View>
+              {guard.flagged ? (
+                <>
+                  <Text style={styles.value}>{c.guard.marked}</Text>
+                  <Text style={styles.small}>
+                    {[
+                      guard.reasons.includes('changes') &&
+                        fill(c.guard.reasonChanges, { n: String(guard.changes) }),
+                      guard.reasons.includes('late_cancel') &&
+                        fill(c.guard.reasonLate, { n: String(guard.lateCancellations) }),
+                      guard.reasons.includes('no_shows') &&
+                        fill(c.guard.reasonNoShows, { n: String(guard.noShows) }),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                  {guard.noShowAmountGrosze > 0 ? (
+                    <Text style={styles.value}>
+                      {fill(c.guard.owes, {
+                        sum: formatPrice(guard.noShowAmountGrosze, guard.currency, props.locale),
+                      })}
+                    </Text>
+                  ) : null}
+                  {releasing ? (
+                    <View style={styles.form}>
+                      <Text style={styles.muted}>{c.guard.releaseAsk}</Text>
+                      <TextInput
+                        accessibilityLabel={c.guard.note}
+                        placeholder={c.guard.note}
+                        value={releaseNote}
+                        maxLength={300}
+                        onChangeText={setReleaseNote}
+                        style={styles.input}
+                      />
+                      <View style={styles.row}>
+                        <Button
+                          label={c.guard.releaseYes}
+                          busy={busy}
+                          onPress={() => void releaseGuard()}
+                        />
+                        <Button
+                          kind="secondary"
+                          label={c.guard.no}
+                          onPress={() => setReleasing(false)}
+                        />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.row}>
+                      <Button
+                        kind="secondary"
+                        label={c.guard.release}
+                        onPress={() => {
+                          setInfo('');
+                          setReleasing(true);
+                        }}
+                      />
+                    </View>
+                  )}
+                </>
               ) : (
-                <View style={styles.row}>
-                  <Button
-                    kind="secondary"
-                    label={c.guard.release}
-                    onPress={() => {
-                      setInfo('');
-                      setReleasing(true);
-                    }}
-                  />
-                </View>
+                <Text style={styles.muted}>{guard.enabled ? c.guard.notMarked : c.guard.off}</Text>
               )}
-            </>
-          ) : (
-            <Text style={styles.muted}>{guard.enabled ? c.guard.notMarked : c.guard.off}</Text>
-          )}
-          {guard.history.slice(0, 5).map((h, i) => (
-            <Text key={i} style={styles.small}>
-              {dateIn(h.at, props.timeZone, props.locale)} · {c.guard.history[h.type]}
-              {h.late ? ` · ${c.guard.late}` : ''}
-              {h.note ? ` · ${h.note}` : ''}
-            </Text>
-          ))}
-        </Card>
-      ) : null}
-
-      {/* Task 334: the client's GDPR requests — the salon owner only (the server checks too). */}
-      {salon.role === 'owner' ? (
-        <Card>
-          <Text style={styles.label}>{t.clientPrivacy.title}</Text>
-          {client.anonymizedAt ? (
-            <Text style={styles.muted}>
-              {fill(t.clientPrivacy.anonymized, {
-                date: dateIn(client.anonymizedAt, props.timeZone, props.locale),
-              })}
-            </Text>
-          ) : (
-            <>
-              <Text style={styles.small}>{t.clientPrivacy.hint}</Text>
-              <View style={styles.row}>
-                <Button
-                  kind="secondary"
-                  label={t.clientPrivacy.download}
-                  disabled={busy}
-                  onPress={() => void downloadData()}
-                />
-              </View>
-              {erasing ? (
-                <View style={styles.form}>
-                  <Text style={styles.value}>{t.clientPrivacy.confirm}</Text>
-                  <View style={styles.row}>
-                    <Button
-                      label={t.clientPrivacy.yes}
-                      busy={busy}
-                      onPress={() => void eraseData()}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={t.clientPrivacy.no}
-                      disabled={busy}
-                      onPress={() => setErasing(false)}
-                    />
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.row}>
-                  <Button
-                    kind="link"
-                    label={t.clientPrivacy.erase}
-                    disabled={busy}
-                    onPress={() => {
-                      setPrivacyNote(null);
-                      setErasing(true);
-                    }}
-                  />
-                </View>
-              )}
-            </>
-          )}
-          {privacyNote ? (
-            privacyNote.bad ? (
-              <ErrorText>{privacyNote.text}</ErrorText>
-            ) : (
-              <Text style={styles.info}>{privacyNote.text}</Text>
-            )
+              {guard.history.slice(0, 5).map((h, i) => (
+                <Text key={i} style={styles.small}>
+                  {dateIn(h.at, props.timeZone, props.locale)} · {c.guard.history[h.type]}
+                  {h.late ? ` · ${c.guard.late}` : ''}
+                  {h.note ? ` · ${h.note}` : ''}
+                </Text>
+              ))}
+            </Card>
           ) : null}
-        </Card>
+
+          {/* Task 334: the client's GDPR requests — the salon owner only (the server checks too). */}
+          {salon.role === 'owner' ? (
+            <Card>
+              <Text style={styles.label}>{t.clientPrivacy.title}</Text>
+              {client.anonymizedAt ? (
+                <Text style={styles.muted}>
+                  {fill(t.clientPrivacy.anonymized, {
+                    date: dateIn(client.anonymizedAt, props.timeZone, props.locale),
+                  })}
+                </Text>
+              ) : (
+                <>
+                  <Text style={styles.small}>{t.clientPrivacy.hint}</Text>
+                  <View style={styles.row}>
+                    <Button
+                      kind="secondary"
+                      label={t.clientPrivacy.download}
+                      disabled={busy}
+                      onPress={() => void downloadData()}
+                    />
+                  </View>
+                  {erasing ? (
+                    <View style={styles.form}>
+                      <Text style={styles.value}>{t.clientPrivacy.confirm}</Text>
+                      <View style={styles.row}>
+                        <Button
+                          label={t.clientPrivacy.yes}
+                          busy={busy}
+                          onPress={() => void eraseData()}
+                        />
+                        <Button
+                          kind="secondary"
+                          label={t.clientPrivacy.no}
+                          disabled={busy}
+                          onPress={() => setErasing(false)}
+                        />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.row}>
+                      <Button
+                        kind="link"
+                        label={t.clientPrivacy.erase}
+                        disabled={busy}
+                        onPress={() => {
+                          setPrivacyNote(null);
+                          setErasing(true);
+                        }}
+                      />
+                    </View>
+                  )}
+                </>
+              )}
+              {privacyNote ? (
+                privacyNote.bad ? (
+                  <ErrorText>{privacyNote.text}</ErrorText>
+                ) : (
+                  <Text style={styles.info}>{privacyNote.text}</Text>
+                )
+              ) : null}
+            </Card>
+          ) : null}
+        </Disclosure>
       ) : null}
 
       {ownOnly ? <Text style={styles.muted}>{c.ownOnly}</Text> : null}

@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ClientApi, type ClientPerson, type Locale, type PublicLocation } from './api';
 import type { BookingPreset } from './booking';
@@ -17,7 +17,7 @@ import { SignInScreen } from './screens/SignInScreen';
 import { VisitsScreen } from './screens/VisitsScreen';
 import { rememberViewed, type RecentSalon } from './recent';
 import { recentSalonsStore, tokenStore } from './storage';
-import { Button, colors, ErrorText } from './ui';
+import { Button, colors, ErrorText, LoadingCards } from './ui';
 
 type Stage =
   | { kind: 'loading' }
@@ -174,7 +174,9 @@ export default function App() {
           {/* Sign-in / "My visits" and the catalogue stay mounted: going back keeps what was typed. */}
           <View style={finder ? styles.hidden : styles.fill}>
             {stage.kind === 'loading' ? (
-              <ActivityIndicator style={{ marginTop: 80 }} color={colors.ink} />
+              <View style={{ padding: 20 }}>
+                <LoadingCards label={t.loading} />
+              </View>
             ) : stage.kind === 'failed' ? (
               <View style={{ padding: 24, gap: 16 }}>
                 <ErrorText>{stage.message}</ErrorText>

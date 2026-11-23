@@ -596,6 +596,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await expect(appCard.getByRole('list', { name: 'Zebrane: 2 z 3' })).toBeVisible();
     await expect(appCard.getByRole('list', { name: 'Moje kupony' })).toContainText(coupon.code);
     await expect(appCard).not.toContainText('Broda gratis');
+    await appCard.getByRole('button', { name: 'Pokaż więcej', exact: true }).click();
     await expect(appCard.getByRole('list', { name: /^Więcej za wizytę/ })).toContainText(
       'Spokojne dni ×2',
     );
@@ -610,6 +611,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await appCard.getByRole('list', { name: 'Moje kupony' }).scrollIntoViewIfNeeded();
     await shot(app, '63a-client-app-bonus-history');
     // In Ukrainian too.
+    await app.getByRole('button', { name: 'Profil', exact: true }).click();
     await app.getByRole('button', { name: 'Język', exact: true }).click();
     await app.getByRole('button', { name: 'UA · Українська' }).click();
     await expect(app.getByRole('tab', { name: 'Мої бонуси', selected: true })).toBeVisible();
@@ -785,6 +787,7 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
     await app.getByRole('button', { name: 'Szukaj', exact: true }).click();
     await app.getByRole('button', { name: 'Karta klienta: Anna Kowalska', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Anna Kowalska' })).toBeVisible();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await expect(app.getByText('Program lojalnościowy')).toBeVisible();
     await expect(app.getByText(/^Pieczątki: \d+$/)).toBeVisible();
     await expect(app.getByText('Poziom: Silver · −5%')).toBeVisible();

@@ -3,6 +3,7 @@ import type { Dictionary } from './pl';
 /** Albanian. To be proofread by a native speaker before the beta. */
 export const sq: Dictionary = {
   appTitle: 'Takimet',
+  loading: 'Po ngarkohet…',
   signIn: {
     title: 'Takimet e mia',
     subtitle:
@@ -21,6 +22,7 @@ export const sq: Dictionary = {
   visits: {
     waiting: 'Pret konfirmim',
     title: 'Takimet e mia',
+    profile: 'Profili',
     signedInAs: 'Jeni identifikuar si {email}',
     upcoming: 'Të ardhshme',
     past: 'Historiku',
@@ -131,8 +133,7 @@ export const sq: Dictionary = {
     tierNextVisits: 'Deri te niveli “{name}” mungojnë vizita: {count}',
     tierNextSpend: 'Deri te niveli “{name}” mungojnë: {amount}',
     tierTop: 'Niveli më i lartë në këtë sallon',
-    empty:
-      'Ende nuk keni bonuse. Kur një sallon që vizitoni ka program besnikërie, vulat dhe pikët tuaja shfaqen këtu.',
+    empty: 'Nuk ke ende bonuse.',
     book: 'Rezervo',
     programOff: 'Salloni e ka çaktivizuar programin — kuponët tuaj janë ende të vlefshëm.',
     readyStamps:
@@ -417,8 +418,7 @@ export const sq: Dictionary = {
   },
   favorites: {
     tab: 'Të preferuarat',
-    empty:
-      'Ende nuk keni sallone të preferuara. Hapni një sallon në katalog dhe prekni “♡ Shto te të preferuarat”.',
+    empty: 'Nuk ke ende sallone të preferuara.',
     add: '♡ Shto te të preferuarat',
     saved: '♥ Te të preferuarat',
     remove: 'Hiqe nga të preferuarat',

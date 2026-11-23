@@ -581,6 +581,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
     await expect(commissions.getByText(/^Prowizje: 82,50\s*zł$/)).toBeVisible();
     await expect(commissions.getByText(/^25% · 22,50\s*zł$/)).toBeVisible();
     await shot(app, '375-business-app-reports-commissions');
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     // "CSV wypłat" in the app too (task 393): Marek's 25% is in the file now.
     const [appPayout] = await Promise.all([
       app.waitForEvent('download'),

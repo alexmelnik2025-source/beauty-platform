@@ -1,6 +1,7 @@
 /** Polish — the base dictionary; the other languages must have exactly the same keys. */
 export const pl = {
   appTitle: 'Wizyty',
+  loading: 'Ładowanie…',
   signIn: {
     title: 'Moje wizyty',
     subtitle:
@@ -19,6 +20,7 @@ export const pl = {
   visits: {
     waiting: 'Czeka na potwierdzenie',
     title: 'Moje wizyty',
+    profile: 'Profil',
     signedInAs: 'Zalogowano jako {email}',
     upcoming: 'Nadchodzące',
     past: 'Historia',
@@ -130,8 +132,7 @@ export const pl = {
     tierNextVisits: 'Do poziomu „{name}” brakuje wizyt: {count}',
     tierNextSpend: 'Do poziomu „{name}” brakuje: {amount}',
     tierTop: 'To najwyższy poziom w tym salonie',
-    empty:
-      'Na razie nie masz bonusów. Gdy salon, w którym bywasz, prowadzi program lojalnościowy, Twoje pieczątki i punkty pojawią się tutaj.',
+    empty: 'Na razie nie masz bonusów.',
     book: 'Umów się',
     programOff: 'Salon wyłączył program — Twoje kupony nadal są ważne.',
     readyStamps: 'Możesz już odebrać „{reward}” — albo zbierać dalej na większą nagrodę.',
@@ -411,8 +412,7 @@ export const pl = {
   },
   favorites: {
     tab: 'Ulubione',
-    empty:
-      'Nie masz jeszcze ulubionych salonów. Otwórz salon w katalogu i dotknij „♡ Dodaj do ulubionych”.',
+    empty: 'Nie masz jeszcze ulubionych salonów.',
     add: '♡ Dodaj do ulubionych',
     saved: '♥ W ulubionych',
     remove: 'Usuń z ulubionych',

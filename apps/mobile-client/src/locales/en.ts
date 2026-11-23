@@ -2,6 +2,7 @@ import type { Dictionary } from './pl';
 
 export const en: Dictionary = {
   appTitle: 'Visits',
+  loading: 'Loading…',
   signIn: {
     title: 'My visits',
     subtitle:
@@ -20,6 +21,7 @@ export const en: Dictionary = {
   visits: {
     waiting: 'Waiting for confirmation',
     title: 'My visits',
+    profile: 'Profile',
     signedInAs: 'Signed in as {email}',
     upcoming: 'Upcoming',
     past: 'History',
@@ -130,8 +132,7 @@ export const en: Dictionary = {
     tierNextVisits: 'Visits left to “{name}”: {count}',
     tierNextSpend: 'Left to “{name}”: {amount}',
     tierTop: 'The highest tier at this salon',
-    empty:
-      'No bonuses yet. When a salon you visit runs a loyalty program, your stamps and points appear here.',
+    empty: 'You have no bonuses yet.',
     book: 'Book',
     programOff: 'The salon has switched the program off — your coupons are still valid.',
     readyStamps: 'You can already take “{reward}” — or keep collecting for a bigger reward.',
@@ -411,7 +412,7 @@ export const en: Dictionary = {
   },
   favorites: {
     tab: 'Favourites',
-    empty: 'No favourite salons yet. Open a salon in the catalogue and tap “♡ Add to favourites”.',
+    empty: 'No favourite salons yet.',
     add: '♡ Add to favourites',
     saved: '♥ In favourites',
     remove: 'Remove from favourites',

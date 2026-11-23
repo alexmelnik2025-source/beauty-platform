@@ -1792,6 +1792,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await expect(phone.getByText('Potwierdzona').first()).toBeVisible();
     await shot(phone, '58b-client-app-visits');
     // Task 97: "Download my data" (GDPR) in the app too — the web preview downloads the JSON file.
+    await phone.getByRole('button', { name: 'Profil', exact: true }).click();
     const appDataButton = phone.getByRole('button', { name: 'Pobierz moje dane' });
     await appDataButton.scrollIntoViewIfNeeded();
     await expect(phone.getByText(/Plik z danymi, które salony przechowują o Tobie/)).toBeVisible();
@@ -1918,6 +1919,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     await phone.getByRole('tab', { name: 'Ulubione' }).click();
     await expect(phone.getByRole('tab', { name: 'Ulubione', selected: true })).toBeVisible();
     await expect(phone.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
+    await phone.getByRole('button', { name: 'Pokaż więcej', exact: true }).click();
     await expect(
       phone.getByRole('button', { name: 'Usuń z ulubionych: Gestalt Barbershop' }),
     ).toBeVisible();
@@ -1935,6 +1937,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     // The session is kept on the phone: opening the app again needs no new code.
     await phone.reload();
     await expect(phone.getByText(`Zalogowano jako ${CLIENT}`)).toBeVisible();
+    await phone.getByRole('button', { name: 'Profil', exact: true }).click();
     await phone.getByRole('button', { name: 'Wyloguj się' }).click();
     await expect(phone.getByRole('heading', { name: 'Moje wizyty' })).toBeVisible();
     await expect(phone.getByLabel('E-mail', { exact: true })).toBeVisible();

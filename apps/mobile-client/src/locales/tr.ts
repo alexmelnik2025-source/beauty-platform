@@ -3,6 +3,7 @@ import type { Dictionary } from './pl';
 /** Turkish. To be proofread by a native speaker before the beta. */
 export const tr: Dictionary = {
   appTitle: 'Randevular',
+  loading: 'Yükleniyor…',
   signIn: {
     title: 'Randevularım',
     subtitle:
@@ -21,6 +22,7 @@ export const tr: Dictionary = {
   visits: {
     waiting: 'Onay bekliyor',
     title: 'Randevularım',
+    profile: 'Profil',
     signedInAs: '{email} olarak giriş yapıldı',
     upcoming: 'Yaklaşan',
     past: 'Geçmiş',
@@ -131,8 +133,7 @@ export const tr: Dictionary = {
     tierNextVisits: '“{name}” seviyesine kalan ziyaret: {count}',
     tierNextSpend: '“{name}” seviyesine kalan: {amount}',
     tierTop: 'Bu salondaki en yüksek seviye',
-    empty:
-      'Henüz bonus yok. Gittiğiniz salonun bir sadakat programı varsa damgalarınız ve puanlarınız burada görünür.',
+    empty: 'Henüz bonusunuz yok.',
     book: 'Randevu al',
     programOff: 'Salon programı kapattı — kuponlarınız hâlâ geçerli.',
     readyStamps:
@@ -417,7 +418,7 @@ export const tr: Dictionary = {
   },
   favorites: {
     tab: 'Favoriler',
-    empty: 'Henüz favori salonunuz yok. Katalogda bir salon açın ve “♡ Favorilere ekle”ye dokunun.',
+    empty: 'Henüz favori salonunuz yok.',
     add: '♡ Favorilere ekle',
     saved: '♥ Favorilerde',
     remove: 'Favorilerden çıkar',

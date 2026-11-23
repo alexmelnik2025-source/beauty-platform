@@ -13,7 +13,7 @@ import {
   parseCash,
   tillDifference,
 } from '../tillClose';
-import { Button, colors, ErrorText } from '../ui';
+import { Button, colors, Disclosure, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -55,8 +55,10 @@ export function TillCloseSection(props: {
   if (!view || view.date !== date) return null;
   return (
     <View style={styles.box}>
-      <TillMovements {...props} view={view} onChange={setView} />
       <TillCount {...props} view={view} onChange={setView} />
+      <Disclosure label={props.t.navigation.more}>
+        <TillMovements {...props} view={view} onChange={setView} />
+      </Disclosure>
       <OtherPayments {...props} view={view} onChange={setView} />
     </View>
   );
@@ -419,7 +421,7 @@ function TillCount(props: PartProps) {
   if (!close) {
     return (
       <View style={styles.row}>
-        <Button kind="secondary" label={d.tillClose} onPress={start} />
+        <Button label={d.tillClose} onPress={start} />
       </View>
     );
   }
@@ -463,7 +465,7 @@ function TillCount(props: PartProps) {
         </Text>
       ) : null}
       <View style={styles.row}>
-        <Button kind="link" label={d.tillRecount} onPress={start} />
+        <Button label={d.tillRecount} onPress={start} />
       </View>
     </View>
   );

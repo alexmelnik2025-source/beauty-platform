@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -170,3 +170,43 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 });
+
+export function Disclosure({ label, children }: { label: string; children: ReactNode }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View style={{ gap: 8 }}>
+      <Button
+        kind="link"
+        label={`${label} ${expanded ? '▾' : '▸'}`}
+        a11yLabel={label}
+        expanded={expanded}
+        onPress={() => setExpanded(!expanded)}
+      />
+      <View style={{ gap: 8, display: expanded ? 'flex' : 'none' }}>{children}</View>
+    </View>
+  );
+}
+
+export function LoadingCards({ label }: { label: string }) {
+  return (
+    <View
+      accessibilityLabel={label}
+      accessibilityRole="progressbar"
+      accessibilityState={{ busy: true }}
+      style={{ gap: 8 }}
+    >
+      {[0, 1, 2].map((row) => (
+        <Card key={row}>
+          <View
+            accessible={false}
+            style={{ height: 14, width: '45%', borderRadius: 6, backgroundColor: colors.soft }}
+          />
+          <View
+            accessible={false}
+            style={{ height: 10, width: '70%', borderRadius: 5, backgroundColor: colors.soft }}
+          />
+        </Card>
+      ))}
+    </View>
+  );
+}
