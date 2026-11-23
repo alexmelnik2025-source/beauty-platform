@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
-import { errorText, isCodeError, validationField } from '../errors';
+import { errorText, formFailure, isCodeError, validationField, type FormFailure } from '../errors';
+import { FormFeedback } from '../FormFeedback';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import type { RecentSalon } from '../recent';
 import { RecentSalons } from './RecentSalons';
-import { Button, colors, ErrorText, FieldInput, Heading } from '../ui';
+import { Button, colors, FieldInput, Heading } from '../ui';
 
 /**
  * Sign-in without a password or an account: the email the client books with → 6-digit code.
@@ -40,7 +41,7 @@ export function SignInScreen(props: {
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
   const [fieldError, setFieldError] = useState('');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FormFailure | null>(null);
   const [busy, setBusy] = useState(false);
   const [what, setWhat] = useState('');
   // Task 370: how many salons are open right now; the button is there only when some are.
@@ -62,32 +63,33 @@ export function SignInScreen(props: {
   async function send(email = parseEmail(input)) {
     if (busy) return;
     setFieldError('');
-    setError('');
+    setFailure(null);
     if (!email) return setFieldError(t.signIn.badEmail);
     setBusy(true);
-    setError('');
     try {
       await api.requestCode(email, locale);
       setSentTo(email);
       setCode('');
     } catch (e) {
       if (!sentTo && validationField(e, ['email'])) setFieldError(t.signIn.badEmail);
-      else setError(errorText(e, t));
+      else setFailure(formFailure(e, t, () => void send(sentTo || parseEmail(input))));
     } finally {
       setBusy(false);
     }
   }
 
   async function confirm() {
-    if (code.length !== 6 || busy) return;
+    if (busy) return;
+    if (code.length !== 6) return setFieldError(t.signIn.badCode);
     setFieldError('');
     setBusy(true);
-    setError('');
+    setFailure(null);
     try {
       props.onSignedIn(await api.verifyCode(sentTo, code, locale));
     } catch (e) {
       if (isCodeError(e)) setFieldError(errorText(e, t));
-      else setError(errorText(e, t));
+      else if (validationField(e, ['code'])) setFieldError(t.signIn.badCode);
+      else setFailure(formFailure(e, t, () => void confirm()));
       setBusy(false);
     }
   }
@@ -136,9 +138,11 @@ export function SignInScreen(props: {
             accessibilityLabel={t.signIn.email}
             placeholder={t.signIn.email}
             placeholderTextColor={colors.placeholder}
+            editable={!busy}
             value={input}
             onChangeText={(value) => {
               setInput(value);
+              setFailure(null);
               setFieldError('');
             }}
             onSubmitEditing={() => void send()}
@@ -148,7 +152,7 @@ export function SignInScreen(props: {
             inputMode="email"
             style={styles.input}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
           <Button
             label={t.signIn.sendCode}
             onPress={() => void send()}
@@ -164,9 +168,11 @@ export function SignInScreen(props: {
             accessibilityLabel={t.signIn.code}
             placeholder="000000"
             placeholderTextColor={colors.line}
+            editable={!busy}
             value={code}
             onChangeText={(v) => {
               setFieldError('');
+              setFailure(null);
               setCode(v.replace(/\D/g, '').slice(0, 6));
             }}
             onSubmitEditing={confirm}
@@ -176,7 +182,7 @@ export function SignInScreen(props: {
             maxLength={6}
             style={[styles.input, styles.code]}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
           <Button
             label={t.signIn.confirm}
             onPress={confirm}
@@ -197,7 +203,7 @@ export function SignInScreen(props: {
               onPress={() => {
                 setSentTo('');
                 setFieldError('');
-                setError('');
+                setFailure(null);
               }}
             />
           </View>

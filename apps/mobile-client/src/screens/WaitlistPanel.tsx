@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
-import { errorText } from '../errors';
+import { errorText, formFailure, validationField, type FormFailure } from '../errors';
+import { FieldGroup, FormFeedback } from '../FormFeedback';
 import { dayChip, formatDay } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { dialForTimeZone, normalizePhone } from '../phone';
-import { Button, colors, ErrorText, FieldInput } from '../ui';
+import { Button, colors, FieldInput } from '../ui';
 import { waitlistDays } from '../waitlist';
 
 /** The waiting list's words for the API's refusals (task 50 rules). */
@@ -46,7 +47,8 @@ export function WaitlistPanel(props: {
   const [busy, setBusy] = useState<string | null>(null);
   const [nameError, setNameError] = useState('');
   const [joined, setJoined] = useState<{ date: string; auto: boolean } | null>(null);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FormFailure | null>(null);
+  const [dateError, setDateError] = useState('');
 
   if (!open) return <Button kind="link" label={w.open} onPress={() => setOpen(true)} />;
   if (!props.signedIn) return <Text style={styles.muted}>{w.signInFirst}</Text>;
@@ -55,7 +57,9 @@ export function WaitlistPanel(props: {
 
   const join = async (date: string) => {
     if (busy) return;
-    setError('');
+    setFailure(null);
+    setDateError('');
+    setNameError('');
     setInvalidPhone(false);
     if (!name.trim()) {
       setNameError(w.nameNeeded);
@@ -78,7 +82,15 @@ export function WaitlistPanel(props: {
       });
       setJoined({ date, auto: autoBook && !result.alreadyWaiting });
     } catch (e) {
-      setError(waitlistErrorText(e, t));
+      const field = validationField(e, ['name', 'phone', 'date']);
+      if (field === 'name') setNameError(w.nameNeeded);
+      else if (field === 'phone') setInvalidPhone(true);
+      else if (
+        field === 'date' ||
+        (e instanceof ApiError && ['WAITLIST_DATE', 'SLOTS_AVAILABLE'].includes(e.code ?? ''))
+      ) {
+        setDateError(field === 'date' ? w.badDay : waitlistErrorText(e, t));
+      } else setFailure(formFailure(e, t, () => void join(date), waitlistErrorText(e, t)));
     } finally {
       setBusy(null);
     }
@@ -98,9 +110,11 @@ export function WaitlistPanel(props: {
             error={nameError}
             accessibilityLabel={t.book.name}
             placeholder={t.book.name}
+            editable={busy === null}
             value={name}
             onChangeText={(value) => {
               setName(value);
+              setFailure(null);
               setNameError('');
             }}
             autoComplete="name"
@@ -110,9 +124,11 @@ export function WaitlistPanel(props: {
             <Text style={[styles.muted, { flex: 1 }]}>{w.autoBook}</Text>
             <Switch
               accessibilityLabel={w.autoBook}
+              disabled={busy !== null}
               value={autoBook}
               onValueChange={(value) => {
                 setAutoBook(value);
+                setFailure(null);
                 setInvalidPhone(false);
               }}
             />
@@ -122,9 +138,11 @@ export function WaitlistPanel(props: {
               accessibilityLabel={t.book.phone}
               error={invalidPhone ? w.phoneForAuto : undefined}
               placeholder={t.book.phone}
+              editable={busy === null}
               value={phone}
               onChangeText={(value) => {
                 setPhone(value);
+                setFailure(null);
                 setInvalidPhone(false);
               }}
               autoComplete="tel"
@@ -132,30 +150,32 @@ export function WaitlistPanel(props: {
               style={styles.input}
             />
           ) : null}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.days}
-          >
-            {days.map((date) => {
-              const chip = dayChip(date, locale);
-              const on = date === joined?.date;
-              return (
-                <Pressable
-                  key={date}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${w.wait}: ${formatDay(date, locale)}`}
-                  aria-pressed={on}
-                  disabled={busy !== null}
-                  onPress={() => void join(date)}
-                  style={[styles.day, on && styles.dayOn, busy === date && { opacity: 0.6 }]}
-                >
-                  <Text style={[styles.week, on && styles.onText]}>{chip.weekday}</Text>
-                  <Text style={[styles.number, on && styles.onText]}>{chip.day}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          <FieldGroup error={dateError}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.days}
+            >
+              {days.map((date) => {
+                const chip = dayChip(date, locale);
+                const on = date === joined?.date;
+                return (
+                  <Pressable
+                    key={date}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${w.wait}: ${formatDay(date, locale)}`}
+                    aria-pressed={on}
+                    disabled={busy !== null}
+                    onPress={() => void join(date)}
+                    style={[styles.day, on && styles.dayOn, busy === date && { opacity: 0.6 }]}
+                  >
+                    <Text style={[styles.week, on && styles.onText]}>{chip.weekday}</Text>
+                    <Text style={[styles.number, on && styles.onText]}>{chip.day}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </FieldGroup>
         </>
       )}
       {joined ? (
@@ -163,7 +183,7 @@ export function WaitlistPanel(props: {
           {fill(joined.auto ? w.joinedAuto : w.joined, { day: formatDay(joined.date, locale) })}
         </Text>
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <FormFeedback failure={failure} retryLabel={t.retry} busy={busy !== null} />
     </View>
   );
 }

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
-import { errorText } from './errors';
+import { formFailure, isNetworkError, validationField, type FormFailure } from './errors';
+import { FieldGroup, FormFeedback } from './FormFeedback';
 import { fill, type Dictionary } from './i18n';
-import { Button, colors, ErrorText } from './ui';
+import { Button, colors, FieldInput } from './ui';
 
 const TEXT_MAX = 1000;
 
@@ -26,7 +27,9 @@ export function ReviewCard(props: {
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FormFailure | null>(null);
+  const [field, setField] = useState<'rating' | 'text'>();
+  const [loadAttempt, retryLoad] = useState(0);
   const [thanks, setThanks] = useState(false);
   const tRef = useRef(t);
   tRef.current = t;
@@ -42,29 +45,41 @@ export function ReviewCard(props: {
         setRating(res.review?.rating ?? 0);
         setText(res.review?.text ?? '');
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        if (live && isNetworkError(error)) {
+          setFailure(
+            formFailure(error, tRef.current, () => {
+              setFailure(null);
+              retryLoad((attempt) => attempt + 1);
+            }),
+          );
+        }
+      });
     return () => {
       live = false;
     };
-  }, [api, visitId]);
+  }, [api, visitId, loadAttempt]);
 
-  if (!state || (!state.canReview && !state.review)) return null;
+  if (!state) return <FormFeedback failure={failure} retryLabel={t.retry} />;
+  if (!state.canReview && !state.review) return null;
 
   async function send() {
-    if (rating === 0 || busy) return;
+    if (busy) return;
+    if (rating === 0) return setField('rating');
     setBusy(true);
-    setError('');
+    setFailure(null);
+    setField(undefined);
     try {
       const res = await api.writeReview(visitId, rating, text);
       setState(res);
       setEditing(false);
       setThanks(true);
     } catch (e) {
-      setError(
-        e instanceof ApiError && e.code === 'REVIEW_NOT_POSSIBLE'
-          ? r.notPossible
-          : errorText(e, tRef.current),
-      );
+      const invalid = validationField(e, ['rating', 'text']);
+      if (invalid) setField(invalid);
+      else if (e instanceof ApiError && e.code === 'REVIEW_NOT_POSSIBLE') {
+        setFailure({ message: r.notPossible });
+      } else setFailure(formFailure(e, tRef.current, () => void send()));
     } finally {
       setBusy(false);
     }
@@ -87,32 +102,45 @@ export function ReviewCard(props: {
       {editing ? (
         <>
           <Text style={styles.ask}>{fill(r.ask, { staff: props.staffName })}</Text>
-          <View style={styles.stars} role="radiogroup" aria-label={r.rating}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable
-                key={n}
-                role="radio"
-                aria-checked={rating === n}
-                aria-label={fill(r.outOf, { n: String(n) })}
-                onPress={() => setRating(n)}
-                style={styles.starButton}
-              >
-                <Text style={[styles.star, n <= rating && styles.starOn]}>★</Text>
-              </Pressable>
-            ))}
-          </View>
-          <TextInput
+          <FieldGroup error={field === 'rating' ? r.badRating : undefined}>
+            <View style={styles.stars} role="radiogroup" aria-label={r.rating}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable
+                  key={n}
+                  role="radio"
+                  aria-checked={rating === n}
+                  aria-label={fill(r.outOf, { n: String(n) })}
+                  disabled={busy}
+                  onPress={() => {
+                    setRating(n);
+                    setFailure(null);
+                    if (field === 'rating') setField(undefined);
+                  }}
+                  style={styles.starButton}
+                >
+                  <Text style={[styles.star, n <= rating && styles.starOn]}>★</Text>
+                </Pressable>
+              ))}
+            </View>
+          </FieldGroup>
+          <FieldInput
+            error={field === 'text' ? r.badText : undefined}
+            editable={!busy}
             accessibilityLabel={r.text}
             placeholder={r.text}
             placeholderTextColor={colors.placeholder}
             value={text}
-            onChangeText={setText}
+            onChangeText={(value) => {
+              setText(value);
+              setFailure(null);
+              if (field === 'text') setField(undefined);
+            }}
             maxLength={TEXT_MAX}
             multiline
             style={styles.input}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <Button label={r.send} busy={busy} disabled={rating === 0} onPress={() => void send()} />
+          <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
+          <Button label={r.send} busy={busy} onPress={() => void send()} />
         </>
       ) : state.review ? (
         <>

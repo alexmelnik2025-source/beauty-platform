@@ -575,6 +575,16 @@ export class ClientApi {
     return this.answer<VisitPhoto>(res);
   }
 
+  holdPhotos(hold: Hold): Promise<VisitPhotoList> {
+    return this.call<VisitPhotoList>(
+      'GET',
+      `/v1/public/holds/${encodeURIComponent(hold.holdId)}/photos`,
+      undefined,
+      undefined,
+      { 'x-hold-token': hold.holdToken },
+    );
+  }
+
   /** Takes an example photo off the held time. */
   removeHoldPhoto(hold: Hold, photoId: string): Promise<void> {
     return this.call<void>(

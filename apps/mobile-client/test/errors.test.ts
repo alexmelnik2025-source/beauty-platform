@@ -1,0 +1,52 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../src/api';
+import { errorText, formFailure, isCodeError, validationField } from '../src/errors';
+import { DICTIONARIES } from '../src/i18n';
+
+const t = DICTIONARIES.pl;
+
+describe('client form errors', () => {
+  it('distinguishes an incorrect code from a code that must be requested again', () => {
+    for (const [code, message] of [
+      ['INVALID_CODE', t.signIn.badCode],
+      ['CODE_EXPIRED', t.signIn.newCodeNeeded],
+      ['CODE_NOT_SENT', t.signIn.newCodeNeeded],
+      ['TOO_MANY_ATTEMPTS', t.signIn.newCodeNeeded],
+    ] as const) {
+      const error = new ApiError(400, 'Server message', code);
+      expect(isCodeError(error)).toBe(true);
+      expect(errorText(error, t)).toBe(message);
+    }
+    expect(isCodeError(new ApiError(429, '', 'TOO_MANY_CODES'))).toBe(false);
+  });
+
+  it('matches supported field paths and ignores malformed details', () => {
+    const error = new ApiError(400, '', 'VALIDATION_ERROR', [
+      null,
+      {},
+      { path: 'other' },
+      { path: 'wishes.note' },
+      { path: 'phone' },
+    ]);
+    expect(validationField(error, ['wishes.note'])).toBe('wishes.note');
+    expect(validationField(error, ['name', 'phone'])).toBe('phone');
+    expect(validationField(error, ['email'])).toBeUndefined();
+    expect(
+      validationField(new ApiError(400, '', 'VALIDATION_ERROR', {}), ['email']),
+    ).toBeUndefined();
+  });
+
+  it('offers the failed action again only for network failures', () => {
+    const retry = vi.fn();
+    for (const error of [new TypeError('Network request failed'), new ApiError(503, '')]) {
+      const feedback = formFailure(error, t, retry);
+      expect(feedback.message).toBe(t.error.network);
+      feedback.retry?.();
+    }
+    expect(retry).toHaveBeenCalledTimes(2);
+    expect(formFailure(new ApiError(429, ''), t, retry)).toEqual({ message: t.error.tooMany });
+    expect(formFailure(new ApiError(400, '', 'BOOKING_PAY_FIRST'), t, retry)).toEqual({
+      message: t.error.payFirst,
+    });
+  });
+});

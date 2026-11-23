@@ -6,6 +6,7 @@ const NEW_CODE_NEEDED = ['CODE_EXPIRED', 'CODE_NOT_SENT', 'TOO_MANY_ATTEMPTS'];
 
 /** A message the client understands, in their language. */
 export function errorText(error: unknown, t: Dictionary): string {
+  if (isNetworkError(error)) return t.error.network;
   if (error instanceof ApiError) {
     if (error.code && NEW_CODE_NEEDED.includes(error.code)) return t.signIn.newCodeNeeded;
     if (error.code === 'INVALID_CODE') return t.signIn.badCode;
@@ -52,3 +53,24 @@ export function isCodeError(error: unknown): boolean {
     )
   );
 }
+
+export type FormFailure = { message: string; retry?: () => void };
+
+export function formFailure(
+  error: unknown,
+  t: Dictionary,
+  retry: () => void,
+  message = errorText(error, t),
+): FormFailure {
+  return { message, ...(isNetworkError(error) ? { retry } : {}) };
+}
+
+export function isNetworkError(error: unknown): boolean {
+  return (
+    error instanceof TypeError ||
+    (error instanceof ApiError && [408, 502, 503, 504].includes(error.status))
+  );
+}
+
+export const wishFields = ['mood', 'drink', 'note'] as const;
+export type WishField = (typeof wishFields)[number];

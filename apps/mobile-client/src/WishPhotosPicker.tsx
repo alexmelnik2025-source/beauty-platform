@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
@@ -12,10 +12,11 @@ import {
   type VisitPhotoList,
 } from './api';
 import { API_URL } from './config';
-import { errorText } from './errors';
+import { errorText, formFailure, isNetworkError, type FormFailure } from './errors';
+import { FieldGroup, FormFeedback } from './FormFeedback';
 import { formatDate } from './format';
 import { fill, type Dictionary } from './i18n';
-import { Button, colors, ErrorText } from './ui';
+import { Button, colors } from './ui';
 import { photoType } from './wishes';
 
 /**
@@ -27,8 +28,39 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   const { t, api, hold } = props;
   const w = t.wishStep;
   const [photos, setPhotos] = useState<VisitPhoto[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [loadAttempt, retryLoad] = useState(0);
+  const [failure, setFailure] = useState<FormFailure | null>(null);
+
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  useEffect(() => {
+    let live = true;
+    api.holdPhotos(hold).then(
+      ({ items }) => {
+        if (!live) return;
+        setPhotos(items);
+        setLoaded(true);
+        setBusy(false);
+      },
+      (error: unknown) => {
+        if (!live) return;
+        setBusy(false);
+        setFailure(
+          formFailure(error, tRef.current, () => {
+            setFailure(null);
+            setBusy(true);
+            retryLoad((attempt) => attempt + 1);
+          }),
+        );
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, hold, loadAttempt]);
 
   function problem(err: unknown): string {
     if (err instanceof ApiError) {
@@ -40,9 +72,11 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   }
 
   async function add() {
-    setError('');
+    if (busy) return;
+    setFailure(null);
     const left = MAX_WISH_PHOTOS - photos.length;
     if (left <= 0) return;
+    setBusy(true);
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: left > 1,
@@ -51,38 +85,58 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
       quality: 0.6,
     }).catch(() => null);
     if (!picked) {
-      setError(w.photosNoAccess);
+      setFailure({ message: w.photosNoAccess });
+      setBusy(false);
       return;
     }
-    if (picked.canceled || picked.assets.length === 0) return;
+    if (picked.canceled || picked.assets.length === 0) {
+      setBusy(false);
+      return;
+    }
+    await upload(picked.assets.slice(0, left));
+  }
+
+  async function upload(
+    assets: ImagePicker.ImagePickerAsset[],
+    knownCount = photos.length,
+    reconcile = false,
+  ) {
     setBusy(true);
+    setFailure(null);
+    let pending = assets;
     try {
-      let count = photos.length;
-      for (const asset of picked.assets) {
-        if (count >= MAX_WISH_PHOTOS) {
-          setError(w.photosTooMany);
-          break;
-        }
+      if (reconcile) {
+        const { items } = await api.holdPhotos(hold);
+        setPhotos(items);
+        // A lost response may have hidden a successful upload of the first pending photo.
+        if (items.length > knownCount) pending = pending.slice(1);
+        knownCount = items.length;
+      }
+      while (pending.length > 0) {
+        const asset = pending[0]!;
         const blob = await (await fetch(asset.uri)).blob();
         const saved = await api.addHoldPhoto(hold, blob, photoType(asset.mimeType, blob.type));
-        count += 1;
+        pending = pending.slice(1);
+        knownCount += 1;
         setPhotos((list) => [...list, saved]);
       }
     } catch (err) {
-      setError(problem(err));
+      setFailure(formFailure(err, t, () => void upload(pending, knownCount, true), problem(err)));
     } finally {
       setBusy(false);
     }
   }
 
-  async function remove(id: string) {
+  async function remove(id: string, reconcile = false) {
     setBusy(true);
-    setError('');
+    setFailure(null);
     try {
-      await api.removeHoldPhoto(hold, id);
+      if (!reconcile || (await api.holdPhotos(hold)).items.some((photo) => photo.id === id)) {
+        await api.removeHoldPhoto(hold, id);
+      }
       setPhotos((list) => list.filter((p) => p.id !== id));
     } catch (err) {
-      setError(problem(err));
+      setFailure(formFailure(err, t, () => void remove(id, true), problem(err)));
     } finally {
       setBusy(false);
     }
@@ -94,16 +148,18 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
         📷 {w.photosQ}
       </Text>
       <Text style={styles.lead}>{w.photosLead}</Text>
-      <PhotoThumbs t={t} photos={photos} busy={busy} onRemove={(id) => void remove(id)} />
-      {photos.length < MAX_WISH_PHOTOS ? (
-        <Button
-          kind="secondary"
-          label={busy ? w.photosUploading : w.photosAdd}
-          disabled={busy}
-          onPress={() => void add()}
-        />
-      ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <FieldGroup error={failure?.retry ? undefined : failure?.message}>
+        <PhotoThumbs t={t} photos={photos} busy={busy} onRemove={(id) => void remove(id)} />
+        {loaded && photos.length < MAX_WISH_PHOTOS ? (
+          <Button
+            kind="secondary"
+            label={busy ? w.photosUploading : w.photosAdd}
+            disabled={busy}
+            onPress={() => void add()}
+          />
+        ) : null}
+      </FieldGroup>
+      <FormFeedback failure={failure?.retry ? failure : null} retryLabel={t.retry} busy={busy} />
     </View>
   );
 }
@@ -160,53 +216,66 @@ export function VisitPhotos(props: {
   const w = t.wishStep;
   const [list, setList] = useState<VisitPhotoList | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FormFailure | null>(null);
+  const [loadAttempt, retryLoad] = useState(0);
 
   useEffect(() => {
     let live = true;
     api.visitPhotos(visit.id).then(
       (photos) => live && setList(photos),
-      // No photos block for a visit whose photos cannot be loaded; the rest of the card works.
-      () => live && setList(null),
+      (error: unknown) => {
+        if (live && isNetworkError(error)) {
+          setFailure(
+            formFailure(error, t, () => {
+              setFailure(null);
+              retryLoad((attempt) => attempt + 1);
+            }),
+          );
+        }
+      },
     );
     return () => {
       live = false;
     };
-  }, [api, visit.id]);
+  }, [api, visit.id, t, loadAttempt]);
 
-  async function remove(id: string) {
+  async function remove(id: string, reconcile = false) {
     setBusy(true);
-    setError('');
+    setFailure(null);
     try {
-      await api.removeVisitPhoto(visit.id, id);
+      if (!reconcile || (await api.visitPhotos(visit.id)).items.some((photo) => photo.id === id)) {
+        await api.removeVisitPhoto(visit.id, id);
+      }
       setList((l) => (l ? { ...l, items: l.items.filter((p) => p.id !== id) } : l));
     } catch (err) {
-      setError(errorText(err, t));
+      setFailure(formFailure(err, t, () => void remove(id, true)));
     } finally {
       setBusy(false);
     }
   }
 
-  if (!list || list.items.length === 0) return null;
+  if (!list?.items.length && !failure) return null;
   return (
     <View style={styles.box}>
       <Text role="heading" aria-level={2} style={styles.title}>
         📷 {w.photosQ}
       </Text>
-      <PhotoThumbs
-        t={t}
-        photos={list.items}
-        busy={busy}
-        onRemove={visit.canChangeWishes ? (id) => void remove(id) : undefined}
-      />
-      {list.deleteAfter ? (
-        <Text style={styles.lead}>
-          {fill(w.photosKeptUntil, {
-            date: formatDate(list.deleteAfter, visit.timezone, locale),
-          })}
-        </Text>
-      ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      <FieldGroup error={failure?.retry ? undefined : failure?.message}>
+        <PhotoThumbs
+          t={t}
+          photos={list?.items ?? []}
+          busy={busy}
+          onRemove={visit.canChangeWishes ? (id) => void remove(id) : undefined}
+        />
+        {list?.deleteAfter ? (
+          <Text style={styles.lead}>
+            {fill(w.photosKeptUntil, {
+              date: formatDate(list.deleteAfter, visit.timezone, locale),
+            })}
+          </Text>
+        ) : null}
+      </FieldGroup>
+      <FormFeedback failure={failure?.retry ? failure : null} retryLabel={t.retry} busy={busy} />
     </View>
   );
 }

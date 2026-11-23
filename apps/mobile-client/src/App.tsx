@@ -157,11 +157,7 @@ export default function App() {
   const changeLocale = useCallback(
     (next: Locale) => {
       setLocale(next);
-      if (api.signedIn) {
-        api.setLocale(next).catch(() => {
-          // Only the emails stay in the old language; the app has already switched.
-        });
-      }
+      if (api.signedIn) return api.setLocale(next).then(() => undefined);
     },
     [api],
   );
@@ -178,7 +174,7 @@ export default function App() {
             ) : stage.kind === 'failed' ? (
               <View style={{ padding: 24, gap: 16 }}>
                 <ErrorText>{stage.message}</ErrorText>
-                <Button label={t.visits.refresh} onPress={start} />
+                <Button label={t.retry} onPress={start} />
               </View>
             ) : stage.kind === 'signIn' ? (
               <SignInScreen
