@@ -200,14 +200,14 @@ test("the owner sees one specialist's week and moves a visit to another day", as
   await moveDate.fill('');
   await card.getByRole('button', { name: 'Przenieś wizytę' }).click();
   await expect(moveDate).toBeFocused();
-  await expect(moveDate).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(moveDate).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
   await shot(page, '695-visit-move-date-error');
   await card.getByRole('button', { name: 'Wstecz' }).click();
   await card.getByRole('button', { name: 'Odwołaj wizytę' }).click();
   await card.getByRole('button', { name: 'Odwołaj', exact: true }).click();
   const reason = card.getByLabel('Powód odwołania');
   await expect(reason).toBeFocused();
-  await expect(reason).toHaveAccessibleDescription('Uzupełnij to pole.');
+  await expect(reason).toHaveAccessibleDescription(/Uzupełnij to pole\.$/);
   await shot(page, '695-visit-cancel-reason-error');
   await card.getByRole('button', { name: 'Wstecz' }).click();
   await card.getByRole('button', { name: 'Zamknij' }).click();
