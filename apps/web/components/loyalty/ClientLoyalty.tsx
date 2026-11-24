@@ -24,6 +24,14 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
   const [program, setProgram] = useState<LoyaltyProgram | null>(null);
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
   const [error, setError] = useState('');
+  /**
+   * Task 763 (owner's rule: errors where the action is): a refused "Wymień", "Anuluj kupon" or
+   * "Zapisz zmianę" is said under that reward, coupon or button — not as a box at the top of
+   * "Bonusy". `where` is `reward:<id>`, `coupon:<id>` or `adjust`.
+   */
+  const [actionError, setActionError] = useState<{ where: string; text: string } | null>(null);
+  const errorAt = (where: string) => (actionError?.where === where ? actionError.text : undefined);
+  const errorId = (where: string) => `bonus-${customerId}-${where.replace(':', '-')}-error`;
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [adjust, setAdjust] = useState({ points: '', reason: '' });
@@ -50,16 +58,17 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
     load().catch((err) => setError(errorText(t, err)));
   }, [load, t]);
 
-  async function run(action: () => Promise<string | void>) {
+  async function run(where: string, action: () => Promise<string | void>) {
     setBusy(true);
     setError('');
+    setActionError(null);
     setMessage('');
     try {
       const done = await action();
       await load();
       if (done) setMessage(done);
     } catch (err) {
-      setError(errorText(t, err));
+      setActionError({ where, text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -96,7 +105,7 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
       e.currentTarget.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
       return;
     }
-    void run(async () => {
+    void run('adjust', async () => {
       await api(`${org}/loyalty/accounts/${customerId}/adjustments`, {
         method: 'POST',
         body: { points, reason: adjust.reason.trim() },
@@ -162,7 +171,10 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
           {stamps ? <p className="small muted">{t.loyalty.redeemStampsHint}</p> : null}
           <ul className="history">
             {rewards.map((r) => (
-              <li key={r.id}>
+              <li
+                key={r.id}
+                className={errorAt(`reward:${r.id}`) ? 'history__row--error' : undefined}
+              >
                 <span>
                   {r.name} <span className="muted">· {costLabel(t, account.mode, r.cost)}</span>
                 </span>
@@ -170,9 +182,12 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
                   type="button"
                   className="btn btn--small btn--quiet"
                   aria-label={`${t.loyalty.redeem}: ${r.name}`}
+                  aria-describedby={
+                    errorAt(`reward:${r.id}`) ? errorId(`reward:${r.id}`) : undefined
+                  }
                   disabled={busy || account.balance < r.cost}
                   onClick={() =>
-                    void run(async () => {
+                    void run(`reward:${r.id}`, async () => {
                       const coupon = await api<{ code: string }>(
                         `${org}/loyalty/accounts/${customerId}/redemptions`,
                         { method: 'POST', body: { rewardId: r.id } },
@@ -183,6 +198,7 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
                 >
                   {t.loyalty.redeem}
                 </button>
+                <FieldError id={errorId(`reward:${r.id}`)} text={errorAt(`reward:${r.id}`)} />
               </li>
             ))}
           </ul>
@@ -196,7 +212,10 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
         ) : (
           <ul className="history" aria-label={t.loyalty.coupons}>
             {account.coupons.map((c) => (
-              <li key={c.id}>
+              <li
+                key={c.id}
+                className={errorAt(`coupon:${c.id}`) ? 'history__row--error' : undefined}
+              >
                 <span>
                   <strong>{c.code}</strong> · {c.name}
                   <span className="muted" style={{ display: 'block' }}>
@@ -211,9 +230,12 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
                     type="button"
                     className="link-btn small"
                     aria-label={`${t.loyalty.cancelCoupon} ${c.code}`}
+                    aria-describedby={
+                      errorAt(`coupon:${c.id}`) ? errorId(`coupon:${c.id}`) : undefined
+                    }
                     disabled={busy}
                     onClick={() =>
-                      void run(async () => {
+                      void run(`coupon:${c.id}`, async () => {
                         await api(`${org}/loyalty/coupons/${c.id}/cancel`, {
                           method: 'POST',
                           body: { version: c.version },
@@ -224,6 +246,7 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
                     {t.loyalty.cancelCoupon}
                   </button>
                 ) : null}
+                <FieldError id={errorId(`coupon:${c.id}`)} text={errorAt(`coupon:${c.id}`)} />
               </li>
             ))}
           </ul>
@@ -273,9 +296,14 @@ export function ClientLoyalty({ orgId, customerId }: { orgId: string; customerId
             <FieldError id={`adjust-reason-error-${customerId}`} text={adjustProblems.reason} />
           </label>
         </div>
-        <button className="btn btn--quiet" disabled={busy}>
+        <button
+          className="btn btn--quiet"
+          disabled={busy}
+          aria-describedby={errorAt('adjust') ? errorId('adjust') : undefined}
+        >
           {t.loyalty.adjust}
         </button>
+        <FieldError id={errorId('adjust')} text={errorAt('adjust')} />
       </form>
 
       {account.transactions.length ? (
