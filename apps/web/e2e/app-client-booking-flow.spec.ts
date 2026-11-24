@@ -37,7 +37,7 @@ async function createSalon(api: APIRequestContext) {
   const org = await json<{ id: string }>(
     await api.post('/v1/organizations', { headers, data: { name: 'Studio H' } }),
   );
-  const salon = await json<{ id: string; slug: string }>(
+  const salon = await json<{ id: string; slug: string; version: number }>(
     await api.post(`/v1/organizations/${org.id}/locations`, {
       headers,
       data: {
@@ -45,7 +45,6 @@ async function createSalon(api: APIRequestContext) {
         addressLine: 'ul. Bema 91',
         city: 'Warszawa',
         postalCode: '01-233',
-        onlineBookingEnabled: true,
         bookingTerms: 'Regulamin rezerwacji',
         privacyPolicy: 'Polityka prywatności',
       },
@@ -90,7 +89,7 @@ async function createSalon(api: APIRequestContext) {
       );
     }
   }
-  return salon.slug;
+  return { slug: salon.slug, version: salon.version, base, headers };
 }
 
 test.use({
@@ -104,11 +103,14 @@ test('guest books a discounted time with a specialist and corrects a wrong code'
   page,
   request,
 }) => {
-  const slug = await createSalon(request);
+  const { slug, base, version, headers } = await createSalon(request);
   const email = `booking-h-client-${randomUUID()}@example.com`;
   await page.setExtraHTTPHeaders(freshAddress());
   const app = await serveApp('mobile-client');
   try {
+    await json(
+      await request.patch(base, { headers, data: { version, onlineBookingEnabled: true } }),
+    );
     await page.goto(`${app.url}/pl/b/${slug}`);
     await page.getByRole('button', { name: 'Umów wizytę', exact: true }).click();
     const availability: URL[] = [];
@@ -157,5 +159,13 @@ test('guest books a discounted time with a specialist and corrects a wrong code'
     await expect(page.getByRole('heading', { name: 'Do zobaczenia!' })).toBeVisible();
   } finally {
     app.server.close();
+    // Restore the public directory shared with the other browser scenarios.
+    const current = await json<{ version: number }>(await request.get(base, { headers }));
+    await json(
+      await request.patch(base, {
+        headers,
+        data: { version: current.version, onlineBookingEnabled: false },
+      }),
+    );
   }
 });
