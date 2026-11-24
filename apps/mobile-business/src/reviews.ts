@@ -21,7 +21,7 @@ export function appendReviews(shown: Review[], page: Review[]): Review[] {
 
 /** "★★★★☆" for 4 of 5. */
 export function stars(rating: number): string {
-  const full = Math.max(0, Math.min(5, Math.round(rating)));
+  const full = Number.isNaN(rating) ? 0 : Math.max(0, Math.min(5, Math.round(rating)));
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
 

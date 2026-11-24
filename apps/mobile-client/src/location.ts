@@ -13,16 +13,17 @@ type Geolocation = {
   ): void;
 };
 
-export function locate(
-  geolocation: Geolocation | undefined = (
-    globalThis as { navigator?: { geolocation?: Geolocation } }
-  ).navigator?.geolocation,
-  timeoutMs = 10_000,
-): Promise<Place | null> {
-  if (!geolocation) return Promise.resolve(null);
+export function locate(geolocation?: Geolocation, timeoutMs = 10_000): Promise<Place | null> {
   return new Promise((resolve) => {
     try {
-      geolocation.getCurrentPosition(
+      const provider =
+        geolocation ??
+        (globalThis as { navigator?: { geolocation?: Geolocation } }).navigator?.geolocation;
+      if (!provider) {
+        resolve(null);
+        return;
+      }
+      provider.getCurrentPosition(
         ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
         () => resolve(null),
         { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 5 * 60_000 },

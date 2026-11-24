@@ -82,6 +82,25 @@ describe('extra stamps and points (task 346)', () => {
     expect(bonusToSave(many)).toEqual({ ok: false, problem: 'tooMany' });
   });
 
+  it('round-trips an empty list of bonus rules', () => {
+    expect(bonusToSave(bonusRows({ rules: [] }))).toEqual({ ok: true, save: { rules: [] } });
+  });
+
+  it('accepts the maximum extra points and identifies an overflowing rule', () => {
+    const max = { ...EMPTY_BONUS, name: 'Bonus', multiplier: '1', extraPoints: '100000' };
+    expect(bonusToSave([max])).toMatchObject({
+      ok: true,
+      save: { rules: [{ extraPoints: 100000 }] },
+    });
+    for (const extraPoints of ['100001', '99999999999999999999']) {
+      expect(bonusToSave([max, { ...max, extraPoints }])).toEqual({
+        ok: false,
+        problem: 'extra',
+        row: 1,
+      });
+    }
+  });
+
   it('says what a rule gives and toggles choices', () => {
     expect(bonusGives({ multiplier: 2, extraPoints: 0 })).toBe('×2');
     expect(bonusGives({ multiplier: 3, extraPoints: 5 })).toBe('×3 · +5');

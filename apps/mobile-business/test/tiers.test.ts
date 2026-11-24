@@ -66,6 +66,29 @@ describe('customer tiers (task 345)', () => {
     expect(tiersToSave('visits', '365', many)).toEqual({ ok: false, problem: 'tooMany' });
   });
 
+  it.each(['spend', 'visits'] as const)('round-trips the largest saved %s threshold', (basis) => {
+    const tier = { name: 'Gold', threshold: 100_000_000, discountPercent: 10 };
+    const rows = tierRows({ basis, periodDays: 365, tiers: [{ id: 't1', ...tier }] });
+    expect(tiersToSave(basis, '365', rows)).toEqual({
+      ok: true,
+      save: { basis, periodDays: 365, tiers: [tier] },
+    });
+    const over = basis === 'spend' ? '1 000 000,01' : '100000001';
+    expect(tiersToSave(basis, '365', [row('Gold', over)])).toEqual({
+      ok: false,
+      problem: 'threshold',
+      row: 0,
+    });
+  });
+
+  it('recognizes the same spend threshold in different currency formats', () => {
+    expect(tiersToSave('spend', '365', [row('A', '1 234,5'), row('B', '1234.50')])).toEqual({
+      ok: false,
+      problem: 'same',
+      row: 1,
+    });
+  });
+
   it('reads and replaces the tiers', async () => {
     const calls: { key: string; body: unknown }[] = [];
     const fetchFn = async (url: string, init?: RequestInit) => {

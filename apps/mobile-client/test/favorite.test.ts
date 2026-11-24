@@ -56,6 +56,14 @@ describe('favoriteSpecialists', () => {
     expect(tie[0]!.staffName).toBe('Marek');
   });
 
+  it('includes a confirmed visit from its end time and applies the salon limit', () => {
+    const latest = visit('2026-11-05', 'Ola', 'confirmed', 'moda');
+    const past = [visit('2026-11-01', 'Kasia'), latest];
+    const end = Date.parse(latest.end);
+    expect(favoriteSpecialists(past, 1, end - 1).map((f) => f.slug)).toEqual(['gestalt']);
+    expect(favoriteSpecialists(past, 1, end).map((f) => f.slug)).toEqual(['moda']);
+  });
+
   it('one per salon, the salon visited last first; only bookable visits that took place', () => {
     const list = favoriteSpecialists(
       [

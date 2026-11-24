@@ -77,6 +77,14 @@ describe('changing a reward (task 348)', () => {
     expect(rewardToSave({ ...form, name: '' })).toEqual({ ok: false, problem: 'name' });
   });
 
+  it('round-trips the maximum reward cost and refuses invalid costs on edit', () => {
+    const form = rewardForm({ ...reward, cost: 100_000 });
+    expect(rewardToSave(form)).toMatchObject({ ok: true, reward: { cost: 100_000 } });
+    for (const cost of ['0', '-1', '100001', '99999999999999999999']) {
+      expect(rewardToSave({ ...form, cost })).toEqual({ ok: false, problem: 'cost' });
+    }
+  });
+
   it('keeps the place in the list and sends the version read', () => {
     const checked = rewardToSave(rewardForm(reward));
     expect(checked.ok).toBe(true);

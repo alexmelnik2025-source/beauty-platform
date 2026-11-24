@@ -101,6 +101,17 @@ describe('lastSyncLine', () => {
     );
   });
 
+  it('keeps sync available and explains an unknown failure in the selected language', () => {
+    const errorCode = 'BASE_NEW_FAILURE';
+    const failed = status({ lastErrorCode: errorCode });
+    expect(baseCardState(failed)).toEqual({ kind: 'on' });
+    for (const dictionary of Object.values(DICTIONARIES)) {
+      const fallback = dictionary.shop.base.errors.other;
+      expect(lastSyncLine(failed, dictionary, NOW)).toContain(fallback);
+      expect(runResultText(run({ errorCode }), dictionary)).toBe(fallback);
+    }
+  });
+
   it('only the import so far, or nothing', () => {
     expect(lastSyncLine(status({ lastSyncAt: null }), t, NOW)).toBe(
       'Ostatnia synchronizacja: 2 godz. temu.',

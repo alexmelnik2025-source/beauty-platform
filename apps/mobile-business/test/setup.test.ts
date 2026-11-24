@@ -29,6 +29,25 @@ describe('"Pierwsze kroki" (task 352)', () => {
     expect(setupFinished(steps)).toBe(false);
   });
 
+  it('completes all five steps when a bookable specialist has weekly hours', () => {
+    const steps = setupState({
+      location: ready,
+      services: [service('s1')],
+      staff: [person('a', ['s1'])],
+      hoursSet: hasWeeklyHours({
+        weekly: [{ weekday: 6, intervals: [{ start: '10:00', end: '12:00' }] }],
+      }),
+    });
+    expect(steps).toEqual([
+      { step: 'services', done: true },
+      { step: 'team', done: true },
+      { step: 'hours', done: true },
+      { step: 'legal', done: true },
+      { step: 'online', done: true },
+    ]);
+    expect(setupFinished(steps)).toBe(true);
+  });
+
   it('counts only active specialists with an active service', () => {
     const services = [service('s1'), service('s2', false)];
     expect(
@@ -50,7 +69,6 @@ describe('"Pierwsze kroki" (task 352)', () => {
         hoursSet: true,
       });
     expect(state({ ...ready, privacyPolicy: '  ' })[3]).toEqual({ step: 'legal', done: false });
-    expect(setupFinished(state(ready))).toBe(true);
     expect(state({ ...ready, onlineBookingEnabled: false })[4]).toEqual({
       step: 'online',
       done: false,

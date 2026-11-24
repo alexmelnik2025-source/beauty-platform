@@ -182,8 +182,8 @@ function PhotoThumbs(props: {
           <View key={p.id} style={styles.item}>
             <Image
               source={{ uri: `${API_URL}${p.url}` }}
+              accessible
               accessibilityLabel={alt}
-              accessibilityRole="image"
               style={styles.photo}
             />
             {onRemove ? (
@@ -292,6 +292,6 @@ const styles = StyleSheet.create({
   title: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   lead: { color: colors.muted, fontSize: 13 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  item: { alignItems: 'center', gap: 2 },
+  item: { maxWidth: '100%', alignItems: 'center', gap: 2 },
   photo: { width: 96, height: 120, borderRadius: 10, backgroundColor: colors.line },
 });
