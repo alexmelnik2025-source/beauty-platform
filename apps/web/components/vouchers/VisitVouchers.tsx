@@ -62,6 +62,12 @@ export function VisitVouchers({
    * cursor and editing it takes the error away.
    */
   const [problem, setProblem] = useState<{ field: 'code' | 'amount'; text: string } | null>(null);
+  /**
+   * Task 835 (owner's rule: errors where the action is): any other refusal of "Zapłać bonem" is said
+   * under that button (the code and the amount stay) — not as a box under the whole section.
+   */
+  const [payError, setPayError] = useState('');
+  const payErrorId = `visit-voucher-pay-error-${appointmentId}`;
   const formRef = useRef<HTMLFormElement>(null);
   const [info, setInfo] = useState('');
   const { lock, unlock, busy } = useSubmitLock();
@@ -97,6 +103,7 @@ export function VisitVouchers({
     e.preventDefault();
     setError('');
     setProblem(null);
+    setPayError('');
     setInfo('');
     const wanted = code.trim().toUpperCase().replace(/[\s-]/g, '');
     // Task 682: an empty code is said under the field (the button no longer stays silently off).
@@ -131,7 +138,7 @@ export function VisitVouchers({
     } catch (err) {
       const field = voucherFieldOf(err);
       if (field) setProblem({ field, text: errorText(t, err) });
-      else setError(errorText(t, err));
+      else setPayError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -142,6 +149,7 @@ export function VisitVouchers({
   /** Editing a field takes its error away. */
   const clear = (field: 'code' | 'amount') => {
     if (problem?.field === field) setProblem(null);
+    setPayError('');
   };
   const errorId = (field: 'code' | 'amount') => `visit-voucher-${field}-error-${appointmentId}`;
   const invalid = (field: 'code' | 'amount') => ({
@@ -231,7 +239,12 @@ export function VisitVouchers({
             />
             {fieldError('amount')}
           </label>
-          <button type="submit" className="btn btn--small" disabled={busy}>
+          <button
+            type="submit"
+            className="btn btn--small"
+            disabled={busy}
+            aria-describedby={payError ? payErrorId : undefined}
+          >
             {v.pay}
           </button>
           <button
@@ -241,11 +254,15 @@ export function VisitVouchers({
               setOpen(false);
               setError('');
               setProblem(null);
+              setPayError('');
             }}
           >
             {t.common.cancel}
           </button>
         </form>
+      ) : null}
+      {open ? (
+        <FieldError id={payErrorId} text={payError || undefined} />
       ) : (
         <button
           type="button"
