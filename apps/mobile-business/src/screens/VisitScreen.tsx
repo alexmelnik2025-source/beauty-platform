@@ -263,6 +263,17 @@ function VisitCard(props: VisitProps) {
   const setStatus = (status: 'completed' | 'no_show') =>
     run('status', (a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
   const tipValue = parseTip(tipText ?? tipInput(visit.tipGrosze));
+  const tipMessage =
+    tipValue === null
+      ? v.tipInvalid
+      : actionError?.action === 'tip'
+        ? actionError.message
+        : undefined;
+  const reasonMessage = badReason
+    ? v.badReason
+    : actionError?.action === 'cancel'
+      ? actionError.message
+      : undefined;
   const setPaid = (paid: boolean, method?: PaymentMethod | null) =>
     run('payment', (a) =>
       api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method),
@@ -464,6 +475,9 @@ function VisitCard(props: VisitProps) {
           <Text style={styles.label}>{fill(v.tip, { currency: salon.currency })}</Text>
           <TextInput
             accessibilityLabel={fill(v.tip, { currency: salon.currency })}
+            accessibilityHint={tipMessage ?? v.tipHint}
+            aria-describedby="visit-tip-description"
+            aria-invalid={tipValue === null}
             placeholder="0"
             keyboardType="decimal-pad"
             value={tipText ?? tipInput(visit.tipGrosze)}
@@ -474,12 +488,13 @@ function VisitCard(props: VisitProps) {
             editable={!busy}
             style={[styles.input, tipValue === null && styles.invalidInput]}
           />
-          {tipValue === null ? (
-            <ErrorText>! {v.tipInvalid}</ErrorText>
-          ) : (
-            <Text style={styles.muted}>{v.tipHint}</Text>
-          )}
-          {inlineError('tip')}
+          <View nativeID="visit-tip-description">
+            {tipMessage ? (
+              <ErrorText>{tipValue === null ? `! ${tipMessage}` : tipMessage}</ErrorText>
+            ) : (
+              <Text style={styles.muted}>{v.tipHint}</Text>
+            )}
+          </View>
           <View style={styles.row}>
             <Button
               kind="secondary"
@@ -671,9 +686,12 @@ function VisitCard(props: VisitProps) {
 
       {mode === 'cancel' ? (
         <Card>
+          <Text style={styles.label}>{v.reason}</Text>
           <TextInput
             accessibilityLabel={v.reason}
-            placeholder={v.reason}
+            accessibilityHint={reasonMessage}
+            aria-describedby={reasonMessage ? 'visit-cancel-description' : undefined}
+            aria-invalid={badReason}
             value={reason}
             maxLength={300}
             editable={!busy}
@@ -684,8 +702,11 @@ function VisitCard(props: VisitProps) {
             }}
             style={[styles.input, badReason && styles.invalidInput]}
           />
-          {badReason ? <ErrorText>! {v.badReason}</ErrorText> : null}
-          {inlineError('cancel')}
+          {reasonMessage ? (
+            <View nativeID="visit-cancel-description">
+              <ErrorText>{badReason ? `! ${reasonMessage}` : reasonMessage}</ErrorText>
+            </View>
+          ) : null}
           {askCancel ? (
             <>
               <Text style={styles.value}>{v.cancelAsk}</Text>
@@ -790,7 +811,9 @@ const VisitHeader = memo(function VisitHeader({
           {v.status[visit.status]}
         </Text>
         {visit.awaitingApproval ? (
-          <Text style={[styles.chip, styles.chipStrong]}>⏳ {v.awaitingApproval}</Text>
+          <Text accessibilityLabel={v.awaitingApproval} style={[styles.chip, styles.chipStrong]}>
+            ⏳ {v.awaitingApproval}
+          </Text>
         ) : null}
         {visit.paidAt ? (
           <Text style={styles.chip}>
@@ -829,7 +852,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 17, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
   notice: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  dayName: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
+  dayName: { maxWidth: '100%', fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
   times: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   time: {
     minWidth: 72,
@@ -845,6 +868,7 @@ const styles = StyleSheet.create({
   invalidInput: { borderColor: colors.danger },
   invalidPrice: { borderColor: colors.danger, borderWidth: 1, padding: 8, borderRadius: 12 },
   input: {
+    minHeight: 44,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,

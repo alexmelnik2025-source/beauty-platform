@@ -179,7 +179,7 @@ export function WeekScreen(props: {
               <Pressable
                 key={d.date}
                 accessibilityRole="button"
-                accessibilityLabel={`${title}: ${parts.join(' · ')}`}
+                accessibilityLabel={`${title}: ${parts.join(' · ').replace('⏳ ', '')}`}
                 onPress={() => props.onOpenDay(d.date)}
                 style={({ pressed }) => pressed && { opacity: 0.7 }}
               >
@@ -204,12 +204,13 @@ export function WeekScreen(props: {
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   top: {
+    flexWrap: 'wrap',
     gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
+  salon: { color: colors.accent, fontWeight: '700', fontSize: 15, maxWidth: '100%' },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   muted: { color: colors.muted, fontSize: 15 },
