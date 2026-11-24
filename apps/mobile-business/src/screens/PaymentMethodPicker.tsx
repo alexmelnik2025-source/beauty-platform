@@ -30,6 +30,7 @@ export function PaymentMethodPicker({
             key={method}
             accessibilityRole="radio"
             accessibilityState={{ checked: value === method, disabled }}
+            aria-checked={value === method}
             disabled={disabled}
             onPress={() => onChange(toggleMethod(value, method))}
             style={[styles.chip, value === method && styles.chipOn]}
