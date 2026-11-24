@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { VisitReview } from '@/lib/types';
-import { ErrorBox, FieldError } from '../ui';
+import { FieldError } from '../ui';
 import { SalonReply } from './SalonReply';
 import { StarPicker, Stars } from './Stars';
 
@@ -147,6 +147,7 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
               onChange={(n) => {
                 setRating(n);
                 setRatingProblem(false);
+                setError('');
               }}
             />
             <FieldError
@@ -164,14 +165,21 @@ export function VisitReviewForm({ endpoint, staffName }: { endpoint: string; sta
               onChange={(e) => {
                 setText(e.target.value);
                 setTextProblem('');
+                setError('');
               }}
             />
             <FieldError id="review-text-error" text={textProblem || undefined} />
           </label>
-          <ErrorBox>{error}</ErrorBox>
-          <button className="btn btn--primary btn--block" disabled={busy}>
+          {/* Task 772 (owner's rule: errors where the action is): a refusal that is not about the
+              stars or the text is said under "Wyślij opinię", with the "!" mark. */}
+          <button
+            className="btn btn--primary btn--block"
+            disabled={busy}
+            aria-describedby={error ? 'review-send-error' : undefined}
+          >
             {t.reviews.send}
           </button>
+          <FieldError id="review-send-error" text={error || undefined} />
         </form>
       ) : state.review ? (
         <>

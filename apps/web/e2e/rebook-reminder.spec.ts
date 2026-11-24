@@ -202,8 +202,14 @@ test('the owner sets up "time for the next visit"; the client unsubscribes in on
 
   // A changed link does nothing.
   await client.goto(`/pl/u/${customerId}.nope`);
-  await client.getByRole('button', { name: 'Wypisz się' }).click();
+  const unsubscribe = client.getByRole('button', { name: 'Wypisz się' });
+  await unsubscribe.click();
   // Not Next's empty route announcer, which is an alert too.
   await expect(client.getByRole('alert').filter({ hasText: /\S/ })).toBeVisible();
+  // Task 773 (owner's rule: errors where the action is): said under "Wypisz się", not on top.
+  await expect(client.locator('#unsubscribe-error')).toBeVisible();
+  await expect(client.locator('.alert')).toHaveCount(0);
+  await expect(unsubscribe).toHaveAttribute('aria-describedby', 'unsubscribe-error');
+  await shot(client, '773-unsubscribe-error');
   await phone.close();
 });
