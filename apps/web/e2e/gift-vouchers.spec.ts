@@ -125,7 +125,27 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await until.fill('');
   await sell.getByLabel(/^Dla kogo/).fill('Jan Kowalski');
   await sell.getByLabel(/^Notatka/).fill('Na urodziny');
+  // Task 777 (owner's rule: errors where the action is): a refused "Sprzedaj bon" is said under
+  // it, not above the amount; what was typed stays.
+  await page.route('**/gift-vouchers', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
   await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
+  await expect(sell.locator('#voucher-new-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(sell.getByRole('button', { name: 'Sprzedaj bon' })).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(sell.locator('.alert')).toHaveCount(0);
+  await expect(sell.getByLabel('Kwota bonu')).toHaveValue('200');
+  await shot(page, '777-voucher-sell-error');
+  await page.unroute('**/gift-vouchers');
+  await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
+  await expect(sell.locator('#voucher-new-error')).toHaveCount(0);
   const soldText = await sell.getByRole('status').textContent();
   const code = /Kod do wpisania na bonie: ([A-Z0-9]{8})/.exec(soldText ?? '')?.[1];
   expect(code, soldText ?? '').toBeTruthy();
@@ -240,6 +260,24 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await edit.getByLabel('Ważny do').fill(`${year}-06-30`);
   await edit.getByLabel('Dla kogo').fill('Jan i Ola Kowalscy');
   await shot(page, '499');
+  // Task 777: a refused "Zapisz" is said under it; the form stays open with what was typed.
+  await page.route('**/gift-vouchers/*', (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await edit.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(edit.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(edit.getByRole('button', { name: 'Zapisz' })).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(edit.locator('.alert')).toHaveCount(0);
+  await expect(edit.getByLabel('Dla kogo')).toHaveValue('Jan i Ola Kowalscy');
+  await shot(page, '777-voucher-edit-error');
+  await page.unroute('**/gift-vouchers/*');
   await edit.getByRole('button', { name: 'Zapisz' }).click();
   await expect(card.getByRole('status')).toHaveText(`Zapisano zmiany bonu ${code!}.`);
   // The form closed: the cursor is back on "Zmień bon".
