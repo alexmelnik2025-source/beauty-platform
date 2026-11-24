@@ -1288,9 +1288,9 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Task 829 (owner's rule: errors where the action is): a refused save is said under "Zapisz" in
   // the bar "Niezapisane zmiany", not in a box inside the card; the changes stay unsaved.
   const unsaved = ownerPage.getByRole('region', { name: 'Niezapisane zmiany' });
-  const settingsPut = (url: URL) => new RegExp(`/locations/${location.id}$`).test(url.pathname);
-  await ownerPage.route(settingsPut, (route) =>
-    route.request().method() === 'PUT'
+  const settingsSave = (url: URL) => new RegExp(`/locations/${location.id}$`).test(url.pathname);
+  await ownerPage.route(settingsSave, (route) =>
+    route.request().method() === 'PATCH'
       ? route.fulfill({
           status: 429,
           json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
@@ -1304,7 +1304,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.locator('.settings-card .alert')).toHaveCount(0);
   await expect(reminder).toHaveValue('3');
   await shot(ownerPage, '829-settings-save-error');
-  await ownerPage.unroute(settingsPut);
+  await ownerPage.unroute(settingsSave);
   // Task 80: questions when booking — mood and note on by default; the salon offers coffee and tea.
   await openSettingsCard(ownerPage, 'Pytania przy rezerwacji');
   const wishSettings = ownerPage.getByRole('region', { name: 'Pytania przy rezerwacji' });
