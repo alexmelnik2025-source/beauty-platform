@@ -78,6 +78,20 @@ describe('categories of rights (task 331)', () => {
 });
 
 describe('a specialist’s rights (task 330)', () => {
+  it('an empty catalog produces no rights even when saved settings have keys', () => {
+    expect(categoryForm(senior, [])).toEqual({ name: senior.name, permissions: {} });
+    expect(effective([], senior, { viewOwnEarnings: true })).toEqual({});
+  });
+
+  it('clearing the last exception restores the default and is a change to save', () => {
+    const kasia = member({ overrides: { createOwnAppointments: false } });
+    const cleared = withException(kasia.overrides, 'createOwnAppointments', 'category');
+    expect(cleared).toEqual({});
+    expect(effective(catalog, null, cleared).createOwnAppointments).toBe(true);
+    expect(memberUnchanged(kasia, null, cleared)).toBe(false);
+    expect(memberUnchanged(member({}), null, cleared)).toBe(true);
+  });
+
   it('reads and sets one exception', () => {
     expect(exceptionOf({}, 'viewOwnEarnings')).toBe('category');
     expect(exceptionOf({ viewOwnEarnings: true }, 'viewOwnEarnings')).toBe('yes');

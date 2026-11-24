@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   daysText,
   namesText,
+  newLastMinuteRule,
   newRule,
   parseClock,
   rulesToSave,
@@ -76,6 +77,37 @@ describe('newRule', () => {
     });
     expect(newRule({ ...form, percent: '95' })).toEqual({ ok: false, problem: 'percent' });
     expect(newRule({ ...form, percent: '' })).toEqual({ ok: false, problem: 'percent' });
+  });
+});
+
+describe('newLastMinuteRule', () => {
+  const form = { hours: '1', percent: '20%', staffIds: ['s1'] };
+
+  it.each([1, 72])('accepts a window of %i hours', (hours) => {
+    expect(newLastMinuteRule({ ...form, hours: String(hours) })).toEqual({
+      ok: true,
+      rule: {
+        kind: 'lastMinute',
+        lastMinuteHours: hours,
+        discountPercent: 20,
+        staffIds: ['s1'],
+        serviceIds: [],
+      },
+    });
+  });
+
+  it.each(['0', '73', '1.5', ''])('rejects an invalid window (%j)', (hours) => {
+    expect(newLastMinuteRule({ ...form, hours })).toEqual({
+      ok: false,
+      problem: 'lastMinuteHours',
+    });
+  });
+
+  it('rejects a percent sign between digits instead of joining the digits', () => {
+    expect(newLastMinuteRule({ ...form, percent: '2%0' })).toEqual({
+      ok: false,
+      problem: 'percent',
+    });
   });
 });
 

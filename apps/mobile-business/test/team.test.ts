@@ -39,6 +39,15 @@ const invitation = (
   }) as InvitationList[number];
 
 describe('teamOf', () => {
+  it('shows a new specialist before they have hours, an account or an invitation', () => {
+    const specialist = staff('s-new', 'Ania', null);
+    expect(teamOf([specialist], [], [], LOC)).toEqual({
+      specialists: [{ staff: specialist, state: 'none' }],
+      managers: [],
+      invitations: [],
+    });
+  });
+
   it('specialists by the salon order: with an account, invited, without an account', () => {
     const team = teamOf(
       [

@@ -49,6 +49,17 @@ describe('a specialist’s profile (tasks 326–327)', () => {
     });
   });
 
+  it('can edit a new specialist’s profile before hours or services are assigned', () => {
+    const specialist = { ...kasia, serviceIds: [], specialties: [] };
+    const [listed] = teamForProfiles([specialist]);
+    expect(listed).toEqual(specialist);
+    const form = profileForm(specialist);
+    expect(profileChanges(specialist, { ...form, bio: '  Barber  ' })).toEqual({
+      change: { bio: 'Barber' },
+      serviceIds: null,
+    });
+  });
+
   it('sends only what changed, trimmed; empty texts clear them', () => {
     const withBio = { ...kasia, bio: 'Fade', customSpecialty: 'Trycholog' };
     const result = profileChanges(withBio, {
