@@ -259,7 +259,7 @@ export function ReviewsScreen(props: {
               onPress={() => void downloadCsv()}
             />
           ) : null}
-          {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
+          {csvInfo ? <ErrorText>{csvInfo}</ErrorText> : null}
           {team.length > 1 ? (
             <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
               {[
@@ -410,7 +410,7 @@ const ReviewRow = memo(function ReviewRow(props: {
     void props.reply(review, value, editor);
   }
   return (
-    <View style={styles.row}>
+    <View role="group" accessibilityLabel={line} style={styles.row}>
       <View style={styles.gap}>
         <Text
           accessible
@@ -564,7 +564,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
         {r.settings}
       </Text>
       <Text style={styles.muted}>{r.settingsHint}</Text>
-      <View style={styles.actions}>
+      <View role="group" accessibilityLabel={r.settings} style={styles.actions}>
         <Chip
           label={r.collect}
           on={form.enabled}
@@ -579,7 +579,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
       {form.enabled ? (
         <>
           <Text style={styles.muted}>{r.askAfter}</Text>
-          <View style={styles.actions}>
+          <View role="group" accessibilityLabel={r.askAfter} style={styles.actions}>
             {reviewHoursChoices(form.requestHours).map((n) => (
               <Chip
                 key={n}
