@@ -5,7 +5,8 @@ import { parsePercent, percentInput, percentText } from '../commissions';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
-import { SalonReadCache } from './HistoryScreen';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import { readSalonCard } from './SetupCard';
 import type { SalonChoice } from './SalonsScreen';
 
 const commissionsCache = new SalonReadCache<StaffCommissions>();
@@ -30,6 +31,7 @@ export function CommissionsSection(props: {
   const rows = report.staff.filter((s) => s.commissionPercent !== null);
   const [list, setList] = useState<StaffCommissions['staff'] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const lifetime = useScreenLifetime(salon);
   const pending = useRef(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
@@ -58,18 +60,20 @@ export function CommissionsSection(props: {
       setList(null);
       return;
     }
+    const signal = lifetime.current!.signal;
     pending.current = true;
     setLoading(true);
     setError('');
     try {
-      show(
-        await commissionsCache.read(salon, () => api.commissions(salon.orgId, salon.locationId)),
+      const next = await readSalonCard(commissionsCache, salon, signal, () =>
+        api.commissions(salon.orgId, salon.locationId),
       );
+      if (!signal.aborted) show(next);
     } catch (e) {
-      setError(errorText(e, t));
+      if (!signal.aborted) setError(errorText(e, t));
     } finally {
       pending.current = false;
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   };
 
@@ -80,12 +84,17 @@ export function CommissionsSection(props: {
       setError(r.commissionInvalid);
       return;
     }
+    const signal = lifetime.current!.signal;
     pending.current = true;
     setBusy(staffId);
     setSaved('');
     setError('');
     try {
       const updated = await api.setCommission(salon.orgId, salon.locationId, staffId, percent);
+      if (signal.aborted) {
+        commissionsCache.clear(salon);
+        return;
+      }
       commissionsCache.set(salon, updated);
       setList(updated.staff);
       const row = updated.staff.find((s) => s.staffId === staffId);
@@ -97,10 +106,10 @@ export function CommissionsSection(props: {
       setSaved(staffId);
       props.onSaved();
     } catch (e) {
-      setError(errorText(e, t));
+      if (!signal.aborted) setError(errorText(e, t));
     } finally {
       pending.current = false;
-      setBusy('');
+      if (!signal.aborted) setBusy('');
     }
   };
 

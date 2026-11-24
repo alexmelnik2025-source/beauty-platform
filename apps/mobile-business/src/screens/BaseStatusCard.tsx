@@ -5,7 +5,11 @@ import { baseCardState, baseErrorText, lastSyncLine, runResultText } from '../ba
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import { readSalonCard } from './SetupCard';
 import type { SalonChoice } from './SalonsScreen';
+
+const statusCache = new SalonReadCache<BaseIntegration>();
 
 export function BaseStatusCard(props: {
   api: BusinessApi;
@@ -20,43 +24,49 @@ export function BaseStatusCard(props: {
   const [attempt, setAttempt] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [result, setResult] = useState('');
+  const lifetime = useScreenLifetime(salon);
   const syncing = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
+    const { signal } = controller;
     setStatus(null);
     setError('');
-    api.baseStatus(salon.orgId, salon.locationId).then(
+    readSalonCard(statusCache, salon, signal, () =>
+      api.baseStatus(salon.orgId, salon.locationId),
+    ).then(
       (next) => {
-        if (alive) setStatus(next);
+        if (!signal.aborted) setStatus(next);
       },
       (e: unknown) => {
-        if (alive) setError(errorText(e, t));
+        if (!signal.aborted) setError(errorText(e, t));
       },
     );
-    return () => {
-      alive = false;
-    };
+    return () => controller.abort();
   }, [api, salon, t, attempt]);
 
   const sync = async () => {
     if (syncing.current) return;
+    const signal = lifetime.current!.signal;
     syncing.current = true;
     setBusy(true);
     setError('');
     setResult('');
     try {
       const run = await api.syncBase(salon.orgId, salon.locationId);
+      statusCache.clear(salon);
+      if (signal.aborted) return;
       setResult(runResultText(run, t));
       setAttempt((n) => n + 1);
       onSynced();
     } catch (e) {
-      setError(e instanceof ApiError && e.code ? baseErrorText(e.code, t) : errorText(e, t));
+      if (!signal.aborted)
+        setError(e instanceof ApiError && e.code ? baseErrorText(e.code, t) : errorText(e, t));
     } finally {
       syncing.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   };
 

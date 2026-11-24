@@ -8,6 +8,23 @@ import { Button, Card, colors, ErrorText } from '../ui';
 import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
 
+// Each card has one reader for the selected salon. Keep completed reads for a return
+// visit, but detach an unfinished read as soon as its screen is left or refreshed.
+export async function readSalonCard<T>(
+  cache: SalonReadCache<T>,
+  salon: SalonChoice,
+  signal: AbortSignal,
+  load: () => Promise<T>,
+): Promise<T> {
+  const discard = () => cache.clear(salon);
+  signal.addEventListener('abort', discard);
+  try {
+    return await cache.read(salon, load);
+  } finally {
+    signal.removeEventListener('abort', discard);
+  }
+}
+
 const setupCache = new SalonReadCache<ReturnType<typeof setupState>>();
 
 export function SetupCard(props: {
@@ -25,38 +42,36 @@ export function SetupCard(props: {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
+    const { signal } = controller;
     setSteps(null);
     setError('');
     setExpanded(false);
-    setupCache
-      .read(salon, async () => {
-        const [location, services, staff] = await Promise.all([
-          api.location(salon.orgId, salon.locationId),
-          api.services(salon.orgId, salon.locationId),
-          api.staff(salon.orgId, salon.locationId),
-        ]);
-        let hoursSet = false;
-        for (const person of bookableStaff(services, staff)) {
-          const hours = await api.workingHours(salon.orgId, salon.locationId, person.id);
-          if (hasWeeklyHours(hours)) {
-            hoursSet = true;
-            break;
-          }
+    readSalonCard(setupCache, salon, signal, async () => {
+      const [location, services, staff] = await Promise.all([
+        api.location(salon.orgId, salon.locationId),
+        api.services(salon.orgId, salon.locationId),
+        api.staff(salon.orgId, salon.locationId),
+      ]);
+      let hoursSet = false;
+      for (const person of bookableStaff(services, staff)) {
+        if (signal.aborted) break;
+        const hours = await api.workingHours(salon.orgId, salon.locationId, person.id);
+        if (hasWeeklyHours(hours)) {
+          hoursSet = true;
+          break;
         }
-        return setupState({ location, services, staff, hoursSet });
-      })
-      .then(
-        (next) => {
-          if (alive) setSteps(next);
-        },
-        (e: unknown) => {
-          if (alive) setError(errorText(e, t));
-        },
-      );
-    return () => {
-      alive = false;
-    };
+      }
+      return setupState({ location, services, staff, hoursSet });
+    }).then(
+      (next) => {
+        if (!signal.aborted) setSteps(next);
+      },
+      (e: unknown) => {
+        if (!signal.aborted) setError(errorText(e, t));
+      },
+    );
+    return () => controller.abort();
   }, [api, salon, t, attempt]);
 
   if (steps && setupFinished(steps)) return null;

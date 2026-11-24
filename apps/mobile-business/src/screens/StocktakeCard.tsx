@@ -5,6 +5,7 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { stocktakeCount } from '../stock';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { useScreenLifetime } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 const StocktakeRow = memo(function StocktakeRow({
@@ -81,6 +82,7 @@ export function StocktakeCard(props: {
   const { api, t, salon, products } = props;
   const p = t.products;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const lifetime = useScreenLifetime(salon);
   const saving = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -114,16 +116,18 @@ export function StocktakeCard(props: {
 
   const save = async () => {
     if (saving.current || disabled) return;
+    const signal = lifetime.current!.signal;
     saving.current = true;
     setBusy(true);
     setError('');
     try {
-      props.onSaved(await api.stocktake(salon.orgId, salon.locationId, changes));
+      const result = await api.stocktake(salon.orgId, salon.locationId, changes);
+      if (!signal.aborted) props.onSaved(result);
     } catch (e) {
-      setError(errorText(e, t));
+      if (!signal.aborted) setError(errorText(e, t));
     } finally {
       saving.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   };
 
