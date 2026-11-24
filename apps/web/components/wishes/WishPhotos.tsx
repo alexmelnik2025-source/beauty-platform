@@ -5,7 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { PHOTO_ACCEPT, SALON_PHOTO_SIDE, shrinkPhoto } from '@/lib/photos';
 import type { Hold, VisitPhoto } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 
 /** At most this many example photos per visit (the API checks it too). */
 export const MAX_WISH_PHOTOS = 3;
@@ -20,7 +20,14 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
   const w = t.wishStep;
   const [photos, setPhotos] = useState<VisitPhoto[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 782 (owner's rule: errors where the action is): a refused "Usuń" is said under that
+   * photo; a refused or too many "+ Dodaj zdjęcie" under that button — with the "!", not a box.
+   * `on` is the photo's id, or `add`.
+   */
+  const [error, setError] = useState<{ on: string; text: string } | null>(null);
+  const errorOn = (on: string) => (error?.on === on ? error.text : undefined);
+  const errorId = (on: string) => `wish-photo-${on}-error`;
   const input = useRef<HTMLInputElement>(null);
   const headers = { 'X-Hold-Token': hold.holdToken };
 
@@ -32,12 +39,12 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
   async function add(files: FileList | null) {
     if (!files || files.length === 0) return;
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       let count = photos.length;
       for (const file of Array.from(files)) {
         if (count >= MAX_WISH_PHOTOS) {
-          setError(w.photosTooMany);
+          setError({ on: 'add', text: w.photosTooMany });
           break;
         }
         const blob = await shrinkPhoto(file, SALON_PHOTO_SIDE);
@@ -51,7 +58,7 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
         setPhotos((list) => [...list, saved]);
       }
     } catch (err) {
-      setError(problem(err));
+      setError({ on: 'add', text: problem(err) });
     } finally {
       setBusy(false);
       if (input.current) input.current.value = '';
@@ -60,7 +67,7 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
 
   async function remove(id: string) {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       await api(`/v1/public/holds/${hold.holdId}/photos/${id}`, {
         method: 'DELETE',
@@ -69,7 +76,7 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
       });
       setPhotos((list) => list.filter((p) => p.id !== id));
     } catch (err) {
-      setError(problem(err));
+      setError({ on: id, text: problem(err) });
     } finally {
       setBusy(false);
     }
@@ -89,10 +96,12 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
                 className="link-btn small"
                 disabled={busy}
                 aria-label={`${w.photosRemove}: ${w.photoAlt.replace('{n}', String(i + 1))}`}
+                aria-describedby={errorOn(p.id) ? errorId(p.id) : undefined}
                 onClick={() => void remove(p.id)}
               >
                 {w.photosRemove}
               </button>
+              <FieldError id={errorId(p.id)} text={errorOn(p.id)} />
             </li>
           ))}
         </ul>
@@ -107,11 +116,12 @@ export function WishPhotos({ hold }: { hold: Pick<Hold, 'holdId' | 'holdToken'> 
             multiple
             hidden
             disabled={busy}
+            aria-describedby={errorOn('add') ? errorId('add') : undefined}
             onChange={(e) => void add(e.target.files)}
           />
         </label>
       ) : null}
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id={errorId('add')} text={errorOn('add')} />
     </section>
   );
 }

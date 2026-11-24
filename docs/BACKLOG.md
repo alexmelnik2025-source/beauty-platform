@@ -12,6 +12,9 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **782 (ветка `agent/782-booking-photo-errors`, поверх 781): запись → «📷 Pokaż, co chcesz» — отказ «Usuń» под фото, «Dodaj zdjęcie» под кнопкой**
+  (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). e2e `wish-photos`, скриншот
+  `782-booking-photo-remove-error`.
 - **781 (ветка `agent/781-clients-more-error`, поверх 780): «Klienci» — отказ «Pokaż więcej klientów» под этой кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `clients-more`, скриншот `781-clients-more-error`.
 - **780 (ветка `agent/780-client-privacy-errors`, поверх 779): карточка клиента → «Dane osobowe (RODO)» — отказ «Pobierz dane klienta» и «Tak, usuń dane» под своей кнопкой**

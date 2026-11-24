@@ -2865,6 +2865,11 @@ ul.wish-photos {
   margin: 8px 0;
 }
 
+/* Tasks 776, 782: a refused "Usuń" is said under its photo, no wider than a short column. */
+.wish-photos__item > .field-error {
+  max-width: 140px;
+}
+
 .wish-photos img {
   display: block;
   width: 96px;
