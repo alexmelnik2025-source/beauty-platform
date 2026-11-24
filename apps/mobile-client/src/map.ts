@@ -94,14 +94,21 @@ export function mapLayout<T extends MapPoint>(
   fixedZoom?: number,
 ): { zoom: number; tiles: MapTile[]; markers: MapMarker<T>[] } | null {
   if (width <= 0 || height <= 0) return null;
-  if (points.length === 0) {
+  const located = points.filter(
+    (point) =>
+      Number.isFinite(point?.latitude) &&
+      Math.abs(point.latitude) <= 90 &&
+      Number.isFinite(point.longitude) &&
+      Math.abs(point.longitude) <= 180,
+  );
+  if (located.length === 0) {
     // Task 191: no salon has marked its place — the map still shows the country, without markers.
     const empty = mapLayout([FALLBACK_CENTER], width, height, margin, FALLBACK_ZOOM);
     return empty && { ...empty, markers: [] };
   }
   let zoom = fixedZoom ?? 0;
   for (let candidate = 16; fixedZoom === undefined && candidate >= 0; candidate -= 1) {
-    const projected = points.map((p) => project(p, candidate));
+    const projected = located.map((p) => project(p, candidate));
     const xs = projected.map((p) => p.x);
     const ys = projected.map((p) => p.y);
     if (
@@ -112,7 +119,7 @@ export function mapLayout<T extends MapPoint>(
       break;
     }
   }
-  const projected = points.map((item) => ({ item, ...project(item, zoom) }));
+  const projected = located.map((item) => ({ item, ...project(item, zoom) }));
   const xs = projected.map((p) => p.x);
   const ys = projected.map((p) => p.y);
   const left = (Math.min(...xs) + Math.max(...xs)) / 2 - width / 2;
