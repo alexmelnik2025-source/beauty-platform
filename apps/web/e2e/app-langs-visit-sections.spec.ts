@@ -13,7 +13,8 @@ import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
 const ownerName = 'Alexandra Konstantynopolitańczykowianeczka-Wojciechowska';
-const customer = 'Jan Kowalski';
+const customerWithoutCoupons = 'Anna Nowak';
+const customerWithCoupon = 'Jan Kowalski';
 const reward = 'Complete restorative treatment for very long colour-treated hair';
 const product = 'Professional intensive conditioning and colour protection treatment';
 const contact = 'aleksandra.konstantynopolitanczykowianeczka@example.com';
@@ -24,7 +25,7 @@ async function json<T>(response: APIResponse): Promise<T> {
   return response.json();
 }
 
-async function createVisit(request: APIRequestContext) {
+async function createVisits(request: APIRequestContext) {
   const account = { email: `ax-${Date.now()}@example.com`, password: 'e2e-password-123' };
   const address = freshAddress();
   await expect(
@@ -68,14 +69,22 @@ async function createVisit(request: APIRequestContext) {
   );
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(new Date());
   const yesterday = new Date(Date.parse(today + 'T12:00:00Z') - 86_400_000);
-  const visit = await json<{ id: string }>(
-    await create(`${base}/appointments`, {
-      serviceId: service.id,
-      staffId: staff.id,
-      start: yesterday.toISOString(),
-      alreadyHappened: true,
-      customer: { name: customer, phone: '+48600123456' },
-    }),
+  const bookVisit = async (name: string, phone: string, start: Date) =>
+    json<{ id: string }>(
+      await create(`${base}/appointments`, {
+        serviceId: service.id,
+        staffId: staff.id,
+        start: start.toISOString(),
+        alreadyHappened: true,
+        customer: { name, phone },
+      }),
+    );
+  // Each visit has one set of offers, even when the app reuses a cached read.
+  await bookVisit(customerWithoutCoupons, '+48600123455', yesterday);
+  const visit = await bookVisit(
+    customerWithCoupon,
+    '+48600123456',
+    new Date(yesterday.getTime() + 3_600_000),
   );
   const voucher = await json<{ code: string }>(
     await create(`${base}/gift-vouchers`, { amountGrosze: price }),
@@ -147,7 +156,7 @@ for (const [locale, t] of [
   test.describe(locale, () => {
     test.use({ locale, viewport: { width: 320, height: 844 }, isMobile: true });
     test('visit sections at 130% text size', async ({ page, request }) => {
-      const visit = await createVisit(request);
+      const visit = await createVisits(request);
       const money = (grosze: number) =>
         new Intl.NumberFormat(locale, { style: 'currency', currency: 'PLN' }).format(grosze / 100);
       const button = (name: string) => page.getByRole('button', { name, exact: true });
@@ -182,6 +191,42 @@ for (const [locale, t] of [
         waiting = false;
         return route.fulfill({ status: 204 });
       });
+      await page.route(`**${visit.visitPath}/coupons`, (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill({
+              json: {
+                tier: null,
+                applied: [],
+                available: [
+                  {
+                    id: 'reward',
+                    name: reward,
+                    code: 'AX24',
+                    discountGrosze: price - 100,
+                    problem: null,
+                  },
+                ],
+              },
+            })
+          : route.continue(),
+      );
+      await page.route(`**${visit.visitPath}/reservations`, (route) =>
+        route.fulfill({
+          json: {
+            reservations: [
+              { id: 'item', name: product, quantity: 3, totalGrosze: price, status: 'reserved' },
+            ],
+            toHandGrosze: price,
+          },
+        }),
+      );
+      await page.route(`**${visit.visitPath}/reservations/item/hand-over`, (route) =>
+        route.fulfill({ status: 409, json: {} }),
+      );
+      await page.route(`**${visit.visitPath}/reservations/item/cancel`, (route) =>
+        route.fulfill({ json: { reservations: [], toHandGrosze: 0 } }),
+      );
+
       const app = await serveApp('mobile-business');
       try {
         await page.addInitScript(
@@ -210,46 +255,10 @@ for (const [locale, t] of [
         );
 
         await button(t.day.previous).click();
-        const openVisit = page.getByRole('button', { name: new RegExp(customer) }).first();
-        await openVisit.click();
+        await page.getByRole('button', { name: new RegExp(customerWithoutCoupons) }).click();
         await expect(page.getByText(`${t.clients.coupons} (0)`, { exact: true })).toBeVisible();
         await button(t.visit.back).click();
-        await page.route(`**${visit.visitPath}/coupons`, (route) =>
-          route.request().method() === 'GET'
-            ? route.fulfill({
-                json: {
-                  tier: null,
-                  applied: [],
-                  available: [
-                    {
-                      id: 'reward',
-                      name: reward,
-                      code: 'AX24',
-                      discountGrosze: price - 100,
-                      problem: null,
-                    },
-                  ],
-                },
-              })
-            : route.continue(),
-        );
-        await page.route(`**${visit.visitPath}/reservations`, (route) =>
-          route.fulfill({
-            json: {
-              reservations: [
-                { id: 'item', name: product, quantity: 3, totalGrosze: price, status: 'reserved' },
-              ],
-              toHandGrosze: price,
-            },
-          }),
-        );
-        await page.route(`**${visit.visitPath}/reservations/item/hand-over`, (route) =>
-          route.fulfill({ status: 409, json: {} }),
-        );
-        await page.route(`**${visit.visitPath}/reservations/item/cancel`, (route) =>
-          route.fulfill({ json: { reservations: [], toHandGrosze: 0 } }),
-        );
-        await openVisit.click();
+        await page.getByRole('button', { name: new RegExp(customerWithCoupon) }).click();
         const coupons = page.getByRole('heading', { name: c.title }).locator('..');
         await expect(coupons.getByText(reward, { exact: false }).first()).toBeVisible();
         await expect(button(c.useOne.replace('{code}', 'AX24'))).toContainText(money(price - 100));
