@@ -50,6 +50,9 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontSize: 13 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
+    maxWidth: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
