@@ -6,7 +6,7 @@ import { errorText, useI18n } from '@/lib/i18n';
 import { CONTACT_ORDER, contactProblems, type ContactField } from '@/lib/contact-check';
 import { normalizePhone } from '@/lib/phone';
 import type { WaitlistJoined } from '@/lib/types';
-import { ErrorBox, FieldError } from '../ui';
+import { FieldError } from '../ui';
 
 /**
  * Task 50: on a full day — "Powiadom mnie, gdy zwolni się termin". Name and email (prefilled
@@ -170,7 +170,6 @@ export function WaitlistForm(props: {
       aria-label={t.booking.waitlistOpen}
     >
       <p className="small muted">{t.booking.waitlistHint}</p>
-      <ErrorBox>{error}</ErrorBox>
       <label className="field">
         <span>{t.booking.name}</span>
         <input
@@ -269,9 +268,16 @@ export function WaitlistForm(props: {
           <FieldError id="waitlist-terms-error" text={problems.terms} />
         </span>
       </label>
-      <button className="btn" disabled={busy}>
+      <button
+        className="btn"
+        disabled={busy}
+        aria-describedby={error ? 'waitlist-submit-error' : undefined}
+      >
         {t.booking.waitlistSubmit}
       </button>
+      {/* Task 762 (owner's rule: errors where the action is): a refusal that is not about one
+          field is said right under "Zapisz mnie na listę", not above the form. */}
+      <FieldError id="waitlist-submit-error" text={error} />
     </form>
   );
 }

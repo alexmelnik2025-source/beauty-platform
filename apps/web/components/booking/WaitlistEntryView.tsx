@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay } from '@/lib/time';
 import type { PublicWaitlistEntry } from '@/lib/types';
-import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { FieldError, LanguageSwitch, Spinner } from '../ui';
 
 /** Task 50: what the client waits for (salon, service, specialist, day) and "leave the list". */
 export function WaitlistEntryView({ token }: { token: string }) {
@@ -62,7 +62,6 @@ export function WaitlistEntryView({ token }: { token: string }) {
         </div>
       </header>
       <main className="narrow stack">
-        <ErrorBox>{error}</ErrorBox>
         <section className="stack" aria-label={t.waitlist.title}>
           <p>
             <strong>{entry.serviceName}</strong>
@@ -83,9 +82,20 @@ export function WaitlistEntryView({ token }: { token: string }) {
             }
           </p>
           {entry.status === 'waiting' || entry.status === 'offered' ? (
-            <button type="button" className="btn btn--quiet" disabled={busy} onClick={leave}>
-              {t.waitlist.leave}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn--quiet"
+                disabled={busy}
+                aria-describedby={error ? 'waitlist-leave-error' : undefined}
+                onClick={leave}
+              >
+                {t.waitlist.leave}
+              </button>
+              {/* Task 757 (owner's rule: errors where the action is): a refused "Wypisz mnie z
+                  listy" is said right under the button, not at the top of the page. */}
+              <FieldError id="waitlist-leave-error" text={error} />
+            </>
           ) : null}
           <a className="btn" href={`/${locale}/b/${entry.salon.slug}?${query}`}>
             {t.waitlist.book}
