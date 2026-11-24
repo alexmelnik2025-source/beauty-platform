@@ -25,7 +25,7 @@ import {
 } from '../reviews';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
-import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
 const reviewsCache = new SalonReadCache<SalonReviews>();
 const settingsCache = new SalonReadCache<ReviewSettings>();
 type ReplyEditor = {
@@ -81,12 +81,14 @@ export function ReviewsScreen(props: {
     setCsvBusy(true);
     setCsvInfo('');
     try {
-      const file = await api.reviewsCsv(salon.orgId, salon.locationId, props.locale, {
-        staffId: staffId ?? undefined,
-        serviceId: serviceId ?? undefined,
-        rating: rating ?? undefined,
-        unanswered,
-      });
+      const file = await withNetworkTimeout(
+        api.reviewsCsv(salon.orgId, salon.locationId, props.locale, {
+          staffId: staffId ?? undefined,
+          serviceId: serviceId ?? undefined,
+          rating: rating ?? undefined,
+          unanswered,
+        }),
+      );
       if (signal.aborted) return;
       const result = await shareCsv(file, csvTools());
       if (!signal.aborted) setCsvInfo(result === 'failed' ? r.csvFailed : '');
@@ -97,7 +99,8 @@ export function ReviewsScreen(props: {
     }
   };
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<{ message: string; older: boolean } | null>(null);
+  const displayedFilter = useRef({ key, unanswered });
   const load = useCallback(
     async (previous?: SalonReviews) => {
       if (previous && (request.current || !previous.nextBefore)) return;
@@ -105,16 +108,18 @@ export function ReviewsScreen(props: {
       const id = Symbol();
       request.current = id;
       setBusy(true);
-      setError('');
+      setFailure(null);
       try {
         const fetchPage = () =>
-          api.reviews(salon.orgId, salon.locationId, {
-            before: previous?.nextBefore ?? undefined,
-            staffId: staffId ?? undefined,
-            serviceId: serviceId ?? undefined,
-            rating: rating ?? undefined,
-            unanswered,
-          });
+          withNetworkTimeout(
+            api.reviews(salon.orgId, salon.locationId, {
+              before: previous?.nextBefore ?? undefined,
+              staffId: staffId ?? undefined,
+              serviceId: serviceId ?? undefined,
+              rating: rating ?? undefined,
+              unanswered,
+            }),
+          );
         const result = previous
           ? await fetchPage()
           : await reviewsCache.read(salon, fetchPage, key);
@@ -131,10 +136,12 @@ export function ReviewsScreen(props: {
               }
             : result;
         if (previous) reviewsCache.set(salon, merged, key);
+        displayedFilter.current = { key, unanswered };
         show(merged);
-        setError('');
       } catch (e) {
-        if (!signal.aborted && request.current === id) setError(errorText(e, t));
+        if (!signal.aborted && request.current === id) {
+          setFailure({ message: errorText(e, t), older: Boolean(previous) });
+        }
       } finally {
         if (!signal.aborted && request.current === id) {
           request.current = null;
@@ -146,27 +153,29 @@ export function ReviewsScreen(props: {
   );
 
   useEffect(() => {
-    const current = displayed.current;
-    if (current) show({ ...current, items: [], nextBefore: null });
     setCsvInfo('');
     setCsvBusy(false);
     void load();
-  }, [load, show]);
+  }, [load]);
 
   const edit = useCallback((id: string, editor?: ReplyEditor) => {
     setEditors((current) => ({ ...current, [id]: editor }));
   }, []);
   const screen = useScreenLifetime(salon);
+  const pendingReplies = useRef(new Set<string>());
   const reply = useCallback(
     async (review: Review, value: string | null, editor: ReplyEditor) => {
+      if (pendingReplies.current.has(review.id)) return;
+      pendingReplies.current.add(review.id);
       const signal = screen.current!.signal;
       const filterSignal = lifetime.current!.signal;
-      edit(review.id, { ...editor, busy: true });
+      edit(review.id, { ...editor, busy: true, error: undefined });
       try {
-        const saved =
+        const saved = await withNetworkTimeout(
           value === null
-            ? await api.removeReviewReply(salon.orgId, salon.locationId, review.id)
-            : await api.replyToReview(salon.orgId, salon.locationId, review.id, value);
+            ? api.removeReviewReply(salon.orgId, salon.locationId, review.id)
+            : api.replyToReview(salon.orgId, salon.locationId, review.id, value),
+        );
         reviewsCache.clear(salon);
         if (signal.aborted) return;
         edit(review.id);
@@ -178,17 +187,19 @@ export function ReviewsScreen(props: {
           ...current,
           unanswered: Math.max(0, current.unanswered + delta),
           items:
-            unanswered && saved.reply
+            displayedFilter.current.unanswered && saved.reply
               ? current.items.filter((item) => item.id !== saved.id)
               : current.items.map((item) => (item.id === saved.id ? saved : item)),
         };
-        reviewsCache.set(salon, updated, key);
+        reviewsCache.set(salon, updated, displayedFilter.current.key);
         show(updated);
       } catch (e) {
         if (!signal.aborted) edit(review.id, { ...editor, busy: false, error: errorText(e, t) });
+      } finally {
+        pendingReplies.current.delete(review.id);
       }
     },
-    [api, salon, screen, lifetime, key, unanswered, edit, show, t],
+    [api, salon, screen, lifetime, edit, show, t],
   );
   const settingsSaved = useCallback(
     (enabled: boolean) => {
@@ -240,7 +251,16 @@ export function ReviewsScreen(props: {
           <Button kind="link" label={r.back} onPress={onBack} />
           <Heading>{r.title}</Heading>
           <Text style={styles.muted}>{r.hint}</Text>
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          {failure ? (
+            <>
+              <ErrorText>{failure.message}</ErrorText>
+              <Button
+                kind="secondary"
+                label={t.day.refresh}
+                onPress={() => void load(failure.older && page ? page : undefined)}
+              />
+            </>
+          ) : null}
           {manager ? (
             <ReviewSettingsCard api={api} t={t} salon={salon} onSaved={settingsSaved} />
           ) : summary && !summary.enabled ? (
@@ -356,7 +376,7 @@ export function ReviewsScreen(props: {
         </View>
       }
       ListEmptyComponent={
-        error ? undefined : !page || busy ? (
+        failure ? undefined : !page || busy ? (
           <View
             style={styles.row}
             accessible
@@ -375,7 +395,7 @@ export function ReviewsScreen(props: {
         )
       }
       ListFooterComponent={
-        page?.nextBefore ? (
+        displayedFilter.current.key === key && page?.nextBefore && !failure ? (
           <Button kind="secondary" label={r.more} busy={busy} onPress={() => void load(page)} />
         ) : undefined
       }
@@ -443,6 +463,7 @@ const ReviewRow = memo(function ReviewRow(props: {
             accessibilityHint={fieldError}
             placeholder={r.replyLabel}
             placeholderTextColor={colors.placeholder}
+            editable={!busy}
             value={text}
             onChangeText={(text) =>
               props.edit(review.id, {
@@ -465,6 +486,7 @@ const ReviewRow = memo(function ReviewRow(props: {
           <Button label={r.replySave} busy={busy} onPress={publish} />
           <Button
             kind="link"
+            disabled={busy}
             label={r.replyCancel}
             onPress={() => {
               props.edit(review.id);
@@ -475,6 +497,7 @@ const ReviewRow = memo(function ReviewRow(props: {
         <View style={styles.actions}>
           <Button
             kind="secondary"
+            disabled={busy}
             label={review.reply ? r.replyChange : r.reply}
             onPress={() => props.edit(review.id, { ...editor, editing: true })}
           />
@@ -512,22 +535,31 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
     const signal = lifetime.current!.signal;
     if (signal.aborted) return;
     const current = await settingsCache.read(salon, () =>
-      api.reviewSettings(salon.orgId, salon.locationId),
+      withNetworkTimeout(api.reviewSettings(salon.orgId, salon.locationId)),
     );
     if (signal.aborted) return;
     setSaved(current);
     setForm(current);
   }, [api, salon, lifetime]);
 
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     const signal = lifetime.current!.signal;
+    setNote(null);
     load().catch((e) => {
       if (!signal.aborted) setNote({ text: errorText(e, t), bad: true });
     });
   }, [load, t, lifetime]);
 
+  useEffect(loadSettings, [loadSettings]);
+
   if (!saved || !form) {
-    return note ? <ErrorText>{note.text}</ErrorText> : null;
+    return note ? (
+      <Card>
+        <Text style={styles.replyTitle}>{r.settings}</Text>
+        <ErrorText>{note.text}</ErrorText>
+        <Button kind="secondary" label={t.day.refresh} onPress={loadSettings} />
+      </Card>
+    ) : null;
   }
 
   async function save() {
@@ -536,7 +568,9 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
     setBusy(true);
     setNote(null);
     try {
-      const done = await api.saveReviewSettings(salon.orgId, salon.locationId, form);
+      const done = await withNetworkTimeout(
+        api.saveReviewSettings(salon.orgId, salon.locationId, form),
+      );
       settingsCache.set(salon, done);
       reviewsCache.clear(salon);
       if (signal.aborted) return;
