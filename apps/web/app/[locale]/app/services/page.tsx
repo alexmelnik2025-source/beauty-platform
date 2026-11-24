@@ -43,6 +43,15 @@ export default function ServicesPage() {
   const [copyOf, setCopyOf] = useState<ServiceRow | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 779 (owner's rule: errors where the action is): a refused "Usuń kategorię" or ↑/↓ is
+   * said under that category's heading or that service's row, not as a box at the top of the page.
+   * `id` is `cat:<id>` or `svc:<id>`.
+   */
+  const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
+  const rowErrorId = (id: string) => `services-${id.replace(':', '-')}-error`;
+  const rowErrorText = (id: string) => (rowError?.id === id ? rowError.text : undefined);
+  const describedBy = (id: string) => (rowError?.id === id ? rowErrorId(id) : undefined);
   const [moving, setMoving] = useState(false);
   /** Task 254: the category being renamed and its new name. */
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
@@ -107,11 +116,12 @@ export default function ServicesPage() {
   }
 
   async function removeCategory(id: string) {
+    setRowError(null);
     try {
       await api(`${base}/service-categories/${id}`, { method: 'DELETE' });
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      setRowError({ id: `cat:${id}`, text: errorText(t, err) });
     }
   }
 
@@ -153,7 +163,7 @@ export default function ServicesPage() {
     const next = categories.map((c) => (c.id === row.id ? other : c.id === other.id ? row : c));
     setCategories(next);
     setMoving(true);
-    setError('');
+    setRowError(null);
     try {
       setCategories(
         await api<Category[]>(`${base}/service-categories/order`, {
@@ -162,7 +172,7 @@ export default function ServicesPage() {
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      setRowError({ id: `cat:${row.id}`, text: errorText(t, err) });
       await load();
     } finally {
       setMoving(false);
@@ -216,7 +226,7 @@ export default function ServicesPage() {
       .map((s) => (s.id === row.id ? other : s.id === other.id ? row : s));
     setServices(next);
     setMoving(true);
-    setError('');
+    setRowError(null);
     try {
       setServices(
         await api<ServiceRow[]>(`${base}/services/order`, {
@@ -225,7 +235,7 @@ export default function ServicesPage() {
         }),
       );
     } catch (err) {
-      setError(errorText(t, err));
+      setRowError({ id: `svc:${row.id}`, text: errorText(t, err) });
       await load();
     } finally {
       setMoving(false);
@@ -366,6 +376,7 @@ export default function ServicesPage() {
                         className="link-btn small"
                         style={{ flex: '0 0 auto' }}
                         title={t.services.deleteCategoryHint}
+                        aria-describedby={describedBy(`cat:${g.category.id}`)}
                         onClick={() => void removeCategory(g.category!.id)}
                       >
                         {t.services.deleteCategory}
@@ -377,6 +388,7 @@ export default function ServicesPage() {
                       <button
                         type="button"
                         aria-label={fill(t.team.moveUp, { name: g.category.name })}
+                        aria-describedby={describedBy(`cat:${g.category.id}`)}
                         disabled={moving || categoryIndex === 0}
                         onClick={() => void moveCategory(categoryIndex, -1)}
                       >
@@ -385,6 +397,7 @@ export default function ServicesPage() {
                       <button
                         type="button"
                         aria-label={fill(t.team.moveDown, { name: g.category.name })}
+                        aria-describedby={describedBy(`cat:${g.category.id}`)}
                         disabled={moving || categoryIndex === categories.length - 1}
                         onClick={() => void moveCategory(categoryIndex, 1)}
                       >
@@ -394,11 +407,21 @@ export default function ServicesPage() {
                   ) : null}
                 </div>
               )}
+              {g.category ? (
+                <FieldError
+                  id={rowErrorId(`cat:${g.category.id}`)}
+                  text={rowErrorText(`cat:${g.category.id}`)}
+                />
+              ) : null}
               <ul className="list">
                 {g.items.map((s, index) => (
                   <li
                     key={s.id}
-                    className={g.items.length > 1 && !filtering ? 'orderable' : undefined}
+                    className={
+                      g.items.length > 1 && !filtering
+                        ? `orderable${rowError?.id === `svc:${s.id}` ? ' orderable--error' : ''}`
+                        : undefined
+                    }
                   >
                     <button
                       type="button"
@@ -434,6 +457,7 @@ export default function ServicesPage() {
                         <button
                           type="button"
                           aria-label={fill(t.team.moveUp, { name: s.name })}
+                          aria-describedby={describedBy(`svc:${s.id}`)}
                           disabled={moving || index === 0}
                           onClick={() => void move(g.items, index, -1)}
                         >
@@ -442,6 +466,7 @@ export default function ServicesPage() {
                         <button
                           type="button"
                           aria-label={fill(t.team.moveDown, { name: s.name })}
+                          aria-describedby={describedBy(`svc:${s.id}`)}
                           disabled={moving || index === g.items.length - 1}
                           onClick={() => void move(g.items, index, 1)}
                         >
@@ -449,6 +474,7 @@ export default function ServicesPage() {
                         </button>
                       </span>
                     ) : null}
+                    <FieldError id={rowErrorId(`svc:${s.id}`)} text={rowErrorText(`svc:${s.id}`)} />
                   </li>
                 ))}
               </ul>
