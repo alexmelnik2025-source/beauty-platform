@@ -87,6 +87,14 @@ describe('"Załóż salon" (task 350)', () => {
     });
   });
 
+  it('accepts a street without a house number when creating a salon', () => {
+    expect(
+      newSalonBodies({ ...filled, addressLine: '  Rynek Starego Miasta  ' }, 'pl'),
+    ).toMatchObject({
+      location: { addressLine: 'Rynek Starego Miasta' },
+    });
+  });
+
   it('names the first missing field', () => {
     expect(newSalonBodies({ ...filled, orgName: ' ' }, 'pl')).toEqual({ problem: 'orgName' });
     expect(newSalonBodies({ ...filled, locationName: 'x'.repeat(101) }, 'pl')).toEqual({

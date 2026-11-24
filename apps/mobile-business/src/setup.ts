@@ -41,6 +41,9 @@ export function setupState(input: {
 }
 
 /** The card is shown while a step is open. */
-export function setupFinished(steps: { done: boolean }[]): boolean {
-  return steps.every((s) => s.done);
+export function setupFinished(steps: { done: boolean; step?: string }[]): boolean {
+  if (steps.length === 0 || steps.some((s) => !s.done)) return false;
+  // Callers may supply completion flags alone. Named checklists must include every required step.
+  if (steps.every((s) => s.step === undefined)) return true;
+  return SETUP_STEPS.every((required) => steps.some((s) => s.step === required));
 }

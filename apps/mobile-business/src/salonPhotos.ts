@@ -25,7 +25,7 @@ export function photoType(mimeType: string | null | undefined, blobType: string)
 
 /** How many more photos can be added now (0 = the gallery is full). */
 export function photosLeft(count: number): number {
-  return Math.max(0, MAX_SALON_PHOTOS - count);
+  return Math.max(0, MAX_SALON_PHOTOS - Math.max(0, count));
 }
 
 /** Why a photo was not added, in the person's language; null — the usual error text. */

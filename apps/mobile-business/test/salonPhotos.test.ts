@@ -22,6 +22,10 @@ describe('salon photos from the phone (task 337)', () => {
     expect(photosLeft(12)).toBe(0);
   });
 
+  it('never offers more than ten places for a negative count', () => {
+    expect(photosLeft(-1)).toBe(10);
+  });
+
   it('explains a refused photo', () => {
     expect(uploadErrorText(new ApiError(409, 'x', 'TOO_MANY_PHOTOS'), t)).toBe(t.salon.photosFull);
     expect(uploadErrorText(new ApiError(413, 'x', 'PHOTO_TOO_LARGE'), t)).toBe(
@@ -36,6 +40,51 @@ describe('salon photos from the phone (task 337)', () => {
 });
 
 describe('BusinessApi: a salon photo', () => {
+  it('keeps the gallery in server order and regains all ten places after the last deletion', async () => {
+    const path = '/v1/organizations/o1/locations/l1/photos';
+    const photo = (id: string, createdAt: string) => ({
+      id,
+      createdAt,
+      url: `/v1/public/photos/${id}`,
+      contentType: 'image/jpeg',
+      sizeBytes: 1000,
+    });
+    const older = photo('z', '2026-11-08T09:00:00Z');
+    const newer = photo('a', '2026-11-09T09:00:00Z');
+    const gallery = new Map([
+      [older.id, older],
+      [newer.id, newer],
+    ]);
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      const pathname = new URL(url).pathname;
+      if (init?.method === 'POST' && pathname === '/v1/auth/refresh') {
+        return Response.json({ accessToken: 'a1', expiresIn: 900 });
+      }
+      if (init?.method === 'GET' && pathname === path) return Response.json([...gallery.values()]);
+      if (
+        init?.method === 'DELETE' &&
+        pathname.startsWith(path + '/') &&
+        gallery.delete(pathname.slice(path.length + 1))
+      ) {
+        return new Response(null, { status: 204 });
+      }
+      throw new Error(`Unexpected request: ${init?.method} ${pathname}`);
+    };
+    const api = new BusinessApi(
+      'https://api.test',
+      { get: async () => 'refresh', set: async () => undefined },
+      fetchFn,
+    );
+    await api.restore();
+    expect(await api.salonPhotos('o1', 'l1')).toEqual([older, newer]);
+    await api.removeSalonPhoto('o1', 'l1', older.id);
+    expect(await api.salonPhotos('o1', 'l1')).toEqual([newer]);
+    await api.removeSalonPhoto('o1', 'l1', newer.id);
+    const empty = await api.salonPhotos('o1', 'l1');
+    expect(empty).toEqual([]);
+    expect(photosLeft(empty.length)).toBe(10);
+  });
+
   it('sends the picture itself with its type, signed in, and retries after a refresh', async () => {
     const calls: {
       key: string;
