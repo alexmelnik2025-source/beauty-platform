@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
@@ -16,8 +16,12 @@ import { errorText, formFailure, isNetworkError, type FormFailure } from './erro
 import { FieldGroup, FormFeedback } from './FormFeedback';
 import { formatDate } from './format';
 import { fill, type Dictionary } from './i18n';
+import { recentReads } from './shop';
 import { Button, colors } from './ui';
 import { photoType } from './wishes';
+
+const holdLists = recentReads<VisitPhotoList>();
+const visitLists = recentReads<VisitPhotoList>();
 
 /**
  * Task 80f: "Pokaż, co chcesz" in the app — up to 3 example photos from the phone's gallery
@@ -36,31 +40,36 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   const tRef = useRef(t);
   tRef.current = t;
 
+  const holdRef = useRef(hold);
+  holdRef.current = hold;
+  const holdKey = JSON.stringify([hold.holdId, hold.holdToken]);
   useEffect(() => {
     let live = true;
-    api.holdPhotos(hold).then(
-      ({ items }) => {
-        if (!live) return;
-        setPhotos(items);
-        setLoaded(true);
-        setBusy(false);
-      },
-      (error: unknown) => {
-        if (!live) return;
-        setBusy(false);
-        setFailure(
-          formFailure(error, tRef.current, () => {
-            setFailure(null);
-            setBusy(true);
-            retryLoad((attempt) => attempt + 1);
-          }),
-        );
-      },
-    );
+    holdLists
+      .read(api, holdKey, () => api.holdPhotos(holdRef.current))
+      .then(
+        ({ items }) => {
+          if (!live) return;
+          setPhotos(items);
+          setLoaded(true);
+          setBusy(false);
+        },
+        (error: unknown) => {
+          if (!live) return;
+          setBusy(false);
+          setFailure(
+            formFailure(error, tRef.current, () => {
+              setFailure(null);
+              setBusy(true);
+              retryLoad((attempt) => attempt + 1);
+            }),
+          );
+        },
+      );
     return () => {
       live = false;
     };
-  }, [api, hold, loadAttempt]);
+  }, [api, holdKey, loadAttempt]);
 
   function problem(err: unknown): string {
     if (err instanceof ApiError) {
@@ -103,6 +112,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   ) {
     setBusy(true);
     setFailure(null);
+    holdLists.clear(api, holdKey);
     let pending = assets;
     try {
       if (reconcile) {
@@ -123,6 +133,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     } catch (err) {
       setFailure(formFailure(err, t, () => void upload(pending, knownCount, true), problem(err)));
     } finally {
+      holdLists.clear(api, holdKey);
       setBusy(false);
     }
   }
@@ -138,6 +149,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     } catch (err) {
       setFailure(formFailure(err, t, () => void remove(id, true), problem(err)));
     } finally {
+      holdLists.clear(api, holdKey);
       setBusy(false);
     }
   }
@@ -164,6 +176,18 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   );
 }
 
+const PhotoPreview = memo(function PhotoPreview({ url, alt }: { url: string; alt: string }) {
+  return (
+    <Image
+      source={{ uri: `${API_URL}${url}` }}
+      accessible
+      accessibilityLabel={alt}
+      resizeMethod="resize"
+      style={styles.photo}
+    />
+  );
+});
+
 /** The client's photos as thumbnails, each with "Usuń" when it can still be removed. */
 function PhotoThumbs(props: {
   t: Dictionary;
@@ -180,12 +204,7 @@ function PhotoThumbs(props: {
         const alt = fill(w.photoAlt, { n: String(i + 1) });
         return (
           <View key={p.id} style={styles.item}>
-            <Image
-              source={{ uri: `${API_URL}${p.url}` }}
-              accessible
-              accessibilityLabel={alt}
-              style={styles.photo}
-            />
+            <PhotoPreview url={p.url} alt={alt} />
             {onRemove ? (
               <Button
                 kind="link"
@@ -206,12 +225,17 @@ function PhotoThumbs(props: {
  * Task 80j: the example photos of one of my visits in "My visits" — removable until the visit
  * starts, with the date they are deleted. Nothing is shown when the visit has no photos.
  */
-export function VisitPhotos(props: {
+type VisitPhotoProps = {
   t: Dictionary;
   api: ClientApi;
   locale: Locale;
   visit: Pick<ClientAppointment, 'id' | 'timezone' | 'canChangeWishes'>;
-}) {
+};
+export function VisitPhotos(props: VisitPhotoProps) {
+  return <VisitPhotoCard key={props.visit.id} {...props} />;
+}
+
+function VisitPhotoCard(props: VisitPhotoProps) {
   const { t, api, locale, visit } = props;
   const w = t.wishStep;
   const [list, setList] = useState<VisitPhotoList | null>(null);
@@ -219,25 +243,29 @@ export function VisitPhotos(props: {
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const [loadAttempt, retryLoad] = useState(0);
 
+  const tRef = useRef(t);
+  tRef.current = t;
   useEffect(() => {
     let live = true;
-    api.visitPhotos(visit.id).then(
-      (photos) => live && setList(photos),
-      (error: unknown) => {
-        if (live && isNetworkError(error)) {
-          setFailure(
-            formFailure(error, t, () => {
-              setFailure(null);
-              retryLoad((attempt) => attempt + 1);
-            }),
-          );
-        }
-      },
-    );
+    visitLists
+      .read(api, visit.id, () => api.visitPhotos(visit.id))
+      .then(
+        (photos) => live && setList(photos),
+        (error: unknown) => {
+          if (live && isNetworkError(error)) {
+            setFailure(
+              formFailure(error, tRef.current, () => {
+                setFailure(null);
+                retryLoad((attempt) => attempt + 1);
+              }),
+            );
+          }
+        },
+      );
     return () => {
       live = false;
     };
-  }, [api, visit.id, t, loadAttempt]);
+  }, [api, visit.id, loadAttempt]);
 
   async function remove(id: string, reconcile = false) {
     setBusy(true);
@@ -250,6 +278,7 @@ export function VisitPhotos(props: {
     } catch (err) {
       setFailure(formFailure(err, t, () => void remove(id, true)));
     } finally {
+      visitLists.clear(api, visit.id);
       setBusy(false);
     }
   }

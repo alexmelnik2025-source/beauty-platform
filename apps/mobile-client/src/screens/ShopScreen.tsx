@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -8,12 +8,30 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { ClientApi, ClientAppointment, Locale, ShopCategory, ShopProduct } from '../api';
+import type {
+  ClientApi,
+  ClientAppointment,
+  ClientAppointmentList,
+  Locale,
+  ShopCategory,
+  ShopOffer,
+  ShopProduct,
+} from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
 import { formatMoment, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { fromCurrency, nextVisitAt, SHOP_CATEGORIES, sellersLine } from '../shop';
+import { tokenStore } from '../storage';
+import {
+  catalogPages,
+  invalidateProductLists,
+  recentReads,
+  searchShop,
+  fromCurrency,
+  nextVisitAt,
+  SHOP_CATEGORIES,
+  sellersLine,
+} from '../shop';
 import { Button, Card, Chip, colors, ErrorText, Heading, Pressable } from '../ui';
 
 /** The search asks the server once the client stops typing for this long. */
@@ -41,7 +59,7 @@ export function ShopScreen(props: {
 }) {
   const { api, t, locale } = props;
   const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
+  const search = query.trim();
   const [category, setCategory] = useState<ShopCategory | null>(null);
   const [items, setItems] = useState<ShopProduct[]>([]);
   const [page, setPage] = useState(1);
@@ -49,47 +67,81 @@ export function ShopScreen(props: {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<ShopProduct | null>(null);
-  const latest = useRef(0);
+  const active = useRef<AbortController | null>(null);
+  const submit = useRef<(() => void) | null>(null);
+  const lastSearch = useRef('');
+  const visits = useMemo(() => recentReads<ClientAppointmentList>(), [api, props.signedIn]);
   const tRef = useRef(t);
   tRef.current = t;
 
   const load = useCallback(
-    async (nextPage: number, append: boolean) => {
-      const request = ++latest.current;
+    async (nextPage: number) => {
+      if (active.current) return;
+      const controller = new AbortController();
+      active.current = controller;
       setBusy(true);
       setError('');
+      const key = JSON.stringify([search, category, nextPage]);
       try {
-        const res = await api.shop({
-          q: search || undefined,
-          category: category ?? undefined,
-          page: nextPage,
+        const res = await catalogPages.read(api, key, () => {
+          controller.signal.addEventListener('abort', () => catalogPages.clear(api, key), {
+            once: true,
+          });
+          return searchShop(
+            API_URL,
+            tokenStore,
+            { q: search, category: category ?? undefined, page: nextPage },
+            controller.signal,
+          );
         });
-        if (request !== latest.current) return;
-        setItems((old) => (append ? [...old, ...res.products] : res.products));
+        if (controller.signal.aborted) return;
+        // Reopening an empty shop should discover the first product as soon as it is listed.
+        if (!search && !category && res.total === 0) catalogPages.clear(api, key);
+        setItems((old) => (nextPage > 1 ? [...old, ...res.products] : res.products));
         setPage(res.page);
         setTotal(res.total);
       } catch (e) {
-        if (request === latest.current) setError(errorText(e, tRef.current));
+        if (!controller.signal.aborted) setError(errorText(e, tRef.current));
       } finally {
-        if (request === latest.current) setBusy(false);
+        if (active.current === controller) {
+          active.current = null;
+          setBusy(false);
+        }
       }
     },
     [api, search, category],
   );
 
   useEffect(() => {
-    void load(1, false);
-  }, [load]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSearch(query.trim()), TYPING_MS);
-    return () => clearTimeout(timer);
-  }, [query]);
+    const start = () => {
+      submit.current = null;
+      lastSearch.current = search;
+      void load(1);
+    };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (search && lastSearch.current !== search) {
+      setBusy(true);
+      timer = setTimeout(start, TYPING_MS);
+      submit.current = () => {
+        clearTimeout(timer);
+        start();
+      };
+    } else {
+      start();
+    }
+    return () => {
+      clearTimeout(timer);
+      submit.current = null;
+      active.current?.abort();
+      active.current = null;
+    };
+  }, [load, search]);
 
   if (open) {
     return (
       <ProductView
         product={open}
+        visitReads={visits}
         api={api}
         signedIn={props.signedIn}
         t={t}
@@ -105,7 +157,6 @@ export function ShopScreen(props: {
   const empty = !busy && !error && items.length === 0;
   function clearFilters() {
     setQuery('');
-    setSearch('');
     setCategory(null);
   }
 
@@ -126,7 +177,7 @@ export function ShopScreen(props: {
         onChangeText={setQuery}
         autoCorrect={false}
         inputMode="search"
-        onSubmitEditing={() => setSearch(query.trim())}
+        onSubmitEditing={() => submit.current?.()}
         style={styles.input}
       />
       <ScrollView
@@ -158,41 +209,9 @@ export function ShopScreen(props: {
           />
         </View>
       ) : null}
-      {items.map((p) => {
-        const sellers = sellersLine(p);
-        const price = formatPrice(p.fromPriceGrosze, fromCurrency(p), locale);
-        return (
-          <Pressable
-            key={p.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${p.name}, ${fill(t.shop.from, { price })}`}
-            onPress={() => setOpen(p)}
-            style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
-          >
-            {p.photoId ? (
-              <Image
-                source={{ uri: photoUri(p.photoId) }}
-                accessibilityLabel={p.name}
-                style={styles.thumb}
-              />
-            ) : (
-              <View style={[styles.thumb, styles.noPhoto]} />
-            )}
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name}>{p.name}</Text>
-              {p.brand ? <Text style={styles.small}>{p.brand}</Text> : null}
-              <Text style={styles.price}>{fill(t.shop.from, { price })}</Text>
-              <Text style={styles.small}>
-                {sellers === null
-                  ? t.shop.soldOut
-                  : sellers.kind === 'one'
-                    ? sellers.salon
-                    : fill(t.shop.salons, { n: String(sellers.n) })}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+      {items.map((p) => (
+        <ProductRow key={p.id} product={p} locale={locale} t={t} onOpen={setOpen} />
+      ))}
       {busy && items.length === 0 ? (
         <View
           accessible
@@ -211,11 +230,57 @@ export function ShopScreen(props: {
         <ActivityIndicator accessibilityLabel={t.shop.title} color={colors.ink} />
       ) : null}
       {!busy && !error && items.length < total ? (
-        <Button kind="secondary" label={t.shop.more} onPress={() => void load(page + 1, true)} />
+        <Button kind="secondary" label={t.shop.more} onPress={() => void load(page + 1)} />
       ) : null}
     </ScrollView>
   );
 }
+
+const ProductRow = memo(function ProductRow({
+  product: p,
+  locale,
+  t,
+  onOpen,
+}: {
+  product: ShopProduct;
+  locale: Locale;
+  t: Dictionary;
+  onOpen: (product: ShopProduct) => void;
+}) {
+  const sellers = sellersLine(p);
+  const price = formatPrice(p.fromPriceGrosze, fromCurrency(p), locale);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${p.name}, ${fill(t.shop.from, { price })}`}
+      onPress={() => onOpen(p)}
+      style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+    >
+      {p.photoId ? (
+        <Image
+          resizeMethod="resize"
+          source={{ uri: photoUri(p.photoId) }}
+          accessibilityLabel={p.name}
+          style={styles.thumb}
+        />
+      ) : (
+        <View style={[styles.thumb, styles.noPhoto]} />
+      )}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.name}>{p.name}</Text>
+        {p.brand ? <Text style={styles.small}>{p.brand}</Text> : null}
+        <Text style={styles.price}>{fill(t.shop.from, { price })}</Text>
+        <Text style={styles.small}>
+          {sellers === null
+            ? t.shop.soldOut
+            : sellers.kind === 'one'
+              ? sellers.salon
+              : fill(t.shop.salons, { n: String(sellers.n) })}
+        </Text>
+      </View>
+    </Pressable>
+  );
+});
 
 /**
  * One product: its picture and description, and the salons where the client picks it up.
@@ -225,6 +290,7 @@ export function ShopScreen(props: {
  * aside right after the visit is booked.
  */
 function ProductView(props: {
+  visitReads: ReturnType<typeof recentReads<ClientAppointmentList>>;
   product: ShopProduct;
   api: ClientApi;
   signedIn: boolean;
@@ -243,29 +309,36 @@ function ProductView(props: {
   useEffect(() => {
     if (!props.signedIn) return;
     let live = true;
-    api
-      .appointments('upcoming')
+    props.visitReads
+      .read(api, 'upcoming', () => api.appointments('upcoming'))
       .then((res) => live && setVisits(res.items))
       // Without the visits the page still works: each offer shows "Umów wizytę".
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [api, props.signedIn]);
+  }, [api, props.signedIn, props.visitReads]);
 
-  const reserve = async (productId: string, visit: ClientAppointment, when: string) => {
-    if (busy) return;
-    setBusy(productId);
-    setError('');
-    try {
-      await api.reserveProduct(visit.id, productId);
-      setDone((d) => ({ ...d, [productId]: when }));
-    } catch (e) {
-      setError(errorText(e, t));
-    } finally {
-      setBusy(null);
-    }
-  };
+  const reserving = useRef(false);
+  const reserve = useCallback(
+    async (productId: string, visit: ClientAppointment, when: string) => {
+      if (reserving.current) return;
+      reserving.current = true;
+      setBusy(productId);
+      setError('');
+      try {
+        await api.reserveProduct(visit.id, productId);
+        setDone((d) => ({ ...d, [productId]: when }));
+      } catch (e) {
+        setError(errorText(e, t));
+      } finally {
+        invalidateProductLists(api);
+        reserving.current = false;
+        setBusy(null);
+      }
+    },
+    [api, t],
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -288,59 +361,93 @@ function ProductView(props: {
       </Text>
       <Text style={styles.small}>{t.shop.pickup}</Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {p.offers.map((o) => {
-        const visit = o.available ? nextVisitAt(visits, o.salon.slug) : null;
-        const when = visit ? formatMoment(visit.start, visit.timezone, locale) : '';
-        const reservedFor = done[o.productId];
-        return (
-          <Card key={o.productId}>
-            <View style={styles.offerTop}>
-              <Text style={[styles.name, styles.offerSalon]}>{o.salon.name}</Text>
-              <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
-            </View>
-            <Text style={styles.small}>
-              {[o.salon.addressLine, o.salon.city].filter(Boolean).join(', ')}
-            </Text>
-            {o.available ? null : <Text style={styles.small}>{t.shop.soldOut}</Text>}
-            {reservedFor ? (
-              <Text accessibilityRole="alert" style={styles.done}>
-                {fill(t.shop.reserved, { when: reservedFor })}
-              </Text>
-            ) : visit ? (
-              <View style={{ marginTop: 8 }}>
-                <Button
-                  label={fill(t.shop.reserve, { when })}
-                  a11yLabel={`${fill(t.shop.reserve, { when })}, ${p.name}: ${o.salon.name}`}
-                  busy={busy === o.productId}
-                  onPress={() => void reserve(o.productId, visit, when)}
-                />
-              </View>
-            ) : o.available ? (
-              <View style={{ marginTop: 8 }}>
-                <Button
-                  kind="secondary"
-                  label={t.shop.bookAndPickUp}
-                  a11yLabel={`${t.shop.bookAndPickUp}: ${o.salon.name}`}
-                  onPress={() =>
-                    props.onBookWith({ slug: o.salon.slug, name: o.salon.name }, o.productId)
-                  }
-                />
-              </View>
-            ) : null}
-            <View style={{ marginTop: 8 }}>
-              <Button
-                kind={o.available ? 'link' : 'secondary'}
-                label={t.shop.book}
-                a11yLabel={`${t.shop.book}: ${o.salon.name}`}
-                onPress={() => props.onOpenSalon({ slug: o.salon.slug, name: o.salon.name })}
-              />
-            </View>
-          </Card>
-        );
-      })}
+      {p.offers.map((o) => (
+        <OfferRow
+          key={o.productId}
+          offer={o}
+          productName={p.name}
+          visit={o.available ? nextVisitAt(visits, o.salon.slug) : null}
+          reservedFor={done[o.productId]}
+          busy={busy === o.productId}
+          locale={locale}
+          t={t}
+          reserve={reserve}
+          onOpenSalon={props.onOpenSalon}
+          onBookWith={props.onBookWith}
+        />
+      ))}
     </ScrollView>
   );
 }
+
+const OfferRow = memo(function OfferRow({
+  offer: o,
+  productName,
+  visit,
+  reservedFor,
+  busy,
+  locale,
+  t,
+  reserve,
+  onOpenSalon,
+  onBookWith,
+}: {
+  offer: ShopOffer;
+  productName: string;
+  visit: ClientAppointment | null;
+  reservedFor: string | undefined;
+  busy: boolean;
+  locale: Locale;
+  t: Dictionary;
+  reserve: (productId: string, visit: ClientAppointment, when: string) => void;
+  onOpenSalon: (salon: { slug: string; name: string }) => void;
+  onBookWith: (salon: { slug: string; name: string }, productId: string) => void;
+}) {
+  const when = visit ? formatMoment(visit.start, visit.timezone, locale) : '';
+  return (
+    <Card>
+      <View style={styles.offerTop}>
+        <Text style={[styles.name, styles.offerSalon]}>{o.salon.name}</Text>
+        <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
+      </View>
+      <Text style={styles.small}>
+        {[o.salon.addressLine, o.salon.city].filter(Boolean).join(', ')}
+      </Text>
+      {o.available ? null : <Text style={styles.small}>{t.shop.soldOut}</Text>}
+      {reservedFor ? (
+        <Text accessibilityRole="alert" style={styles.done}>
+          {fill(t.shop.reserved, { when: reservedFor })}
+        </Text>
+      ) : visit ? (
+        <View style={{ marginTop: 8 }}>
+          <Button
+            label={fill(t.shop.reserve, { when })}
+            a11yLabel={`${fill(t.shop.reserve, { when })}, ${productName}: ${o.salon.name}`}
+            busy={busy}
+            onPress={() => void reserve(o.productId, visit, when)}
+          />
+        </View>
+      ) : o.available ? (
+        <View style={{ marginTop: 8 }}>
+          <Button
+            kind="secondary"
+            label={t.shop.bookAndPickUp}
+            a11yLabel={`${t.shop.bookAndPickUp}: ${o.salon.name}`}
+            onPress={() => onBookWith({ slug: o.salon.slug, name: o.salon.name }, o.productId)}
+          />
+        </View>
+      ) : null}
+      <View style={{ marginTop: 8 }}>
+        <Button
+          kind={o.available ? 'link' : 'secondary'}
+          label={t.shop.book}
+          a11yLabel={`${t.shop.book}: ${o.salon.name}`}
+          onPress={() => onOpenSalon({ slug: o.salon.slug, name: o.salon.name })}
+        />
+      </View>
+    </Card>
+  );
+});
 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 14 },
