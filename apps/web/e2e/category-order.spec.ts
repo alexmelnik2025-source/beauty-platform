@@ -153,6 +153,30 @@ test('the owner orders and renames the categories of the price list', async ({
   await shot(cabinet, '254-category-order');
   await expect.poll(categories).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
 
+  // Task 779 (owner's rule: errors where the action is): a refused "Usuń kategorię" or ↑ is said
+  // under that category's heading, not as a box at the top of the page; the order comes back.
+  const tooMany = { error: { code: 'RATE_LIMITED', message: 'slow down' } };
+  await cabinet.route('**/service-categories/*', (route) =>
+    route.request().method() === 'DELETE' || route.request().method() === 'PUT'
+      ? route.fulfill({ status: 429, json: tooMany })
+      : route.fallback(),
+  );
+  const kids = cabinet
+    .locator('.section')
+    .filter({ has: cabinet.getByRole('heading', { name: 'Dzieci' }) });
+  const removeKids = kids.getByRole('button', { name: 'Usuń kategorię' });
+  await removeKids.click();
+  await expect(kids.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeKids).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(cabinet.locator('.page > .alert')).toHaveCount(0);
+  await shot(cabinet, '779-category-remove-error');
+  await kids.getByRole('button', { name: 'Wyżej: Dzieci' }).click();
+  await expect(kids.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(headings).toHaveText(['Włosy', 'Broda i golenie', 'Dzieci']);
+  await expect(cabinet.locator('.page > .alert')).toHaveCount(0);
+  await cabinet.unroute('**/service-categories/*');
+  await expect.poll(categories).toEqual(['Włosy', 'Broda i golenie', 'Dzieci']);
+
   // Task Q6: search and filters over the services, as in "Mój sklep"; the arrows wait meanwhile.
   await cabinet.getByLabel('Szukaj usługi').fill('bro');
   await expect(headings).toHaveText(['Broda i golenie']);
