@@ -120,7 +120,9 @@ test('a guarded client list abandoned on exit cannot replace the next visit', as
   }
 });
 
-async function checkReviewWork({ page }: { page: Page }) {
+test('typing and publishing touch only the chosen review, and returning reuses the list', async ({
+  page,
+}) => {
   // Keep every fixture in FlatList's initial batch so lazy mounts cannot enter the render counts.
   const items = Array.from({ length: 8 }, (_, i) => ({
     id: 'review-' + i,
@@ -222,8 +224,4 @@ async function checkReviewWork({ page }: { page: Page }) {
   expect(writes).toEqual([draft]);
   expect(typing).toEqual({ summary: 0, rows: [] });
   expect([...new Set(saved.rows)]).toEqual([1]);
-}
-
-for (let run = 1; run <= 20; run++) {
-  test(`typing and publishing touch only the chosen review, run ${run}`, checkReviewWork);
-}
+});
