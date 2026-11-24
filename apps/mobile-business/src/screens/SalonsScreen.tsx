@@ -1,6 +1,8 @@
+import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Dictionary } from '../i18n';
-import { Button, Card, colors, Heading, Pressable } from '../ui';
+import { errorText } from '../errors';
+import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 
 export type SalonChoice = {
   orgId: string;
@@ -20,9 +22,27 @@ export function SalonsScreen(props: {
   onChoose: (choice: SalonChoice) => void;
   /** Task 350: "Załóż salon" — shown to a person who has no salon yet. */
   onCreate: () => void;
-  onSignOut: () => void;
+  onSignOut: () => Promise<void>;
 }) {
   const { t } = props;
+  const leaving = useRef(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [error, setError] = useState('');
+
+  async function signOut() {
+    if (leaving.current) return;
+    leaving.current = true;
+    setSigningOut(true);
+    setError('');
+    try {
+      await props.onSignOut();
+    } catch (e) {
+      leaving.current = false;
+      setSigningOut(false);
+      setError(errorText(e, t));
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <Heading>{t.salons.title}</Heading>
@@ -31,7 +51,7 @@ export function SalonsScreen(props: {
           <Text style={styles.name}>{t.salons.ownTitle}</Text>
           <Text style={styles.text}>{t.salons.ownLead}</Text>
           <View style={{ marginTop: 8 }}>
-            <Button label={t.salons.create} onPress={props.onCreate} />
+            <Button label={t.salons.create} disabled={signingOut} onPress={props.onCreate} />
           </View>
         </Card>
       ) : null}
@@ -42,6 +62,8 @@ export function SalonsScreen(props: {
         return (
           <Pressable
             key={c.locationId}
+            disabled={signingOut}
+            accessibilityState={{ disabled: signingOut }}
             accessibilityRole="button"
             accessibilityLabel={c.locationName}
             accessibilityHint={details}
@@ -56,7 +78,8 @@ export function SalonsScreen(props: {
           </Pressable>
         );
       })}
-      <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
+      {error ? <ErrorText>{error}</ErrorText> : null}
+      <Button kind="link" label={t.signOut} busy={signingOut} onPress={signOut} />
     </ScrollView>
   );
 }

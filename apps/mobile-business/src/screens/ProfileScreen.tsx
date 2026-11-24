@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, StaffList } from '../api';
 import { errorText } from '../errors';
@@ -26,6 +26,8 @@ export function ProfileScreen(props: {
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [info, setInfo] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const saving = useRef(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function ProfileScreen(props: {
       .then((list) => {
         if (!alive) return;
         const mine = list.find((s) => s.id === staffId) ?? null;
-        setLoadError('');
+        setLoadError(mine ? '' : t.error.generic);
         setMe(mine);
         setChosen(mine?.languages ?? []);
       })
@@ -43,7 +45,7 @@ export function ProfileScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon.orgId, salon.locationId, staffId, t]);
+  }, [api, salon.orgId, salon.locationId, staffId, t, loadAttempt]);
 
   // Android "back" goes to the day.
   useEffect(() => {
@@ -55,6 +57,8 @@ export function ProfileScreen(props: {
   }, [onBack]);
 
   async function save() {
+    if (saving.current) return;
+    saving.current = true;
     setBusy(true);
     setSaveError('');
     setInfo('');
@@ -66,6 +70,7 @@ export function ProfileScreen(props: {
     } catch (e) {
       setSaveError(errorText(e, t));
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -76,7 +81,18 @@ export function ProfileScreen(props: {
         <Button kind="link" label={p.back} onPress={onBack} />
       </View>
       <Heading>{p.title}</Heading>
-      {loadError ? <ErrorText>{loadError}</ErrorText> : null}
+      {loadError ? (
+        <>
+          <ErrorText>{loadError}</ErrorText>
+          <Button
+            label={t.day.refresh}
+            onPress={() => {
+              setLoadError('');
+              setLoadAttempt((attempt) => attempt + 1);
+            }}
+          />
+        </>
+      ) : null}
       {me ? (
         <>
           <Card>
