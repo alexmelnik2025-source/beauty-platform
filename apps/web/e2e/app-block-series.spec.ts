@@ -17,7 +17,7 @@ import { serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-block-series-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // An address of its own for sign-up and sign-in (reserved for tests, RFC 2544).
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
@@ -118,7 +118,33 @@ test('business app: the owner blocks time every week and removes the whole serie
       await phone.getByRole('button', { name: 'Tydzień mniej' }).click();
     }
     await expect(phone.getByText('tygodnie: 3')).toBeVisible();
-    await phone.getByLabel('Powód (np. przerwa)').fill('Szkolenie');
+    await phone.addStyleTag({ content: 'html { -webkit-text-size-adjust: 130% !important; }' });
+    const save = phone.getByRole('button', { name: 'Zablokuj', exact: true });
+    const reason = phone.getByLabel('Powód (np. przerwa)');
+    const earlier = phone.getByRole('button', { name: 'Do: 15 minut wcześniej' });
+    const later = phone.getByRole('button', { name: 'Do: 15 minut później' });
+    for (let i = 0; i < 5; i++) await earlier.click();
+    await reason.fill('  ');
+    await save.click();
+    const rangeError = phone
+      .getByRole('alert')
+      .filter({ hasText: '„Do” musi być później niż „Od”.' });
+    await expect(rangeError).toBeVisible();
+    await expect(phone.getByRole('alert').filter({ hasText: '! Powód' })).toBeVisible();
+    await reason.fill('Szkolenie');
+    await later.click();
+    await expect(rangeError).toBeVisible(); // Equal start and end.
+    for (let i = 0; i < 4; i++) await later.click();
+    await expect(phone.getByRole('alert')).toHaveCount(0);
+
+    await phone.route('**/time-blocks/series', (route) => route.abort(), { times: 1 });
+    await save.click();
+    await expect(phone.getByRole('alert')).toContainText('Brak połączenia');
+    await expect(reason).toHaveValue('Szkolenie');
+    await expect(phone.getByLabel('Od 12:00')).toBeVisible();
+    await expect(phone.getByLabel('Do 13:00')).toBeVisible();
+    await expect(phone.getByText('tygodnie: 3')).toBeVisible();
+    expect(await live()).toEqual([]);
     await shot(phone, '342-business-app-weekly-block');
     await phone.getByRole('button', { name: 'Zablokuj', exact: true }).click();
     await expect(phone.getByText('Zablokowano 3 razy, co tydzień.')).toBeVisible();
