@@ -41,6 +41,9 @@ export function BlockScreen(props: {
   const [weekly, setWeekly] = useState(false);
   const [weeks, setWeeks] = useState<number>(SERIES_WEEKS.start);
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const badRange = submitted && to <= from;
+  const missingReason = submitted && !reason.trim();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -52,19 +55,16 @@ export function BlockScreen(props: {
   }, [onBack]);
 
   async function save() {
-    if (to <= from) {
-      setError(b.badRange);
-      return;
-    }
-    setBusy(true);
+    setSubmitted(true);
     setError('');
+    if (to <= from || !reason.trim()) return;
+    setBusy(true);
     try {
-      const text = reason.trim();
       const body = {
         staffId,
         start: localToIso(date, from, props.timeZone),
         end: localToIso(date, to, props.timeZone),
-        ...(text ? { reason: text } : {}),
+        reason: reason.trim(),
       };
       if (weekly) {
         const made = await api.addTimeBlockSeries(salon.orgId, salon.locationId, {
@@ -93,10 +93,11 @@ export function BlockScreen(props: {
     set: (v: string) => void,
     min: string,
     max: string,
+    invalid = false,
   ) => (
     <View style={styles.stepper}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.row}>
+      <View style={[styles.row, invalid && styles.invalidRange]}>
         <Button
           kind="secondary"
           label="‹"
@@ -115,6 +116,7 @@ export function BlockScreen(props: {
           onPress={() => set(shiftTime(value, STEP))}
         />
       </View>
+      {invalid ? <ErrorText>! {b.badRange}</ErrorText> : null}
     </View>
   );
 
@@ -143,7 +145,7 @@ export function BlockScreen(props: {
       ) : null}
 
       {stepper(b.from, from, setFrom, '00:00', '23:45')}
-      {stepper(b.to, to, setTo, '00:15', '24:00')}
+      {stepper(b.to, to, setTo, '00:15', '24:00', badRange)}
 
       <View style={styles.row}>
         <Button
@@ -188,8 +190,9 @@ export function BlockScreen(props: {
         value={reason}
         onChangeText={setReason}
         maxLength={200}
-        style={styles.input}
+        style={[styles.input, missingReason && styles.invalidInput]}
       />
+      {missingReason ? <ErrorText>! {b.reason}</ErrorText> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
       <View style={styles.row}>
         <Button label={b.save} busy={busy} onPress={() => void save()} />
@@ -203,6 +206,8 @@ const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   stepper: { gap: 6 },
+  invalidRange: { borderWidth: 1, borderColor: colors.danger, borderRadius: 12 },
+  invalidInput: { borderColor: colors.danger },
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   time: { fontSize: 24, fontWeight: '700', color: colors.ink, minWidth: 80, textAlign: 'center' },
   muted: { color: colors.muted, fontSize: 15 },

@@ -156,14 +156,43 @@ test('business app: browse weeks, mark attendance, move a visit and unblock time
 
     await button('Tydzień').click();
     await expect(page.getByText('Wizyty w tygodniu: 0')).toBeVisible();
+    await page.addStyleTag({ content: 'html { -webkit-text-size-adjust: 130% !important; }' });
+    await page.route('**/calendar?from=*&to=*', (route) => route.abort(), { times: 1 });
     await button('Poprzedni tydzień').click();
+    await expect(page.getByRole('alert')).toContainText('Brak połączenia');
+    await button('Odśwież').click();
     await expect(bookedDay).toBeVisible();
     await expectFitsPhone(page);
     await bookedDay.click();
+    // A malformed price in the detail response must be identified beside Cena.
+    await page.route(
+      `**/appointments/${past.id}`,
+      async (route) => {
+        const response = await route.fetch();
+        await route.fulfill({ response, json: { ...(await response.json()), priceGrosze: -1 } });
+      },
+      { times: 1 },
+    );
     await button(/^\d\d:\d\d Jan Nowak · Strzyżenie$/).click();
     await expect(page.getByText('Potwierdzona', { exact: true })).toBeVisible();
+    const priceError = page.getByText('Cena', { exact: true }).locator('..').getByRole('alert');
+    await expect(priceError).toContainText('! Cena to liczba');
     await button('Przyszedł').click();
     await expect(page.getByText('Odbyła się', { exact: true })).toBeVisible();
+    await expect(priceError).toHaveCount(0);
+    const tipField = page.getByTestId('tip-field');
+    const tip = tipField.getByRole('textbox');
+    await tip.fill('-1');
+    await expect(tipField.getByRole('alert')).toContainText('! Wpisz kwotę');
+    await expect(button('Zapisz napiwek')).toBeDisabled();
+    await tip.fill('12,50');
+    await page.route('**/appointments/*/tip', (route) => route.abort(), { times: 1 });
+    await button('Zapisz napiwek').click();
+    await expect(tipField.getByRole('alert')).toContainText('Brak połączenia');
+    await expect(tip).toHaveValue('12,50');
+    await button('Zapisz napiwek').click();
+    await expect(button('Zapisz napiwek')).toBeDisabled();
+    await expect(page.getByRole('alert')).toHaveCount(0);
     await expectFitsPhone(page);
     await button('‹ Wróć').click();
     await expect(button(/Jan Nowak · Strzyżenie/)).toContainText('Zakończona');
@@ -174,6 +203,20 @@ test('business app: browse weeks, mark attendance, move a visit and unblock time
     await button('Następny tydzień').click();
     await bookedDay.click();
     await button(/^\d\d:\d\d Ewa Lis · Strzyżenie$/).click();
+    await button('Odwołaj wizytę').click();
+    const reason = page.getByLabel('Powód (klient go zobaczy)');
+    await reason.fill('   ');
+    await button('Odwołaj wizytę').click();
+    await expect(reason.locator('..').getByRole('alert')).toHaveText('! Wpisz powód odwołania.');
+    await reason.fill('Zmiana planów');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await button('Odwołaj wizytę').click();
+    await page.route('**/appointments/*/cancel', (route) => route.abort(), { times: 1 });
+    await button('Tak, odwołaj').click();
+    await expect(reason.locator('..').getByRole('alert')).toContainText('Brak połączenia');
+    await expect(reason).toHaveValue('Zmiana planów');
+    await button('Nie').click();
+    await button('Zamknij').click();
     await button('Przenieś').click();
     await button('Następny dzień').click();
     await expect(button('09:00')).toBeVisible();
@@ -181,6 +224,10 @@ test('business app: browse weeks, mark attendance, move a visit and unblock time
     await button('09:00').click();
     await expect(page.getByText(/^Przenieść na .*09:00\?$/)).toBeVisible();
     await expectFitsPhone(page);
+    await page.route('**/appointments/*/reschedule', (route) => route.abort(), { times: 1 });
+    await button('Tak').click();
+    await expect(page.getByRole('alert')).toContainText('Brak połączenia');
+    await expect(page.getByText(/^Przenieść na .*09:00\?$/)).toBeVisible();
     await button('Tak').click();
     await expect(page.getByText(/^Wizyta przeniesiona\./)).toBeVisible();
     await expect(page.getByRole('heading', { name: '09:00–09:30' })).toBeVisible();
