@@ -1,21 +1,30 @@
 import { StyleSheet, Text } from 'react-native';
+import type { Dictionary } from '../i18n';
 import { colors, Pressable } from '../ui';
 
 export function DiscountedTime({
   time,
   percent,
   listPrice,
+  labels,
   onPress,
 }: {
   time: string;
   percent: number;
   listPrice?: string;
+  labels: Pick<Dictionary['visit'], 'price' | 'discount'>;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={[time, listPrice, `−${percent}%`].filter(Boolean).join(' · ')}
+      accessibilityLabel={[
+        time,
+        listPrice && `${labels.price} ${listPrice}`,
+        `${labels.discount} −${percent}%`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       onPress={onPress}
       style={styles.slot}
     >
@@ -33,7 +42,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
-    minHeight: 44,
+    maxWidth: '100%',
     padding: 8,
     alignItems: 'center',
     justifyContent: 'center',

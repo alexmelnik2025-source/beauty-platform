@@ -504,6 +504,12 @@ export function BookingScreen(props: {
   const day = activeDay?.date;
   const daySlots = activeDay?.slots ?? [];
 
+  const heldListPrice =
+    hold && hold.listPriceGrosze !== null
+      ? formatPrice(hold.listPriceGrosze, hold.currency, locale)
+      : undefined;
+  const heldPrice = hold && formatPrice(hold.priceGrosze, hold.currency, locale);
+
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       {step !== 'done' ? (
@@ -618,7 +624,7 @@ export function BookingScreen(props: {
                         <Pressable
                           key={`${r.priceGrosze}|${r.durationMinutes}`}
                           accessibilityRole="button"
-                          accessibilityLabel={`${fill(b.bookRow, { names })}, ${offer}`}
+                          accessibilityLabel={`${fill(b.bookRow, { names })}, ${offer}, ${s.name}`}
                           onPress={() =>
                             pickRow(
                               s.id,
@@ -627,8 +633,8 @@ export function BookingScreen(props: {
                           }
                           style={({ pressed }) => [styles.priceRow, pressed && { opacity: 0.7 }]}
                         >
-                          <Text style={[styles.text, { flex: 1 }]}>{names}</Text>
-                          <Text style={styles.muted}>{offer}</Text>
+                          <Text style={[styles.text, styles.choiceDetails]}>{names}</Text>
+                          <Text style={[styles.muted, styles.offer]}>{offer}</Text>
                           <Text style={styles.chevron}>›</Text>
                         </Pressable>
                       );
@@ -806,6 +812,7 @@ export function BookingScreen(props: {
                           key={slot.start}
                           time={slot.time}
                           percent={slot.discountPercent}
+                          labels={t.visit}
                           listPrice={
                             listPrice ? formatPrice(listPrice, salon.currency, locale) : undefined
                           }
@@ -839,15 +846,29 @@ export function BookingScreen(props: {
           <Text style={styles.big}>
             {hold.time} · {formatDay(hold.date, locale)}
           </Text>
-          <Text style={styles.text}>
+          <Text
+            style={styles.text}
+            role={heldListPrice ? 'group' : undefined}
+            accessibilityLabel={
+              heldListPrice
+                ? [
+                    hold.serviceName,
+                    hold.staffName,
+                    `${t.visit.price} ${heldListPrice}`,
+                    hold.happyHourPercent && `${t.visit.discount} −${hold.happyHourPercent}%`,
+                    `${t.visit.toPay} ${heldPrice}`,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')
+                : undefined
+            }
+          >
             {hold.serviceName} · {hold.staffName} ·{' '}
-            {hold.listPriceGrosze !== null ? (
-              <Text style={{ textDecorationLine: 'line-through' }}>
-                {formatPrice(hold.listPriceGrosze, hold.currency, locale)}
-              </Text>
+            {heldListPrice ? (
+              <Text style={{ textDecorationLine: 'line-through' }}>{heldListPrice}</Text>
             ) : null}
-            {hold.listPriceGrosze !== null ? ' ' : ''}
-            {formatPrice(hold.priceGrosze, hold.currency, locale)}
+            {heldListPrice ? ' ' : ''}
+            {heldPrice}
             {hold.happyHourPercent ? ` −${hold.happyHourPercent}%` : ''}
           </Text>
           <HoldCountdown
@@ -1198,12 +1219,12 @@ function Choice(props: {
       onPress={props.onPress}
       style={({ pressed }) => [styles.choice, pressed && { opacity: 0.7 }]}
     >
-      <View style={{ flex: 1 }}>
+      <View style={styles.choiceDetails}>
         <Text style={styles.strong}>{props.title}</Text>
         {props.meta ? <Text style={styles.muted}>{props.meta}</Text> : null}
         {props.free ? <Text style={styles.free}>{props.free}</Text> : null}
       </View>
-      {props.right ? <Text style={styles.strong}>{props.right}</Text> : null}
+      {props.right ? <Text style={[styles.strong, styles.offer]}>{props.right}</Text> : null}
       <Text style={styles.chevron}>›</Text>
     </Pressable>
   );
@@ -1263,9 +1284,10 @@ const styles = StyleSheet.create({
   free: { color: colors.ink, fontSize: 13, fontWeight: '600', marginTop: 2 },
   big: { color: colors.ink, fontSize: 20, fontWeight: '700' },
   label: { color: colors.ink, fontSize: 14, fontWeight: '600' },
-  progress: { flexDirection: 'row', gap: 6 },
+  progress: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   progressStep: {
-    flex: 1,
+    flexGrow: 1,
+    maxWidth: '100%',
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
@@ -1276,8 +1298,11 @@ const styles = StyleSheet.create({
   },
   progressDone: { color: colors.ink, borderBottomColor: colors.accent },
   progressNow: { color: colors.ink, borderBottomColor: colors.ink },
+  choiceDetails: { minWidth: 0, maxWidth: '100%', flexGrow: 1, flexShrink: 1, flexBasis: 124 },
+  offer: { maxWidth: '100%' },
   choice: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
     backgroundColor: colors.card,
@@ -1289,6 +1314,7 @@ const styles = StyleSheet.create({
   chevron: { color: colors.muted, fontSize: 22 },
   priceRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
     paddingVertical: 8,
@@ -1296,7 +1322,8 @@ const styles = StyleSheet.create({
   },
   days: { gap: 8, paddingVertical: 2 },
   dayChip: {
-    width: 56,
+    minWidth: 56,
+    paddingHorizontal: 6,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,

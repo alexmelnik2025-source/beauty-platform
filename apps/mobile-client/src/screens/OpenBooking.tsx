@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import type { ClientApi, PublicLocation } from '../api';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
@@ -44,20 +44,26 @@ export function OpenBooking(props: {
   }
 
   return (
-    <View style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.top}>
         <Button kind="link" label={props.t.book.back} onPress={props.onBack} />
       </View>
-      <Heading>{props.name}</Heading>
+      <Heading>{props.name || props.t.book.title}</Heading>
       {error ? (
         <>
           <ErrorText>{error}</ErrorText>
           <Button kind="secondary" label={props.t.retry} onPress={retry} />
         </>
       ) : (
-        <ActivityIndicator style={{ marginTop: 24 }} color={colors.ink} />
+        <ActivityIndicator
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={props.t.book.title}
+          style={{ marginTop: 24 }}
+          color={colors.ink}
+        />
       )}
-    </View>
+    </ScrollView>
   );
 }
 
