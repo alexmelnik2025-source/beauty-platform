@@ -17,6 +17,10 @@ describe('payment method (task 227)', () => {
     expect(paymentBody(3, false, 'cash')).toEqual({ version: 3, paid: false });
   });
 
+  it.each(PAYMENT_METHODS)('undoes a %s payment without resending the old method', (method) => {
+    expect(paymentBody(8, false, method)).toStrictEqual({ version: 8, paid: false });
+  });
+
   it('a walk-in entered as paid carries how it was paid', () => {
     const base = {
       serviceId: 's',
