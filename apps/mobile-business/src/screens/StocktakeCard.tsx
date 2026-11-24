@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, Stocktake } from '../api';
 import { errorText } from '../errors';
@@ -10,12 +10,14 @@ import type { SalonChoice } from './SalonsScreen';
 const StocktakeRow = memo(function StocktakeRow({
   product,
   draft,
+  busy,
   count,
   p,
   onChange,
 }: {
   product: Product;
   draft: string | undefined;
+  busy: boolean;
   count: number | null | undefined;
   p: Dictionary['products'];
   onChange: (id: string, value: string) => void;
@@ -48,6 +50,7 @@ const StocktakeRow = memo(function StocktakeRow({
             placeholder="—"
             placeholderTextColor={colors.placeholder}
             keyboardType="number-pad"
+            editable={!busy}
             value={draft ?? String(stockQuantity ?? '')}
             onChangeText={(value) => onChange(id, value)}
             style={[styles.input, invalid && styles.invalidInput]}
@@ -78,6 +81,7 @@ export function StocktakeCard(props: {
   const { api, t, salon, products } = props;
   const p = t.products;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const saving = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -99,6 +103,7 @@ export function StocktakeCard(props: {
         key={product.id}
         product={product}
         draft={draft}
+        busy={busy}
         count={count}
         p={p}
         onChange={changeCount}
@@ -108,7 +113,8 @@ export function StocktakeCard(props: {
   const disabled = invalid || changes.length === 0;
 
   const save = async () => {
-    if (busy || disabled) return;
+    if (saving.current || disabled) return;
+    saving.current = true;
     setBusy(true);
     setError('');
     try {
@@ -116,6 +122,7 @@ export function StocktakeCard(props: {
     } catch (e) {
       setError(errorText(e, t));
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   };
