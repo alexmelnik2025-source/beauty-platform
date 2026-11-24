@@ -54,6 +54,13 @@ export function AppointmentSheet({
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [mode, setMode] = useState<Mode>('view');
   const [error, setError] = useState('');
+  /**
+   * Task 831 (owner's rule: errors where the action is): a refused action is said where it was
+   * pressed — under the footer buttons, the payment method, the tip, the coupons, "Zapisz termin"
+   * or "Odwołaj" — not in a box under the time at the top of the card.
+   */
+  const [actionError, setActionError] = useState<{ at: ActionAt; text: string } | null>(null);
+  const errorAt = (at: ActionAt) => (actionError?.at === at ? actionError.text : '');
   // Task Q3 (screen D): a product handed over is a new sale — the sales list reloads.
   const [salesKey, setSalesKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -92,9 +99,10 @@ export function AppointmentSheet({
     if (problem?.field === 'moveOutside') document.getElementById('visit-moveOutside')?.focus();
   }, [problem]);
 
-  async function run(action: () => Promise<unknown>, after: Mode = 'view') {
+  async function run(action: () => Promise<unknown>, at: ActionAt, after: Mode = 'view') {
     setBusy(true);
     setError('');
+    setActionError(null);
     setProblem((p) => (p?.field === 'moveOutside' || p?.field === 'moveTime' ? null : p));
     try {
       await action();
@@ -115,7 +123,7 @@ export function AppointmentSheet({
         return;
       }
       if (err instanceof ApiError && err.code === 'VERSION_CONFLICT') await load();
-      setError(calendarErrorText(t, err));
+      setActionError({ at, text: calendarErrorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -158,11 +166,13 @@ export function AppointmentSheet({
             className="btn"
             disabled={busy}
             onClick={() =>
-              void run(() =>
-                api(`${base}/appointments/${a.id}/approve`, {
-                  method: 'POST',
-                  body: { version: a.version },
-                }),
+              void run(
+                () =>
+                  api(`${base}/appointments/${a.id}/approve`, {
+                    method: 'POST',
+                    body: { version: a.version },
+                  }),
+                'footer',
               )
             }
           >
@@ -176,11 +186,13 @@ export function AppointmentSheet({
               className="btn"
               disabled={busy}
               onClick={() =>
-                void run(() =>
-                  api(`${base}/appointments/${a.id}/status`, {
-                    method: 'POST',
-                    body: { version: a.version, status: 'completed' },
-                  }),
+                void run(
+                  () =>
+                    api(`${base}/appointments/${a.id}/status`, {
+                      method: 'POST',
+                      body: { version: a.version, status: 'completed' },
+                    }),
+                  'footer',
                 )
               }
             >
@@ -191,11 +203,13 @@ export function AppointmentSheet({
               className="btn btn--quiet"
               disabled={busy}
               onClick={() =>
-                void run(() =>
-                  api(`${base}/appointments/${a.id}/status`, {
-                    method: 'POST',
-                    body: { version: a.version, status: 'no_show' },
-                  }),
+                void run(
+                  () =>
+                    api(`${base}/appointments/${a.id}/status`, {
+                      method: 'POST',
+                      body: { version: a.version, status: 'no_show' },
+                    }),
+                  'footer',
                 )
               }
             >
@@ -209,26 +223,32 @@ export function AppointmentSheet({
         <button type="button" className="btn btn--danger" onClick={() => setMode('cancel')}>
           {t.appointment.cancelVisit}
         </button>
+        <FieldError id="visit-footer-error" text={errorAt('footer')} />
       </>
     ) : mode === 'view' && canChange && a.status === 'completed' ? (
       // "Paid" earns loyalty stamps or points; undoing it (a refund) takes them back.
-      <button
-        type="button"
-        className={a.paidAt ? 'btn btn--quiet' : 'btn'}
-        disabled={busy}
-        onClick={() =>
-          void run(() =>
-            api(`${base}/appointments/${a.id}/payment`, {
-              method: 'POST',
-              body: a.paidAt
-                ? { version: a.version, paid: false }
-                : { version: a.version, paid: true, ...(method ? { method } : {}) },
-            }),
-          )
-        }
-      >
-        {a.paidAt ? t.appointment.unmarkPaid : t.appointment.markPaid}
-      </button>
+      <>
+        <button
+          type="button"
+          className={a.paidAt ? 'btn btn--quiet' : 'btn'}
+          disabled={busy}
+          onClick={() =>
+            void run(
+              () =>
+                api(`${base}/appointments/${a.id}/payment`, {
+                  method: 'POST',
+                  body: a.paidAt
+                    ? { version: a.version, paid: false }
+                    : { version: a.version, paid: true, ...(method ? { method } : {}) },
+                }),
+              'footer',
+            )
+          }
+        >
+          {a.paidAt ? t.appointment.unmarkPaid : t.appointment.markPaid}
+        </button>
+        <FieldError id="visit-footer-error" text={errorAt('footer')} />
+      </>
     ) : undefined;
 
   return (
@@ -277,35 +297,45 @@ export function AppointmentSheet({
       ) : null}
       {mode === 'view' && canChange && a.status === 'completed' ? (
         // Before "Opłacono" the choice waits here; on a paid visit a tap changes it at once.
-        <PaymentMethodPicker
-          value={a.paidAt ? a.paymentMethod : method}
-          disabled={busy}
-          onChange={(next) =>
-            a.paidAt
-              ? void run(() =>
-                  api(`${base}/appointments/${a.id}/payment`, {
-                    method: 'POST',
-                    body: { version: a.version, paid: true, method: next },
-                  }),
-                )
-              : setMethod(next)
-          }
-        />
+        <>
+          <PaymentMethodPicker
+            value={a.paidAt ? a.paymentMethod : method}
+            disabled={busy}
+            onChange={(next) =>
+              a.paidAt
+                ? void run(
+                    () =>
+                      api(`${base}/appointments/${a.id}/payment`, {
+                        method: 'POST',
+                        body: { version: a.version, paid: true, method: next },
+                      }),
+                    'method',
+                  )
+                : setMethod(next)
+            }
+          />
+          <FieldError id="visit-method-error" text={errorAt('method')} />
+        </>
       ) : null}
       {mode === 'view' && canChange && a.status === 'completed' ? (
-        <TipField
-          value={a.tipGrosze}
-          currency={session.location.currency}
-          disabled={busy}
-          onSave={(tipGrosze) =>
-            void run(() =>
-              api(`${base}/appointments/${a.id}/tip`, {
-                method: 'PUT',
-                body: { version: a.version, tipGrosze },
-              }),
-            )
-          }
-        />
+        <>
+          <TipField
+            value={a.tipGrosze}
+            currency={session.location.currency}
+            disabled={busy}
+            onSave={(tipGrosze) =>
+              void run(
+                () =>
+                  api(`${base}/appointments/${a.id}/tip`, {
+                    method: 'PUT',
+                    body: { version: a.version, tipGrosze },
+                  }),
+                'tip',
+              )
+            }
+          />
+          <FieldError id="visit-tip-error" text={errorAt('tip')} />
+        </>
       ) : a.tipGrosze > 0 ? (
         <p className="small" data-testid="tip-note">
           {t.appointment.tip}: {money(a.tipGrosze)}
@@ -476,14 +506,17 @@ export function AppointmentSheet({
           a.customer &&
           !a.paidAt &&
           (a.status === 'confirmed' || a.status === 'completed') ? (
-            <CouponsBox
-              key={a.version}
-              url={`${base}/appointments/${a.id}/coupons`}
-              version={a.version}
-              busy={busy}
-              money={money}
-              onAction={(action) => void run(action)}
-            />
+            <>
+              <CouponsBox
+                key={a.version}
+                url={`${base}/appointments/${a.id}/coupons`}
+                version={a.version}
+                busy={busy}
+                money={money}
+                onAction={(action) => void run(action, 'coupons')}
+              />
+              <FieldError id="visit-coupons-error" text={errorAt('coupons')} />
+            </>
           ) : null}
           {a.history.length ? (
             <div className="stack" style={{ gap: 8 }}>
@@ -530,17 +563,19 @@ export function AppointmentSheet({
             const minute = clockToMinutes(move.time);
             const start = new Date(zonedToInstant(move.date, minute, tz)).toISOString();
             const key = newIdempotencyKey();
-            void run(() =>
-              api(`${base}/appointments/${a.id}/reschedule`, {
-                method: 'POST',
-                idempotencyKey: key,
-                body: {
-                  version: a.version,
-                  start,
-                  staffId: move.staffId,
-                  allowOutsideHours: move.outside,
-                },
-              }),
+            void run(
+              () =>
+                api(`${base}/appointments/${a.id}/reschedule`, {
+                  method: 'POST',
+                  idempotencyKey: key,
+                  body: {
+                    version: a.version,
+                    start,
+                    staffId: move.staffId,
+                    allowOutsideHours: move.outside,
+                  },
+                }),
+              'move',
             );
           }}
         >
@@ -621,10 +656,15 @@ export function AppointmentSheet({
             >
               {t.common.back}
             </button>
-            <button className="btn" disabled={busy}>
+            <button
+              className="btn"
+              disabled={busy}
+              aria-describedby={errorAt('move') ? 'visit-move-error' : undefined}
+            >
               {t.appointment.saveMove}
             </button>
           </div>
+          <FieldError id="visit-move-error" text={errorAt('move')} />
         </form>
       ) : null}
 
@@ -639,11 +679,13 @@ export function AppointmentSheet({
               document.getElementById('visit-reason')?.focus();
               return;
             }
-            void run(() =>
-              api(`${base}/appointments/${a.id}/cancel`, {
-                method: 'POST',
-                body: { version: a.version, reason },
-              }),
+            void run(
+              () =>
+                api(`${base}/appointments/${a.id}/cancel`, {
+                  method: 'POST',
+                  body: { version: a.version, reason },
+                }),
+              'cancel',
             );
           }}
         >
@@ -671,15 +713,23 @@ export function AppointmentSheet({
             >
               {t.common.back}
             </button>
-            <button className="btn btn--danger" disabled={busy}>
+            <button
+              className="btn btn--danger"
+              disabled={busy}
+              aria-describedby={errorAt('cancel') ? 'visit-cancel-error' : undefined}
+            >
               {t.appointment.confirmCancel}
             </button>
           </div>
+          <FieldError id="visit-cancel-error" text={errorAt('cancel')} />
         </form>
       ) : null}
     </Sheet>
   );
 }
+
+/** Where a refused action of the visit card is said (task 831). */
+type ActionAt = 'footer' | 'method' | 'tip' | 'coupons' | 'move' | 'cancel';
 
 /**
  * The client's loyalty coupons on an unpaid visit (task 10d): what is used, and the client's

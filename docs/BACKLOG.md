@@ -26,6 +26,10 @@
 - **830 (ветка `agent/830-new-visit-error`, поверх 829): «Kalendarz» → «Nowa wizyta» / «Zablokuj czas» — отказ без указания поля под
   кнопкой «Zapisz wizytę» / «Zablokuj»** (полировка, новых функций нет). Раньше — рамкой вверху формы; введённое
   остаётся, правка поля убирает ошибку. e2e `booking`, скриншот `830-new-visit-save-error`.
+- **831 (ветка `agent/831-visit-sheet-errors`, поверх 830): карточка визита в календаре — отказ действия там, где оно нажато**
+  (кнопки внизу «Zatwierdź», «Przyszedł», «Nie przyszedł», «Opłacono»; способ оплаты; чаевые; купоны; «Zapisz termin»;
+  «Odwołaj»). Раньше — рамкой под временем вверху карточки. Полировка, новых функций нет. e2e `booking`, скриншот
+  `831-visit-cancel-error`.
 
 - **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 823 (ветка `agent/823-staff-day-errors`, от main): «Zespół» → карточка специалиста — отказ «Zapisz dzień specjalny»,
   «Dodaj nieobecność» под этими кнопками, отказ «Usuń» — под своей строкой** (полировка по правилу владельца «ошибки

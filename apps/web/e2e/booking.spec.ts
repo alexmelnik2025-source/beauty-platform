@@ -718,6 +718,26 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(wishesCard).toContainText('🤫 Woli ciszę');
   await expect(wishesCard).toContainText('Wrażliwa skóra głowy');
   await shot(ownerPage, '09w-owner-visit-wishes');
+  // Task 831 (owner's rule: errors where the action is): a refused "Odwołaj" is said under that
+  // button, not in a box under the time at the top of the card; the reason stays.
+  const visitCard = ownerPage.getByRole('dialog');
+  const cancelPost = (url: URL) => url.pathname.endsWith('/cancel');
+  await ownerPage.route(cancelPost, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await visitCard.getByRole('button', { name: 'Odwołaj wizytę' }).click();
+  await visitCard.getByLabel('Powód odwołania').fill('Test');
+  await visitCard.getByRole('button', { name: 'Odwołaj', exact: true }).click();
+  await expect(visitCard.locator('#visit-cancel-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(
+    visitCard.getByRole('button', { name: 'Odwołaj', exact: true }),
+  ).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(visitCard.locator('.alert')).toHaveCount(0);
+  await expect(visitCard.getByLabel('Powód odwołania')).toHaveValue('Test');
+  await shot(ownerPage, '831-visit-cancel-error');
+  await ownerPage.unroute(cancelPost);
   await ownerPage.keyboard.press('Escape');
 
   // The owner books a walk-in for Ola through the form.

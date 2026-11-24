@@ -1011,6 +1011,11 @@ fieldset.field > legend {
   border-top: 1px solid var(--line);
 }
 
+/* Task 831: a refused footer action is said on its own line under the buttons. */
+.sheet-foot .field-error {
+  flex-basis: 100%;
+}
+
 @media (max-width: 760px) {
   .sheet {
     top: auto;
