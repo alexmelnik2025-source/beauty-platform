@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, PublicReviews } from '../api';
 import { errorText } from '../errors';
@@ -30,6 +30,38 @@ type ReviewsProps = {
 
 export function SalonReviews(props: ReviewsProps) {
   return <ReviewsList key={props.slug} {...props} />;
+}
+
+function ReviewFilter({
+  label,
+  description,
+  selected,
+  onPress,
+}: {
+  label: string;
+  description?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const descriptionId = useId();
+  return (
+    <Pressable
+      role="radio"
+      aria-checked={selected}
+      accessibilityLabel={label}
+      accessibilityHint={description}
+      aria-describedby={description ? descriptionId : undefined}
+      onPress={onPress}
+      style={[styles.chip, selected && styles.chipOn]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
+      {description ? (
+        <Text nativeID={descriptionId} style={{ display: 'none' }}>
+          {description}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
 }
 
 function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
@@ -105,12 +137,11 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
         {all && all.staff.length > 1 ? (
           <View style={styles.chips} role="radiogroup" aria-label={r.bySpecialist}>
             {[
-              { id: null, label: r.everyone, spoken: r.everyone },
+              { id: null, label: r.everyone, description: undefined },
               ...all.staff.map((s) => ({
                 id: s.staffId,
                 label: staffChip(s, locale),
-                spoken: [
-                  s.displayName,
+                description: [
                   s.average == null ? null : ratingLabel(oneDecimal(s.average, locale)),
                   reviewCount(s.count),
                 ]
@@ -118,47 +149,37 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
                   .join(', '),
               })),
             ].map((chip) => (
-              <Pressable
+              <ReviewFilter
                 key={chip.id ?? 'all'}
-                role="radio"
-                aria-checked={staffId === chip.id}
-                aria-label={chip.spoken}
+                label={chip.label}
+                selected={staffId === chip.id}
+                description={chip.description}
                 onPress={() => {
                   setStaffId(chip.id);
                   setRating(null);
                   void load(chip.id, null);
                 }}
-                style={[styles.chip, staffId === chip.id && styles.chipOn]}
-              >
-                <Text style={[styles.chipText, staffId === chip.id && styles.chipTextOn]}>
-                  {chip.label}
-                </Text>
-              </Pressable>
+              />
             ))}
           </View>
         ) : null}
         {filters.length > 0 ? (
           <View style={styles.chips} role="radiogroup" aria-label={r.byStars}>
             {[{ rating: null, label: r.allStars }, ...filters].map((chip) => (
-              <Pressable
+              <ReviewFilter
                 key={chip.rating ?? 'all'}
-                role="radio"
-                aria-checked={rating === chip.rating}
-                aria-label={
+                label={chip.label}
+                selected={rating === chip.rating}
+                description={
                   chip.rating === null
-                    ? r.allStars
+                    ? undefined
                     : `${ratingLabel(String(chip.rating))}, ${reviewCount(stars[chip.rating - 1] ?? 0)}`
                 }
                 onPress={() => {
                   setRating(chip.rating);
                   void load(staffId, chip.rating);
                 }}
-                style={[styles.chip, rating === chip.rating && styles.chipOn]}
-              >
-                <Text style={[styles.chipText, rating === chip.rating && styles.chipTextOn]}>
-                  {chip.label}
-                </Text>
-              </Pressable>
+              />
             ))}
           </View>
         ) : null}
