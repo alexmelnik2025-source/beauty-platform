@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ClientApi, type ClientAppointment, type ShopProduct, type TokenStore } from '../src/api';
 import {
   availableOffers,
+  recentReads,
+  searchShop,
   fromCurrency,
   nextVisitAt,
   sellersLine,
@@ -120,6 +122,85 @@ describe('"Odbiorę przy wizycie" from a product (task Q3)', () => {
     for (const l of LOCALES) {
       expect(DICTIONARIES[l].shop.reserve).toContain('{when}');
       expect(DICTIONARIES[l].shop.reserved).toContain('{when}');
+    }
+  });
+});
+
+describe('returning to the shop', () => {
+  const api = new ClientApi('https://api.test', store);
+
+  it('shares in-flight and recent reads only for the same client and key', async () => {
+    const cache = recentReads<number>();
+    const load = vi.fn(async () => 1);
+    const first = cache.read(api, 'a', load);
+    expect(cache.read(api, 'a', load)).toBe(first);
+    await first;
+    await cache.read(api, 'a', load);
+    await cache.read(api, 'b', load);
+    await cache.read(new ClientApi('https://api.test', store), 'a', load);
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it('expires a cached result and retries failures', async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = recentReads<number>();
+      const load = vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce(2);
+      await expect(cache.read(api, 'a', load)).resolves.toBe(1);
+      vi.advanceTimersByTime(30_001);
+      await expect(cache.read(api, 'a', load)).rejects.toThrow('offline');
+      await expect(cache.read(api, 'a', load)).resolves.toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not evict a newer read when an invalidated request fails late', async () => {
+    const cache = recentReads<number>();
+    let reject!: (error: Error) => void;
+    const old = cache.read(
+      api,
+      'a',
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        }),
+    );
+    cache.clear(api, 'a');
+    const next = cache.read(api, 'a', async () => 2);
+    reject(new Error('aborted'));
+    await expect(old).rejects.toThrow('aborted');
+    expect(cache.read(api, 'a', async () => 3)).toBe(next);
+  });
+
+  it('aborts the actual public catalog fetch with its search, category and page intact', async () => {
+    const controller = new AbortController();
+    const fetchFn = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          init.signal!.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+    vi.stubGlobal('fetch', fetchFn);
+    try {
+      const pending = searchShop(
+        'https://api.test',
+        store,
+        { q: ' pomada ', category: 'styling', page: 2 },
+        controller.signal,
+      );
+      expect(fetchFn).toHaveBeenCalledWith(
+        'https://api.test/v1/public/shop/products?page=2&pageSize=24&q=pomada&category=styling',
+        expect.objectContaining({ signal: controller.signal }),
+      );
+      controller.abort();
+      await expect(pending).rejects.toThrow('aborted');
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

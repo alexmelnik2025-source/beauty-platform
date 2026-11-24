@@ -1,3 +1,4 @@
+import { memo, useCallback, useLayoutEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { WishField } from './errors';
 import { FieldGroup } from './FormFeedback';
@@ -26,6 +27,17 @@ export function WishesPicker(props: {
 }) {
   const { t, questions, value, onChange, invalid } = props;
   const w = t.wishStep;
+  const latest = useRef({ value, onChange });
+  useLayoutEffect(() => {
+    latest.current = { value, onChange };
+  }, [value, onChange]);
+  const toggle = useCallback(
+    <K extends 'mood' | 'drink'>(field: K, choice: NonNullable<VisitWishes[K]>) => {
+      const { value, onChange } = latest.current;
+      onChange({ ...value, [field]: value[field] === choice ? null : choice });
+    },
+    [],
+  );
   const drinks = drinkChoices(questions);
   return (
     <View role="region" style={styles.box} accessibilityLabel={w.title}>
@@ -38,11 +50,13 @@ export function WishesPicker(props: {
           <FieldGroup error={invalid === 'mood' ? w.badChoice : undefined}>
             <View style={styles.chips}>
               {MOODS.map((m) => (
-                <Chip
+                <WishChoice
+                  field="mood"
+                  choice={m}
+                  toggle={toggle}
                   key={m}
                   label={`${MOOD_ICON[m]} ${w.mood[m]}`}
                   pressed={value.mood === m}
-                  onPress={() => onChange({ ...value, mood: value.mood === m ? null : m })}
                 />
               ))}
             </View>
@@ -55,11 +69,13 @@ export function WishesPicker(props: {
           <FieldGroup error={invalid === 'drink' ? w.badChoice : undefined}>
             <View style={styles.chips}>
               {drinks.map((d) => (
-                <Chip
+                <WishChoice
+                  field="drink"
+                  choice={d}
+                  toggle={toggle}
                   key={d}
                   label={`${DRINK_ICON[d]} ${w.drink[d]}`}
                   pressed={value.drink === d}
-                  onPress={() => onChange({ ...value, drink: value.drink === d ? null : d })}
                 />
               ))}
             </View>
@@ -88,6 +104,22 @@ export function WishesPicker(props: {
     </View>
   );
 }
+
+const WishChoice = memo(function WishChoice(props: {
+  field: 'mood' | 'drink';
+  choice: NonNullable<VisitWishes['mood' | 'drink']>;
+  label: string;
+  pressed: boolean;
+  toggle: (field: 'mood' | 'drink', choice: NonNullable<VisitWishes['mood' | 'drink']>) => void;
+}) {
+  return (
+    <Chip
+      label={props.label}
+      pressed={props.pressed}
+      onPress={() => props.toggle(props.field, props.choice)}
+    />
+  );
+});
 
 const styles = StyleSheet.create({
   box: {
