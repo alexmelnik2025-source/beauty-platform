@@ -177,12 +177,16 @@ export function GuardScreen(props: {
 
           {settings === null ? (
             !error ? (
-              <Text style={styles.muted}>{t.loading}</Text>
+              <Text role="status" style={styles.muted}>
+                {t.loading}
+              </Text>
             ) : null
           ) : (
             <>
               <Card>
-                <Text style={styles.name}>{settings.enabled ? g.on : g.off}</Text>
+                <Text role="status" style={styles.name}>
+                  {settings.enabled ? g.on : g.off}
+                </Text>
                 <Text style={styles.label}>{g.rules}</Text>
                 {rules.length === 0 ? (
                   <Text style={styles.muted}>{g.noRules}</Text>
@@ -195,7 +199,7 @@ export function GuardScreen(props: {
                 )}
                 <Text style={styles.text}>{actionLine(settings.action, t)}</Text>
                 {askOff ? (
-                  <View style={{ gap: 8 }}>
+                  <View role="group" accessibilityLabel={g.offAsk} style={{ gap: 8 }}>
                     <Text style={styles.text}>{g.offAsk}</Text>
                     <View style={styles.row}>
                       <Button label={g.offYes} busy={busy} onPress={() => switchTo(false)} />
@@ -315,7 +319,11 @@ export function GuardScreen(props: {
         <Card>
           <ClientDetails client={client} currency={marked!.currency} locale={props.locale} t={t} />
           {releaseId === client.customerId ? (
-            <View style={{ gap: 8 }}>
+            <View
+              role="group"
+              accessibilityLabel={fill(g.releaseOne, { name: client.name })}
+              style={{ gap: 8 }}
+            >
               <Text style={styles.text}>{g.releaseAsk}</Text>
               <TextInput
                 accessibilityLabel={g.note}
@@ -380,7 +388,7 @@ function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
       onPress={props.onPress}
       style={styles.toggle}
     >
-      <View style={[styles.box, props.on && styles.boxOn]}>
+      <View aria-hidden style={[styles.box, props.on && styles.boxOn]}>
         {props.on ? <Text style={{ color: '#fff', fontWeight: '700' }}>✓</Text> : null}
       </View>
       <Text style={[styles.text, styles.toggleLabel]}>{props.label}</Text>
@@ -426,7 +434,7 @@ const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 6 },
   box: {
     width: 24,
-    height: 24,
+    minHeight: 24,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.line,
