@@ -64,13 +64,19 @@ export function VisitScreen(props: VisitProps) {
   return <VisitCard key={JSON.stringify([orgId, locationId, role, props.id])} {...props} />;
 }
 
+type VisitAction = 'approve' | 'status' | 'payment' | 'tip' | 'move' | 'cancel';
+
 function VisitCard(props: VisitProps) {
   const { api, t, salon, id, onBack } = props;
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
   /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
-  const [error, setError] = useState('');
-  const [formError, setFormError] = useState('');
+  const [photoFailure, setPhotoFailure] = useState<{ cause: unknown } | null>(null);
+  const [photoAttempt, setPhotoAttempt] = useState(0);
+  const [actionError, setActionError] = useState<{ action: VisitAction; message: string } | null>(
+    null,
+  );
+  const locked = useRef(false);
   const [busy, setBusy] = useState(false);
   // Task Q3 (screen D): a product handed over is a new sale — "Produkty" reloads.
   const [salesKey, setSalesKey] = useState(0);
@@ -83,6 +89,8 @@ function VisitCard(props: VisitProps) {
   const [mode, setMode] = useState<'move' | 'cancel' | null>(null);
   const [moveDate, setMoveDate] = useState('');
   const [times, setTimes] = useState<{ time: string; start: string }[] | null>(null);
+  const [timesError, setTimesError] = useState('');
+  const [timesAttempt, setTimesAttempt] = useState(0);
   const [ask, setAsk] = useState<{ time: string; start: string } | null>(null);
   const [reason, setReason] = useState('');
   const [reasonSubmitted, setReasonSubmitted] = useState(false);
@@ -91,20 +99,23 @@ function VisitCard(props: VisitProps) {
   const [notice, setNotice] = useState('');
   const { orgId, locationId } = salon;
   const scope = useRef<AbortController | null>(null);
-  const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
+  const [loadFailure, setLoadFailure] = useState<{ cause: unknown; afterConflict: boolean } | null>(
+    null,
+  );
   const loadDetail = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal: AbortSignal, afterConflict = false) => {
       try {
         const detail = await api.appointment(orgId, locationId, id);
         if (!signal.aborted) {
           setVisit(detail);
           setLoadFailure(null);
+          if (afterConflict) setNotice(t.visit.conflict);
         }
       } catch (cause) {
-        if (!signal.aborted) setLoadFailure({ cause });
+        if (!signal.aborted) setLoadFailure({ cause, afterConflict });
       }
     },
-    [api, orgId, locationId, id],
+    [api, orgId, locationId, id, t.visit.conflict],
   );
 
   useEffect(() => {
@@ -113,14 +124,22 @@ function VisitCard(props: VisitProps) {
     scope.current = controller;
     // Start both reads together. Only the detail is needed to show the card.
     void loadDetail(signal);
+    return () => controller.abort();
+  }, [loadDetail]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     api.visitPhotos(orgId, locationId, id).then(
       (pictures) => {
-        if (!signal.aborted && pictures.items.length) setPhotos(pictures);
+        if (!signal.aborted) setPhotos(pictures);
       },
-      () => undefined,
+      (cause) => {
+        if (!signal.aborted) setPhotoFailure({ cause });
+      },
     );
     return () => controller.abort();
-  }, [api, orgId, locationId, id, loadDetail]);
+  }, [api, orgId, locationId, id, photoAttempt]);
 
   // Android "back" closes the card instead of the app (the client card handles it itself).
   useEffect(() => {
@@ -133,15 +152,15 @@ function VisitCard(props: VisitProps) {
   }, [onBack, clientOpen]);
 
   async function run(
+    name: VisitAction,
     action: (v: AppointmentDetail) => Promise<AppointmentDetail>,
-    reportError = setError,
   ): Promise<boolean> {
     const signal = scope.current?.signal;
-    if (!visit || busy || !signal || signal.aborted) return false;
+    if (!visit || locked.current || !signal || signal.aborted) return false;
+    locked.current = true;
     setBusy(true);
     setLoadFailure(null);
-    setFormError('');
-    setError('');
+    setActionError(null);
     setNotice('');
     try {
       const updated = await action(visit);
@@ -152,14 +171,17 @@ function VisitCard(props: VisitProps) {
     } catch (e) {
       if (signal.aborted) return false;
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
-        setError(t.visit.conflict);
-        await loadDetail(signal);
+        await loadDetail(signal, true);
       } else {
         const kind = createProblem(e);
-        reportError(kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind]);
+        setActionError({
+          action: name,
+          message: kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind],
+        });
       }
       return false;
     } finally {
+      locked.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }
@@ -171,27 +193,47 @@ function VisitCard(props: VisitProps) {
     if (mode !== 'move' || !moveDate || !serviceId || !staffId) return;
     let alive = true;
     setTimes(null);
+    setTimesError('');
     api
       .availability(orgId, locationId, { serviceId, staffId, date: moveDate })
       .then((a) => alive && setTimes(freeTimes(a, staffId, moveDate)))
-      .catch((e: unknown) => alive && setError(errorText(e, t)));
+      .catch((e: unknown) => alive && setTimesError(errorText(e, t)));
     return () => {
       alive = false;
     };
-  }, [api, orgId, locationId, mode, moveDate, serviceId, staffId, t]);
+  }, [api, orgId, locationId, mode, moveDate, serviceId, staffId, t, timesAttempt]);
 
   const v = t.visit;
-  const displayedError = loadFailure ? errorText(loadFailure.cause, t) : error;
+  const inlineError = (name: VisitAction) =>
+    actionError?.action === name ? <ErrorText>{actionError.message}</ErrorText> : null;
+  const detailError = loadFailure && (
+    <>
+      <ErrorText>{errorText(loadFailure.cause, t)}</ErrorText>
+      <Button
+        label={t.day.refresh}
+        kind="secondary"
+        busy={busy}
+        onPress={async () => {
+          const signal = scope.current?.signal;
+          if (!signal || signal.aborted || locked.current) return;
+          locked.current = true;
+          setBusy(true);
+          try {
+            await loadDetail(signal, loadFailure.afterConflict);
+          } finally {
+            locked.current = false;
+            if (!signal.aborted) setBusy(false);
+          }
+        }}
+      />
+    </>
+  );
   const back = <Button kind="link" label={v.back} onPress={onBack} />;
   if (!visit) {
     return (
       <View style={styles.screen}>
         <View style={styles.row}>{back}</View>
-        {displayedError ? (
-          <ErrorText>{displayedError}</ErrorText>
-        ) : (
-          <Text style={styles.muted}>{t.loading}</Text>
-        )}
+        {detailError ?? <Text style={styles.muted}>{t.loading}</Text>}
       </View>
     );
   }
@@ -219,17 +261,19 @@ function VisitCard(props: VisitProps) {
       visit.priceGrosze > 10_000_000);
   const phone = visit.customer?.phone ?? null;
   const setStatus = (status: 'completed' | 'no_show') =>
-    run((a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
+    run('status', (a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
   const tipValue = parseTip(tipText ?? tipInput(visit.tipGrosze));
   const setPaid = (paid: boolean, method?: PaymentMethod | null) =>
-    run((a) => api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method));
+    run('payment', (a) =>
+      api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method),
+    );
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>{back}</View>
       <VisitHeader visit={visit} v={v} timeZone={props.timeZone} locale={props.locale} />
 
-      {displayedError ? <ErrorText>{displayedError}</ErrorText> : null}
+      {detailError}
 
       <Card>
         <Text style={styles.label}>{v.client}</Text>
@@ -313,23 +357,30 @@ function VisitCard(props: VisitProps) {
           </>
         ) : null}
 
-        {photos && photos.items.length > 0 ? (
+        {photoFailure || photos?.items.length ? (
           <>
             <Text style={styles.label}>📷 {v.photos}</Text>
+            {photoFailure ? (
+              <>
+                <ErrorText>{errorText(photoFailure.cause, t)}</ErrorText>
+                <Button
+                  kind="secondary"
+                  label={t.day.refresh}
+                  onPress={() => {
+                    setPhotoFailure(null);
+                    setPhotoAttempt((n) => n + 1);
+                  }}
+                />
+              </>
+            ) : null}
             <View style={styles.photos}>
-              {photos.items.map((p, i) => (
-                <Pressable
+              {photos?.items.map((p, i) => (
+                <VisitPhoto
                   key={p.id}
-                  accessibilityRole="link"
-                  accessibilityLabel={fill(v.photoAlt, { n: String(i + 1) })}
-                  onPress={() => void Linking.openURL(api.absoluteUrl(p.url))}
-                >
-                  <Image
-                    source={{ uri: api.absoluteUrl(p.url) }}
-                    accessibilityIgnoresInvertColors
-                    style={styles.photo}
-                  />
-                </Pressable>
+                  uri={api.absoluteUrl(p.url)}
+                  label={fill(v.photoAlt, { n: String(i + 1) })}
+                  t={t}
+                />
               ))}
             </View>
           </>
@@ -343,11 +394,14 @@ function VisitCard(props: VisitProps) {
             label={v.approve}
             busy={busy}
             onPress={() =>
-              void run((a) => api.approve(salon.orgId, salon.locationId, a.id, a.version))
+              void run('approve', (a) =>
+                api.approve(salon.orgId, salon.locationId, a.id, a.version),
+              )
             }
           />
         </>
       ) : null}
+      {inlineError('approve')}
       {actions.came ? (
         <View style={styles.row}>
           <Button label={v.markCame} busy={busy} onPress={() => void setStatus('completed')} />
@@ -361,6 +415,7 @@ function VisitCard(props: VisitProps) {
       ) : props.canChange && visit.status === 'confirmed' ? (
         <Text style={styles.muted}>{v.notStarted}</Text>
       ) : null}
+      {inlineError('status')}
       {mayUseCoupons(visit, props.canChange) ? (
         <VisitCouponsSection
           api={api}
@@ -402,6 +457,7 @@ function VisitCard(props: VisitProps) {
           onPress={() => void setPaid(false)}
         />
       ) : null}
+      {inlineError('payment')}
       {props.canChange && visit.status === 'completed' ? (
         // Task 229: the tip — only a note for the report and "Kasa dnia".
         <View style={{ gap: 6 }} testID="tip-field">
@@ -413,7 +469,7 @@ function VisitCard(props: VisitProps) {
             value={tipText ?? tipInput(visit.tipGrosze)}
             onChangeText={(text) => {
               setTipText(text);
-              setFormError('');
+              setActionError(null);
             }}
             editable={!busy}
             style={[styles.input, tipValue === null && styles.invalidInput]}
@@ -423,7 +479,7 @@ function VisitCard(props: VisitProps) {
           ) : (
             <Text style={styles.muted}>{v.tipHint}</Text>
           )}
-          {formError ? <ErrorText>{formError}</ErrorText> : null}
+          {inlineError('tip')}
           <View style={styles.row}>
             <Button
               kind="secondary"
@@ -432,9 +488,8 @@ function VisitCard(props: VisitProps) {
               disabled={tipValue === null || tipValue === visit.tipGrosze}
               onPress={() => {
                 if (tipValue === null) return;
-                void run(
-                  (a) => api.setTip(salon.orgId, salon.locationId, a.id, a.version, tipValue),
-                  setFormError,
+                void run('tip', (a) =>
+                  api.setTip(salon.orgId, salon.locationId, a.id, a.version, tipValue),
                 ).then((ok) => {
                   if (ok) setTipText(null);
                 });
@@ -502,8 +557,9 @@ function VisitCard(props: VisitProps) {
           <Button
             kind="secondary"
             label={v.move}
+            disabled={busy}
             onPress={() => {
-              setFormError('');
+              setActionError(null);
               setMode('move');
               setAsk(null);
               const today = todayIn(props.timeZone);
@@ -513,8 +569,9 @@ function VisitCard(props: VisitProps) {
           <Button
             kind="secondary"
             label={v.cancel}
+            disabled={busy}
             onPress={() => {
-              setFormError('');
+              setActionError(null);
               setMode('cancel');
               setReasonSubmitted(false);
               setAskCancel(false);
@@ -531,7 +588,7 @@ function VisitCard(props: VisitProps) {
               kind="secondary"
               label="‹"
               a11yLabel={v.previousDay}
-              disabled={moveDate <= todayIn(props.timeZone)}
+              disabled={busy || moveDate <= todayIn(props.timeZone)}
               onPress={() => {
                 setMoveDate(addDays(moveDate, -1));
                 setAsk(null);
@@ -542,6 +599,7 @@ function VisitCard(props: VisitProps) {
               kind="secondary"
               label="›"
               a11yLabel={v.nextDay}
+              disabled={busy}
               onPress={() => {
                 setMoveDate(addDays(moveDate, 1));
                 setAsk(null);
@@ -553,16 +611,14 @@ function VisitCard(props: VisitProps) {
               <Text style={styles.value}>
                 {fill(v.moveAsk, { when: `${dayTitle(moveDate, props.locale)} ${ask.time}` })}
               </Text>
-              {formError ? <ErrorText>{formError}</ErrorText> : null}
+              {inlineError('move')}
               <View style={styles.row}>
                 <Button
                   label={v.yes}
                   busy={busy}
                   onPress={() =>
-                    void run(
-                      (a) =>
-                        api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
-                      setFormError,
+                    void run('move', (a) =>
+                      api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -570,8 +626,22 @@ function VisitCard(props: VisitProps) {
                     })
                   }
                 />
-                <Button kind="secondary" label={v.no} onPress={() => setAsk(null)} />
+                <Button
+                  kind="secondary"
+                  label={v.no}
+                  disabled={busy}
+                  onPress={() => setAsk(null)}
+                />
               </View>
+            </>
+          ) : timesError ? (
+            <>
+              <ErrorText>{timesError}</ErrorText>
+              <Button
+                kind="secondary"
+                label={t.day.refresh}
+                onPress={() => setTimesAttempt((n) => n + 1)}
+              />
             </>
           ) : !times ? (
             <Text style={styles.muted}>{t.loading}</Text>
@@ -585,7 +655,7 @@ function VisitCard(props: VisitProps) {
                   key={s.start}
                   accessibilityRole="button"
                   onPress={() => {
-                    setFormError('');
+                    setActionError(null);
                     setAsk(s);
                   }}
                   style={styles.time}
@@ -595,7 +665,7 @@ function VisitCard(props: VisitProps) {
               ))}
             </View>
           )}
-          <Button kind="link" label={v.close} onPress={() => setMode(null)} />
+          <Button kind="link" label={v.close} disabled={busy} onPress={() => setMode(null)} />
         </Card>
       ) : null}
 
@@ -606,15 +676,16 @@ function VisitCard(props: VisitProps) {
             placeholder={v.reason}
             value={reason}
             maxLength={300}
+            editable={!busy}
             onChangeText={(text) => {
-              setFormError('');
+              setActionError(null);
               setReason(text);
               setAskCancel(false);
             }}
             style={[styles.input, badReason && styles.invalidInput]}
           />
           {badReason ? <ErrorText>! {v.badReason}</ErrorText> : null}
-          {formError ? <ErrorText>{formError}</ErrorText> : null}
+          {inlineError('cancel')}
           {askCancel ? (
             <>
               <Text style={styles.value}>{v.cancelAsk}</Text>
@@ -623,16 +694,14 @@ function VisitCard(props: VisitProps) {
                   label={v.cancelYes}
                   busy={busy}
                   onPress={() =>
-                    void run(
-                      (a) =>
-                        api.cancel(
-                          salon.orgId,
-                          salon.locationId,
-                          a.id,
-                          a.version,
-                          cancelReason(reason) ?? '',
-                        ),
-                      setFormError,
+                    void run('cancel', (a) =>
+                      api.cancel(
+                        salon.orgId,
+                        salon.locationId,
+                        a.id,
+                        a.version,
+                        cancelReason(reason) ?? '',
+                      ),
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -640,24 +709,61 @@ function VisitCard(props: VisitProps) {
                     })
                   }
                 />
-                <Button kind="secondary" label={v.no} onPress={() => setAskCancel(false)} />
+                <Button
+                  kind="secondary"
+                  label={v.no}
+                  disabled={busy}
+                  onPress={() => setAskCancel(false)}
+                />
               </View>
             </>
           ) : (
             <View style={styles.row}>
               <Button
                 label={v.cancel}
+                disabled={busy}
                 onPress={() => {
                   setReasonSubmitted(true);
                   if (cancelReason(reason)) setAskCancel(true);
                 }}
               />
-              <Button kind="link" label={v.close} onPress={() => setMode(null)} />
+              <Button kind="link" label={v.close} disabled={busy} onPress={() => setMode(null)} />
             </View>
           )}
         </Card>
       ) : null}
     </ScrollView>
+  );
+}
+
+function VisitPhoto({ uri, label, t }: { uri: string; label: string; t: Dictionary }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <View>
+        <ErrorText>{t.error.network}</ErrorText>
+        <Button
+          kind="secondary"
+          label={t.day.refresh}
+          a11yLabel={`${t.day.refresh}: ${label}`}
+          onPress={() => setFailed(false)}
+        />
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      onPress={() => void Linking.openURL(uri)}
+    >
+      <Image
+        source={{ uri }}
+        accessibilityIgnoresInvertColors
+        style={styles.photo}
+        onError={() => setFailed(true)}
+      />
+    </Pressable>
   );
 }
 
