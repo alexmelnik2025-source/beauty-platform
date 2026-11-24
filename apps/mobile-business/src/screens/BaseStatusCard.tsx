@@ -5,10 +5,7 @@ import { baseCardState, baseErrorText, lastSyncLine, runResultText } from '../ba
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
-import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
-
-const statusCache = new SalonReadCache<BaseIntegration>();
 
 export function BaseStatusCard(props: {
   api: BusinessApi;
@@ -31,16 +28,14 @@ export function BaseStatusCard(props: {
     let alive = true;
     setStatus(null);
     setError('');
-    statusCache
-      .read(salon, () => api.baseStatus(salon.orgId, salon.locationId))
-      .then(
-        (next) => {
-          if (alive) setStatus(next);
-        },
-        (e: unknown) => {
-          if (alive) setError(errorText(e, t));
-        },
-      );
+    api.baseStatus(salon.orgId, salon.locationId).then(
+      (next) => {
+        if (alive) setStatus(next);
+      },
+      (e: unknown) => {
+        if (alive) setError(errorText(e, t));
+      },
+    );
     return () => {
       alive = false;
     };
@@ -54,7 +49,6 @@ export function BaseStatusCard(props: {
     setResult('');
     try {
       const run = await api.syncBase(salon.orgId, salon.locationId);
-      statusCache.clear(salon);
       setResult(runResultText(run, t));
       setAttempt((n) => n + 1);
       onSynced();
