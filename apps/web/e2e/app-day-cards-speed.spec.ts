@@ -65,7 +65,14 @@ async function prepare(page: Page) {
         appointments: [],
       },
       [base + '/products']: { products, sold30Days: [] },
-      [base + '/shop/integrations/base']: { connected: false },
+      [base + '/shop/integrations/base']: {
+        connected: true,
+        tokenReadable: true,
+        inventoryId: 'catalog',
+        importedProducts: 1,
+        tokenHint: '1234',
+        syncEveryMinutes: 60,
+      },
     };
     return pathname in replies
       ? route.fulfill({ json: replies[pathname] })
@@ -207,11 +214,18 @@ test('returning to Base reuses its status and typing a count renders one stockta
   await page.goto(app.url);
   const tab = (name: string) => page.getByRole('tab', { name, exact: true });
   await tab(t.shop.open).click();
+  const offOnce = '**' + base + '/shop/integrations/base';
+  await page.route(offOnce, (route) => route.fulfill({ json: { connected: false } }), { times: 1 });
+  await tab(t.navigation.integrations).click();
+  const heading = page.getByRole('heading', { name: t.shop.base.title });
+  await expect(heading).toHaveAccessibleDescription(t.shop.base.off);
+  await tab(t.navigation.products).click();
+  // Connecting Base in the cabinet must be visible on the next visit to Integrations.
   for (let i = 0; i < 2; i++) {
     await tab(t.navigation.integrations).click();
-    await expect(
-      page.getByRole('heading', { name: t.shop.base.title }),
-    ).toHaveAccessibleDescription(t.shop.base.off);
+    await expect(heading).toHaveAccessibleDescription(
+      fill(t.shop.base.connected, { hint: '1234', n: '1' }),
+    );
     await tab(t.navigation.products).click();
   }
   expect(reads(base + '/shop/integrations/base')).toBe(1);

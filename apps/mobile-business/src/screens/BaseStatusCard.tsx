@@ -38,7 +38,10 @@ export function BaseStatusCard(props: {
       api.baseStatus(salon.orgId, salon.locationId),
     ).then(
       (next) => {
-        if (!signal.aborted) setStatus(next);
+        if (signal.aborted) return;
+        // The owner connects or repairs Base in the cabinet, outside this app.
+        if (baseCardState(next).kind !== 'on') statusCache.clear(salon);
+        setStatus(next);
       },
       (e: unknown) => {
         if (!signal.aborted) setError(errorText(e, t));
