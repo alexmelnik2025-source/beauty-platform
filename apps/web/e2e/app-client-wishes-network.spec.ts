@@ -45,6 +45,9 @@ function slot() {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('beauty.client.session', 'e2e-client'));
+  await page.route('**/v1/public/locations?*', (r) =>
+    r.fulfill({ json: { items: [], total: 0, page: 1, pageSize: 50 } }),
+  );
   await page.route('**/v1/client/me', (r) =>
     r.fulfill({ json: { email: 'client@example.com', locale: 'pl' } }),
   );
@@ -197,6 +200,11 @@ test('a visit recovers from a stalled list, broken thumbnail and lost delete res
     r.fulfill({ json: { items: [visit] } }),
   );
   await page.route(visitUrl, (r) => r.fulfill({ json: visit }));
+  await page.route(visitUrl + '/products', (r) =>
+    r.fulfill({
+      json: { currency: 'PLN', canChange: false, available: [], reservations: [], totalGrosze: 0 },
+    }),
+  );
   await page.route(visitUrl + '/review', (r) =>
     r.fulfill({ json: { canReview: false, review: null } }),
   );
