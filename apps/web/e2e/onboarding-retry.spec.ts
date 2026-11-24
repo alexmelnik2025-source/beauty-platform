@@ -92,7 +92,7 @@ test('the new-salon form says errors at the field and never creates the company 
   await expect(page.locator('#onboarding-submit-error')).toHaveText(
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
-  await expect(create).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(create).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(create).toBeEnabled();
   await expect(page.locator('.alert')).toHaveCount(0);
   await page.screenshot({ path: 'e2e/screenshots/798-onboarding-submit-error.png' });

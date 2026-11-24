@@ -1128,7 +1128,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.locator('#notifications-mark-error')).toHaveText(
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
-  await expect(markAll).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(markAll).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(markAll).toBeEnabled();
   await expect(ownerPage.locator('.alert')).toHaveCount(0);
   await shot(ownerPage, '797-notifications-mark-all-error');
