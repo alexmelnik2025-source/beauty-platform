@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
 import type { DayLocale } from '../day';
@@ -6,7 +6,10 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { openStatus, openStatusText, salonNow, todayHoursText, type PublicHours } from '../openNow';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const hoursCache = new SalonReadCache<PublicHours | null>();
 
 export function ClientsNowCard(props: {
   api: BusinessApi;
@@ -25,27 +28,35 @@ export function ClientsNowCard(props: {
   const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
+  // The first calendar response completes the initial load, without requesting hours again.
+  const calendarRevision = Math.max(1, reloads);
+  const previousRevision = useRef(calendarRevision);
   useEffect(() => {
+    if (previousRevision.current !== calendarRevision) hoursCache.clear(salon);
+    previousRevision.current = calendarRevision;
     let alive = true;
     setError('');
     setHours(undefined);
-    void (async () => {
-      try {
+    hoursCache
+      .read(salon, async () => {
         const location = await api.location(salon.orgId, salon.locationId);
-        if (!alive) return;
-        const next = location.onlineBookingEnabled ? await api.publicHours(location.slug) : null;
-        if (alive) {
-          setHours(next);
-          setNow(Date.now());
-        }
-      } catch (e) {
-        if (alive) setError(errorText(e, t));
-      }
-    })();
+        return location.onlineBookingEnabled ? api.publicHours(location.slug) : null;
+      })
+      .then(
+        (next) => {
+          if (alive) {
+            setHours(next);
+            setNow(Date.now());
+          }
+        },
+        (e: unknown) => {
+          if (alive) setError(errorText(e, t));
+        },
+      );
     return () => {
       alive = false;
     };
-  }, [api, salon, reloads, attempt, t]);
+  }, [api, salon, calendarRevision, attempt, t]);
 
   useEffect(() => {
     if (!hours) return;

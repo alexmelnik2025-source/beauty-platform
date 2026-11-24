@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, SalonReport, StaffCommissions } from '../api';
 import { parsePercent, percentInput, percentText } from '../commissions';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const commissionsCache = new SalonReadCache<StaffCommissions>();
 
 /**
  * Task 375: "Prowizje" in the reports — what each specialist gets of what their paid visits
@@ -27,6 +30,8 @@ export function CommissionsSection(props: {
   const rows = report.staff.filter((s) => s.commissionPercent !== null);
   const [list, setList] = useState<StaffCommissions['staff'] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const pending = useRef(false);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
@@ -47,34 +52,54 @@ export function CommissionsSection(props: {
   };
 
   const open = async () => {
+    if (pending.current) return;
     if (list) {
+      setError('');
       setList(null);
       return;
     }
+    pending.current = true;
+    setLoading(true);
     setError('');
     try {
-      show(await api.commissions(salon.orgId, salon.locationId));
+      show(
+        await commissionsCache.read(salon, () => api.commissions(salon.orgId, salon.locationId)),
+      );
     } catch (e) {
       setError(errorText(e, t));
+    } finally {
+      pending.current = false;
+      setLoading(false);
     }
   };
 
   const save = async (staffId: string) => {
+    if (pending.current) return;
     const percent = parsePercent(drafts[staffId] ?? '');
     if (percent === undefined) {
       setError(r.commissionInvalid);
       return;
     }
+    pending.current = true;
     setBusy(staffId);
     setSaved('');
     setError('');
     try {
-      show(await api.setCommission(salon.orgId, salon.locationId, staffId, percent));
+      const updated = await api.setCommission(salon.orgId, salon.locationId, staffId, percent);
+      commissionsCache.set(salon, updated);
+      setList(updated.staff);
+      const row = updated.staff.find((s) => s.staffId === staffId);
+      if (row)
+        setDrafts((previous) => ({
+          ...previous,
+          [staffId]: percentInput(row.commissionPercent, locale),
+        }));
       setSaved(staffId);
       props.onSaved();
     } catch (e) {
       setError(errorText(e, t));
     } finally {
+      pending.current = false;
       setBusy('');
     }
   };
@@ -120,7 +145,9 @@ export function CommissionsSection(props: {
       {canSet ? (
         <Button
           kind="secondary"
-          label={list ? r.commissionsHide : r.commissionsSet}
+          label={list ? r.commissionsHide : error ? t.day.refresh : r.commissionsSet}
+          busy={loading}
+          disabled={!!busy}
           expanded={list !== null}
           onPress={() => void open()}
         />
@@ -141,6 +168,7 @@ export function CommissionsSection(props: {
                     placeholder={r.commissionNone}
                     placeholderTextColor={colors.placeholder}
                     keyboardType="decimal-pad"
+                    editable={busy !== s.staffId}
                     value={drafts[s.staffId] ?? ''}
                     onChangeText={(text) => {
                       setSaved('');

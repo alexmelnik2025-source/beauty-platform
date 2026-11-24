@@ -5,7 +5,10 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { bookableStaff, hasWeeklyHours, setupFinished, setupState, type SetupStep } from '../setup';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const setupCache = new SalonReadCache<ReturnType<typeof setupState>>();
 
 export function SetupCard(props: {
   api: BusinessApi;
@@ -26,8 +29,8 @@ export function SetupCard(props: {
     setSteps(null);
     setError('');
     setExpanded(false);
-    void (async () => {
-      try {
+    setupCache
+      .read(salon, async () => {
         const [location, services, staff] = await Promise.all([
           api.location(salon.orgId, salon.locationId),
           api.services(salon.orgId, salon.locationId),
@@ -35,18 +38,22 @@ export function SetupCard(props: {
         ]);
         let hoursSet = false;
         for (const person of bookableStaff(services, staff)) {
-          if (!alive) return;
           const hours = await api.workingHours(salon.orgId, salon.locationId, person.id);
           if (hasWeeklyHours(hours)) {
             hoursSet = true;
             break;
           }
         }
-        if (alive) setSteps(setupState({ location, services, staff, hoursSet }));
-      } catch (e) {
-        if (alive) setError(errorText(e, t));
-      }
-    })();
+        return setupState({ location, services, staff, hoursSet });
+      })
+      .then(
+        (next) => {
+          if (alive) setSteps(next);
+        },
+        (e: unknown) => {
+          if (alive) setError(errorText(e, t));
+        },
+      );
     return () => {
       alive = false;
     };
@@ -115,7 +122,10 @@ export function SetupCard(props: {
                     kind="secondary"
                     label={s.steps[step]}
                     a11yLabel={`${s.go}: ${s.steps[step]} — ${s.todoLabel}`}
-                    onPress={() => props.onOpen(step)}
+                    onPress={() => {
+                      setupCache.clear(salon);
+                      props.onOpen(step);
+                    }}
                   />
                 ),
               )}
