@@ -465,8 +465,27 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(client.getByRole('button', { name: 'Wymień: −25% na strzyżenie' })).toBeDisabled();
   await client.getByRole('heading', { name: 'Bonusy' }).scrollIntoViewIfNeeded();
   await shot(page, '45-owner-client-bonus');
-  await coupons.getByRole('button', { name: /Anuluj kupon/ }).click();
+  // Task 763 (owner's rule: errors where the action is): a refused "Anuluj kupon" is said under
+  // that coupon, not at the top of "Bonusy".
+  await page.route('**/loyalty/coupons/*/cancel', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const cancelCoupon = coupons.getByRole('button', { name: /Anuluj kupon/ });
+  await cancelCoupon.click();
+  await expect(
+    coupons
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('button', { name: /Anuluj kupon/ }) })
+      .locator('.field-error'),
+  ).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(cancelCoupon).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(client.locator('.alert')).toHaveCount(0);
+  await coupons.scrollIntoViewIfNeeded();
+  await shot(page, '763-client-coupon-cancel-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await cancelCoupon.click();
   await expect(coupons).toContainText('anulowany');
+  await expect(client.locator('.field-error')).toHaveCount(0);
   await expect(client.getByText('Pieczątki na karcie: 3')).toBeVisible();
   // Task 692: nothing typed, then zero and a too short reason — said under each field.
   const adjustPoints = client.locator('input[name="points"]');
