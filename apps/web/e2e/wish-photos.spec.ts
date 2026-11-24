@@ -306,7 +306,28 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await expect(client.getByRole('img', { name: 'Twoje zdjęcie 1' })).toBeVisible();
   await expect(client.getByText(/Zdjęcia usuniemy/)).toBeVisible();
   await shot(client, '07p-visit-wish-photos');
-  await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
+  // Task 776 (owner's rule: errors where the action is): a refused "Usuń" is said under that
+  // photo, not above all of them; the photo stays.
+  await client.route('**/photos/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const removeMine = client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' });
+  await removeMine.click();
+  const photoItem = client.locator('.wish-photos__item').filter({ has: removeMine });
+  await expect(photoItem.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeMine).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(
+    client.getByRole('region', { name: '📷 Pokaż, co chcesz' }).locator('.alert'),
+  ).toHaveCount(0);
+  await expect(client.getByRole('img', { name: 'Twoje zdjęcie 1' })).toBeVisible();
+  await shot(client, '776-visit-photo-remove-error');
+  await client.unroute('**/photos/*');
+  await removeMine.click();
   await expect(client.getByRole('heading', { name: '📷 Pokaż, co chcesz' })).toHaveCount(0);
   const photo = await drawnPhoto(client);
   await phoneContext.close();

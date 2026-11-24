@@ -548,6 +548,31 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Wrażliwa skóra głowy',
   );
   await shot(client, '07w-client-manage-wishes');
+  // Task 775 (owner's rule: errors where the action is): a refused "Zapisz życzenia" is said
+  // under that button, not above the questions; the answers stay as chosen.
+  await client.route('**/wishes', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveWishes = wishEdit.getByRole('button', { name: 'Zapisz życzenia' });
+  await saveWishes.click();
+  await expect(wishEdit.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveWishes).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(wishEdit.locator('.alert')).toHaveCount(0);
+  await expect(wishEdit.getByLabel('Coś, o czym specjalista powinien wiedzieć?')).toHaveValue(
+    'Wrażliwa skóra głowy',
+  );
+  await saveWishes.scrollIntoViewIfNeeded();
+  await shot(client, '775-manage-wishes-save-error');
+  await client.unroute('**/wishes');
+  await wishEdit
+    .getByLabel('Coś, o czym specjalista powinien wiedzieć?')
+    .fill('Wrażliwa skóra głowy');
+  await expect(wishEdit.locator('.field-error')).toHaveCount(0);
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
   // The button gave way to the times: keyboard focus went with it (task 597).

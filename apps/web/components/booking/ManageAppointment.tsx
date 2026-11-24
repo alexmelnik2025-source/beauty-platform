@@ -5,7 +5,7 @@ import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { addDays, formatDay, formatPrice, todayIn, weekdayShort } from '@/lib/time';
 import type { PublicAppointment, Slot, VisitPhotoList } from '@/lib/types';
-import { ErrorBox, LanguageSwitch, Spinner } from '../ui';
+import { ErrorBox, FieldError, LanguageSwitch, Spinner } from '../ui';
 import { downloadIcs } from './ics';
 import { VisitReviewForm } from '../reviews/VisitReviewForm';
 import { VisitProductsByLink } from './VisitProductsByLink';
@@ -459,6 +459,10 @@ function WishesEditor<T extends PublicAppointment>({
   const { t } = useI18n();
   const [value, setValue] = useState<VisitWishes>(appointment.wishes);
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 775 (owner's rule: errors where the action is): a refused "Zapisz życzenia" is said
+   * under that button, not as a box above the questions; the answers stay as chosen.
+   */
   const [error, setError] = useState('');
   return (
     <form
@@ -479,11 +483,22 @@ function WishesEditor<T extends PublicAppointment>({
       }}
     >
       <h2 id="wishes-edit-title">{t.wishStep.title}</h2>
-      <ErrorBox>{error}</ErrorBox>
-      <WishesPicker questions={appointment.wishQuestions} value={value} onChange={setValue} />
-      <button className="btn btn--quiet btn--block" disabled={busy}>
+      <WishesPicker
+        questions={appointment.wishQuestions}
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          setError('');
+        }}
+      />
+      <button
+        className="btn btn--quiet btn--block"
+        disabled={busy}
+        aria-describedby={error ? 'wishes-save-error' : undefined}
+      >
         {t.wishStep.save}
       </button>
+      <FieldError id="wishes-save-error" text={error} />
     </form>
   );
 }
@@ -497,7 +512,11 @@ function VisitPhotosByLink({ endpoint, canRemove }: { endpoint: string; canRemov
   const w = t.wishStep;
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 776 (owner's rule: errors where the action is): a refused "Usuń" is said under that
+   * photo, not as a box above all of them.
+   */
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     api<VisitPhotoList>(`${endpoint}/photos`, { auth: false })
@@ -510,14 +529,14 @@ function VisitPhotosByLink({ endpoint, canRemove }: { endpoint: string; canRemov
 
   async function remove(id: string) {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       await api(`${endpoint}/photos/${id}`, { method: 'DELETE', auth: false });
       setPhotos((list) =>
         list ? { ...list, items: list.items.filter((p) => p.id !== id) } : list,
       );
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ id, text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -526,7 +545,6 @@ function VisitPhotosByLink({ endpoint, canRemove }: { endpoint: string; canRemov
   return (
     <section className="section" aria-labelledby="visit-photos-title">
       <h2 id="visit-photos-title">📷 {w.photosQ}</h2>
-      <ErrorBox>{error}</ErrorBox>
       <ul className="wish-photos">
         {photos.items.map((p, i) => (
           <li key={p.id} className="wish-photos__item">
@@ -537,11 +555,16 @@ function VisitPhotosByLink({ endpoint, canRemove }: { endpoint: string; canRemov
                 className="link-btn small"
                 disabled={busy}
                 aria-label={`${w.photosRemove}: ${alt(i)}`}
+                aria-describedby={error?.id === p.id ? `visit-photo-${p.id}-error` : undefined}
                 onClick={() => void remove(p.id)}
               >
                 {w.photosRemove}
               </button>
             ) : null}
+            <FieldError
+              id={`visit-photo-${p.id}-error`}
+              text={error?.id === p.id ? error.text : undefined}
+            />
           </li>
         ))}
       </ul>
