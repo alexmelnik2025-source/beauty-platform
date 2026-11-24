@@ -40,6 +40,37 @@ describe('coupons on a visit (task 343)', () => {
     ).toBe(true);
   });
 
+  it('keeps an expired or previously applied coupon visible even when the client has no tier', () => {
+    const coupon = {
+      id: 'k1',
+      name: 'Rabat',
+      code: 'K7QM-4XTB',
+      kind: 'discount_percent' as const,
+      discountPercent: 10,
+      version: 2,
+      discountGrosze: null,
+    };
+    expect(
+      hasCoupons({
+        tier: null,
+        applied: [],
+        available: [{ ...coupon, expiresAt: '2026-11-01T00:00:00.000Z', problem: 'EXPIRED' }],
+      }),
+    ).toBe(true);
+    expect(hasCoupons({ tier: null, applied: [coupon], available: [] })).toBe(true);
+  });
+
+  it.each([
+    ['COUPON_EXPIRED', 'expired'],
+    ['COUPON_NOT_ACTIVE', 'notActive'],
+  ] as const)('explains a refused coupon (%s) in the app language', (code, key) => {
+    for (const dict of Object.values(DICTIONARIES)) {
+      expect(couponErrorText(new ApiError(409, 'Conflict', code), dict)).toBe(
+        dict.visit.coupons.error[key],
+      );
+    }
+  });
+
   it('reads a code as the client says it', () => {
     expect(couponCode(' k7qm-4xtb ')).toBe('K7QM-4XTB');
     expect(couponCode('k7 qm')).toBe('K7QM');
@@ -51,12 +82,10 @@ describe('coupons on a visit (task 343)', () => {
     const e = pl.visit.coupons.error;
     const err = (code: string) => new ApiError(409, 'x', code);
     expect(couponErrorText(new ApiError(404, 'x', 'NOT_FOUND'), pl)).toBe(e.notFound);
-    expect(couponErrorText(err('COUPON_EXPIRED'), pl)).toBe(e.expired);
     expect(couponErrorText(err('COUPON_NOT_FOR_SERVICE'), pl)).toBe(e.notForService);
     expect(couponErrorText(err('COUPON_NOT_COMBINABLE'), pl)).toBe(e.notCombinable);
     expect(couponErrorText(err('COUPON_NO_DISCOUNT'), pl)).toBe(e.noDiscount);
     expect(couponErrorText(err('TIER_NO_DISCOUNT'), pl)).toBe(e.noDiscount);
-    expect(couponErrorText(err('COUPON_NOT_ACTIVE'), pl)).toBe(e.notActive);
     expect(couponErrorText(err('VISIT_NOT_CHANGEABLE'), pl)).toBe(e.notChangeable);
     expect(couponErrorText(err('VERSION_CONFLICT'), pl)).toBeNull();
     expect(couponErrorText(new Error('offline'), pl)).toBeNull();
