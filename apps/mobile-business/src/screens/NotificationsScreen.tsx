@@ -194,7 +194,7 @@ const NoticeRow = memo(function NoticeRow({
   const source = notice.data.by === 'client' ? n.byClient : n.bySalon;
   const date = dayTitle(notice.data.date, locale);
   const detail = `${notice.data.customerName ?? t.day.walkIn} · ${notice.data.serviceName} · ${notice.data.staffName}`;
-  const label = `${kind}, ${notice.data.time}, ${detail}, ${date}, ${source}`;
+  const label = `${kind}, ${notice.data.time} ${detail}, ${date}, ${source}`;
   const content = (
     <View aria-hidden>
       <Card>

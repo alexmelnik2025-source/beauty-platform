@@ -179,7 +179,7 @@ test('message controls and complete notification and history rows at 130% on a 3
     );
     await openBusinessMenu(page, n.open);
     const inbox = page.getByRole('list', { name: n.title });
-    const summary = `${n.kind.cancelled}, 10:30, Anna · ${service} · ${actor}, wtorek, 24 listopada, ${n.byClient}`;
+    const summary = `${n.kind.cancelled}, 10:30 Anna · ${service} · ${actor}, wtorek, 24 listopada, ${n.byClient}`;
     const unread = inbox.getByRole('button', { name: `${n.unread}: ${summary}`, exact: true });
     await expect(unread).toBeVisible();
     await expect(button(n.readAll)).toBeVisible();
