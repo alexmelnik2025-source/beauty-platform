@@ -111,13 +111,44 @@ describe('newLastMinuteRule', () => {
   });
 });
 
+describe('discount limits for hours and Last Minute promotions', () => {
+  const hours = (percent: string) =>
+    newRule({ weekdays: [1], start: '09:00', end: '12:00', percent, staffIds: [] });
+  const lastMinute = (percent: string) => newLastMinuteRule({ hours: '24', percent, staffIds: [] });
+
+  it.each([1, 90])('accepts the inclusive limit of %i percent', (percent) => {
+    for (const create of [hours, lastMinute]) {
+      expect(create(String(percent))).toMatchObject({
+        ok: true,
+        rule: { discountPercent: percent },
+      });
+    }
+  });
+
+  it.each(['0', '91', '1.5', '0x10', '2e1'])('rejects %j as a discount', (percent) => {
+    for (const create of [hours, lastMinute]) {
+      expect(create(percent)).toEqual({ ok: false, problem: 'percent' });
+    }
+  });
+});
+
 describe('rulesToSave', () => {
-  it('a Last Minute rule (task Q7) stays one', () => {
-    const lastMinute = rule('lm', { kind: 'lastMinute', lastMinuteHours: 24 });
-    expect(rulesToSave([lastMinute], {})[0]).toMatchObject({
+  it('preserves both kinds and their settings when removing from a mixed list', () => {
+    const hours = rule('h', { serviceIds: ['haircut'] });
+    const lastMinute = rule('lm', {
       kind: 'lastMinute',
-      lastMinuteHours: 24,
+      lastMinuteHours: 72,
+      weekdays: [],
+      start: '00:00',
+      end: '24:00',
+      staffIds: ['anna'],
     });
+    const saved = rulesToSave([hours, rule('removed'), lastMinute], { remove: 'removed' });
+    expect(saved).toMatchObject([
+      { kind: 'hours', lastMinuteHours: null, serviceIds: ['haircut'] },
+      { kind: 'lastMinute', lastMinuteHours: 72, staffIds: ['anna'] },
+    ]);
+    expect(saved.some((entry) => 'id' in entry)).toBe(false);
   });
 
   it('keeps the other rules, drops one, adds one — without server ids', () => {
