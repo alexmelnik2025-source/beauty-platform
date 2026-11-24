@@ -1,13 +1,13 @@
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import type { ClientApi, Locale, UsedProducts } from '../api';
+import type { ClientApi, Locale } from '../api';
 import type { BookingPreset } from '../booking';
 import { API_URL } from '../config';
-import { errorText } from '../errors';
 import { formatDay, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { usedProductLists, invalidateProductLists } from '../shop';
-import { Button, colors, ErrorText } from '../ui';
+import { usedProductLists } from '../shop';
+import { ProductActionButton, useProductLock, useVisitProductList } from './VisitProductsCard';
+import { Button, colors } from '../ui';
 
 /**
  * Task Q3 (screen C in the app): in the card of a visit that took place — what the specialist
@@ -29,43 +29,26 @@ export function UsedProductsCard(props: Props) {
 function UsedProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;
   const s = t.visitProducts;
-  const [data, setData] = useState<UsedProducts | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let live = true;
-    usedProductLists
-      .read(api, visitId, () => api.usedProducts(visitId))
-      .then(
-        (items) => {
-          if (live) setData(items);
-        },
-        () => {
-          if (live) setData(null);
-        },
-      );
-    return () => {
-      live = false;
-    };
-  }, [api, visitId]);
-
-  async function save(productId: string) {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      setData(await api.reserveForNext(visitId, productId));
-    } catch (e) {
-      setError(errorText(e, t));
-      await api.usedProducts(visitId).then(setData, () => setData(null));
-    } finally {
-      invalidateProductLists(api);
-      setBusy(false);
-    }
-  }
-
-  if (!data || data.products.length === 0) return null;
+  const lock = useProductLock();
+  const { data, setData, feedback, refresh } = useVisitProductList(
+    api,
+    visitId,
+    t,
+    usedProductLists,
+    api.usedProducts,
+  );
+  if (!data)
+    return (
+      feedback && (
+        <View role="region" aria-label={s.usedTitle} style={styles.card}>
+          <Text role="heading" aria-level={2} style={styles.title}>
+            {s.usedTitle}
+          </Text>
+          {feedback}
+        </View>
+      )
+    );
+  if (!data.products.length) return null;
   const next = data.nextVisit;
   const when = next ? `${next.time} · ${formatDay(next.date, locale)}` : '';
   const toBring = data.products.filter((p) => p.available).map((p) => p.id);
@@ -75,6 +58,7 @@ function UsedProductsContent(props: Props) {
       <Text role="heading" aria-level={2} style={styles.title}>
         {s.usedTitle}
       </Text>
+      {feedback}
       {data.products.map((p) => (
         <View key={p.id} style={styles.item}>
           <ProductDetails
@@ -91,12 +75,16 @@ function UsedProductsContent(props: Props) {
               ✓ {fill(s.savedForNext, { when })}
             </Text>
           ) : next ? (
-            <Button
+            <ProductActionButton
+              lock={lock}
+              refresh={refresh}
+              t={t}
+              api={api}
               kind="secondary"
               label={s.saveForNext}
               a11yLabel={`${s.saveForNext}: ${p.name}`}
-              disabled={busy || !p.available}
-              onPress={() => void save(p.id)}
+              disabled={!p.available}
+              action={async () => setData(await api.reserveForNext(visitId, p.id))}
             />
           ) : null}
         </View>
@@ -120,7 +108,6 @@ function UsedProductsContent(props: Props) {
           />
         </>
       )}
-      {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 }
