@@ -92,7 +92,25 @@ test('the owner opens the next clients with "Pokaż więcej klientów"', async (
   const more = cabinet.getByRole('button', { name: 'Pokaż więcej klientów' });
   await more.scrollIntoViewIfNeeded();
   await shot(cabinet, '277-clients-show-more');
+  // Task 781 (owner's rule: errors where the action is): a refused "Pokaż więcej klientów" is said
+  // under that button, not at the top of the list; the first 100 stay.
+  const nextPage = (url: URL) =>
+    url.pathname.endsWith('/customers') && url.searchParams.has('offset');
+  await cabinet.route(nextPage, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
   await more.click();
+  await expect(cabinet.locator('#clients-more-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(more).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(cabinet.locator('.page .alert')).toHaveCount(0);
+  await expect(rows).toHaveCount(100);
+  await more.scrollIntoViewIfNeeded();
+  await shot(cabinet, '781-clients-more-error');
+  await cabinet.unroute(nextPage);
+  await more.click();
+  await expect(cabinet.locator('#clients-more-error')).toHaveCount(0);
   await expect(rows).toHaveCount(CLIENTS);
   await expect(rows.last()).toContainText('Klient 105');
   await expect(more).toHaveCount(0);
