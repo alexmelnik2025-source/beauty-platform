@@ -10,10 +10,12 @@ export function LanguagePicker({
   t,
   locale,
   onLocale,
+  disabled = false,
 }: {
   t: Dictionary;
   locale: Locale;
   onLocale: (locale: Locale) => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -22,9 +24,10 @@ export function LanguagePicker({
         kind="secondary"
         label={`${codes[locale]} ${open ? '▴' : '▾'}`}
         a11yLabel={`${t.language}: ${LANGUAGE_NAMES[locale]}`}
+        disabled={disabled}
         compact
         expanded={open}
-        onPress={() => setOpen(!open)}
+        onPress={() => setOpen((wasOpen) => !wasOpen)}
       />
       {open ? (
         <View role="group" accessibilityLabel={t.language}>
@@ -33,7 +36,8 @@ export function LanguagePicker({
               key={language}
               accessibilityRole="button"
               accessibilityLanguage={language}
-              accessibilityState={{ selected: language === locale }}
+              disabled={disabled}
+              accessibilityState={{ selected: language === locale, disabled }}
               aria-pressed={language === locale}
               style={[styles.option, language === locale && styles.selected]}
               onPress={() => {
