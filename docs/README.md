@@ -745,6 +745,12 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Ochrona przed odwołaniami»: отказ «Tak, zdejmij» в самом окне (задача 794, 24.11.2026)
+
+- Отказ сервера при снятии блокады клиента — в открытом окне под «Tak, zdejmij» (с «!»), заметка остаётся. Раньше
+  ответ уходил на страницу за окном, его не было видно. e2e `cancellation-guard-cabinet`, скриншот
+  `794-guard-release-error`.
+
 ## «Raporty»: отказ файла CSV под кнопками вверху (задача 793, 24.11.2026)
 
 - Отказ сервера при любом файле CSV («Pobierz CSV», кассы, выплат, склада, товаров) — сразу под кнопками вверху
