@@ -746,6 +746,11 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## Карточка клиента → «Ochrona przed odwołaniami»: отказ у своего места (задача 748, 24.11.2026)
+
+- Отказ сервера при смене «Zasady dla klienta» — под этим списком (красная рамка, «!»; список возвращается к прежнему
+  правилу), при «Zdejmij blokadę» — под кнопками «Tak / Anuluj», а не рамкой над карточкой. Рамка осталась только для
+  карточки, которая не загрузилась. e2e `q9-client-rules`, скриншот `748-client-rule-error`.
 ## «Opinie»: отказ «Zapisz», «Opublikuj odpowiedź», «Usuń odpowiedź» под кнопкой (задача 747, 24.11.2026)
 
 - В кабинете «Opinie» отказ сервера при сохранении «Ustawienia opinii» — под «Zapisz», при ответе на отзыв — под

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useSession } from '@/components/Session';
-import { ErrorBox } from '@/components/ui';
+import { ErrorBox, FieldError } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
@@ -27,6 +27,12 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  /**
+   * Task 748 (owner's rule: errors where the action is): a refused rule change is said under the
+   * "Zasady dla klienta" list, a refused release under its buttons — not as a box above the card.
+   * The box stays only for a card that failed to load.
+   */
+  const [failed, setFailed] = useState<'rule' | 'release' | null>(null);
 
   const load = useCallback(async () => setGuard(await api<GuardedClient>(url)), [url]);
 
@@ -44,6 +50,7 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
       setInfo(t.guard.ruleSaved);
     } catch (err) {
       setError(errorText(t, err));
+      setFailed('rule');
     } finally {
       setBusy(false);
     }
@@ -66,12 +73,15 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
       setInfo(t.guard.released);
     } catch (err) {
       setError(errorText(t, err));
+      setFailed('release');
     } finally {
       setBusy(false);
     }
   }
 
   if (!guard) return error ? <ErrorBox>{error}</ErrorBox> : null;
+  const ruleError = failed === 'rule' ? error : '';
+  const releaseError = failed === 'release' ? error : '';
   const ownRule = guard.rule !== 'salon' && guard.rule !== 'trusted';
   const details = guard.enabled || guard.history.length > 0 || ownRule;
   const ruleNames: Record<GuardedClient['rule'], string> = {
@@ -104,6 +114,8 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
         <select
           value={guard.rule}
           disabled={busy}
+          aria-invalid={ruleError ? true : undefined}
+          aria-describedby={ruleError ? `guard-rule-error-${customerId}` : undefined}
           onChange={(e) => void setRule(e.target.value as GuardedClient['rule'])}
         >
           {(Object.keys(ruleNames) as GuardedClient['rule'][]).map((rule) => (
@@ -112,8 +124,8 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
             </option>
           ))}
         </select>
+        <FieldError id={`guard-rule-error-${customerId}`} text={ruleError} />
       </label>
-      <ErrorBox>{error}</ErrorBox>
       {info ? (
         <p className="small" role="status">
           {info}
@@ -136,20 +148,35 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
               <p className="small">{t.guard.releaseAsk}</p>
               <label className="field">
                 <span>{t.guard.note}</span>
-                <input value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+                <input
+                  value={note}
+                  maxLength={300}
+                  onChange={(e) => {
+                    setNote(e.target.value);
+                    setError('');
+                  }}
+                />
               </label>
               <div className="row">
-                <button className="btn btn--small" disabled={busy}>
+                <button
+                  className="btn btn--small"
+                  disabled={busy}
+                  aria-describedby={releaseError ? `guard-release-error-${customerId}` : undefined}
+                >
                   {t.guard.releaseYes}
                 </button>
                 <button
                   type="button"
                   className="btn btn--small btn--quiet"
-                  onClick={() => setAsking(false)}
+                  onClick={() => {
+                    setAsking(false);
+                    setError('');
+                  }}
                 >
                   {t.guard.cancel}
                 </button>
               </div>
+              <FieldError id={`guard-release-error-${customerId}`} text={releaseError} />
             </form>
           ) : (
             <button
@@ -157,6 +184,7 @@ export function ClientGuard({ orgId, customerId }: { orgId: string; customerId: 
               className="btn btn--small btn--quiet"
               onClick={() => {
                 setInfo('');
+                setError('');
                 setAsking(true);
               }}
             >
