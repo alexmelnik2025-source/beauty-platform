@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { ClientApi, PublicLocation } from '../api';
 import { errorText } from '../errors';
@@ -19,21 +19,29 @@ export function OpenBooking(props: {
 }) {
   const { api, slug, onLoaded } = props;
   const [error, setError] = useState('');
-  const tRef = useRef(props.t);
-  tRef.current = props.t;
-
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      onLoaded(await api.salon(slug));
-    } catch (e) {
-      setError(errorText(e, tRef.current));
-    }
-  }, [api, slug, onLoaded]);
+  const [attempt, setAttempt] = useState(0);
+  const loaded = useEffectEvent(onLoaded);
+  const failed = useEffectEvent((e: unknown) => setError(errorText(e, props.t)));
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let live = true;
+    api.salon(slug).then(
+      (salon) => {
+        if (live) loaded(salon);
+      },
+      (e: unknown) => {
+        if (live) failed(e);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, slug, attempt]);
+
+  function retry() {
+    setError('');
+    setAttempt((n) => n + 1);
+  }
 
   return (
     <View style={styles.screen}>
@@ -44,7 +52,7 @@ export function OpenBooking(props: {
       {error ? (
         <>
           <ErrorText>{error}</ErrorText>
-          <Button kind="secondary" label={props.t.retry} onPress={load} />
+          <Button kind="secondary" label={props.t.retry} onPress={retry} />
         </>
       ) : (
         <ActivityIndicator style={{ marginTop: 24 }} color={colors.ink} />
