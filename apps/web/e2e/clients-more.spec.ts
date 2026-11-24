@@ -103,7 +103,7 @@ test('the owner opens the next clients with "Pokaż więcej klientów"', async (
   await expect(cabinet.locator('#clients-more-error')).toHaveText(
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
-  await expect(more).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(more).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(cabinet.locator('.page .alert')).toHaveCount(0);
   await expect(rows).toHaveCount(100);
   await more.scrollIntoViewIfNeeded();

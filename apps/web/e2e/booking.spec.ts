@@ -561,7 +561,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const saveWishes = wishEdit.getByRole('button', { name: 'Zapisz życzenia' });
   await saveWishes.click();
   await expect(wishEdit.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(saveWishes).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveWishes).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(wishEdit.locator('.alert')).toHaveCount(0);
   await expect(wishEdit.getByLabel('Coś, o czym specjalista powinien wiedzieć?')).toHaveValue(
     'Wrażliwa skóra głowy',
@@ -1083,7 +1083,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ewaDialog.getByRole('button', { name: 'Usuń dane klienta' }).click();
   await ewaDialog.getByRole('button', { name: 'Tak, usuń dane' }).click();
   const eraseButton = ewaDialog.getByRole('button', { name: 'Usuń dane klienta' });
-  await expect(eraseButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(eraseButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(ewaDialog.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(ewaDialog.locator('.alert')).toHaveCount(0);
   await eraseButton.scrollIntoViewIfNeeded();

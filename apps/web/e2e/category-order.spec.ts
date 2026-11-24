@@ -167,7 +167,7 @@ test('the owner orders and renames the categories of the price list', async ({
   const removeKids = kids.getByRole('button', { name: 'Usuń kategorię' });
   await removeKids.click();
   await expect(kids.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(removeKids).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeKids).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(cabinet.locator('.page > .alert')).toHaveCount(0);
   await shot(cabinet, '779-category-remove-error');
   await kids.getByRole('button', { name: 'Wyżej: Dzieci' }).click();

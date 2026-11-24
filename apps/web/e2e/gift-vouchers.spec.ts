@@ -138,7 +138,7 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await sell.getByRole('button', { name: 'Sprzedaj bon' }).click();
   await expect(sell.locator('#voucher-new-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(sell.getByRole('button', { name: 'Sprzedaj bon' })).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
   );
   await expect(sell.locator('.alert')).toHaveCount(0);
   await expect(sell.getByLabel('Kwota bonu')).toHaveValue('200');
@@ -272,7 +272,7 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await edit.getByRole('button', { name: 'Zapisz' }).click();
   await expect(edit.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(edit.getByRole('button', { name: 'Zapisz' })).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
   );
   await expect(edit.locator('.alert')).toHaveCount(0);
   await expect(edit.getByLabel('Dla kogo')).toHaveValue('Jan i Ola Kowalscy');

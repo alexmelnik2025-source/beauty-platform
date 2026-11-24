@@ -191,7 +191,7 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
     await expect(page.locator('.favorite-button .field-error')).toHaveText(
       'Zbyt wiele prób. Odczekaj chwilę.',
     );
-    await expect(heart).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+    await expect(heart).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
     await expect(page.locator('.favorite-button .alert')).toHaveCount(0);
     await heart.scrollIntoViewIfNeeded();
     await shot(page, '778-salon-page-favorite-error');

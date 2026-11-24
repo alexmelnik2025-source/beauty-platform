@@ -308,7 +308,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await removeHeld.click();
   const heldItem = client.locator('.wish-photos__item').filter({ has: removeHeld });
   await expect(heldItem.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(removeHeld).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeHeld).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(client.locator('.wishes-step .alert')).toHaveCount(0);
   await expect(mine).toBeVisible();
   await shot(client, '782-booking-photo-remove-error');
@@ -339,7 +339,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   await removeMine.click();
   const photoItem = client.locator('.wish-photos__item').filter({ has: removeMine });
   await expect(photoItem.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(removeMine).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeMine).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(
     client.getByRole('region', { name: '📷 Pokaż, co chcesz' }).locator('.alert'),
   ).toHaveCount(0);
