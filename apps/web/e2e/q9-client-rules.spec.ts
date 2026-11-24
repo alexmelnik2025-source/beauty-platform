@@ -147,8 +147,21 @@ test('Q9: the owner sets a rule for one client, who books after the notice to pa
   await card.scrollIntoViewIfNeeded();
   const rule = card.getByLabel('Zasady dla klienta');
   await expect(rule).toHaveValue('salon');
+  // Task 748 (owner's rule: errors where the action is): a refused rule is said under the list.
+  await cabinet.route('**/cancellation-guard/clients/*/rule', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await rule.selectOption({ label: 'Najpierw opłata zaległych (w salonie)' });
+  await expect(card.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(rule).toHaveAttribute('aria-invalid', 'true');
+  await expect(rule).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(rule).toHaveValue('salon');
+  await expect(cabinet.locator('.alert')).toHaveCount(0);
+  await shot(cabinet, '748-client-rule-error');
+  await cabinet.unrouteAll({ behavior: 'wait' });
   await rule.selectOption({ label: 'Najpierw opłata zaległych (w salonie)' });
   await expect(card.getByText('Zapisano zasady dla klienta.')).toBeVisible();
+  await expect(card.locator('.field-error')).toHaveCount(0);
   await expect(card).toContainText('Działają zasady ustawione dla tego klienta.');
   await expect(card).toContainText(/Nieodbyte wizyty: 90,00/);
   await shot(cabinet, 'q9-client-rules-card');
