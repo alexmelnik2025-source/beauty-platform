@@ -569,10 +569,11 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await saveWishes.scrollIntoViewIfNeeded();
   await shot(client, '775-manage-wishes-save-error');
   await client.unroute('**/wishes');
-  await wishEdit
-    .getByLabel('Coś, o czym specjalista powinien wiedzieć?')
-    .fill('Wrażliwa skóra głowy');
+  // Changing an answer takes the error away.
+  const wishNote = wishEdit.getByLabel('Coś, o czym specjalista powinien wiedzieć?');
+  await wishNote.fill('');
   await expect(wishEdit.locator('.field-error')).toHaveCount(0);
+  await wishNote.fill('Wrażliwa skóra głowy');
   // Moving asks first: a tap on a time only proposes it, "Nie" keeps the old time (owner test T11).
   await client.getByRole('button', { name: 'Zmień termin' }).click();
   // The button gave way to the times: keyboard focus went with it (task 597).
