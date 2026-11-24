@@ -32,8 +32,8 @@ export function NotificationsScreen(props: {
 }) {
   const { api, t, salon, onBack } = props;
   const n = t.notifications;
-  const [list, setList] = useState<Notice[] | null>(null);
-  const shown = useRef<Notice[]>([]);
+  const [list, setList] = useState<Notice[] | null>(() => noticeCache.peek(salon) ?? null);
+  const shown = useRef<Notice[]>(list ?? []);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -47,20 +47,36 @@ export function NotificationsScreen(props: {
       const signal = lifetime.current!.signal;
       const request = ++latest.current;
       if (refresh) noticeCache.clear(salon);
+      const cached = noticeCache.peek(salon);
+      if (cached?.length) {
+        shown.current = cached;
+        setList(cached);
+        return;
+      }
       refreshing.current = true;
       setError('');
       setLoading(true);
       try {
-        const notices = await noticeCache.read(salon, async () =>
-          noticesOfSalon(
-            await withNetworkTimeout(api.notifications(100)),
-            salon.orgId,
-            salon.locationId,
-          ),
+        // On return to an empty inbox, check the bell before downloading up to 100 items.
+        if (cached) {
+          const count = await withNetworkTimeout(api.unreadNotifications(), signal).catch(
+            () => null,
+          );
+          if (signal.aborted || request !== latest.current) return;
+          if (count?.unread === 0) {
+            shown.current = cached;
+            setList(cached);
+            return;
+          }
+          noticeCache.clear(salon);
+        }
+        const notices = await noticeCache.read(
+          salon,
+          async () => noticesOfSalon(await api.notifications(100), salon.orgId, salon.locationId),
+          undefined,
+          signal,
         );
         if (signal.aborted || request !== latest.current) return;
-        // Recheck an empty inbox on return so the first new booking appears.
-        if (notices.length === 0) noticeCache.clear(salon);
         shown.current = notices;
         setList(notices);
         setError('');

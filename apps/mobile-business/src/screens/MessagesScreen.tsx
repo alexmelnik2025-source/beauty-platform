@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Platform,
@@ -17,6 +17,7 @@ import {
   messagesChanges,
   messagesForm,
   REMINDER_HOURS,
+  type MessagesForm,
   type MessagesProblem,
 } from '../messages';
 import { saveProblem } from '../salon';
@@ -47,8 +48,11 @@ export function useLocationForm<T>(
     const signal = lifetime.current!.signal;
     if (signal.aborted) return;
     try {
-      const saved = await locationCache.read(salon, () =>
-        withNetworkTimeout(api.location(salon.orgId, salon.locationId)),
+      const saved = await locationCache.read(
+        salon,
+        () => api.location(salon.orgId, salon.locationId),
+        undefined,
+        signal,
       );
       if (signal.aborted) return;
       setLocation(saved);
@@ -185,33 +189,12 @@ export function MessagesScreen(props: {
 
       {form ? (
         <>
-          <Card>
-            <Text style={styles.label}>{m.reminder}</Text>
-            <View role="group" accessibilityLabel={m.reminder} style={styles.row}>
-              {REMINDER_HOURS.map((hours) => (
-                <Chip
-                  key={hours}
-                  label={hours === 0 ? m.reminderNone : fill(m.reminderHours, { n: String(hours) })}
-                  on={form.reminderHoursBefore === hours}
-                  onPress={() => setForm({ ...form, reminderHoursBefore: hours })}
-                />
-              ))}
-            </View>
-          </Card>
-          <Card>
-            <Text style={styles.label}>{m.hold}</Text>
-            <View role="group" accessibilityLabel={m.hold} style={styles.row}>
-              {HOLD_MINUTES.map((minutes) => (
-                <Chip
-                  key={minutes}
-                  label={minutes === 0 ? m.holdOff : fill(m.holdMinutes, { n: String(minutes) })}
-                  on={form.waitlistHoldMinutes === minutes}
-                  onPress={() => setForm({ ...form, waitlistHoldMinutes: minutes })}
-                />
-              ))}
-            </View>
-            <Text style={styles.small}>{m.holdHint}</Text>
-          </Card>
+          <TimingSettings
+            m={m}
+            reminderHoursBefore={form.reminderHoursBefore}
+            waitlistHoldMinutes={form.waitlistHoldMinutes}
+            setForm={setForm}
+          />
           <Card>
             <Text style={styles.label}>{m.rebook}</Text>
             <View style={styles.switchRow}>
@@ -302,6 +285,50 @@ export function MessagesScreen(props: {
     </ScrollView>
   );
 }
+
+const TimingSettings = memo(function TimingSettings({
+  m,
+  reminderHoursBefore,
+  waitlistHoldMinutes,
+  setForm,
+}: {
+  m: Dictionary['messages'];
+  reminderHoursBefore: number;
+  waitlistHoldMinutes: number;
+  setForm: React.Dispatch<React.SetStateAction<MessagesForm | null>>;
+}) {
+  return (
+    <>
+      <Card>
+        <Text style={styles.label}>{m.reminder}</Text>
+        <View role="group" accessibilityLabel={m.reminder} style={styles.row}>
+          {REMINDER_HOURS.map((hours) => (
+            <Chip
+              key={hours}
+              label={hours === 0 ? m.reminderNone : fill(m.reminderHours, { n: String(hours) })}
+              on={reminderHoursBefore === hours}
+              onPress={() => setForm((form) => form && { ...form, reminderHoursBefore: hours })}
+            />
+          ))}
+        </View>
+      </Card>
+      <Card>
+        <Text style={styles.label}>{m.hold}</Text>
+        <View role="group" accessibilityLabel={m.hold} style={styles.row}>
+          {HOLD_MINUTES.map((minutes) => (
+            <Chip
+              key={minutes}
+              label={minutes === 0 ? m.holdOff : fill(m.holdMinutes, { n: String(minutes) })}
+              on={waitlistHoldMinutes === minutes}
+              onPress={() => setForm((form) => form && { ...form, waitlistHoldMinutes: minutes })}
+            />
+          ))}
+        </View>
+        <Text style={styles.small}>{m.holdHint}</Text>
+      </Card>
+    </>
+  );
+});
 
 function Chip(props: { label: string; on: boolean; onPress: () => void }) {
   return (
