@@ -2,17 +2,12 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
 import type { DayLocale } from '../day';
+import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { openStatus, openStatusText, salonNow, todayHoursText, type PublicHours } from '../openNow';
-import { colors } from '../ui';
+import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task 366, "Klienci widzą teraz": on today's day screen of the owner or a manager — the same
- * "Otwarte · do 20:00" line clients see in the catalogue and on the booking page, with today's
- * hours for clients. Read again with the day (after a block, a special day or time off). Nothing
- * is shown while online booking is off, while loading, or when the reading fails: it is a hint.
- */
 export function ClientsNowCard(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -20,57 +15,102 @@ export function ClientsNowCard(props: {
   salon: SalonChoice;
   reloads: number;
 }) {
-  const { api, salon, reloads } = props;
-  const c = props.t.clientsNow;
-  const [hours, setHours] = useState<PublicHours | null>(null);
-  // The line follows the clock: it is worked out again every minute.
+  const { api, salon, reloads, t, locale } = props;
+  const c = t.clientsNow;
+  // undefined while reading, null when online booking is switched off.
+  const [hours, setHours] = useState<PublicHours | null>();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let alive = true;
+    setError('');
+    setHours(undefined);
     void (async () => {
       try {
         const location = await api.location(salon.orgId, salon.locationId);
+        if (!alive) return;
         const next = location.onlineBookingEnabled ? await api.publicHours(location.slug) : null;
         if (alive) {
           setHours(next);
           setNow(Date.now());
         }
-      } catch {
-        if (alive) setHours(null);
+      } catch (e) {
+        if (alive) setError(errorText(e, t));
       }
     })();
     return () => {
       alive = false;
     };
-  }, [api, salon, reloads]);
+  }, [api, salon, reloads, attempt, t]);
 
   useEffect(() => {
+    if (!hours) return;
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [hours]);
 
-  if (!hours) return null;
-  const status = openStatus(hours, salonNow(now, hours.timezone));
-  const line = openStatusText(status, c, props.locale);
-  const today = todayHoursText(hours, now);
+  const line = hours
+    ? openStatusText(openStatus(hours, salonNow(now, hours.timezone)), c, locale)
+    : '';
+  const today = hours && expanded ? todayHoursText(hours, now) : '';
   return (
-    <View style={styles.box} testID="clients-now">
-      <Text style={styles.label}>{c.label.toUpperCase()}</Text>
-      <Text style={styles.line} accessibilityLabel={`${c.label}: ${line}`}>
-        <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
-        {line}
-      </Text>
-      <Text style={styles.muted}>{today ? fill(c.today, { hours: today }) : c.closedToday}</Text>
-      <Text style={styles.hint}>{c.hint}</Text>
+    <View testID="clients-now">
+      <Card>
+        <Text style={styles.title} role="heading" aria-level={2}>
+          {c.label}
+        </Text>
+        {error ? (
+          <>
+            <ErrorText>{error}</ErrorText>
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              a11yLabel={`${t.day.refresh}: ${c.label}`}
+              onPress={() => setAttempt((n) => n + 1)}
+            />
+          </>
+        ) : hours === undefined ? (
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={`${c.label}: ${t.loading}`}
+            style={styles.skeleton}
+          />
+        ) : hours === null ? (
+          <Text style={styles.muted}>{t.salon.onlineOff}</Text>
+        ) : (
+          <>
+            <Text style={styles.line} accessibilityLabel={`${c.label}: ${line}`}>
+              {line}
+            </Text>
+            <Button
+              kind="secondary"
+              label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
+              a11yLabel={`${t.navigation.more}: ${c.label}`}
+              expanded={expanded}
+              onPress={() => setExpanded(!expanded)}
+            />
+            {expanded && (
+              <>
+                <Text style={styles.muted}>
+                  {today ? fill(c.today, { hours: today }) : c.closedToday}
+                </Text>
+                <Text style={styles.muted}>{c.hint}</Text>
+              </>
+            )}
+          </>
+        )}
+      </Card>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 4 },
-  label: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
-  line: { color: colors.ink, fontSize: 16, fontWeight: '600' },
-  muted: { color: colors.muted, fontSize: 15 },
-  hint: { color: colors.muted, fontSize: 13 },
+  title: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  line: { fontSize: 16, color: colors.ink },
+  muted: { fontSize: 15, color: colors.muted },
+  skeleton: { height: 16, width: '75%', borderRadius: 4, backgroundColor: colors.soft },
 });
