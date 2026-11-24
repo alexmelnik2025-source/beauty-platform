@@ -6,6 +6,7 @@ import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
 const customer = 'Katarzyna Kowalska';
+const service = 'Strzyżenie';
 const product = 'Odżywka regenerująca do włosów farbowanych';
 const longCode = 'MWMWMWMWMWMWMWMWMWMW';
 const price = 9_876_543;
@@ -53,7 +54,7 @@ async function createVisit(request: APIRequestContext) {
   });
   const base = `${locations}/${location}`;
   const serviceId = await create(`${base}/services`, {
-    name: 'Strzyżenie',
+    name: service,
     durationMinutes: 30,
     priceGrosze: price,
   });
@@ -144,7 +145,7 @@ test('visit section labels, errors and touch targets at 320 px with 130% text', 
             date: visit.today,
             status: 'waiting',
             createdAt: visit.today + 'T06:00:00Z',
-            serviceName: 'Strzyżenie',
+            serviceName: service,
             staffName: null,
             email: 'klient@example.com',
             autoBook: true,
@@ -220,7 +221,10 @@ test('visit section labels, errors and touch targets at 320 px with 130% text', 
     await button(waitlist, w.removeNo).click();
 
     await page.getByRole('button', { name: pl.day.previous, exact: true }).click();
-    await page.getByRole('button', { name: new RegExp(customer) }).click();
+    // The day report inserts the till above the visit and can move the row during a click.
+    await expect(page.getByRole('button', { name: pl.day.tillClose, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: `${customer} · ${service}` }).click();
+    await expect(page.getByRole('button', { name: pl.visit.back, exact: true })).toBeVisible();
     const coupons = page.getByRole('heading', { name: c.title }).locator('..');
     await expect(coupons.getByText(longCode, { exact: true })).toBeVisible();
     await expect(button(coupons, fill(c.removeOne, { code: longCode }))).toBeVisible();
