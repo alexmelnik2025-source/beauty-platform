@@ -36,7 +36,15 @@ async function createSalon(request: APIRequestContext) {
     data: { name: 'Salon BK', addressLine: 'Bema 91', city: 'Warszawa', postalCode: '01-233' },
   });
   await expect(location).toBeOK();
-  const base = new URL(location.url()).pathname + '/' + (await location.json()).id;
+  const salon = await location.json();
+  const base = new URL(location.url()).pathname + '/' + salon.id;
+  // Keep the test salon out of the shared booking catalogue.
+  await expect(
+    await request.patch(base, {
+      headers,
+      data: { version: salon.version, onlineBookingEnabled: false },
+    }),
+  ).toBeOK();
   await expect(
     await request.put(base + '/cancellation-guard', {
       headers,
@@ -230,6 +238,11 @@ test('guard, reviews and salon controls stay accessible at 320 px and 130% text'
     await expectLayout(page);
     await button(pl.navigation.discard).click();
     await expect(online).toBeChecked({ checked: wasOnline });
+    await button(`‹ ${pl.navigation.settings}`).click();
+    await button(s.questions).click();
+    await expect(page.getByLabel(s.askMood, { exact: true })).toHaveCount(1);
+    await expect(page.getByRole('switch', { name: s.askMood })).toBeEnabled();
+    await expectLayout(page);
     await button(`‹ ${pl.navigation.settings}`).click();
     await button(s.country).click();
     const change = button(`${s.choiceChange}: ${s.currency}`);
