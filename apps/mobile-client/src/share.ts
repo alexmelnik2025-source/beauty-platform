@@ -1,3 +1,5 @@
+import { fill } from './i18n';
+
 /**
  * "Poleć salon" (task 151): the client sends a friend the salon's booking link. On a phone the
  * system share sheet opens; in the web preview the browser's share menu, or the link is copied.
@@ -15,7 +17,7 @@ export interface ShareMessage {
 /** The text that goes with the link; {name} and {url} are filled in. */
 export function shareMessage(template: string, name: string, url: string): ShareMessage {
   return {
-    message: template.replace('{name}', name).replace('{url}', url),
+    message: fill(template, { name, url }),
     url,
     title: name,
   };
@@ -82,9 +84,5 @@ export function visitShareMessage(
   },
   url: string,
 ): ShareMessage {
-  let message = template;
-  for (const [key, value] of Object.entries({ ...visit, url })) {
-    message = message.split(`{${key}}`).join(value);
-  }
-  return { message, url, title: visit.salon };
+  return { message: fill(template, { ...visit, url }), url, title: visit.salon };
 }

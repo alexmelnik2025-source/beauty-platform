@@ -1,4 +1,5 @@
 import type { BookingPreset } from './booking';
+import { WEB_URL } from './config';
 
 /**
  * Task Q2 (part 5): a link that opens the app at a salon — from the "Install the app" row on the
@@ -22,30 +23,38 @@ export interface DeepLink {
 }
 
 const SLUG = /^[a-z0-9-]{1,80}$/;
-const ID = /^[0-9a-f-]{36}$/i;
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LANGUAGE = /^[a-z]{2}$/;
 
-/** Schemes with a host before the path; the app's own scheme starts with the path right away. */
-const WITH_HOST = /^(https?|exps?):$/i;
-
-/** The path and query of a link, whatever its scheme (URL in the app may not parse custom schemes). */
 function split(url: string): { path: string[]; query: URLSearchParams } | null {
-  const m = /^([a-z][a-z0-9+.-]*:)\/\/([^?#]*)(\?[^#]*)?/i.exec(url.trim());
-  if (!m) return null;
-  const scheme = m[1] ?? '';
-  let path = (m[2] ?? '').split('/').filter(Boolean).map(safeDecode);
-  if (WITH_HOST.test(scheme)) path = path.slice(1);
-  // Expo Go: exp://host/--/b/salon
-  const marker = path.indexOf('--');
-  if (marker >= 0) path = path.slice(marker + 1);
-  return { path, query: new URLSearchParams(m[3] ?? '') };
-}
-
-function safeDecode(part: string): string {
+  const match = /^([a-z][a-z0-9+.-]*):\/\/([^?#]*)(\?[^#]*)?/i.exec(url.trim());
+  if (!match) return null;
+  const scheme = match[1]?.toLowerCase();
+  const path = (match[2] ?? '').replace(/\/$/, '').split('/');
+  if (scheme === 'http' || scheme === 'https') {
+    const host = path.shift();
+    if (!host) return null;
+    try {
+      const link = new URL(url.trim());
+      const previewOrigin = typeof window === 'undefined' ? undefined : window.location?.origin;
+      if (link.origin !== new URL(WEB_URL).origin && link.origin !== previewOrigin) return null;
+    } catch {
+      return null;
+    }
+  } else if (scheme === 'exp' || scheme === 'exps') {
+    if (!path.shift()) return null;
+    const marker = path.indexOf('--');
+    if (marker >= 0) path.splice(0, marker + 1);
+  } else if (scheme === 'beauty-client') {
+    // Both beauty-client://b/salon and beauty-client:///b/salon name the app route.
+    if (path[0] === '') path.shift();
+  } else {
+    return null;
+  }
   try {
-    return decodeURIComponent(part);
+    return { path: path.map(decodeURIComponent), query: new URLSearchParams(match[3] ?? '') };
   } catch {
-    return part;
+    return null;
   }
 }
 

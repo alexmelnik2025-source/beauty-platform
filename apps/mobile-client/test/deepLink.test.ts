@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parseDeepLink } from '../src/deepLink';
+
+vi.mock('../src/config', () => ({ WEB_URL: 'https://app.example.com' }));
 
 const SERVICE = '0f8fad5b-d9cb-469f-a165-70867728950e';
 const STAFF = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -67,6 +69,35 @@ describe('links that open the app at a salon (task Q2)', () => {
     ]) {
       expect(parseDeepLink(url), String(url)).toBeNull();
     }
+  });
+
+  it.each([
+    'other-app://b/gestalt',
+    'https://other.example/pl/b/gestalt',
+    'https://app.example.com:8443/s/gestalt',
+    'https:///pl/b/gestalt',
+    'https://app.example.com/pl/b/%E0%A4',
+    'https://app.example.com/archive/--/b/gestalt',
+    'beauty-client://b//gestalt',
+  ])('ignores a foreign or malformed salon link: %s', (url) => {
+    expect(parseDeepLink(url)).toBeNull();
+  });
+
+  it('accepts a booking link opened directly on the web preview', () => {
+    vi.stubGlobal('window', { location: new URL('http://localhost:8081/') });
+    try {
+      expect(parseDeepLink('http://localhost:8081/pl/b/gestalt')).toEqual({ slug: 'gestalt' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('drops a malformed service ID while keeping a valid specialist', () => {
+    const badId = 'a'.repeat(36);
+    expect(parseDeepLink(`beauty-client://b/gestalt?service=${badId}&staff=${STAFF}`)).toEqual({
+      slug: 'gestalt',
+      preset: { staffId: STAFF },
+    });
   });
 
   it('drops a service or specialist that is not an id', () => {

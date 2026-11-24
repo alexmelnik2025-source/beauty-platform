@@ -17,6 +17,16 @@ describe('recommending a salon (task 151)', () => {
     });
   });
 
+  it('keeps names and URLs literal when filling the share text', () => {
+    const name = 'Salon $& {url}';
+    const link = url + '?ref=$&';
+    expect(shareMessage('{name} / {url}', name, link)).toEqual({
+      title: name,
+      url: link,
+      message: `${name} / ${link}`,
+    });
+  });
+
   it('every language has the link and the name in the text', () => {
     for (const d of Object.values(DICTIONARIES)) {
       expect(d.salon.shareText).toContain('{name}');
@@ -67,6 +77,20 @@ describe('recommending a salon (task 151)', () => {
 });
 
 describe('"Udostępnij wizytę" (task 411)', () => {
+  it('keeps placeholder-like text inside a service name', () => {
+    const visit = {
+      service: 'Pakiet {salon}',
+      salon: 'Gestalt',
+      staff: '',
+      day: '',
+      time: '',
+      address: '',
+    };
+    expect(visitShareMessage('{service} — {salon}', visit, url).message).toBe(
+      'Pakiet {salon} — Gestalt',
+    );
+  });
+
   it('fills in the visit and copies the whole text when nothing else can share', async () => {
     const content = visitShareMessage(
       'Moja wizyta: {service} u {staff} — {day}, godz. {time}. {salon}, {address}. Dojazd: {url}',
