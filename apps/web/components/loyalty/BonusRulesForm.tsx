@@ -90,6 +90,11 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [staff, setStaff] = useState<{ id: string; displayName: string }[]>([]);
   const [error, setError] = useState('');
+  /**
+   * Task 813 (owner's rule: errors where the action is): a refused save is said under
+   * "Zapisz zasady" (bonus rules) at the bottom of the form, not at its top; the typed rules stay.
+   */
+  const [saveError, setSaveError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   /**
@@ -119,9 +124,9 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
   async function save(e: FormEvent) {
     e.preventDefault();
     setMessage('');
+    setSaveError('');
     const wrong = problemsOf(rows);
     if (wrong.length > 0) {
-      setError('');
       setProblems(wrong);
       const [row, field] = wrong[0]!.replace('!', '').split(':');
       document.getElementById(`bonus-${row}-${field}`)?.focus();
@@ -149,7 +154,7 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
     } catch (err) {
       const wrong = serverProblemsOf(err);
       setProblems(wrong);
-      if (wrong.length === 0) setError(errorText(t, err));
+      if (wrong.length === 0) setSaveError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -157,6 +162,7 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
 
   const set = (index: number, change: Partial<Row>) => {
     setRows(rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
+    setSaveError('');
     // Editing a field takes its error away ("nothing extra" goes with either number).
     const touched = Object.keys(change);
     setProblems((list) =>
@@ -334,10 +340,15 @@ export function BonusRulesForm({ org, base }: { org: string; base: string }) {
             {t.loyalty.bonusAdd}
           </button>
         ) : null}
-        <button className="btn" disabled={busy}>
+        <button
+          className="btn"
+          disabled={busy}
+          aria-describedby={saveError ? 'bonus-save-error' : undefined}
+        >
           {t.loyalty.bonusSave}
         </button>
       </div>
+      <FieldError id="bonus-save-error" text={saveError} />
     </form>
   );
 }

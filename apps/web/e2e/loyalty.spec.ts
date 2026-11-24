@@ -518,7 +518,30 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   for (const day of ['Poniedziałek', 'Wtorek', 'Środa']) {
     await bonusForm.getByLabel(day, { exact: true }).check();
   }
-  await bonusForm.getByRole('button', { name: 'Zapisz zasady' }).click();
+  // Task 813 (owner's rule: errors where the action is): a refused save is said under
+  // "Zapisz zasady", not at the top of the form; the typed rule stays.
+  const bonusUrl = (url: URL) => url.pathname.endsWith('/loyalty/bonus-rules');
+  await page.route(bonusUrl, (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveBonus = bonusForm.getByRole('button', { name: 'Zapisz zasady' });
+  await saveBonus.click();
+  await expect(bonusForm.locator('#bonus-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveBonus).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(bonusForm.getByLabel('Nazwa zasady')).toHaveValue('Spokojne dni ×2');
+  await expect(bonusForm.locator('.alert')).toHaveCount(0);
+  await saveBonus.scrollIntoViewIfNeeded();
+  await shot(page, '813-loyalty-bonus-save-error');
+  await page.unroute(bonusUrl);
+  await saveBonus.click();
+  await expect(bonusForm.locator('#bonus-save-error')).toHaveCount(0);
   await expect(bonusForm.getByText('Zapisano')).toBeVisible();
   await bonusForm.scrollIntoViewIfNeeded();
   await shot(page, '79-owner-loyalty-bonus-rules');
