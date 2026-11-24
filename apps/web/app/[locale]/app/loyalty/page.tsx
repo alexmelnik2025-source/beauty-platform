@@ -117,6 +117,11 @@ export default function LoyaltyPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [rulesMessage, setRulesMessage] = useState('');
+  /**
+   * Task 795 (owner's rule: errors where the action is): a refused "Zapisz punkty za usługi" is said
+   * under that button at the bottom of the list, not at the top of the page.
+   */
+  const [rulesError, setRulesError] = useState('');
   const [busy, setBusy] = useState(false);
   /**
    * Task 693 (owner's rule: errors at the field): a number out of range, a fraction or a wrong
@@ -254,6 +259,7 @@ export default function LoyaltyPage() {
   async function saveRules(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setRulesError('');
     setRulesMessage('');
     const found: Record<string, string> = {};
     for (const s of services) {
@@ -278,7 +284,7 @@ export default function LoyaltyPage() {
       await loadProgram();
       setRulesMessage(t.actions.saved);
     } catch (err) {
-      setError(errorText(t, err));
+      setRulesError(errorText(t, err));
     }
   }
 
@@ -528,6 +534,7 @@ export default function LoyaltyPage() {
                   value={rules[s.id] ?? ''}
                   onChange={(e) => {
                     setRules({ ...rules, [s.id]: e.target.value });
+                    setRulesError('');
                     if (ruleProblems[s.id]) setRuleProblems({ ...ruleProblems, [s.id]: '' });
                   }}
                 />
@@ -542,7 +549,15 @@ export default function LoyaltyPage() {
               </li>
             ))}
           </ul>
-          <button className="btn btn--quiet">{t.loyalty.saveRules}</button>
+          <div>
+            <button
+              className="btn btn--quiet"
+              aria-describedby={rulesError ? 'loyalty-rules-error' : undefined}
+            >
+              {t.loyalty.saveRules}
+            </button>
+            <FieldError id="loyalty-rules-error" text={rulesError} />
+          </div>
         </form>
 
         <section className="section" aria-labelledby="loyalty-history">
