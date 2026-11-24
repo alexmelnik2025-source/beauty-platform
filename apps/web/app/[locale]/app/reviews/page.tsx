@@ -314,7 +314,13 @@ function ReviewReply({
    * and the server's answer about the text, too. Typing takes the error away.
    */
   const [textProblem, setTextProblem] = useState(false);
+  /**
+   * Task 747 (owner's rule: errors where the action is): a refused "Opublikuj odpowiedź" or
+   * "Usuń odpowiedź" is said under that button (red "!" text), not as a box above the buttons.
+   */
+  const [failed, setFailed] = useState<'PUT' | 'DELETE' | null>(null);
   const { busy, lock, unlock } = useSubmitLock();
+  const errorId = `review-${review.id}-reply-send-error`;
 
   async function send(method: 'PUT' | 'DELETE') {
     if (!lock()) return;
@@ -331,6 +337,7 @@ function ReviewReply({
     } catch (err) {
       if (method === 'PUT' && textPathOf(err)) setTextProblem(true);
       else setError(errorText(t, err));
+      setFailed(method);
     } finally {
       unlock();
     }
@@ -363,6 +370,7 @@ function ReviewReply({
             onChange={(e) => {
               setText(e.target.value);
               setTextProblem(false);
+              setError('');
             }}
           />
           <FieldError
@@ -371,9 +379,12 @@ function ReviewReply({
           />
         </label>
         <p className="small muted">{t.reviewsCabinet.replyHint}</p>
-        <ErrorBox>{error}</ErrorBox>
         <div className="review-reply-actions">
-          <button className="btn btn--primary" disabled={busy}>
+          <button
+            className="btn btn--primary"
+            disabled={busy}
+            aria-describedby={error && failed === 'PUT' ? errorId : undefined}
+          >
             {t.reviewsCabinet.replySave}
           </button>
           <button
@@ -389,6 +400,7 @@ function ReviewReply({
             {t.reviewsCabinet.replyCancel}
           </button>
         </div>
+        <FieldError id={errorId} text={failed === 'PUT' ? error : undefined} />
       </form>
     );
   }
@@ -398,7 +410,14 @@ function ReviewReply({
       <SalonReply text={review.reply} />
       {manager ? (
         <div className="review-reply-actions">
-          <button type="button" className="btn btn--quiet" onClick={() => setEditing(true)}>
+          <button
+            type="button"
+            className="btn btn--quiet"
+            onClick={() => {
+              setError('');
+              setEditing(true);
+            }}
+          >
             {review.reply ? t.reviewsCabinet.replyChange : t.reviewsCabinet.reply}
           </button>
           {review.reply ? (
@@ -406,6 +425,7 @@ function ReviewReply({
               type="button"
               className="btn btn--quiet"
               disabled={busy}
+              aria-describedby={error && failed === 'DELETE' ? errorId : undefined}
               onClick={() => void send('DELETE')}
             >
               {t.reviewsCabinet.replyRemove}
@@ -413,7 +433,7 @@ function ReviewReply({
           ) : null}
         </div>
       ) : null}
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id={errorId} text={failed === 'DELETE' ? error : undefined} />
     </>
   );
 }
@@ -423,6 +443,11 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
   const [form, setForm] = useState<ReviewSettings | null>(null);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  /**
+   * Task 747 (owner's rule: errors where the action is): a refused "Zapisz" is said under the
+   * button; the box stays only for settings that failed to load.
+   */
+  const [saveError, setSaveError] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
   useEffect(() => {
@@ -435,7 +460,7 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
 
   async function save(current: ReviewSettings) {
     if (!lock()) return;
-    setError('');
+    setSaveError('');
     setSaved(false);
     try {
       setForm(
@@ -451,7 +476,7 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
       setSaved(true);
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      setSaveError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -471,7 +496,10 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
         <input
           type="checkbox"
           checked={form.enabled}
-          onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+          onChange={(e) => {
+            setForm({ ...form, enabled: e.target.checked });
+            setSaveError('');
+          }}
         />
         <span>{t.reviewsCabinet.enabled}</span>
       </label>
@@ -481,7 +509,10 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
         <select
           value={form.requestHours}
           disabled={!form.enabled}
-          onChange={(e) => setForm({ ...form, requestHours: Number(e.target.value) })}
+          onChange={(e) => {
+            setForm({ ...form, requestHours: Number(e.target.value) });
+            setSaveError('');
+          }}
         >
           {HOURS.map((h) => (
             <option key={h} value={h}>
@@ -490,15 +521,19 @@ function ReviewSettingsForm({ base, onSaved }: { base: string; onSaved: () => vo
           ))}
         </select>
       </label>
-      <ErrorBox>{error}</ErrorBox>
       {saved ? (
         <p className="note" role="status">
           {t.reviewsCabinet.saved}
         </p>
       ) : null}
-      <button className="btn btn--primary" disabled={busy}>
+      <button
+        className="btn btn--primary"
+        disabled={busy}
+        aria-describedby={saveError ? 'review-settings-save-error' : undefined}
+      >
         {t.reviewsCabinet.save}
       </button>
+      <FieldError id="review-settings-save-error" text={saveError} />
     </form>
   );
 }

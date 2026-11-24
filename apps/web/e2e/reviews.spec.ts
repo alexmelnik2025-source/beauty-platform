@@ -290,8 +290,27 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   const settingsForm = cabinet.getByRole('form', { name: 'Ustawienia opinii' });
   await expect(settingsForm.getByLabel('Zbieraj opinie po wizycie')).toBeChecked();
   await settingsForm.getByLabel('Poproś o opinię po').selectOption('3');
-  await settingsForm.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 747 (owner's rule: errors where the action is): a refused "Zapisz" is said under it.
+  await cabinet.route('**/review-settings', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveSettings = settingsForm.getByRole('button', { name: 'Zapisz' });
+  await saveSettings.click();
+  await expect(settingsForm.locator('#review-settings-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveSettings).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(cabinet.locator('.alert')).toHaveCount(0);
+  await shot(cabinet, '747-review-settings-save-error');
+  await cabinet.unrouteAll({ behavior: 'wait' });
+  await saveSettings.click();
   await expect(settingsForm.getByRole('status')).toHaveText('Zapisano.');
+  await expect(settingsForm.locator('#review-settings-save-error')).toHaveCount(0);
   const list = cabinet.getByRole('region', { name: 'Opinie' });
   await expect(list).toContainText('4,7 · opinie: 3');
   await expect(list.locator('.list-row').first()).toContainText('Piotr Zieliński');
@@ -375,7 +394,24 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await replyField.fill('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
   await expect(replyForm.locator('.field-error')).toHaveCount(0);
   await shot(cabinet, '211-cabinet-reply-form');
-  await replyForm.getByRole('button', { name: 'Opublikuj odpowiedź' }).click();
+  // Task 747: a refused "Opublikuj odpowiedź" is said under the buttons, the answer stays typed.
+  await cabinet.route('**/reviews/*/reply', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const publish = replyForm.getByRole('button', { name: 'Opublikuj odpowiedź' });
+  await publish.click();
+  await expect(replyForm.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(publish).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(replyField).toHaveValue('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
+  await expect(cabinet.locator('.alert')).toHaveCount(0);
+  await shot(cabinet, '747-review-reply-error');
+  await cabinet.unrouteAll({ behavior: 'wait' });
+  await publish.click();
   const answer = martaRow.locator('.review-reply');
   await expect(answer).toContainText('Dziękujemy, Marta! Do zobaczenia u Ilyi.');
   await expect(martaRow.getByRole('button', { name: 'Zmień odpowiedź' })).toBeVisible();

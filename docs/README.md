@@ -746,6 +746,13 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## «Opinie»: отказ «Zapisz», «Opublikuj odpowiedź», «Usuń odpowiedź» под кнопкой (задача 747, 24.11.2026)
+
+- В кабинете «Opinie» отказ сервера при сохранении «Ustawienia opinii» — под «Zapisz», при ответе на отзыв — под
+  кнопками «Opublikuj odpowiedź / Anuluj» (текст ответа остаётся), при удалении ответа — под «Usuń odpowiedź» (с «!»),
+  а не рамкой над кнопками. Изменение настроек или текста убирает ошибку. Рамка осталась только для настроек, которые
+  не загрузились. e2e `reviews`, скриншоты `747-review-settings-save-error`, `747-review-reply-error`.
+
 ## «Mój grafik» → «Moje języki»: отказ «Zapisz» под кнопкой (задача 745, 24.11.2026)
 
 - Мастер сохраняет свои языки; отказ сервера (нет связи, «Zbyt wiele prób» и т. п.) — под кнопкой «Zapisz» (с «!»),
