@@ -29,7 +29,6 @@ import {
   placeholders,
   SLOT_STEPS,
   salonChanges,
-  salonForm,
   saveProblem,
   toggleDrink,
   type LegalKey,
@@ -39,8 +38,9 @@ import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget 
 import { SPOKEN, toggleLanguage } from '../profile';
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
-import { SalonReadCache } from './HistoryScreen';
-import { locationCache, useLocationForm } from './MessagesScreen';
+import { SalonDraft, SalonDraftInput, settingsForm, useSalonValue } from './SalonDraft';
+import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
+import { locationCache } from './MessagesScreen';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 
 type SettingsSection =
@@ -63,8 +63,26 @@ const problemByField = {
   coordinates: 'coordinates',
 } as const;
 
-function settingsForm(location: Location) {
-  return { ...salonForm(location), email: location.email ?? '' };
+// Only the request that filled a cache miss owns the pending entry. Leaving the
+// screen before it completes lets the next visit start an independent read.
+function readForScreen<T>(
+  cache: SalonReadCache<T>,
+  salon: SalonChoice,
+  signal: AbortSignal,
+  read: () => Promise<T>,
+) {
+  return cache.read(salon, () => {
+    let abandon: () => void;
+    const result = new Promise<T>((resolve, reject) => {
+      abandon = () => {
+        cache.clear(salon);
+        reject(new Error('Screen closed'));
+      };
+      signal.addEventListener('abort', abandon);
+      read().then(resolve, reject);
+    });
+    return withNetworkTimeout(result).finally(() => signal.removeEventListener('abort', abandon));
+  });
 }
 
 /**
@@ -107,31 +125,60 @@ export function SalonScreen(props: {
   /** Task 337: photos are being sent. */
   const [uploading, setUploading] = useState(false);
 
-  const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
-    api,
-    salon,
-    settingsForm,
-    t,
-    setError,
-  );
+  const lifetime = useScreenLifetime(salon);
+  const [location, setLocation] = useState<Location | null>(null);
+  const [draft, setDraft] = useState<SalonDraft | null>(null);
+  const form = draft?.values;
+  const dirty = useSalonValue(draft, () => draft?.dirty ?? false);
+  // Text inputs subscribe separately. The only other editable control in a
+  // section with text fields is the booking time step.
+  useSalonValue(draft, () => {
+    if (section === 'details' || section === 'legal') return null;
+    if (section === 'rules') return draft?.values.slotStepMinutes;
+    return draft?.values;
+  });
+  const templateRequests = useRef(new Map<LegalKey, object>());
+  useEffect(() => {
+    const pending = templateRequests.current;
+    return () => pending.clear();
+  }, [section, draft]);
+
+  const dictionary = useRef(t);
+  dictionary.current = t;
+  const load = useCallback(async () => {
+    const signal = lifetime.current!.signal;
+    try {
+      const saved = await readForScreen(locationCache, salon, signal, () =>
+        api.location(salon.orgId, salon.locationId),
+      );
+      if (signal.aborted) return;
+      setLocation(saved);
+      setDraft(new SalonDraft(settingsForm(saved)));
+    } catch (e) {
+      if (!signal.aborted) setError(errorText(e, dictionary.current));
+    }
+  }, [api, salon, lifetime]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (section !== 'photos') return;
-    let active = true;
-    photoCache
-      .read(salon, () => api.salonPhotos(salon.orgId, salon.locationId))
-      .then(
-        (list) => {
-          if (active) setPhotos(list);
-        },
-        (e) => {
-          if (active) setError(errorText(e, t));
-        },
-      );
-    return () => {
-      active = false;
-    };
-  }, [api, salon, section, t]);
+    const controller = new AbortController();
+    setPhotos(null);
+    readForScreen(photoCache, salon, controller.signal, () =>
+      api.salonPhotos(salon.orgId, salon.locationId),
+    ).then(
+      (list) => {
+        if (!controller.signal.aborted) setPhotos(list);
+      },
+      (e) => {
+        if (!controller.signal.aborted) setError(errorText(e, dictionary.current));
+      },
+    );
+    return () => controller.abort();
+  }, [api, salon, section]);
 
   async function removePhoto(id: string) {
     const signal = lifetime.current!.signal;
@@ -191,9 +238,6 @@ export function SalonScreen(props: {
     }
   }
 
-  const savedFields = useMemo(() => location && JSON.stringify(settingsForm(location)), [location]);
-  const dirty = location !== null && form !== null && savedFields !== JSON.stringify(form);
-
   const showErrorBySave = dirty && section === 'details';
 
   const goBack = useCallback(() => {
@@ -221,7 +265,7 @@ export function SalonScreen(props: {
 
   function discard() {
     if (!location) return;
-    setForm(settingsForm(location));
+    setDraft(new SalonDraft(settingsForm(location)));
     setError('');
     setInfo('');
     setFieldProblem(null);
@@ -245,27 +289,31 @@ export function SalonScreen(props: {
 
   /** Task 324: the template replaces the text (asked first when something is written). */
   async function insertTemplate(key: LegalKey, confirmed = false) {
-    if (!form) return;
-    if (form[key].trim() && !confirmed) {
+    if (!draft) return;
+    const original = draft.values[key];
+    if (original.trim() && !confirmed) {
       setReplacing(key);
       return;
     }
     const signal = lifetime.current!.signal;
+    const request = {};
+    templateRequests.current.set(key, request);
+    const current = () => !signal.aborted && templateRequests.current.get(key) === request;
     setReplacing(null);
     setError('');
     try {
       const templates = await api.legalTemplates(salon.orgId, salon.locationId);
-      if (signal.aborted) return;
-      setForm((current) => (current ? { ...current, [key]: templates[key] } : current));
+      if (!current() || draft.values[key] !== original) return;
+      draft.change(key, templates[key]);
       setTemplated(true);
     } catch (e) {
-      if (signal.aborted) return;
-      setError(errorText(e, t));
+      if (current()) setError(errorText(e, t));
     }
   }
 
   async function save() {
-    if (!location || !form || saving.current) return;
+    if (!location || !draft || saving.current) return;
+    const form = draft.values;
     setError('');
     setInfo('');
     setFieldProblem(null);
@@ -287,7 +335,7 @@ export function SalonScreen(props: {
     }
     const changes = email === location.email ? checked.changes : { ...checked.changes, email };
     if (Object.keys(changes).length === 0) {
-      setForm(settingsForm(location));
+      setDraft(new SalonDraft(settingsForm(location)));
       setTemplated(false);
       setInfo(s.nothing);
       return;
@@ -305,7 +353,7 @@ export function SalonScreen(props: {
       locationCache.set(salon, saved);
       if (signal.aborted) return;
       setLocation(saved);
-      setForm((current) => (current === form ? settingsForm(saved) : current));
+      setDraft(draft.afterSave(form, saved));
       setTemplated(false);
       setInfo(s.saved);
       if (saved.name !== location.name) onRenamed(saved.name);
@@ -363,10 +411,12 @@ export function SalonScreen(props: {
     },
   ) => {
     const problem = fieldProblem === problemByField[key] ? problems[fieldProblem] : null;
-    return form ? (
+    return draft ? (
       <View style={styles.field}>
         <Text style={styles.label}>{label}</Text>
-        <TextInput
+        <SalonDraftInput
+          draft={draft}
+          field={key}
           ref={problem ? invalidInput : undefined}
           accessibilityLabel={label}
           accessibilityHint={problem ?? options.hint}
@@ -374,15 +424,11 @@ export function SalonScreen(props: {
           aria-describedby={problem ? `salon-error-${key}` : undefined}
           autoCapitalize={key === 'email' ? 'none' : undefined}
           autoCorrect={key === 'email' ? false : undefined}
-          value={form[key]}
           maxLength={options.maxLength}
           keyboardType={options.keyboardType}
           placeholder={options.placeholder}
           placeholderTextColor={colors.placeholder}
-          onChangeText={(value) => {
-            if (problem) setFieldProblem(null);
-            setForm({ ...form, [key]: value });
-          }}
+          onEdited={problem ? () => setFieldProblem(null) : undefined}
           style={[styles.input, problem && styles.invalid]}
         />
         {problem ? (
@@ -397,7 +443,7 @@ export function SalonScreen(props: {
 
   /** Task 320: one question on the last booking step, switched on or off. */
   const question = (key: 'askMood' | 'askDrink' | 'askNote', text: string, label: string) =>
-    form ? (
+    form && draft ? (
       <View style={[styles.switchRow, { marginTop: 10 }]}>
         <Text aria-hidden style={[styles.value, { flex: 1, fontWeight: '400' }]}>
           {text}
@@ -406,7 +452,7 @@ export function SalonScreen(props: {
           style={switchTouchTarget}
           accessibilityLabel={label}
           value={form[key]}
-          onValueChange={(on) => setForm({ ...form, [key]: on })}
+          onValueChange={(on) => draft.change(key, on)}
           trackColor={{ true: colors.accent, false: colors.line }}
         />
       </View>
@@ -473,7 +519,7 @@ export function SalonScreen(props: {
             {info}
           </Text>
         ) : null}
-        {form ? (
+        {draft && form ? (
           selected ? (
             {
               online: () => (
@@ -490,7 +536,7 @@ export function SalonScreen(props: {
                       accessibilityLabel={s.online}
                       value={form.onlineBookingEnabled}
                       onValueChange={(onlineBookingEnabled) =>
-                        setForm({ ...form, onlineBookingEnabled })
+                        draft.change('onlineBookingEnabled', onlineBookingEnabled)
                       }
                       trackColor={{ true: colors.accent, false: colors.line }}
                     />
@@ -511,13 +557,13 @@ export function SalonScreen(props: {
                   {field('email', t.clientCard.email, { keyboardType: 'email-address' })}
                   <View style={styles.field}>
                     <Text style={styles.label}>{s.description}</Text>
-                    <TextInput
+                    <SalonDraftInput
+                      draft={draft}
+                      field="description"
                       accessibilityLabel={s.description}
-                      value={form.description}
                       maxLength={1000}
                       multiline
                       numberOfLines={4}
-                      onChangeText={(description) => setForm({ ...form, description })}
                       style={[styles.input, styles.multiline]}
                     />
                     <Text style={styles.small}>{s.descriptionHint}</Text>
@@ -550,7 +596,7 @@ export function SalonScreen(props: {
                           accessibilityState={{ checked: on }}
                           aria-checked={on}
                           onPress={() =>
-                            setForm({ ...form, languages: toggleLanguage(form.languages, l.code) })
+                            draft.change('languages', toggleLanguage(form.languages, l.code))
                           }
                           style={[styles.chip, on && styles.chipOn]}
                         >
@@ -572,7 +618,7 @@ export function SalonScreen(props: {
                     hint={s.timeZoneHint}
                     value={form.timezone}
                     options={zones}
-                    onChange={(timezone) => setForm({ ...form, timezone })}
+                    onChange={(timezone) => draft.change('timezone', timezone)}
                   />
                   <ChoiceList
                     t={t}
@@ -580,7 +626,7 @@ export function SalonScreen(props: {
                     hint={s.currencyHint}
                     value={form.currency}
                     options={currencies}
-                    onChange={(currency) => setForm({ ...form, currency })}
+                    onChange={(currency) => draft.change('currency', currency)}
                   />
                 </Card>
               ),
@@ -609,7 +655,7 @@ export function SalonScreen(props: {
                           key={minutes}
                           label={fill(s.stepMinutes, { n: String(minutes) })}
                           on={form.slotStepMinutes === minutes}
-                          onPress={() => setForm({ ...form, slotStepMinutes: minutes })}
+                          onPress={() => draft.change('slotStepMinutes', minutes)}
                         />
                       ))}
                     </View>
@@ -636,9 +682,7 @@ export function SalonScreen(props: {
                             key={drink}
                             label={`${DRINK_ICON[drink]} ${t.visit.drink[drink]}`}
                             on={form.drinks.includes(drink)}
-                            onPress={() =>
-                              setForm({ ...form, drinks: toggleDrink(form.drinks, drink) })
-                            }
+                            onPress={() => draft.change('drinks', toggleDrink(form.drinks, drink))}
                           />
                         ))}
                       </View>
@@ -656,13 +700,13 @@ export function SalonScreen(props: {
                     return (
                       <View key={key} style={[styles.field, { marginTop: 10 }]}>
                         <Text style={styles.label}>{label}</Text>
-                        <TextInput
+                        <SalonDraftInput
+                          draft={draft}
+                          field={key}
                           accessibilityLabel={label}
-                          value={form[key]}
                           maxLength={50000}
                           multiline
                           numberOfLines={8}
-                          onChangeText={(value) => setForm({ ...form, [key]: value })}
                           style={[styles.input, styles.legal]}
                         />
                         {replacing === key ? (
@@ -700,13 +744,7 @@ export function SalonScreen(props: {
                       {s.templateNote}
                     </Text>
                   ) : null}
-                  {placeholders(form.bookingTerms, form.privacyPolicy).length > 0 ? (
-                    <Text role="status" style={[styles.note, { marginTop: 10 }]}>
-                      {fill(s.missing, {
-                        list: placeholders(form.bookingTerms, form.privacyPolicy).join(', '),
-                      })}
-                    </Text>
-                  ) : null}
+                  <LegalPlaceholders draft={draft} t={t} />
                 </Card>
               ),
               photos: () => (
@@ -835,6 +873,17 @@ export function SalonScreen(props: {
       ) : null}
     </View>
   );
+}
+
+function LegalPlaceholders({ draft, t }: { draft: SalonDraft; t: Dictionary }) {
+  const missing = useSalonValue(draft, () =>
+    placeholders(draft.values.bookingTerms, draft.values.privacyPolicy).join(', '),
+  );
+  return missing ? (
+    <Text role="status" style={[styles.note, { marginTop: 10 }]}>
+      {fill(t.salon.missing, { list: missing })}
+    </Text>
+  ) : null;
 }
 
 /**
