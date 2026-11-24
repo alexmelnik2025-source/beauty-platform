@@ -17,7 +17,7 @@ export function LanguagePicker({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ alignSelf: 'flex-start', maxWidth: '100%' }}>
+    <View style={styles.picker}>
       <Button
         kind="secondary"
         label={`${codes[locale]} ${open ? '▴' : '▾'}`}
@@ -53,6 +53,7 @@ export function LanguagePicker({
 }
 
 const styles = StyleSheet.create({
+  picker: { alignSelf: 'flex-start', alignItems: 'flex-start', maxWidth: '100%' },
   option: { justifyContent: 'center', alignItems: 'center', padding: 8, borderRadius: 12 },
   selected: { backgroundColor: colors.soft },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink, textAlign: 'center' },

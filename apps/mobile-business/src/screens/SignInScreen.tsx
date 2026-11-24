@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   parseContact,
@@ -91,25 +91,27 @@ export function SignInScreen(props: {
       {!challenge ? (
         <>
           <Text style={styles.text}>{t.signIn.subtitle}</Text>
-          <TextInput
-            accessibilityLabel={t.signIn.contact}
-            aria-invalid={invalid}
-            aria-describedby={error ? 'signin-error' : undefined}
-            placeholder={t.signIn.contact}
-            placeholderTextColor={colors.placeholder}
-            value={input}
-            onChangeText={(value) => {
-              setInput(value);
-              setError(null);
-            }}
-            onSubmitEditing={send}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            inputMode="email"
-            style={[styles.input, invalid && styles.invalid]}
-          />
-          {feedback}
+          <View style={styles.field}>
+            <TextInput
+              accessibilityLabel={t.signIn.contact}
+              aria-invalid={invalid}
+              aria-describedby={error ? 'signin-error' : undefined}
+              placeholder={t.signIn.contact}
+              placeholderTextColor={colors.placeholder}
+              value={input}
+              onChangeText={(value) => {
+                setInput(value);
+                setError(null);
+              }}
+              onSubmitEditing={send}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              inputMode="email"
+              style={[styles.input, invalid && styles.invalid]}
+            />
+            {feedback}
+          </View>
           <Button label={t.signIn.sendCode} onPress={send} busy={busy} disabled={!input.trim()} />
         </>
       ) : (
@@ -117,25 +119,27 @@ export function SignInScreen(props: {
           <Text nativeID="signin-delivery" accessibilityLiveRegion="polite" style={styles.text}>
             {deliveryMessage(challenge, t)}
           </Text>
-          <TextInput
-            accessibilityLabel={t.signIn.code}
-            aria-invalid={invalid}
-            aria-describedby={error ? 'signin-error' : 'signin-delivery'}
-            placeholder="000000"
-            placeholderTextColor={colors.line}
-            value={code}
-            onChangeText={(v) => {
-              setCode(v.replace(/\D/g, '').slice(0, 6));
-              setError(null);
-            }}
-            onSubmitEditing={confirm}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            inputMode="numeric"
-            maxLength={6}
-            style={[styles.input, styles.code, invalid && styles.invalid]}
-          />
-          {feedback}
+          <View style={styles.field}>
+            <TextInput
+              accessibilityLabel={t.signIn.code}
+              aria-invalid={invalid}
+              aria-describedby={error ? 'signin-error' : 'signin-delivery'}
+              placeholder="000000"
+              placeholderTextColor={colors.line}
+              value={code}
+              onChangeText={(v) => {
+                setCode(v.replace(/\D/g, '').slice(0, 6));
+                setError(null);
+              }}
+              onSubmitEditing={confirm}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              inputMode="numeric"
+              maxLength={6}
+              style={[styles.input, styles.code, invalid && styles.invalid]}
+            />
+            {feedback}
+          </View>
           <Button
             label={t.signIn.confirm}
             onPress={confirm}
@@ -169,6 +173,7 @@ const styles = StyleSheet.create({
   screen: { flexGrow: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
+  field: { gap: 4 },
   input: {
     minHeight: 44,
     backgroundColor: colors.card,
