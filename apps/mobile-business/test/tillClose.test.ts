@@ -61,6 +61,24 @@ describe('"Zamknij kasę" (task 232)', () => {
     expect(parseCash(cashInput(15005))).toBe(15005);
   });
 
+  it('reads every counted amount through the API limit, including the last grosz', () => {
+    expect(parseCash('0,29')).toBe(29);
+    expect(parseCash('999999.99')).toBe(99_999_999);
+    expect(parseCash('1 000 000,00')).toBe(100_000_000);
+    expect(parseCash(cashInput(100_000_000))).toBe(100_000_000);
+    expect(parseCash('1000000.01')).toBeNull();
+  });
+
+  it('notices when the only cash payment is undone after closing', () => {
+    expect(changedSinceClose(closed(1, 1, 0))).toBe(true);
+    expect(tillDifference(closed(0, 0).close!)).toEqual({ kind: 'matches' });
+  });
+
+  it('shows only the cash remainder of a visit paid with a voucher and cash', () => {
+    const view = { ...closed(1, 1), visitsVoucherGrosze: 4999 };
+    expect(expectedParts(view)).toEqual({ kind: 'visits', visits: 1 });
+  });
+
   it('writes a difference with its sign (task 235)', () => {
     const zl = (n: number) => `${(n / 100).toFixed(2)} zł`;
     expect(signed(1000, zl)).toBe('+10.00 zł');

@@ -154,6 +154,19 @@ describe('"Zapłać bonem" in the visit card (task 542)', () => {
     expect(visitVoucherLeft(null, 5000)).toBeNull();
   });
 
+  it.each([
+    { paid: 4999, due: 1, input: '0,01' },
+    { paid: 5000, due: 0, input: '' },
+    { paid: 5001, due: 0, input: '' },
+    { paid: 0, due: null, input: '50' },
+  ])(
+    'shows the balance and next payment field after $paid grosze in vouchers',
+    ({ paid, due, input }) => {
+      expect(visitVoucherLeft(5000, paid)).toBe(due);
+      expect(visitVoucherAmount(5000, paid)).toBe(input);
+    },
+  );
+
   it('writes the code as printed on the voucher', () => {
     expect(printedCode('ABCDEFGH')).toBe('ABCD-EFGH');
   });

@@ -31,7 +31,7 @@ export function cashInput(hundredths: number): string {
 /** "150", "150,5", "150.50" → hundredths; null when empty or not an amount. */
 export function parseCash(text: string): number | null {
   const compact = text.replace(/\s/g, '').replace(',', '.');
-  if (!/^\d{1,6}(\.\d{1,2})?$/.test(compact)) return null;
+  if (!/^\d{1,7}(\.\d{1,2})?$/.test(compact)) return null;
   const value = Math.round(Number(compact) * 100);
   return value <= 100_000_000 ? value : null;
 }
