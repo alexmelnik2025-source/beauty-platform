@@ -168,7 +168,7 @@ export function MessagesScreen(props: {
         <>
           <Card>
             <Text style={styles.label}>{m.reminder}</Text>
-            <View style={styles.row}>
+            <View role="group" accessibilityLabel={m.reminder} style={styles.row}>
               {REMINDER_HOURS.map((hours) => (
                 <Chip
                   key={hours}
@@ -181,7 +181,7 @@ export function MessagesScreen(props: {
           </Card>
           <Card>
             <Text style={styles.label}>{m.hold}</Text>
-            <View style={styles.row}>
+            <View role="group" accessibilityLabel={m.hold} style={styles.row}>
               {HOLD_MINUTES.map((minutes) => (
                 <Chip
                   key={minutes}
@@ -196,7 +196,9 @@ export function MessagesScreen(props: {
           <Card>
             <Text style={styles.label}>{m.rebook}</Text>
             <View style={styles.switchRow}>
-              <Text style={[styles.value, { flex: 1 }]}>{m.rebookOn}</Text>
+              <Text aria-hidden style={styles.switchLabel}>
+                {m.rebookOn}
+              </Text>
               <Switch
                 style={switchTouchTarget}
                 accessibilityLabel={m.rebookOn}
@@ -231,7 +233,9 @@ export function MessagesScreen(props: {
                   </View>
                 )}
                 <View style={styles.switchRow}>
-                  <Text style={[styles.value, { flex: 1 }]}>{m.rebookText}</Text>
+                  <Text aria-hidden style={styles.switchLabel}>
+                    {m.rebookText}
+                  </Text>
                   <Switch
                     style={switchTouchTarget}
                     accessibilityLabel={m.rebookText}
@@ -300,11 +304,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   switchRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   label: { fontSize: 13, fontWeight: '700', color: colors.muted },
-  value: { fontSize: 15, color: colors.ink },
+  switchLabel: { flex: 1, minWidth: 0, fontSize: 15, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
   info: { color: '#2e7d32', fontSize: 15 },
   input: {
+    minHeight: 44,
+    minWidth: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
@@ -325,6 +331,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
+    justifyContent: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     backgroundColor: colors.card,

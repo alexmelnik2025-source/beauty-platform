@@ -80,9 +80,13 @@ const HistoryRow = memo(function HistoryRow({
   const title = historyTitle(entry, t);
   const detail = historyLine(entry, t, locale, timeZone);
   return (
-    <View accessible accessibilityLabel={`${title}. ${detail}`} style={styles.row}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.muted}>{detail}</Text>
+    <View accessible role="listitem" accessibilityLabel={`${title}. ${detail}`} style={styles.row}>
+      <Text aria-hidden style={styles.title}>
+        {title}
+      </Text>
+      <Text aria-hidden style={styles.muted}>
+        {detail}
+      </Text>
     </View>
   );
 });
@@ -160,6 +164,8 @@ export function HistoryScreen(props: {
 
   return (
     <FlatList
+      role="list"
+      accessibilityLabel={h.title}
       contentContainerStyle={styles.screen}
       data={page?.items ?? []}
       renderItem={renderItem}
