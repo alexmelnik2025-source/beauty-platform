@@ -745,6 +745,12 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Produkty»: отказ у строки товара и у «CSV stanu magazynowego» (задачи 790–791, 24.11.2026)
+
+- Отказ сервера при «Zapisz», «Sprzedajemy», «Historia» или «Usuń» товара — под строкой этого товара (с «!»),
+  введённое остаётся, ввод в строке убирает ошибку; при «CSV stanu magazynowego» — сразу под этой кнопкой. Раньше —
+  рамкой над списком товаров. e2e `products`, скриншоты `790-product-row-save-error`, `791-stock-csv-error`.
+
 ## «Klienci»: отказ «Pokaż więcej klientów» под этой кнопкой (задача 781, 24.11.2026)
 
 - Отказ сервера при «Pokaż więcej klientów» — под этой кнопкой внизу списка (с «!»), первые 100 остаются; раньше —
