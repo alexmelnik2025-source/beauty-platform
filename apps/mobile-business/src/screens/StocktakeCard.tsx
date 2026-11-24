@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   warn: { color: colors.danger, fontSize: 14, marginTop: 4, textAlign: 'right' },
   invalidInput: { borderColor: colors.danger },
   input: {
-    width: 88,
+    width: 104,
     minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
