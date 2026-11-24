@@ -1,5 +1,5 @@
 import { FormFeedback } from '../FormFeedback';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   ApiError,
@@ -60,7 +60,9 @@ export function VisitScreen(props: {
   onSessionEnded: () => void;
 }) {
   const { api, t, locale, onBack, onSessionEnded } = props;
-  const [visit, setVisit] = useState<ClientAppointment>(props.visit);
+  const [details, setVisit] = useState<ClientAppointment | null>(null);
+  const visit = details ?? props.visit;
+  const visitId = visit.id;
   const [wishFailure, setWishFailure] = useState<FormFailure | null>(null);
   const [invalidWish, setInvalidWish] = useState<WishField>();
   const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
@@ -78,23 +80,45 @@ export function VisitScreen(props: {
   const tRef = useRef(t);
   tRef.current = t;
   // One key per "Yes": a second tap or a retry after a lost answer cancels once.
-  const keyRef = useRef(newRequestKey());
-  const moveKeyRef = useRef(newRequestKey());
+  const keyRef = useRef<string | null>(null);
+  const moveKeyRef = useRef<string | null>(null);
   /** My coupons for this visit (task 10d): loaded while the visit can still be changed. */
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
 
-  const refresh = useCallback(async () => {
+  function visitError(e: unknown) {
+    if (!api.signedIn) return onSessionEnded();
+    setError(errorText(e, tRef.current));
+  }
+
+  async function refresh() {
     try {
-      setVisit(await api.appointment(props.visit.id));
+      setVisit(await api.appointment(visitId));
     } catch (e) {
-      if (!api.signedIn) return onSessionEnded();
-      setError(errorText(e, tRef.current));
+      visitError(e);
     }
-  }, [api, props.visit.id, onSessionEnded]);
+  }
+
+  const openingFailed = useEffectEvent((e: unknown) => {
+    visitError(e);
+    // The list snapshot still supports the secondary cards when revalidation fails.
+    setVisit((current) => current ?? props.visit);
+  });
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let live = true;
+    api.appointment(visitId).then(
+      (fresh) => {
+        // A completed move or cancellation takes precedence over a slow opening request.
+        if (live) setVisit((current) => current ?? fresh);
+      },
+      (e: unknown) => {
+        if (live) openingFailed(e);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, visitId]);
 
   /** Task 22: the phone opens the visit's .ics file and offers to add it to its calendar. */
   async function addToCalendar() {
@@ -140,18 +164,13 @@ export function VisitScreen(props: {
   }, [onBack, moving]);
 
   // Free times of the same specialist, from today in the salon's time zone.
-  const visitId = visit.id;
   const loadSlots = useCallback(
     async (target: ClientAppointment) => {
       setSlots(null);
       setPending(null);
       try {
         const res = await api.freeTimes(target, todayIn(target.timezone));
-        const days = slotsByDay(res.slots, target);
         setSlots(res.slots);
-        setPickedDay((current) =>
-          days.some((d) => d.date === current) ? current : (days[0]?.date ?? ''),
-        );
       } catch (e) {
         setSlots([]);
         setError(errorText(e, tRef.current));
@@ -172,8 +191,8 @@ export function VisitScreen(props: {
     setBusy(true);
     setError('');
     try {
-      setVisit(await api.reschedule(visitId, slot.start, moveKeyRef.current));
-      moveKeyRef.current = newRequestKey();
+      setVisit(await api.reschedule(visitId, slot.start, (moveKeyRef.current ??= newRequestKey())));
+      moveKeyRef.current = null;
       setPending(null);
       setMoving(false);
       setDone(t.visit.moved);
@@ -182,7 +201,7 @@ export function VisitScreen(props: {
       if (!api.signedIn) return onSessionEnded();
       setPending(null);
       setError(errorText(e, t));
-      moveKeyRef.current = newRequestKey();
+      moveKeyRef.current = null;
       if (e instanceof ApiError && e.code === 'TOO_LATE_TO_CHANGE') {
         setMoving(false);
         await refresh();
@@ -195,7 +214,7 @@ export function VisitScreen(props: {
     }
   }
 
-  const couponsOpen = visit.status === 'confirmed' && visit.canChange;
+  const couponsOpen = details?.status === 'confirmed' && details.canChange;
   useEffect(() => {
     if (!couponsOpen) return;
     let live = true;
@@ -231,7 +250,7 @@ export function VisitScreen(props: {
     setBusy(true);
     setError('');
     try {
-      setVisit(await api.cancel(visit.id, keyRef.current));
+      setVisit(await api.cancel(visit.id, (keyRef.current ??= newRequestKey())));
       setAsking(false);
       setDone(t.visit.cancelled);
       props.onChanged();
@@ -239,7 +258,7 @@ export function VisitScreen(props: {
       if (!api.signedIn) return onSessionEnded();
       setAsking(false);
       setError(errorText(e, t));
-      keyRef.current = newRequestKey();
+      keyRef.current = null;
       await refresh();
     } finally {
       setBusy(false);
@@ -275,7 +294,21 @@ export function VisitScreen(props: {
   const again = visit.bookAgain;
   const address = salonAddress(visit.salon);
   const faded = visit.status === 'cancelled' || visit.status === 'expired';
-  const days = slotsByDay(slots ?? [], visit);
+  const days = useMemo(
+    () =>
+      slotsByDay(slots ?? [], { start: visit.start }).map((d) => ({
+        ...d,
+        chip: dayChip(d.date, locale),
+        label: formatDay(d.date, locale),
+      })),
+    [slots, visit.start, locale],
+  );
+  const activeDay = days.find((d) => d.date === pickedDay) ?? days[0];
+  const showReview =
+    details?.status === 'completed' ||
+    (details?.status === 'confirmed' &&
+      !details.awaitingApproval &&
+      Date.parse(details.end) <= Date.now());
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -305,6 +338,131 @@ export function VisitScreen(props: {
         </Text>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+
+      <Card>
+        <Text style={styles.label}>{v.salon}</Text>
+        <Text style={styles.salon}>{visit.salon.name}</Text>
+        {address ? <Text style={styles.muted}>{address}</Text> : null}
+      </Card>
+
+      {actions.cancel ? (
+        <Text style={styles.muted}>
+          {fill(v.changeUntil, {
+            when: formatMoment(visit.changeableUntil, visit.timezone, locale),
+          })}
+        </Text>
+      ) : null}
+      {actions.tooLate ? <Text style={styles.muted}>{v.tooLateHint}</Text> : null}
+
+      {actions.move && !moving && !asking ? <Button label={v.move} onPress={startMoving} /> : null}
+      {actions.move && moving ? (
+        <View style={styles.move}>
+          <Text role="heading" aria-level={2} style={styles.moveTitle}>
+            {v.moveTitle}
+          </Text>
+          <Text style={styles.muted}>{fill(v.moveLead, { staff: visit.staff.displayName })}</Text>
+          {slots === null ? (
+            <Text role="status" style={styles.muted}>
+              {v.loadingSlots}
+            </Text>
+          ) : days.length === 0 ? (
+            <Text style={styles.muted}>{v.noSlots}</Text>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.days}
+              >
+                {days.map((d) => {
+                  const { chip } = d;
+                  const on = d === activeDay;
+                  return (
+                    <Pressable
+                      key={d.date}
+                      accessibilityRole="button"
+                      accessibilityLabel={d.label}
+                      aria-pressed={on}
+                      disabled={busy}
+                      onPress={() => {
+                        setPickedDay(d.date);
+                        setPending(null);
+                      }}
+                      style={[styles.dayChip, on && styles.dayChipOn]}
+                    >
+                      <Text style={[styles.dayWeek, on && styles.onText]}>{chip.weekday}</Text>
+                      <Text style={[styles.dayNumber, on && styles.onText]}>{chip.day}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <View style={styles.times}>
+                {(activeDay?.slots ?? []).map((slot) => (
+                  <Chip
+                    key={slot.start}
+                    label={slot.time}
+                    pressed={pending?.start === slot.start}
+                    onPress={() => {
+                      if (!busy) setPending(slot);
+                    }}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+          {pending ? (
+            <View role="alertdialog" aria-label={v.move} style={[styles.ask, styles.askMove]}>
+              <Text style={styles.askText}>
+                {fill(v.moveAsk, { day: formatDay(pending.date, locale), time: pending.time })}
+              </Text>
+              <View style={styles.askButtons}>
+                <View style={styles.askButton}>
+                  <Button
+                    kind="secondary"
+                    label={v.moveNo}
+                    disabled={busy}
+                    onPress={() => setPending(null)}
+                  />
+                </View>
+                <View style={styles.askButton}>
+                  <Button label={v.moveYes} busy={busy} onPress={() => void move(pending)} />
+                </View>
+              </View>
+            </View>
+          ) : null}
+          <Button
+            kind="link"
+            label={v.moveClose}
+            disabled={busy}
+            onPress={() => {
+              setMoving(false);
+              setPending(null);
+            }}
+          />
+        </View>
+      ) : null}
+
+      {actions.cancel && !asking && !moving ? (
+        <Button kind="secondary" label={v.cancel} onPress={() => setAsking(true)} />
+      ) : null}
+      {actions.cancel && asking ? (
+        <View role="alertdialog" aria-label={v.cancel} style={styles.ask}>
+          <Text style={styles.askText}>{fill(v.cancelAsk, { day, time: visit.time })}</Text>
+          <View style={styles.askButtons}>
+            <View style={styles.askButton}>
+              <Button
+                kind="secondary"
+                label={v.cancelNo}
+                disabled={busy}
+                onPress={() => setAsking(false)}
+              />
+            </View>
+            <View style={styles.askButton}>
+              <Button label={v.cancelYes} busy={busy} onPress={() => void cancel()} />
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       <Card>
         <Row label={v.staff} value={visit.staff.displayName} />
@@ -401,138 +559,13 @@ export function VisitScreen(props: {
       ) : null}
 
       {/* Task Q3: products put aside for the visit, picked up and paid at the salon. */}
-      {visit.status !== 'cancelled' ? (
+      {details && details.status !== 'cancelled' ? (
         <VisitProductsCard api={api} t={t} locale={locale} visitId={visit.id} />
       ) : null}
 
-      <Card>
-        <Text style={styles.label}>{v.salon}</Text>
-        <Text style={styles.salon}>{visit.salon.name}</Text>
-        {address ? <Text style={styles.muted}>{address}</Text> : null}
-      </Card>
-
-      {actions.cancel ? (
-        <Text style={styles.muted}>
-          {fill(v.changeUntil, {
-            when: formatMoment(visit.changeableUntil, visit.timezone, locale),
-          })}
-        </Text>
-      ) : null}
-      {actions.tooLate ? <Text style={styles.muted}>{v.tooLateHint}</Text> : null}
-
-      {actions.move && !moving && !asking ? <Button label={v.move} onPress={startMoving} /> : null}
-      {actions.move && moving ? (
-        <View style={styles.move}>
-          <Text role="heading" aria-level={2} style={styles.moveTitle}>
-            {v.moveTitle}
-          </Text>
-          <Text style={styles.muted}>{fill(v.moveLead, { staff: visit.staff.displayName })}</Text>
-          {slots === null ? (
-            <Text role="status" style={styles.muted}>
-              {v.loadingSlots}
-            </Text>
-          ) : days.length === 0 ? (
-            <Text style={styles.muted}>{v.noSlots}</Text>
-          ) : (
-            <>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.days}
-              >
-                {days.map((d) => {
-                  const chip = dayChip(d.date, locale);
-                  const on = d.date === pickedDay;
-                  return (
-                    <Pressable
-                      key={d.date}
-                      accessibilityRole="button"
-                      accessibilityLabel={formatDay(d.date, locale)}
-                      aria-pressed={on}
-                      disabled={busy}
-                      onPress={() => {
-                        setPickedDay(d.date);
-                        setPending(null);
-                      }}
-                      style={[styles.dayChip, on && styles.dayChipOn]}
-                    >
-                      <Text style={[styles.dayWeek, on && styles.onText]}>{chip.weekday}</Text>
-                      <Text style={[styles.dayNumber, on && styles.onText]}>{chip.day}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-              <View style={styles.times}>
-                {(days.find((d) => d.date === pickedDay)?.slots ?? []).map((slot) => (
-                  <Chip
-                    key={slot.start}
-                    label={slot.time}
-                    pressed={pending?.start === slot.start}
-                    onPress={() => {
-                      if (!busy) setPending(slot);
-                    }}
-                  />
-                ))}
-              </View>
-            </>
-          )}
-          {pending ? (
-            <View role="alertdialog" aria-label={v.move} style={[styles.ask, styles.askMove]}>
-              <Text style={styles.askText}>
-                {fill(v.moveAsk, { day: formatDay(pending.date, locale), time: pending.time })}
-              </Text>
-              <View style={styles.askButtons}>
-                <View style={styles.askButton}>
-                  <Button
-                    kind="secondary"
-                    label={v.moveNo}
-                    disabled={busy}
-                    onPress={() => setPending(null)}
-                  />
-                </View>
-                <View style={styles.askButton}>
-                  <Button label={v.moveYes} busy={busy} onPress={() => void move(pending)} />
-                </View>
-              </View>
-            </View>
-          ) : null}
-          <Button
-            kind="link"
-            label={v.moveClose}
-            disabled={busy}
-            onPress={() => {
-              setMoving(false);
-              setPending(null);
-            }}
-          />
-        </View>
-      ) : null}
-
-      {actions.cancel && !asking && !moving ? (
-        <Button kind="secondary" label={v.cancel} onPress={() => setAsking(true)} />
-      ) : null}
-      {actions.cancel && asking ? (
-        <View role="alertdialog" aria-label={v.cancel} style={styles.ask}>
-          <Text style={styles.askText}>{fill(v.cancelAsk, { day, time: visit.time })}</Text>
-          <View style={styles.askButtons}>
-            <View style={styles.askButton}>
-              <Button
-                kind="secondary"
-                label={v.cancelNo}
-                disabled={busy}
-                onPress={() => setAsking(false)}
-              />
-            </View>
-            <View style={styles.askButton}>
-              <Button label={v.cancelYes} busy={busy} onPress={() => void cancel()} />
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {visit.status === 'completed' || visit.status === 'confirmed' ? (
+      {showReview ? (
         <ReviewCard
-          key={`review-${visit.id}-${visit.status}`}
+          key={visit.id}
           api={api}
           t={t}
           locale={locale}
@@ -542,7 +575,7 @@ export function VisitScreen(props: {
       ) : null}
 
       {/* Task Q3 (screen C): what the specialist used — put aside for the next visit. */}
-      {visit.status === 'completed' ? (
+      {details?.status === 'completed' ? (
         <UsedProductsCard
           key={`used-${visit.id}`}
           api={api}
@@ -554,7 +587,7 @@ export function VisitScreen(props: {
       ) : null}
 
       {/* Task Q3: a cancelled visit had products waiting — book a new time, they come along. */}
-      {visit.status === 'cancelled' && again ? (
+      {details?.status === 'cancelled' && again ? (
         <MoveProductsCard
           key={`move-${visit.id}`}
           api={api}
