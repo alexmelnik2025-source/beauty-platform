@@ -264,6 +264,10 @@ for (const { code, tag, t, name } of locales) {
 
     test('booking photo instructions and upload error fit at 130%', async ({ page }) => {
       await signIn(page, code);
+      // The signed-in visit list stays mounted behind a booking opened by a deep link.
+      await page.route('**/v1/client/appointments?scope=*', (r) =>
+        r.fulfill({ json: { items: [] } }),
+      );
       const id = 'e3aa0100-0000-4000-8000-000000000001';
       const service = {
         id,
