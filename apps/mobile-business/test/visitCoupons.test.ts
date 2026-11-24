@@ -1,7 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { ApiError, BusinessApi, type AppointmentDetail } from '../src/api';
+import { createElement, useState, type ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError, BusinessApi, type AppointmentDetail, type VisitCoupons } from '../src/api';
 import { DICTIONARIES } from '../src/i18n';
 import { couponCode, couponErrorText, hasCoupons, mayUseCoupons } from '../src/visitCoupons';
+
+import { VisitCouponsSection } from '../src/screens/VisitCouponsSection';
+
+vi.mock('react', async (importOriginal) => {
+  const react = await importOriginal<typeof import('react')>();
+  return { ...react, useState: vi.fn(react.useState) };
+});
+vi.mock('react-native', () => vi.importActual('react-native-web'));
+
+const { renderToStaticMarkup } = await vi.importActual<{
+  renderToStaticMarkup(node: ReactNode): string;
+}>('react-dom/server');
 
 const pl = DICTIONARIES.pl;
 type Visit = Pick<AppointmentDetail, 'customer' | 'paidAt' | 'status'>;
@@ -74,9 +87,65 @@ describe('coupons on a visit (task 343)', () => {
   it('reads a code as the client says it', () => {
     expect(couponCode(' k7qm-4xtb ')).toBe('K7QM-4XTB');
     expect(couponCode('k7 qm')).toBe('K7QM');
+    expect(couponCode(' k7Qm -\t4xTb\u00a0')).toBe('K7QM-4XTB');
     expect(couponCode('abc')).toBeNull();
     expect(couponCode('x'.repeat(21))).toBeNull();
   });
+
+  it.each([
+    { percent: 25, discountGrosze: 2250, payable: '67,50' },
+    { percent: 100, discountGrosze: 9001, payable: '0,00' },
+  ])(
+    'shows the payable amount after a $discountGrosze grosz discount on a 90 zł visit',
+    ({ percent, discountGrosze, payable }) => {
+      const coupon = {
+        id: 'k1',
+        code: 'USED',
+        name: 'Rabat',
+        kind: 'discount_percent' as const,
+        version: 2,
+        discountPercent: percent,
+        discountGrosze,
+      };
+      const coupons: VisitCoupons = {
+        tier: null,
+        applied: [coupon],
+        available: [
+          {
+            ...coupon,
+            id: 'k2',
+            code: 'OLD1',
+            expiresAt: '2026-11-01T00:00:00Z',
+            discountGrosze: null,
+            problem: 'EXPIRED',
+          },
+        ],
+      };
+      // Server rendering skips the fetch effect. Supply the coupon list returned by the API.
+      vi.mocked(useState).mockReturnValueOnce([coupons, vi.fn()]);
+      const html = renderToStaticMarkup(
+        createElement(VisitCouponsSection, {
+          api: new BusinessApi('', { get: vi.fn(), set: vi.fn() }),
+          t: pl,
+          locale: 'pl',
+          onVisit: vi.fn(),
+          salon: {
+            orgId: 'o',
+            orgName: 'Org',
+            role: 'owner',
+            locationId: 'l',
+            locationName: 'Salon',
+            city: 'Warsaw',
+            currency: 'PLN',
+          },
+          visit: { id: 'a', version: 3, priceGrosze: 9000, discountGrosze } as AppointmentDetail,
+        }),
+      );
+      expect(html).toContain(`Do zapłaty: ${payable}`);
+      expect(html).toContain(pl.visit.coupons.problem.EXPIRED);
+      expect(html).not.toContain(pl.visit.coupons.useOne.replace('{code}', 'OLD1'));
+    },
+  );
 
   it('says why the server refused', () => {
     const e = pl.visit.coupons.error;
