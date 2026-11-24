@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { BusinessApi, StaffList } from '../api';
+import { ApiError, type BusinessApi, type StaffList } from '../api';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { flags, languagesChanged, SPOKEN, toggleLanguage, type SpokenLanguage } from '../profile';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const profiles = new SalonReadCache<StaffList[number]>();
 
 /**
  * Task 96: "Mój profil" — the signed-in specialist's own profile in this salon: the languages
@@ -23,7 +26,7 @@ export function ProfileScreen(props: {
   const p = t.profile;
   const [me, setMe] = useState<StaffList[number] | null>(null);
   const [chosen, setChosen] = useState<SpokenLanguage[]>([]);
-  const [loadError, setLoadError] = useState('');
+  const [loadError, setLoadError] = useState<{ cause: unknown } | null>(null);
   const [saveError, setSaveError] = useState('');
   const [info, setInfo] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -31,21 +34,36 @@ export function ProfileScreen(props: {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    api
-      .staff(salon.orgId, salon.locationId)
-      .then((list) => {
-        if (!alive) return;
-        const mine = list.find((s) => s.id === staffId) ?? null;
-        setLoadError(mine ? '' : t.error.generic);
+    let active = true;
+    let loadingHere = false;
+    profiles
+      .read(
+        salon,
+        async () => {
+          loadingHere = true;
+          try {
+            const staff = await api.staff(salon.orgId, salon.locationId);
+            const mine = staff.find((member) => member.id === staffId);
+            if (!mine) throw new ApiError(404, 'Profile not found');
+            return mine;
+          } finally {
+            loadingHere = false;
+          }
+        },
+        staffId,
+      )
+      .then((mine) => {
+        if (!active) return;
         setMe(mine);
-        setChosen(mine?.languages ?? []);
+        setChosen(mine.languages);
       })
-      .catch((e: unknown) => alive && setLoadError(errorText(e, t)));
+      .catch((cause: unknown) => active && setLoadError({ cause }));
     return () => {
-      alive = false;
+      active = false;
+      // A fresh visit starts its own read if the previous screen left mid-request.
+      if (loadingHere) profiles.clear(salon);
     };
-  }, [api, salon.orgId, salon.locationId, staffId, t, loadAttempt]);
+  }, [api, salon, staffId, loadAttempt]);
 
   // Android "back" goes to the day.
   useEffect(() => {
@@ -63,7 +81,13 @@ export function ProfileScreen(props: {
     setSaveError('');
     setInfo('');
     try {
-      const saved = await api.setStaffLanguages(salon.orgId, salon.locationId, staffId, chosen);
+      // A profile reopened during the write waits for the server's saved version.
+      profiles.clear(salon);
+      const saved = await profiles.read(
+        salon,
+        () => api.setStaffLanguages(salon.orgId, salon.locationId, staffId, chosen),
+        staffId,
+      );
       setMe(saved);
       setChosen(saved.languages);
       setInfo(p.saved);
@@ -83,11 +107,11 @@ export function ProfileScreen(props: {
       <Heading>{p.title}</Heading>
       {loadError ? (
         <>
-          <ErrorText>{loadError}</ErrorText>
+          <ErrorText>{errorText(loadError.cause, t)}</ErrorText>
           <Button
             label={t.day.refresh}
             onPress={() => {
-              setLoadError('');
+              setLoadError(null);
               setLoadAttempt((attempt) => attempt + 1);
             }}
           />

@@ -175,7 +175,30 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(settings.getByText('Wpisz liczbę od 0 do 100.')).toHaveCount(0);
   await settings.getByLabel('Minimalna kwota wizyty (zł)').fill('50');
   await settings.getByLabel('Maksymalna zniżka na wizytę (%)').fill('50');
-  await settings.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 816 (owner's rule: errors where the action is): a refused save that names no field is
+  // said under "Zapisz", not at the top of the page; the typed settings stay.
+  const programUrl = (url: URL) => url.pathname.endsWith('/loyalty/program');
+  await page.route(programUrl, (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveProgram = settings.getByRole('button', { name: 'Zapisz' });
+  await saveProgram.click();
+  await expect(settings.locator('#loyalty-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveProgram).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(stampsField).toHaveValue('1');
+  await expect(page.locator('.page > .alert')).toHaveCount(0);
+  await saveProgram.scrollIntoViewIfNeeded();
+  await shot(page, '816-loyalty-program-save-error');
+  await page.unroute(programUrl);
+  await saveProgram.click();
+  await expect(settings.locator('#loyalty-save-error')).toHaveCount(0);
   await expect(settings.getByText('Zapisano')).toBeVisible();
   const saved = await json<Program & { minSpendGrosze: number }>(
     await request.get(`${orgBase}/loyalty/program`, { headers: owner }),
@@ -358,7 +381,10 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await settings.getByRole('button', { name: 'Punkty' }).click();
   await expect(settings.getByLabel('za każde (zł)')).toBeVisible();
   await settings.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(page.locator('.alert')).toContainText('Rodzaju programu nie można zmienić');
+  // Task 816: said under "Zapisz" of the settings, not at the top of the page.
+  await expect(settings.locator('#loyalty-save-error')).toContainText(
+    'Rodzaju programu nie można zmienić',
+  );
   expect(
     (await json<Program>(await request.get(`${orgBase}/loyalty/program`, { headers: owner }))).mode,
   ).toBe('stamps');

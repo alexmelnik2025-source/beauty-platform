@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Locale } from '../api';
 import { LANGUAGE_NAMES, LOCALES, type Dictionary } from '../i18n';
@@ -6,7 +6,7 @@ import { Button, colors, Pressable } from '../ui';
 
 const codes: Record<Locale, string> = { pl: 'PL', uk: 'UA', ru: 'RU', en: 'EN' };
 
-export function LanguagePicker({
+export const LanguagePicker = memo(function LanguagePicker({
   t,
   locale,
   onLocale,
@@ -54,7 +54,7 @@ export function LanguagePicker({
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   picker: { alignSelf: 'flex-start', alignItems: 'flex-start', maxWidth: '100%' },

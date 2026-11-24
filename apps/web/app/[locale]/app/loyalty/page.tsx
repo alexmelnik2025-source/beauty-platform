@@ -122,6 +122,13 @@ export default function LoyaltyPage() {
    * under that button at the bottom of the list, not at the top of the page.
    */
   const [rulesError, setRulesError] = useState('');
+  /**
+   * Task 816 (owner's rule: errors where the action is): a refused "Zapisz" of the program
+   * settings that names no field is said under that button, not at the top of the page; the typed
+   * settings stay and any change takes the line away.
+   */
+  const [saveError, setSaveError] = useState('');
+  useEffect(() => setSaveError(''), [form]);
   const [busy, setBusy] = useState(false);
   /**
    * Task 693 (owner's rule: errors at the field): a number out of range, a fraction or a wrong
@@ -222,6 +229,7 @@ export default function LoyaltyPage() {
     }
     setBusy(true);
     setError('');
+    setSaveError('');
     setMessage('');
     try {
       const saved = await api<LoyaltyProgram>(`${org}/loyalty/program`, {
@@ -245,7 +253,7 @@ export default function LoyaltyPage() {
       setMessage(t.actions.saved);
     } catch (err) {
       const fields = programFieldsOf(err);
-      if (fields.length === 0) setError(errorText(t, err));
+      if (fields.length === 0) setSaveError(errorText(t, err));
       else {
         const text = errorText(t, err);
         setProblems(Object.fromEntries(fields.map((field) => [field, text])));
@@ -450,9 +458,14 @@ export default function LoyaltyPage() {
               </span>
             </span>
           </label>
-          <button className="btn" disabled={busy}>
+          <button
+            className="btn"
+            disabled={busy}
+            aria-describedby={saveError ? 'loyalty-save-error' : undefined}
+          >
             {t.common.save}
           </button>
+          <FieldError id="loyalty-save-error" text={saveError} />
         </form>
 
         <section className="section">

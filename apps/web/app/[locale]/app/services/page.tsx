@@ -637,7 +637,14 @@ function ServiceSheet({
   }, [base, service, source]);
   // Specialists who take visits, and anyone inactive still linked (so they can be unticked).
   const choices = staff.filter((m) => m.active || form.staffIds.includes(m.id));
-  const [error, setError] = useState('');
+  /**
+   * Task 821 (owner's rule: errors where the action is): a refused "Zapisz" (that names no field)
+   * or "Usuń" is said under the pressed button at the bottom of the long sheet, not at its top.
+   */
+  const [error, setError] = useState<{ action: 'save' | 'remove'; text: string } | null>(null);
+  const errorOn = (action: 'save' | 'remove') => (error?.action === action ? error.text : '');
+  // Any change to the form takes the refused-action line away.
+  useEffect(() => setError(null), [form]);
   /**
    * Task 661 (owner's rule: errors at the field): the fields with an error shown under them —
    * a name of only spaces or a price above the limit before sending, and the server's answer
@@ -652,12 +659,12 @@ function ServiceSheet({
   // Owner test T3: a service that was never used can be deleted; one with visits only hidden.
   async function remove() {
     if (!service || !lock()) return;
-    setError('');
+    setError(null);
     try {
       await api(`${base}/services/${service.id}`, { method: 'DELETE' });
       onDeleted(service.id);
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ action: 'remove', text: errorText(t, err) });
       setConfirmDelete(false);
       unlock();
     }
@@ -679,13 +686,13 @@ function ServiceSheet({
       before.push('priceGrosze');
     if (!stepped(form.bufferMinutes, 0, 120)) before.push('bufferMinutes');
     if (before.length > 0) {
-      setError('');
+      setError(null);
       setProblems(before);
       e.currentTarget.querySelector<HTMLInputElement>(`#service-field-${before[0]}`)?.focus();
       return;
     }
     if (!lock()) return;
-    setError('');
+    setError(null);
     setProblems([]);
     const body = {
       name: form.name,
@@ -745,7 +752,7 @@ function ServiceSheet({
     } catch (err) {
       const fields = serviceFieldsOf(err);
       setProblems(fields);
-      if (fields.length === 0) setError(errorText(t, err));
+      if (fields.length === 0) setError({ action: 'save', text: errorText(t, err) });
       unlock();
     }
   }
@@ -775,7 +782,6 @@ function ServiceSheet({
       onClose={onClose}
     >
       <form noValidate className="form" onSubmit={(e) => void save(e)}>
-        <ErrorBox>{error}</ErrorBox>
         {copyOf ? (
           <p className="small muted" data-testid="service-copy-hint">
             {t.services.copyHint}
@@ -960,9 +966,14 @@ function ServiceSheet({
             </>
           )}
         </fieldset>
-        <button className="btn btn--block" disabled={busy}>
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={errorOn('save') ? 'service-save-error' : undefined}
+        >
           {t.common.save}
         </button>
+        <FieldError id="service-save-error" text={errorOn('save')} />
         {service ? (
           confirmDelete ? (
             <div className="stack" style={{ gap: 8 }} role="group" aria-label={t.services.delete}>
@@ -999,6 +1010,7 @@ function ServiceSheet({
                 type="button"
                 className="link-btn small"
                 disabled={busy}
+                aria-describedby={errorOn('remove') ? 'service-remove-error' : undefined}
                 onClick={() => setConfirmDelete(true)}
               >
                 {t.services.delete}
@@ -1006,6 +1018,7 @@ function ServiceSheet({
             </div>
           )
         ) : null}
+        <FieldError id="service-remove-error" text={errorOn('remove')} />
       </form>
     </Sheet>
   );

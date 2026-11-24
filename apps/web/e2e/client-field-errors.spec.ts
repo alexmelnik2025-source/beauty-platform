@@ -8,6 +8,7 @@ import { waitForEmail } from './mailpit';
  * already has is said under "Telefon", with "Dodaj mimo to" right below the fields — no line on
  * top of the form. Changing the number takes the error and the offer away.
  * Task 689: an empty name or phone and a wrong e-mail never get the browser's bubble either.
+ * Task 815: a refused save that names no field is said under "Zapisz".
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -109,6 +110,29 @@ test('the new-client card says a blank name and a taken phone at their fields', 
   await expect(card.locator('.alert')).toHaveCount(0);
   await name.fill('Jan Drugi');
   await expect(card.locator('#client-name-error')).toHaveCount(0);
+
+  // Task 815 (owner's rule: errors where the action is): a refused save that names no field is
+  // said under "Zapisz", not at the top of the card; the typed data stays, editing takes it away.
+  const customersUrl = (url: URL) => url.pathname.endsWith('/customers');
+  await page.route(customersUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await save.click();
+  await expect(card.locator('#client-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(save).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(name).toHaveValue('Jan Drugi');
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await save.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'e2e/screenshots/815-client-save-error.png' });
+  await page.unroute(customersUrl);
+  await name.fill('Jan Drugi ');
+  await expect(card.locator('#client-save-error')).toHaveCount(0);
+  await name.fill('Jan Drugi');
 
   // A phone another client has: said under "Telefon", "Dodaj mimo to" below the fields.
   await save.click();

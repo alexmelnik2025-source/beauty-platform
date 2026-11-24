@@ -6,7 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { DASHBOARD_LOCALES, errorText, localeCode, useI18n } from '@/lib/i18n';
 import type { Member, PermissionCatalog, PermissionMap, StaffCategory } from '@/lib/types';
-import { ErrorBox, FieldError, Sheet } from '../ui';
+import { FieldError, Sheet } from '../ui';
 
 export type { Member, PermissionMap };
 export type Category = StaffCategory;
@@ -215,7 +215,13 @@ export function CategorySheet({
   const [perms, setPerms] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(defaults.map((p) => [p.key, category?.permissions[p.key] ?? p.default])),
   );
-  const [error, setError] = useState('');
+  /**
+   * Task 818 (owner's rule: errors where the action is): a refused "Zapisz" (that names no field)
+   * or "Usuń" is said under the pressed button at the bottom of the sheet, not above the form.
+   */
+  const [error, setError] = useState<{ action: 'save' | 'remove'; text: string } | null>(null);
+  const describedBy = (action: 'save' | 'remove') =>
+    error?.action === action ? `category-${action}-error` : undefined;
   const [busy, setBusy] = useState(false);
   /**
    * Task 683 (owner's rule: errors at the field): an empty name used to get the browser's
@@ -227,13 +233,13 @@ export function CategorySheet({
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('');
+      setError(null);
       setNameProblem(t.onboarding.fieldRequired);
       e.currentTarget.querySelector<HTMLInputElement>('input[name="category-name"]')?.focus();
       return;
     }
     setBusy(true);
-    setError('');
+    setError(null);
     setNameProblem('');
     try {
       if (category) {
@@ -250,7 +256,7 @@ export function CategorySheet({
       onSaved();
     } catch (err) {
       if (namePathOf(err)) setNameProblem(errorText(t, err));
-      else setError(errorText(t, err));
+      else setError({ action: 'save', text: errorText(t, err) });
       setBusy(false);
     }
   }
@@ -258,11 +264,12 @@ export function CategorySheet({
   async function remove() {
     if (!category) return;
     setBusy(true);
+    setError(null);
     try {
       await api(`/v1/organizations/${orgId}/staff-categories/${category.id}`, { method: 'DELETE' });
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ action: 'remove', text: errorText(t, err) });
       setBusy(false);
     }
   }
@@ -270,7 +277,6 @@ export function CategorySheet({
   return (
     <Sheet title={category?.name ?? t.team.addCategory} onClose={onClose}>
       <form className="form" noValidate onSubmit={save}>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.team.categoryName}</span>
           <input
@@ -283,6 +289,7 @@ export function CategorySheet({
             onChange={(e) => {
               setName(e.target.value);
               setNameProblem('');
+              setError(null);
             }}
           />
           <FieldError id="category-name-error" text={nameProblem} />
@@ -297,25 +304,37 @@ export function CategorySheet({
               <input
                 type="checkbox"
                 checked={perms[p.key] ?? false}
-                onChange={(e) => setPerms({ ...perms, [p.key]: e.target.checked })}
+                onChange={(e) => {
+                  setPerms({ ...perms, [p.key]: e.target.checked });
+                  setError(null);
+                }}
               />
               <span>{labels[p.key] ?? p.key}</span>
             </label>
           ))}
         </div>
-        <button className="btn btn--block" disabled={busy}>
+        <button className="btn btn--block" disabled={busy} aria-describedby={describedBy('save')}>
           {t.common.save}
         </button>
+        <FieldError
+          id="category-save-error"
+          text={error?.action === 'save' ? error.text : undefined}
+        />
         {category ? (
           <button
             type="button"
             className="btn btn--danger btn--block"
             disabled={busy}
+            aria-describedby={describedBy('remove')}
             onClick={() => void remove()}
           >
             {t.actions.delete}
           </button>
         ) : null}
+        <FieldError
+          id="category-remove-error"
+          text={error?.action === 'remove' ? error.text : undefined}
+        />
       </form>
     </Sheet>
   );
@@ -434,9 +453,10 @@ export function InviteSheet({
     }
   }
 
-  /** Editing a field takes its error away. */
+  /** Editing a field takes its error away (and the refused-send line under "Zaproś"). */
   const edit = (field: InviteField, change: Partial<typeof form>) => {
     setForm({ ...form, ...change });
+    setError('');
     if (problem?.field === field) setProblem(null);
   };
   const invalid = (field: InviteField) => ({
@@ -454,7 +474,6 @@ export function InviteSheet({
   return (
     <Sheet title={t.team.inviteTitle} onClose={onClose}>
       <form noValidate className="form" onSubmit={send}>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.team.inviteEmail}</span>
           <input
@@ -556,9 +575,16 @@ export function InviteSheet({
             ))}
           </select>
         </label>
-        <button className="btn btn--block" disabled={busy}>
+        {/* Task 819 (owner's rule: errors where the action is): a refused "Zaproś" that names no
+            field is said under this button, not above the form; the typed data stays. */}
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error ? 'invite-send-error' : undefined}
+        >
           {t.team.invite}
         </button>
+        <FieldError id="invite-send-error" text={error} />
       </form>
     </Sheet>
   );

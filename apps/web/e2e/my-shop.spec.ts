@@ -244,7 +244,31 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await addForm.locator('#shop-add-name').fill('Wosk matowy');
   await addForm.locator('#shop-add-price').fill('39,90');
   await addForm.getByLabel(/Sztuk w magazynie/).fill('10');
-  await addForm.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 820 (owner's rule: errors where the action is): a refused add is said under "Zapisz",
+  // not at the top of the list; the typed product stays and editing a field takes it away.
+  const productsUrl = (url: URL) => url.pathname.endsWith('/products');
+  await page.route(productsUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveAdd = addForm.getByRole('button', { name: 'Zapisz' });
+  await saveAdd.click();
+  await expect(addForm.locator('#shop-add-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveAdd).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(addForm.locator('#shop-add-name')).toHaveValue('Wosk matowy');
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await shot(page, '820-shop-add-save-error');
+  await page.unroute(productsUrl);
+  await addForm.locator('#shop-add-stock').fill('10 ');
+  await expect(addForm.locator('#shop-add-save-error')).toHaveCount(0);
+  await addForm.locator('#shop-add-stock').fill('10');
+  await saveAdd.click();
   await expect(page.getByText('Pokazane klientom: 2 z 2 produktów.')).toBeVisible();
   await expect(addForm).toHaveCount(0);
   await expect(page.getByText('Wosk matowy')).toBeVisible();
