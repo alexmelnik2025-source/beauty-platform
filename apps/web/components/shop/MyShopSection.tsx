@@ -70,6 +70,8 @@ export function MyShopSection({ base }: { base: string }) {
   const [stock, setStock] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /** Task 792: a refusal of an open product row, said at its bottom. */
+  const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
   /**
    * Task 696 (owner's rule: errors at the field): an empty name or price, a wrong price or stock
    * of the quick "Dodaj produkt" form are said under each field, not as one line above the list.
@@ -98,13 +100,19 @@ export function MyShopSection({ base }: { base: string }) {
     load().catch((e: unknown) => setError(errorText(t, e)));
   }, [load, t]);
 
-  const run = async (action: () => Promise<unknown>) => {
+  /**
+   * Task 792 (owner's rule: errors where the action is): with `rowId`, a refusal is said at the
+   * bottom of that product's open row, not at the top of the list.
+   */
+  const run = async (action: () => Promise<unknown>, rowId?: string) => {
     setBusy(true);
     setError('');
+    setRowError(null);
     try {
       await action();
     } catch (e) {
-      setError(errorText(t, e));
+      if (rowId) setRowError({ id: rowId, text: errorText(t, e) });
+      else setError(errorText(t, e));
     } finally {
       // Also after an error: the switches go back to what the server has.
       await load().catch(() => undefined);
@@ -115,18 +123,18 @@ export function MyShopSection({ base }: { base: string }) {
   /** The switches flip at once (the list is reloaded after the server answered). */
   const patch = (id: string, body: Partial<Product>) => {
     setProducts((list) => list && list.map((p) => (p.id === id ? { ...p, ...body } : p)));
-    return run(() => api(`${base}/products/${id}`, { method: 'PATCH', body }));
+    return run(() => api(`${base}/products/${id}`, { method: 'PATCH', body }), id);
   };
 
-  const setPhoto = (cardId: string, file: File | undefined) =>
+  const setPhoto = (rowId: string, cardId: string, file: File | undefined) =>
     file
       ? run(async () => {
           const blob = await shrinkPhoto(file, STAFF_PHOTO_SIDE);
           await api(`${base}/shop/catalog/${cardId}/photo`, { method: 'PUT', file: blob });
-        })
+        }, rowId)
       : undefined;
 
-  const search = async (q: string) => {
+  const search = async (q: string, rowId: string) => {
     setQuery(q);
     if (q.trim().length < 2) {
       setFound(null);
@@ -135,8 +143,9 @@ export function MyShopSection({ base }: { base: string }) {
     try {
       const res = await api<CatalogSearch>(`${base}/shop/catalog`, { query: { q: q.trim() } });
       setFound(res.products);
+      setRowError(null);
     } catch (e) {
-      setError(errorText(t, e));
+      setRowError({ id: rowId, text: errorText(t, e) });
     }
   };
 
@@ -144,7 +153,7 @@ export function MyShopSection({ base }: { base: string }) {
     setPicking(product.id);
     setFound(null);
     setNewCard({ brand: '', ean: product.barcode ?? '', category: 'other' });
-    void search(product.name);
+    void search(product.name, product.id);
   };
 
   const makeCard = (product: Product) =>
@@ -164,7 +173,7 @@ export function MyShopSection({ base }: { base: string }) {
         body: { catalogProductId: card.id },
       });
       setPicking(null);
-    });
+    }, product.id);
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
@@ -418,6 +427,9 @@ export function MyShopSection({ base }: { base: string }) {
                           type="checkbox"
                           checked={x.inSalonShop}
                           disabled={busy}
+                          aria-describedby={
+                            rowError?.id === x.id ? `shop-product-${x.id}-error` : undefined
+                          }
                           onChange={(e) =>
                             void patch(x.id, {
                               inSalonShop: e.target.checked,
@@ -432,6 +444,9 @@ export function MyShopSection({ base }: { base: string }) {
                           type="checkbox"
                           checked={x.inMarketplace}
                           disabled={busy || !canMarket}
+                          aria-describedby={
+                            rowError?.id === x.id ? `shop-product-${x.id}-error` : undefined
+                          }
                           onChange={(e) => void patch(x.id, { inMarketplace: e.target.checked })}
                         />
                         <span>{s.inMarketplace}</span>
@@ -463,7 +478,7 @@ export function MyShopSection({ base }: { base: string }) {
                                 className="visually-hidden"
                                 disabled={busy}
                                 aria-label={fill(s.photoFor, { name: card.name })}
-                                onChange={(e) => void setPhoto(card.id, e.target.files?.[0])}
+                                onChange={(e) => void setPhoto(x.id, card.id, e.target.files?.[0])}
                               />
                             </label>
                           ) : null}
@@ -473,10 +488,12 @@ export function MyShopSection({ base }: { base: string }) {
                               className="link-btn small"
                               disabled={busy}
                               onClick={() =>
-                                void run(() =>
-                                  api(`${base}/shop/catalog/${card.id}/photo`, {
-                                    method: 'DELETE',
-                                  }),
+                                void run(
+                                  () =>
+                                    api(`${base}/shop/catalog/${card.id}/photo`, {
+                                      method: 'DELETE',
+                                    }),
+                                  x.id,
                                 )
                               }
                             >
@@ -528,7 +545,7 @@ export function MyShopSection({ base }: { base: string }) {
                               type="search"
                               value={query}
                               autoFocus
-                              onChange={(e) => void search(e.target.value)}
+                              onChange={(e) => void search(e.target.value, x.id)}
                             />
                           </label>
                           {found && found.length > 0 ? (
@@ -558,7 +575,7 @@ export function MyShopSection({ base }: { base: string }) {
                                           body: { catalogProductId: c.id },
                                         });
                                         setPicking(null);
-                                      })
+                                      }, x.id)
                                     }
                                   >
                                     {s.choose}
@@ -616,6 +633,10 @@ export function MyShopSection({ base }: { base: string }) {
                           </div>
                         </div>
                       ) : null}
+                      <FieldError
+                        id={`shop-product-${x.id}-error`}
+                        text={rowError?.id === x.id ? rowError.text : ''}
+                      />
                     </div>
                   ) : null}
                 </li>
