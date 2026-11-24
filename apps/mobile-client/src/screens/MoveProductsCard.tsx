@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, VisitProducts } from '../api';
 import type { BookingPreset } from '../booking';
+import { errorText } from '../errors';
 import { formatPrice } from '../format';
 import type { Dictionary } from '../i18n';
-import { Button, colors } from '../ui';
+import { Button, colors, ErrorText } from '../ui';
+import { withNetworkTimeout } from '../withNetworkTimeout';
 
 /**
  * Task Q3 in the app: "Przenieść produkty na nowy termin?" — the visit was cancelled while
@@ -27,12 +29,26 @@ export function MoveProductsCard(props: {
   const s = t.visitProducts;
   const [data, setData] = useState<VisitProducts | null>(null);
 
+  const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
-    api
-      .visitProducts(visitId)
-      .then(setData)
-      .catch(() => setData(null));
-  }, [api, visitId]);
+    let live = true;
+    withNetworkTimeout(api.visitProducts(visitId)).then(
+      (result) => {
+        if (live) {
+          setData(result);
+          setFailure(null);
+        }
+      },
+      (cause: unknown) => {
+        if (live) setFailure({ cause });
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, visitId, attempt]);
 
   const waiting = (data?.reservations ?? []).filter(
     (r) => r.status === 'reserved' && r.productId !== null,
@@ -42,12 +58,28 @@ export function MoveProductsCard(props: {
   useEffect(() => {
     onShown?.(shown);
   }, [onShown, shown]);
-  if (!data) return null;
+  const feedback = failure ? (
+    <View>
+      <ErrorText>{errorText(failure.cause, t)}</ErrorText>
+      <Button
+        kind="secondary"
+        label={t.retry}
+        onPress={() => {
+          setFailure(null);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    </View>
+  ) : null;
+  if (!data) return feedback;
   if (!shown) {
     return (
-      <Text role="status" aria-live="polite" style={styles.muted}>
-        {`${s.title}: 0`}
-      </Text>
+      <>
+        {feedback}
+        <Text role="status" aria-live="polite" style={styles.muted}>
+          {`${s.title}: 0`}
+        </Text>
+      </>
     );
   }
   const productIds = Array.from(new Set(waiting.map((r) => r.productId as string)));
@@ -63,6 +95,7 @@ export function MoveProductsCard(props: {
           <Text style={styles.price}>{formatPrice(r.totalGrosze, data.currency, locale)}</Text>
         </View>
       ))}
+      {feedback}
       <Text style={styles.muted}>{s.moveLead}</Text>
       <Button
         label={s.moveBook}
