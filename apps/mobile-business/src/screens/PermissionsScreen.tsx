@@ -487,6 +487,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chip: {
+    maxWidth: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
@@ -495,8 +498,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  chipText: { fontSize: 15, color: colors.ink },
+  chipText: { maxWidth: '100%', textAlign: 'center', fontSize: 15, color: colors.ink },
   seg: {
+    maxWidth: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 8,
@@ -504,7 +510,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: colors.card,
   },
-  segText: { fontSize: 14, color: colors.ink },
+  segText: { maxWidth: '100%', textAlign: 'center', fontSize: 14, color: colors.ink },
   check: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   box: {
     width: 24,
