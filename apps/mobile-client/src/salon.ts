@@ -214,5 +214,7 @@ export const NEARBY_KM = 30;
 
 /** Task 401: the neighbours worth showing — with a place on the map, within 30 km. */
 export function nearbyOnly<T extends Pick<DirectorySalon, 'distanceKm'>>(salons: T[]): T[] {
-  return salons.filter((s) => s.distanceKm !== null && s.distanceKm <= NEARBY_KM);
+  return salons.filter(
+    (s) => typeof s?.distanceKm === 'number' && s.distanceKm >= 0 && s.distanceKm <= NEARBY_KM,
+  );
 }

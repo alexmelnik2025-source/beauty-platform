@@ -33,6 +33,14 @@ describe('format', () => {
     expect(formatPrice(50000, 'TRY', 'pl').replace(/\s/g, ' ')).toBe('500,00 TRY');
   });
 
+  it.each([
+    [0, '0,00 zł'],
+    [1, '0,01 zł'],
+    [2_147_483_647, '21 474 836,47 zł'],
+  ] as const)('keeps every grosz of %i', (grosze, expected) => {
+    expect(formatPrice(grosze, 'PLN', 'pl').replace(/\s/g, ' ')).toBe(expected);
+  });
+
   it('address from the parts the salon filled in', () => {
     const salon = {
       name: 'Gestalt',
@@ -66,6 +74,17 @@ describe('visit card', () => {
     const text = formatMoment('2026-11-10T13:30:00.000Z', 'Europe/Warsaw', 'pl');
     expect(text).toContain('10 listopada');
     expect(text).toContain('14:30');
+  });
+
+  it.each([
+    ['2026-03-29T00:59:00Z', '29 marca', '01:59'],
+    ['2026-03-29T01:00:00Z', '29 marca', '03:00'],
+    ['2026-10-25T00:59:00Z', '25 października', '02:59'],
+    ['2026-10-25T01:00:00Z', '25 października', '02:00'],
+  ])('formats %s across the Warsaw clock change', (instant, date, time) => {
+    const text = formatMoment(instant, 'Europe/Warsaw', 'pl');
+    expect(text).toContain(date);
+    expect(text).toContain(time);
   });
 
   it('cancel only while the salon allows it; after the deadline — call the salon', () => {
@@ -107,6 +126,37 @@ describe('change time', () => {
     // The only free time of a day is the visit's own: that day is not offered.
     expect(slotsByDay([slots[0]!], { start: slots[0]!.start })).toEqual([]);
     expect(slotsByDay([])).toEqual([]);
+  });
+
+  it('keeps the other occurrence of the repeated Warsaw hour available to book', () => {
+    const first = slot('2026-10-25', '02:30', '2026-10-25T02:30:00+02:00');
+    const second = slot('2026-10-25', '02:30', '2026-10-25T02:30:00+01:00');
+    expect(slotsByDay([first, second], { start: '2026-10-25T00:30:00Z' })).toEqual([
+      { date: second.date, slots: [second] },
+    ]);
+    expect(nearestByStaff([second, first]).get('k1')).toBe(first);
+  });
+
+  it('ignores damaged availability entries and keeps valid times bookable', () => {
+    const good = slot('2026-03-29', '03:00', '2026-03-29T01:00:00Z');
+    const damaged = [
+      null,
+      { ...good, start: 'broken' },
+      { ...good, date: '2026-02-30' },
+      { ...good, time: '25:00' },
+      { ...good, time: ['03:00'] },
+      { ...good, staffIds: null },
+      { ...good, staffIds: [] },
+    ] as unknown as Slot[];
+    expect(slotsByDay([...damaged, good])).toEqual([{ date: good.date, slots: [good] }]);
+    expect(nearestByStaff([...damaged, good])).toEqual(
+      new Map([
+        [ANY_STAFF, good],
+        ['k1', good],
+      ]),
+    );
+    expect(slotsByDay(null as unknown as Slot[])).toEqual([]);
+    expect(nearestByStaff(null as unknown as Slot[]).size).toBe(0);
   });
 
   it('day chips: short weekday and the day of the month, in the app language', () => {
@@ -181,6 +231,24 @@ describe('"Twoje wizyty" (task 293)', () => {
     expect(lines.visits).toBe('Odbyte wizyty: 3 · w salonach: 2 · od 9 lutego 2027');
     expect(lines.spent).toMatch(/^Zapłacono łącznie: 180,00\s?zł \+ 25,00\s?€$/);
   });
+
+  it.each([
+    ['pl', 'Odbyte wizyty', 'w salonach'],
+    ['uk', 'Візитів, що відбулися', 'салонів'],
+    ['ru', 'Состоявшихся визитов', 'салонов'],
+  ] as const)(
+    'formats visit and salon counts with the existing %s labels',
+    (locale, visits, salons) => {
+      for (const n of [0, 1, 2, 5, 12, 21, 22]) {
+        const summary = { completed: n, salons: n, firstVisitAt: null, spent: [] };
+        const expected = n > 1 ? `${visits}: ${n} · ${salons}: ${n}` : `${visits}: ${n}`;
+        expect(visitSummaryLines(summary, DICTIONARIES[locale].visits, locale)).toEqual({
+          visits: expected,
+          spent: null,
+        });
+      }
+    },
+  );
 
   it('one salon and nothing paid: no salon count, no total', () => {
     const lines = visitSummaryLines(

@@ -14,6 +14,7 @@ import {
   speakingStaff,
   staffFor,
 } from '../src/booking';
+import { formatPrice } from '../src/format';
 import { dialForTimeZone, normalizePhone } from '../src/phone';
 import { DICTIONARIES, fill, LOCALES } from '../src/i18n';
 
@@ -141,6 +142,17 @@ describe('booking steps', () => {
     );
   });
 
+  it.each([
+    ['2026-03-29T01:58:00+01:00', '2026-03-29T03:03:00+02:00'],
+    ['2026-10-25T02:58:00+02:00', '2026-10-25T02:03:00+01:00'],
+  ])('counts elapsed minutes across a Warsaw clock change', (start, expiry) => {
+    expect(countdown(expiry, Date.parse(start))).toBe('5:00');
+  });
+
+  it.each(['', 'broken'])('shows no time remaining for an invalid expiry', (expiry) => {
+    expect(countdown(expiry, 0)).toBe('0:00');
+  });
+
   it('texts with placeholders are in every language', () => {
     for (const locale of LOCALES) {
       const b = DICTIONARIES[locale].book;
@@ -151,6 +163,27 @@ describe('booking steps', () => {
 });
 
 describe('ClientApi booking', () => {
+  it('shows the list and final prices returned for a 20% happy-hour hold', async () => {
+    const api = new ClientApi(
+      'https://api.test',
+      { get: async () => null, set: async () => {} },
+      async () =>
+        Response.json({ ...hold, listPriceGrosze: 9999, happyHourPercent: 20, priceGrosze: 7999 }),
+    );
+    const offer = await api.hold(
+      'gestalt',
+      { serviceId: 'cut', start: hold.start },
+      'key-12345678',
+    );
+    expect(offer.happyHourPercent).toBe(20);
+    expect(formatPrice(offer.listPriceGrosze!, offer.currency, 'pl').replace(/\s/g, ' ')).toBe(
+      '99,99 zł',
+    );
+    expect(formatPrice(offer.priceGrosze, offer.currency, 'pl').replace(/\s/g, ' ')).toBe(
+      '79,99 zł',
+    );
+  });
+
   it('holds, sends the code and confirms without a session, once per key', async () => {
     const calls: {
       method?: string;
