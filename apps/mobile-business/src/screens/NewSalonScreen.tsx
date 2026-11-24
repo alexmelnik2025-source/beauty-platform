@@ -37,6 +37,7 @@ export function NewSalonScreen(props: {
   const [problem, setProblem] = useState<NewSalonProblem | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const creating = useRef(false);
   const [busy, setBusy] = useState(false);
   const poland = regionForTimeZone(form.timezone) === 'PL';
 
@@ -54,12 +55,14 @@ export function NewSalonScreen(props: {
   }
 
   async function create() {
+    if (creating.current) return;
     setError('');
     const bodies = newSalonBodies(form, locale);
     if ('problem' in bodies) {
       showProblem(bodies.problem);
       return;
     }
+    creating.current = true;
     setBusy(true);
     setProblem(null);
     let orgId = organizationId;
@@ -72,6 +75,7 @@ export function NewSalonScreen(props: {
       await props.api.createLocation(orgId, bodies.location);
       props.onCreated();
     } catch (e) {
+      creating.current = false;
       setBusy(false);
       const path = e instanceof ApiError && e.code === 'VALIDATION_ERROR' && e.details[0]?.path;
       if (path === 'name') showProblem(orgId ? 'locationName' : 'orgName');
@@ -146,7 +150,7 @@ export function NewSalonScreen(props: {
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <Button kind="link" label={t.salon.back} onPress={props.onBack} />
+      <Button kind="link" label={t.salon.back} disabled={busy} onPress={props.onBack} />
       <Heading>{n.title}</Heading>
       <Text style={styles.muted}>{n.lead}</Text>
       <Card>
