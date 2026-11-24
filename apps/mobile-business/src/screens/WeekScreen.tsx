@@ -36,6 +36,7 @@ export function WeekScreen(props: {
   const load = useCallback(async () => {
     const request = ++latest.current;
     setLoading(true);
+    setError('');
     try {
       const calendar = await api.calendarRange(
         salon.orgId,
@@ -45,7 +46,6 @@ export function WeekScreen(props: {
       );
       if (request !== latest.current) return;
       setDays({ from, list: weekSummary(calendar, from) });
-      setError('');
     } catch (e) {
       if (request === latest.current) setError(errorText(e, t));
     } finally {
@@ -102,7 +102,12 @@ export function WeekScreen(props: {
           onPress={() => setFrom(addDays(from, 7))}
         />
       </View>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error ? (
+        <>
+          <ErrorText>{error}</ErrorText>
+          <Button kind="secondary" label={t.day.refresh} onPress={() => void load()} />
+        </>
+      ) : null}
       {shown ? (
         <>
           <Text style={styles.section}>{fill(w.total, { n: String(total) })}</Text>
@@ -142,7 +147,13 @@ export function WeekScreen(props: {
 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  top: {
+    flexWrap: 'wrap',
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },

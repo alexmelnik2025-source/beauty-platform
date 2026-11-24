@@ -63,6 +63,7 @@ export function VisitScreen(props: {
   /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
   const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
   // Task Q3 (screen D): a product handed over is a new sale — "Produkty" reloads.
   const [salesKey, setSalesKey] = useState(0);
@@ -77,6 +78,8 @@ export function VisitScreen(props: {
   const [times, setTimes] = useState<{ time: string; start: string }[] | null>(null);
   const [ask, setAsk] = useState<{ time: string; start: string } | null>(null);
   const [reason, setReason] = useState('');
+  const [reasonSubmitted, setReasonSubmitted] = useState(false);
+  const badReason = reasonSubmitted && !cancelReason(reason);
   const [askCancel, setAskCancel] = useState(false);
   const [notice, setNotice] = useState('');
   const today = todayIn(props.timeZone);
@@ -110,9 +113,11 @@ export function VisitScreen(props: {
 
   async function run(
     action: (v: AppointmentDetail) => Promise<AppointmentDetail>,
+    reportError = setError,
   ): Promise<boolean> {
     if (!visit) return false;
     setBusy(true);
+    setFormError('');
     setError('');
     setNotice('');
     try {
@@ -125,7 +130,7 @@ export function VisitScreen(props: {
         await load();
       } else {
         const kind = createProblem(e);
-        setError(kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind]);
+        reportError(kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind]);
       }
       return false;
     } finally {
@@ -175,6 +180,11 @@ export function VisitScreen(props: {
   }
 
   const actions = visitActions(visit, props.canChange);
+  const badPrice =
+    visit.priceGrosze !== null &&
+    (!Number.isSafeInteger(visit.priceGrosze) ||
+      visit.priceGrosze < 0 ||
+      visit.priceGrosze > 10_000_000);
   const phone = visit.customer?.phone ?? null;
   const setStatus = (status: 'completed' | 'no_show') =>
     run((a) => api.setStatus(salon.orgId, salon.locationId, a.id, a.version, status));
@@ -183,7 +193,7 @@ export function VisitScreen(props: {
     run((a) => api.setPaid(salon.orgId, salon.locationId, a.id, a.version, paid, method));
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>{back}</View>
       <Heading>
         {visit.time}–{timeIn(visit.end, props.timeZone)}
@@ -263,9 +273,15 @@ export function VisitScreen(props: {
         {visit.priceGrosze !== null ? (
           <>
             <Text style={styles.label}>{v.price}</Text>
-            <Text style={styles.value}>
-              {formatPrice(visit.priceGrosze, salon.currency, props.locale)}
-            </Text>
+            {badPrice ? (
+              <View style={styles.invalidPrice}>
+                <ErrorText>! {t.loyalty.problem.cost}</ErrorText>
+              </View>
+            ) : (
+              <Text style={styles.value}>
+                {formatPrice(visit.priceGrosze, salon.currency, props.locale)}
+              </Text>
+            )}
           </>
         ) : null}
 
@@ -381,15 +397,25 @@ export function VisitScreen(props: {
         // Task 229: the tip — only a note for the report and "Kasa dnia".
         <View style={{ gap: 6 }} testID="tip-field">
           <Text style={styles.label}>{fill(v.tip, { currency: salon.currency })}</Text>
+          <TextInput
+            accessibilityLabel={fill(v.tip, { currency: salon.currency })}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            value={tipText ?? tipInput(visit.tipGrosze)}
+            onChangeText={(text) => {
+              setTipText(text);
+              setFormError('');
+            }}
+            editable={!busy}
+            style={[styles.input, tipValue === null && styles.invalidInput]}
+          />
+          {tipValue === null ? (
+            <ErrorText>! {v.tipInvalid}</ErrorText>
+          ) : (
+            <Text style={styles.muted}>{v.tipHint}</Text>
+          )}
+          {formError ? <ErrorText>{formError}</ErrorText> : null}
           <View style={styles.row}>
-            <TextInput
-              accessibilityLabel={fill(v.tip, { currency: salon.currency })}
-              placeholder="0"
-              keyboardType="decimal-pad"
-              value={tipText ?? tipInput(visit.tipGrosze)}
-              onChangeText={setTipText}
-              style={[styles.input, { minWidth: 120 }]}
-            />
             <Button
               kind="secondary"
               label={v.tipSave}
@@ -397,15 +423,15 @@ export function VisitScreen(props: {
               disabled={tipValue === null || tipValue === visit.tipGrosze}
               onPress={() => {
                 if (tipValue === null) return;
-                void run((a) =>
-                  api.setTip(salon.orgId, salon.locationId, a.id, a.version, tipValue),
+                void run(
+                  (a) => api.setTip(salon.orgId, salon.locationId, a.id, a.version, tipValue),
+                  setFormError,
                 ).then((ok) => {
                   if (ok) setTipText(null);
                 });
               }}
             />
           </View>
-          <Text style={styles.muted}>{tipValue === null ? v.tipInvalid : v.tipHint}</Text>
         </View>
       ) : visit.tipGrosze > 0 ? (
         <Text style={styles.value}>
@@ -468,6 +494,7 @@ export function VisitScreen(props: {
             kind="secondary"
             label={v.move}
             onPress={() => {
+              setFormError('');
               setMode('move');
               setAsk(null);
               setMoveDate(visit.date < today ? today : visit.date);
@@ -477,7 +504,9 @@ export function VisitScreen(props: {
             kind="secondary"
             label={v.cancel}
             onPress={() => {
+              setFormError('');
               setMode('cancel');
+              setReasonSubmitted(false);
               setAskCancel(false);
             }}
           />
@@ -514,13 +543,16 @@ export function VisitScreen(props: {
               <Text style={styles.value}>
                 {fill(v.moveAsk, { when: `${dayTitle(moveDate, props.locale)} ${ask.time}` })}
               </Text>
+              {formError ? <ErrorText>{formError}</ErrorText> : null}
               <View style={styles.row}>
                 <Button
                   label={v.yes}
                   busy={busy}
                   onPress={() =>
-                    void run((a) =>
-                      api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
+                    void run(
+                      (a) =>
+                        api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
+                      setFormError,
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -542,7 +574,10 @@ export function VisitScreen(props: {
                   accessibilityLabel={s.time}
                   key={s.start}
                   accessibilityRole="button"
-                  onPress={() => setAsk(s)}
+                  onPress={() => {
+                    setFormError('');
+                    setAsk(s);
+                  }}
                   style={styles.time}
                 >
                   <Text style={styles.timeText}>{s.time}</Text>
@@ -562,11 +597,14 @@ export function VisitScreen(props: {
             value={reason}
             maxLength={300}
             onChangeText={(text) => {
+              setFormError('');
               setReason(text);
               setAskCancel(false);
             }}
-            style={styles.input}
+            style={[styles.input, badReason && styles.invalidInput]}
           />
+          {badReason ? <ErrorText>! {v.badReason}</ErrorText> : null}
+          {formError ? <ErrorText>{formError}</ErrorText> : null}
           {askCancel ? (
             <>
               <Text style={styles.value}>{v.cancelAsk}</Text>
@@ -575,14 +613,16 @@ export function VisitScreen(props: {
                   label={v.cancelYes}
                   busy={busy}
                   onPress={() =>
-                    void run((a) =>
-                      api.cancel(
-                        salon.orgId,
-                        salon.locationId,
-                        a.id,
-                        a.version,
-                        cancelReason(reason) ?? '',
-                      ),
+                    void run(
+                      (a) =>
+                        api.cancel(
+                          salon.orgId,
+                          salon.locationId,
+                          a.id,
+                          a.version,
+                          cancelReason(reason) ?? '',
+                        ),
+                      setFormError,
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -598,8 +638,8 @@ export function VisitScreen(props: {
               <Button
                 label={v.cancel}
                 onPress={() => {
+                  setReasonSubmitted(true);
                   if (cancelReason(reason)) setAskCancel(true);
-                  else setError(v.badReason);
                 }}
               />
               <Button kind="link" label={v.close} onPress={() => setMode(null)} />
@@ -645,6 +685,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   timeText: { fontSize: 16, fontWeight: '600', color: colors.ink },
+  invalidInput: { borderColor: colors.danger },
+  invalidPrice: { borderColor: colors.danger, borderWidth: 1, padding: 8, borderRadius: 12 },
   input: {
     borderWidth: 1,
     borderColor: colors.line,
