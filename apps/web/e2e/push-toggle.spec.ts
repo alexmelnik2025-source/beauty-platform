@@ -16,6 +16,8 @@ const run = Date.now().toString(36);
 const OWNER = `push-toggle-${run}@example.com`;
 const PHONE = { width: 390, height: 844 };
 const TOO_MANY = 'Zbyt wiele prób. Odczekaj chwilę.';
+// The button is described by the error with its "!" mark in front.
+const TOO_MANY_END = /Zbyt wiele prób\. Odczekaj chwilę\.$/;
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -130,7 +132,7 @@ test('a refused push switch is said under the pressed button (task 840)', async 
   const turnOn = page.getByRole('button', { name: 'Włącz powiadomienia' });
   await turnOn.click();
   await expect(page.locator('#push-toggle-error')).toHaveText(TOO_MANY);
-  await expect(turnOn).toHaveAccessibleDescription(TOO_MANY);
+  await expect(turnOn).toHaveAccessibleDescription(TOO_MANY_END);
   await expect(turnOn).toBeEnabled();
   await expect(page.locator('.alert')).toHaveCount(0);
   await shot(page, '840-push-on-error');
@@ -150,7 +152,7 @@ test('a refused push switch is said under the pressed button (task 840)', async 
   await page.route(removeUrl, (route) => route.fulfill(rateLimited));
   await turnOff.click();
   await expect(page.locator('#push-toggle-error')).toHaveText(TOO_MANY);
-  await expect(turnOff).toHaveAccessibleDescription(TOO_MANY);
+  await expect(turnOff).toHaveAccessibleDescription(TOO_MANY_END);
   await expect(turnOff).toBeEnabled();
   await expect(page.locator('.alert')).toHaveCount(0);
   await shot(page, '840-push-off-error');
