@@ -745,6 +745,13 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Program lojalnościowy»: отказ «Zapisz poziomy», «Zapisz» и «Usuń z katalogu» у кнопок (задача 810, 24.11.2026)
+
+- Отказ сервера при «Zapisz poziomy» (уровни клиентов) — под этой кнопкой внизу формы (с «!»); в окне награды отказ
+  «Zapisz» — под «Zapisz», отказ «Usuń z katalogu» — под этой кнопкой. Раньше — рамкой вверху формы или окна.
+  Введённое остаётся, правка поля убирает ошибку. e2e `loyalty`, скриншоты `810-loyalty-tiers-save-error`,
+  `810-loyalty-reward-save-error`, `810-loyalty-reward-archive-error`.
+
 ## Страница салона → отзывы: «Pokaż więcej» — ошибка под кнопкой, без двойной загрузки (задача 803, 24.11.2026)
 
 - Отказ сервера при «Pokaż więcej» в отзывах на странице салона — под этой кнопкой (с «!»), показанные отзывы

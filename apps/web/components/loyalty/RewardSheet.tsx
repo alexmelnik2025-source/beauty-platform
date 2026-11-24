@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { ErrorBox, FieldError, Sheet } from '@/components/ui';
+import { FieldError, Sheet } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Dict } from '@/lib/i18n/pl';
@@ -92,6 +92,11 @@ export function RewardSheet({
    * Task 668 (owner's rule: errors at the field): a name of only spaces before sending, and the
    * server's answer about a field, are said under that field; editing it takes the error away.
    */
+  /**
+   * Task 810 (owner's rule: errors where the action is): a refused "Zapisz" or "Archiwizuj" is
+   * said under the button that was pressed, at the bottom of the sheet, not above the form.
+   */
+  const [failed, setFailed] = useState<'save' | 'archive' | null>(null);
   const [problems, setProblems] = useState<RewardField[]>([]);
   const [busy, setBusy] = useState(false);
   const discount = form.kind === 'discount_percent';
@@ -121,6 +126,7 @@ export function RewardSheet({
     }
     setBusy(true);
     setError('');
+    setFailed(null);
     setProblems([]);
     const body = {
       name: form.name,
@@ -145,7 +151,10 @@ export function RewardSheet({
     } catch (err) {
       const fields = rewardFieldsOf(err);
       setProblems(fields);
-      if (fields.length === 0) setError(errorText(t, err));
+      if (fields.length === 0) {
+        setError(errorText(t, err));
+        setFailed('save');
+      }
       setBusy(false);
     }
   }
@@ -154,11 +163,13 @@ export function RewardSheet({
     if (!reward) return;
     setBusy(true);
     setError('');
+    setFailed(null);
     try {
       await api(`${org}/loyalty/rewards/${reward.id}`, { method: 'DELETE' });
       onSaved();
     } catch (err) {
       setError(errorText(t, err));
+      setFailed('archive');
       setBusy(false);
     }
   }
@@ -166,6 +177,8 @@ export function RewardSheet({
   /** Editing a field takes its error away. */
   const edit = (field: RewardField, change: Partial<typeof form>) => {
     setForm({ ...form, ...change });
+    setError('');
+    setFailed(null);
     if (problems.includes(field)) setProblems(problems.filter((f) => f !== field));
   };
   const toggleService = (id: string, on: boolean) =>
@@ -192,7 +205,6 @@ export function RewardSheet({
   return (
     <Sheet title={reward ? t.loyalty.editReward : t.loyalty.addReward} onClose={onClose}>
       <form noValidate className="form" onSubmit={save}>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.loyalty.rewardName}</span>
           <input
@@ -294,19 +306,26 @@ export function RewardSheet({
           {fieldError('couponValidityDays')}
           <span className="small muted">{t.loyalty.noLimitHint}</span>
         </label>
-        <button className="btn btn--block" disabled={busy}>
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={failed === 'save' ? 'reward-save-error' : undefined}
+        >
           {t.common.save}
         </button>
+        <FieldError id="reward-save-error" text={failed === 'save' ? error : undefined} />
         {reward && !reward.archivedAt ? (
           <>
             <button
               type="button"
               className="btn btn--quiet btn--block"
               disabled={busy}
+              aria-describedby={failed === 'archive' ? 'reward-archive-error' : undefined}
               onClick={() => void archive()}
             >
               {t.loyalty.archive}
             </button>
+            <FieldError id="reward-archive-error" text={failed === 'archive' ? error : undefined} />
             <span className="small muted">{t.loyalty.archiveHint}</span>
           </>
         ) : null}
