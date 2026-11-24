@@ -1,6 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { BusinessApi, MemberList, PermissionCatalog, StaffCategoryList } from '../api';
+import {
+  ApiError,
+  type BusinessApi,
+  type MemberList,
+  type PermissionCatalog,
+  type StaffCategoryList,
+} from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import {
@@ -49,6 +55,7 @@ function SalonPermissions(props: Props) {
   const [people, setPeople] = useState<MemberList>([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   /** The person being changed: their chosen category and exceptions. */
   const [editing, setEditing] = useState<{
@@ -60,7 +67,7 @@ function SalonPermissions(props: Props) {
   const [catForm, setCatForm] = useState<{
     id: string;
     form: CategoryForm;
-    nameInvalid?: boolean;
+    nameError?: string;
   } | null>(null);
   const categoryNameInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -103,9 +110,14 @@ function SalonPermissions(props: Props) {
     return () => sub.remove();
   }, [onBack]);
 
-  async function run(action: () => Promise<unknown>, done: string): Promise<boolean> {
+  async function run(
+    action: () => Promise<unknown>,
+    done: string,
+    onFieldError?: (err: unknown) => boolean,
+  ): Promise<boolean> {
     const signal = active.current?.signal;
-    if (!signal || signal.aborted || busy) return false;
+    if (!signal || signal.aborted || pending.current) return false;
+    pending.current = true;
     setBusy(true);
     setLoadFailure(null);
     setError('');
@@ -123,9 +135,10 @@ function SalonPermissions(props: Props) {
         setEditing(null);
         setCatForm(null);
         await load(signal, false);
-      } else setError(errorText(e, t));
+      } else if (!onFieldError?.(e)) setError(errorText(e, t));
       return false;
     } finally {
+      pending.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }
@@ -154,7 +167,7 @@ function SalonPermissions(props: Props) {
     const body = categoryBody(catForm.form);
     if (!body.ok) {
       setError('');
-      setCatForm({ ...catForm, nameInvalid: true });
+      setCatForm({ ...catForm, nameError: r.noName });
       categoryNameInput.current?.focus();
       return;
     }
@@ -171,6 +184,15 @@ function SalonPermissions(props: Props) {
               permissions: body.permissions,
             }),
       r.categorySaved,
+      (err) => {
+        if (
+          !(err instanceof ApiError) ||
+          (err.code !== 'CATEGORY_NAME_TAKEN' && !err.details.some(({ path }) => path === 'name'))
+        )
+          return false;
+        setCatForm({ ...catForm, nameError: errorText(err, t) });
+        return true;
+      },
     );
     if (ok) setCatForm(null);
   }
@@ -201,6 +223,7 @@ function SalonPermissions(props: Props) {
           category={categoryName(member.staffCategoryId)}
           r={r}
           onEdit={isOwner ? editMember : undefined}
+          disabled={busy}
         />
       );
     }
@@ -219,7 +242,8 @@ function SalonPermissions(props: Props) {
                 key={id ?? 'default'}
                 accessibilityRole="button"
                 aria-pressed={on}
-                accessibilityState={{ selected: on }}
+                disabled={busy}
+                accessibilityState={{ selected: on, disabled: busy }}
                 onPress={() => setEditing({ ...open, categoryId: id })}
                 style={[styles.chip, on && styles.chipOn]}
               >
@@ -250,7 +274,8 @@ function SalonPermissions(props: Props) {
                       key={key}
                       accessibilityRole="radio"
                       accessibilityLabel={`${label(p.key)}: ${text}`}
-                      accessibilityState={{ checked: on }}
+                      disabled={busy}
+                      accessibilityState={{ checked: on, disabled: busy }}
                       aria-checked={on}
                       onPress={() =>
                         setEditing({
@@ -268,9 +293,15 @@ function SalonPermissions(props: Props) {
             </View>
           );
         })}
+        {!memberUnchanged(member, open.categoryId, open.overrides) ? (
+          <Text role="status" style={styles.label}>
+            {t.navigation.unsaved}
+          </Text>
+        ) : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
           <Button label={r.save} busy={busy} onPress={() => void saveMember(member)} />
-          <Button kind="link" label={r.cancel} onPress={() => setEditing(null)} />
+          <Button kind="link" disabled={busy} label={r.cancel} onPress={() => setEditing(null)} />
         </View>
       </Card>
     );
@@ -279,6 +310,10 @@ function SalonPermissions(props: Props) {
   function categoryEditor() {
     if (!catForm || !catalog) return null;
     const { form } = catForm;
+    const saved = categoryForm(categoriesById.get(catForm.id) ?? null, catalog);
+    const dirty =
+      saved.name !== form.name ||
+      catalog.some(({ key }) => saved.permissions[key] !== form.permissions[key]);
     return (
       <Card>
         <Text nativeID="category-name-label" style={styles.label}>
@@ -289,24 +324,24 @@ function SalonPermissions(props: Props) {
           editable={!busy}
           accessibilityLabel={r.categoryName}
           aria-labelledby="category-name-label"
-          accessibilityHint={catForm.nameInvalid ? r.noName : undefined}
-          aria-invalid={!!catForm.nameInvalid}
-          aria-describedby={catForm.nameInvalid ? 'category-name-error' : undefined}
+          accessibilityHint={catForm.nameError}
+          aria-invalid={!!catForm.nameError}
+          aria-describedby={catForm.nameError ? 'category-name-error' : undefined}
           value={form.name}
           maxLength={60}
           onChangeText={(name) =>
-            setCatForm({ ...catForm, nameInvalid: false, form: { ...form, name } })
+            setCatForm({ ...catForm, nameError: undefined, form: { ...form, name } })
           }
-          style={[styles.input, catForm.nameInvalid && styles.invalid]}
+          style={[styles.input, catForm.nameError && styles.invalid]}
         />
-        {catForm.nameInvalid ? (
+        {catForm.nameError ? (
           <Text
             nativeID="category-name-error"
             role="alert"
             accessibilityLiveRegion="assertive"
             style={styles.fieldError}
           >
-            ! {r.noName}
+            ! {catForm.nameError}
           </Text>
         ) : null}
         {catalog.map((p) => {
@@ -334,9 +369,15 @@ function SalonPermissions(props: Props) {
             </Pressable>
           );
         })}
+        {dirty ? (
+          <Text role="status" style={styles.label}>
+            {t.navigation.unsaved}
+          </Text>
+        ) : null}
+        {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
           <Button label={r.save} busy={busy} onPress={() => void saveCategory()} />
-          <Button kind="link" label={r.cancel} onPress={() => setCatForm(null)} />
+          <Button kind="link" disabled={busy} label={r.cancel} onPress={() => setCatForm(null)} />
         </View>
       </Card>
     );
@@ -363,13 +404,19 @@ function SalonPermissions(props: Props) {
                   )
                 }
               />
-              <Button kind="secondary" label={r.no} onPress={() => setRemoving(null)} />
+              <Button
+                kind="secondary"
+                disabled={busy}
+                label={r.no}
+                onPress={() => setRemoving(null)}
+              />
             </View>
           </View>
         ) : isOwner && catalog ? (
           <View style={styles.row}>
             <Button
               kind="secondary"
+              disabled={busy}
               label={r.change}
               a11yLabel={`${r.change}: ${category.name}`}
               onPress={() => {
@@ -381,6 +428,7 @@ function SalonPermissions(props: Props) {
             />
             <Button
               kind="link"
+              disabled={busy}
               label={r.remove}
               a11yLabel={`${r.remove}: ${category.name}`}
               onPress={() => setRemoving(category.id)}
@@ -404,8 +452,22 @@ function SalonPermissions(props: Props) {
           {info}
         </Text>
       ) : null}
-      {error || loadFailure ? (
-        <ErrorText>{error || errorText(loadFailure?.cause, t)}</ErrorText>
+      {error && !catForm && !editing ? <ErrorText>{error}</ErrorText> : null}
+      {loadFailure ? (
+        <View style={{ gap: 8 }}>
+          <ErrorText>{errorText(loadFailure.cause, t)}</ErrorText>
+          <Button
+            label={t.day.refresh}
+            disabled={busy}
+            onPress={() => {
+              const signal = active.current?.signal;
+              if (signal && !signal.aborted) {
+                setLoadFailure(null);
+                void load(signal, !catalog);
+              }
+            }}
+          />
+        </View>
       ) : null}
 
       {!catalog ? (
@@ -430,6 +492,7 @@ function SalonPermissions(props: Props) {
           {isOwner && !catForm ? (
             <Button
               kind="secondary"
+              disabled={busy}
               label={r.addCategory}
               onPress={() => {
                 setInfo('');
@@ -450,10 +513,12 @@ const MemberSummary = memo(function MemberSummary({
   category,
   r,
   onEdit,
+  disabled,
 }: {
   member: Member;
   category: string;
   r: Dictionary['rights'];
+  disabled: boolean;
   onEdit?: (member: Member) => void;
 }) {
   const label = (key: string) => (r.names as Record<string, string>)[key] ?? key;
@@ -475,6 +540,7 @@ const MemberSummary = memo(function MemberSummary({
             kind="secondary"
             label={r.change}
             a11yLabel={`${r.change}: ${member.user.name}`}
+            disabled={disabled}
             onPress={() => onEdit(member)}
           />
         </View>
