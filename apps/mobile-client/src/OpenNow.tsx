@@ -14,30 +14,31 @@ export function OpenNow(props: {
   t: Dictionary;
   locale: Locale;
 }) {
-  const { timezone, todayHours } = props.salon;
+  const { salon, t, locale } = props;
+  const { timezone, todayHours } = salon;
   const minute = Math.floor(Date.now() / 60_000);
-  const status = useMemo(() => {
+  return useMemo(() => {
     const now = salonNow(minute * 60_000, timezone);
-    return openStatus(
+    const status = openStatus(
       { openingHours: [], todayHours: { date: now.date, intervals: todayHours } },
       now,
     );
-  }, [minute, timezone, todayHours]);
-  const text = openStatusText(status, props.t.salon, props.locale);
-  return (
-    <Text
-      accessible
-      role="status"
-      aria-live="polite"
-      accessibilityLabel={text}
-      style={styles.status}
-    >
-      <Text aria-hidden style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>
-        ●{' '}
+    const text = openStatusText(status, t.salon, locale);
+    return (
+      <Text
+        accessible
+        role="status"
+        aria-live="polite"
+        accessibilityLabel={text}
+        style={styles.status}
+      >
+        <Text aria-hidden style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>
+          ●{' '}
+        </Text>
+        {text}
       </Text>
-      {text}
-    </Text>
-  );
+    );
+  }, [minute, timezone, todayHours, t.salon, locale]);
 }
 
 const styles = StyleSheet.create({

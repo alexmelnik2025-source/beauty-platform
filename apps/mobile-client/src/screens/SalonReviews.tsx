@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { ClientApi, Locale, PublicReviews } from '../api';
+import { ClientApi, type Locale, type PublicReviews } from '../api';
+import { API_URL } from '../config';
+import { tokenStore } from '../storage';
 import { errorText, type FormFailure } from '../errors';
 import { FormFeedback } from '../FormFeedback';
 import { fill, type Dictionary } from '../i18n';
@@ -31,34 +33,12 @@ type ReviewsProps = {
 };
 
 // Public reviews are shared across visits to the same salon within this app session.
-const firstPages = new Map<string, { expires: number; page: PublicReviews }>();
-const pendingPages = new Map<string, Promise<PublicReviews>>();
-
-async function firstPage(api: ClientApi, slug: string, reuse: boolean) {
-  const now = Date.now();
-  for (const [key, entry] of firstPages) {
-    if (entry.expires <= now) firstPages.delete(key);
-  }
-  const cached = firstPages.get(slug);
-  if (reuse && cached) return cached.page;
-  const pending = pendingPages.get(slug);
-  if (pending) return pending;
-
-  const request = withNetworkTimeout(api.salonReviews(slug));
-  pendingPages.set(slug, request);
-  try {
-    const page = await request;
-    // An empty salon is checked again on return so its first review can appear.
-    if (page.enabled && page.items.length > 0) {
-      firstPages.set(slug, { expires: Date.now() + 5 * 60_000, page });
-    } else {
-      firstPages.delete(slug);
-    }
-    return page;
-  } finally {
-    pendingPages.delete(slug);
-  }
-}
+type CachedReviews = {
+  expires: number;
+  first: PublicReviews;
+  more: Map<string, PublicReviews>;
+};
+const recent = new Map<string, CachedReviews>();
 
 export function SalonReviews(props: ReviewsProps) {
   return <ReviewsList key={props.slug} {...props} />;
@@ -96,6 +76,43 @@ function ReviewFilter({
   );
 }
 
+const ReviewRow = memo(function ReviewRow({
+  review,
+  locale,
+  t,
+  divided,
+}: {
+  review: SalonReview;
+  locale: Locale;
+  t: Dictionary;
+  divided: boolean;
+}) {
+  return (
+    <View style={[styles.row, divided && styles.divider]}>
+      <Text
+        role="img"
+        accessible
+        style={styles.stars}
+        accessibilityLabel={fill(t.review.outOf, { n: String(review.rating) })}
+      >
+        {starText(review.rating)}
+      </Text>
+      {review.text ? <Text style={styles.text}>{review.text}</Text> : null}
+      <Text style={styles.muted}>{salonReviewLine(review, locale)}</Text>
+      {review.reply ? (
+        <View
+          style={styles.reply}
+          accessible
+          accessibilityLabel={`${t.salonReviews.salonReply}: ${review.reply}`}
+        >
+          <Text style={styles.replyTitle}>{t.salonReviews.salonReply}</Text>
+          <Text style={styles.text}>{review.reply}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+});
+
 function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
   const r = t.salonReviews;
   const [all, setAll] = useState<PublicReviews | null>(null);
@@ -105,55 +122,81 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
   const [items, setItems] = useState<SalonReview[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [loading, setLoading] = useState<'page' | 'more' | null>('page');
-  const requestId = useRef(0);
+  const reader = useRef<ClientApi | null>(null);
+  const active = useRef<{ key: string } | null>(null);
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
 
   const load = useCallback(
     async (who: string | null, withStars: number | null, before?: string, reuse = false) => {
-      const current = ++requestId.current;
+      const client = reader.current;
+      const key = JSON.stringify([who, withStars, before]);
+      if (!client || active.current?.key === key) return;
+      const current = { key };
+      active.current = current;
       setLoading(before ? 'more' : 'page');
       setFailure(null);
       try {
-        const unfiltered = !who && !withStars && !before;
-        const page = unfiltered
-          ? await firstPage(api, slug, reuse)
-          : await withNetworkTimeout(
-              api.salonReviews(slug, {
-                ...(who ? { staffId: who } : {}),
-                ...(withStars ? { rating: withStars } : {}),
-                ...(before ? { before } : {}),
-              }),
-            );
-        if (current !== requestId.current) return;
-        if (!page.enabled || unfiltered) setAll(page);
-        if (!page.enabled) firstPages.delete(slug);
+        const unfiltered = !who && !withStars;
+        const first = unfiltered && !before;
+        const cache = recent.get(slug);
+        const fresh = cache && cache.expires > Date.now() ? cache : undefined;
+        const cached =
+          unfiltered && before ? fresh?.more.get(before) : reuse ? fresh?.first : undefined;
+        const page =
+          cached ??
+          (await withNetworkTimeout(
+            client.salonReviews(slug, {
+              ...(who ? { staffId: who } : {}),
+              ...(withStars ? { rating: withStars } : {}),
+              ...(before ? { before } : {}),
+            }),
+          ));
+        if (active.current !== current) return;
+        if (!page.enabled || first) setAll(page);
+        if (!page.enabled || (first && !page.items.length)) recent.delete(slug);
+        else if (!cached && first) {
+          recent.delete(slug);
+          if (recent.size >= 32) recent.delete(recent.keys().next().value!);
+          recent.set(slug, { first: page, expires: Date.now() + 5 * 60_000, more: new Map() });
+        } else if (!cached && unfiltered && before) {
+          fresh?.more.set(before, page);
+        }
         setStaffId(who);
         setRating(withStars);
         setStars(page.stars);
         setItems((shown) => appendSalonReviews(before ? shown : [], page.items));
         setNext(page.nextBefore);
       } catch (e) {
-        if (current === requestId.current) {
+        if (active.current === current) {
           setFailure({
             message: errorText(e, tRef.current),
             retry: () => void load(who, withStars, before),
           });
         }
       } finally {
-        if (current === requestId.current) setLoading(null);
+        if (active.current === current) {
+          active.current = null;
+          setLoading(null);
+        }
       }
     },
-    [api, slug],
+    [slug],
   );
 
   useEffect(() => {
+    const controller = new AbortController();
+    reader.current = new ClientApi(API_URL, tokenStore, (url, init) =>
+      fetch(url, { ...init, signal: controller.signal }),
+    );
     void load(null, null, undefined, true);
     return () => {
-      requestId.current++;
+      active.current = null;
+      reader.current = null;
+      controller.abort();
     };
-  }, [load]);
+  }, [api, load]);
 
   if (all && !all.enabled) return null;
   const summary = all ? salonReviewSummary(all, t, locale) : null;
@@ -241,28 +284,7 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
           </Text>
         ) : null}
         {items.map((review, i) => (
-          <View key={review.id} style={[styles.row, i > 0 && styles.divider]}>
-            <Text
-              role="img"
-              accessible
-              style={styles.stars}
-              accessibilityLabel={ratingLabel(String(review.rating))}
-            >
-              {starText(review.rating)}
-            </Text>
-            {review.text ? <Text style={styles.text}>{review.text}</Text> : null}
-            <Text style={styles.muted}>{salonReviewLine(review, locale)}</Text>
-            {review.reply ? (
-              <View
-                style={styles.reply}
-                accessible
-                accessibilityLabel={`${r.salonReply}: ${review.reply}`}
-              >
-                <Text style={styles.replyTitle}>{r.salonReply}</Text>
-                <Text style={styles.text}>{review.reply}</Text>
-              </View>
-            ) : null}
-          </View>
+          <ReviewRow key={review.id} review={review} locale={locale} t={t} divided={i > 0} />
         ))}
         <FormFeedback failure={failure} retryLabel={t.retry} />
         {next && !failure && loading !== 'page' ? (

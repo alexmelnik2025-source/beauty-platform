@@ -1,6 +1,8 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { ApiError, type ClientApi, type Locale, type PublicGiftVoucher } from '../api';
+import { ApiError, ClientApi, type Locale, type PublicGiftVoucher } from '../api';
+import { API_URL } from '../config';
+import { tokenStore } from '../storage';
 import { errorText } from '../errors';
 import { formatPrice, LOCALE_TAGS } from '../format';
 import { fill, type Dictionary } from '../i18n';
@@ -36,6 +38,18 @@ export function VoucherCheck(props: VoucherProps) {
 
 function VoucherForm({ api, t, locale, slug }: VoucherProps) {
   const pending = useRef<symbol | null>(null);
+  const reader = useRef<ClientApi | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    reader.current = new ClientApi(API_URL, tokenStore, (url, init) =>
+      fetch(url, { ...init, signal: controller.signal }),
+    );
+    return () => {
+      pending.current = null;
+      reader.current = null;
+      controller.abort();
+    };
+  }, [api]);
   const labelId = useId();
   const errorId = useId();
   const [open, setOpen] = useState(false);
@@ -46,14 +60,14 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
   const [voucher, setVoucher] = useState<PublicGiftVoucher | null>(null);
 
   async function check() {
-    if (code.trim().length < 4 || pending.current) return;
+    if (!reader.current || code.trim().length < 4 || pending.current) return;
     const current = Symbol();
     pending.current = current;
     setBusy(true);
     setError('');
     setInvalidCode(false);
     try {
-      const result = await withNetworkTimeout(api.voucherBalance(slug, code));
+      const result = await withNetworkTimeout(reader.current.voucherBalance(slug, code));
       if (current === pending.current) setVoucher(result);
     } catch (err) {
       if (current !== pending.current) return;
