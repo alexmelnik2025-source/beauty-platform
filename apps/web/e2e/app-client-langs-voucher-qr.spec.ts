@@ -254,6 +254,7 @@ for (const locale of ['en', 'uk', 'ru'] as const) {
       await reply(page, '**/v1/client/appointments?scope=past', { items: [visit] });
       const detail = '**/v1/client/appointments/visit';
       await reply(page, detail, visit);
+      await reply(page, detail + '/photos', { items: [], deleteAfter: null });
       await reply(page, detail + '/products', {
         currency: 'PLN',
         canChange: false,
