@@ -683,6 +683,11 @@ pnpm --filter @beauty/api-client generate
   под «Kod bonu»; неверная сумма или больше остатка («Na bonie zostało mniej…») — под суммой. e2e `products`,
   `visit-voucher`, скриншоты `673-visit-product-code-error`, `673-visit-voucher-code-error`,
   `673-visit-voucher-amount-error`.
+- Задача 835 (24.11.2026): другой отказ сервера (например, «Zbyt wiele prób») — под нажатой кнопкой, а не рамкой внизу
+  раздела: «+ Dodaj» (у кода или у списка товаров) — под своей строкой, «Usuń» проданного товара — под строкой этого
+  товара, «Zapłać bonem» — под строкой с кодом и суммой (код и сумма остаются). Ошибка связана с кнопкой
+  (`aria-describedby`), правка поля убирает её. Скриншоты `835-visit-product-add-error`,
+  `835-visit-product-remove-error`, `835-visit-voucher-pay-error`.
 
 ## Пустой код в карточке визита — у поля (задача 682, 22.11.2026)
 

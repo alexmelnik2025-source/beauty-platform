@@ -4,6 +4,7 @@ import {
   type APIRequestContext,
   type APIResponse,
   type Page,
+  type Route,
 } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -287,8 +288,34 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(options.nth(1)).toHaveText(/Pomada matowa · .* · Brak w magazynie/);
   await expect(options.nth(1)).toBeDisabled();
   await sold.getByLabel('Wybierz produkt').selectOption({ index: 2 });
-  await sold.getByRole('button', { name: '+ Dodaj' }).click();
+  // Task 835 (owner's rule: errors where the action is): any other refusal of "+ Dodaj" is said
+  // under that button, not as a box at the bottom of the section; the choice stays.
+  const refuse = (route: Route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } });
+  await page.route('**/appointments/*/products', (route) =>
+    route.request().method() === 'POST' ? refuse(route) : route.fallback(),
+  );
+  const add = sold.getByRole('button', { name: '+ Dodaj' });
+  await add.click();
+  await expect(add).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(sold.locator('.alert')).toHaveCount(0);
+  await expect(sold.getByLabel('Wybierz produkt')).not.toHaveValue('');
+  await sold.scrollIntoViewIfNeeded();
+  await shot(page, '835-visit-product-add-error');
+  await page.unroute('**/appointments/*/products');
+  await add.click();
   await expect(sold).toContainText(/Produkty: 128,50\s*zł/);
+  await expect(add).not.toHaveAttribute('aria-describedby');
+  // …and a refused "Usuń" under its own row.
+  await page.route('**/appointments/*/products/*', (route) =>
+    route.request().method() === 'DELETE' ? refuse(route) : route.fallback(),
+  );
+  const removeShampoo = sold.getByRole('button', { name: 'Usuń — Szampon' });
+  await removeShampoo.click();
+  await expect(removeShampoo).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(sold.locator('.alert')).toHaveCount(0);
+  await shot(page, '835-visit-product-remove-error');
+  await page.unroute('**/appointments/*/products/*');
   await sold.getByRole('button', { name: 'Usuń — Szampon' }).click();
   await expect(sold).toContainText(/Produkty: 98,00\s*zł/);
   await sold.scrollIntoViewIfNeeded();
