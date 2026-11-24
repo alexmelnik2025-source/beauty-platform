@@ -20,6 +20,16 @@ describe('client form errors', () => {
     expect(isCodeError(new ApiError(429, '', 'TOO_MANY_CODES'))).toBe(false);
   });
 
+  it.each([
+    [400, t.error.generic],
+    [404, t.error.notFound],
+    [429, t.error.tooMany],
+  ] as const)('uses the status fallback for an unknown code on HTTP %i', (status, message) => {
+    const error = new ApiError(status, 'Internal server detail', 'UNRECOGNIZED_CODE');
+    expect(isCodeError(error)).toBe(false);
+    expect(formFailure(error, t, vi.fn())).toEqual({ message });
+  });
+
   it('matches supported field paths and ignores malformed details', () => {
     const error = new ApiError(400, '', 'VALIDATION_ERROR', [
       null,

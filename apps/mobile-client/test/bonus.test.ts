@@ -142,8 +142,11 @@ describe('"My bonuses" texts', () => {
     expect(nextText(pl, points)).toBe('Do „Nagroda b” zostało punktów: 60');
   });
 
-  it('no rewards yet → no progress drawn', () => {
-    expect(progress(pl, card({ rewards: [], next: null }))).toBeNull();
+  it.each(['stamps', 'points'] as const)('shows no reward for an empty %s card', (mode) => {
+    const empty = card({ mode, balance: 0, rewards: [], next: null });
+    expect(progress(pl, empty)).toBeNull();
+    expect(nextText(pl, empty)).toBeNull();
+    expect(readyReward(empty)).toBeUndefined();
   });
 
   it('how bonuses are earned, with the minimum and validity of points', () => {

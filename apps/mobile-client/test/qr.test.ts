@@ -33,6 +33,16 @@ describe('salon QR code in the client app (task 357)', () => {
     }
   });
 
+  it('chooses the version by UTF-8 bytes at the version 1 limit of 14 bytes', () => {
+    const exactlyFull = '💈'.repeat(3) + 'ł';
+    expect(encodeQr(exactlyFull).version).toBe(1);
+    expect(encodeQr(exactlyFull + 'x').version).toBe(2);
+  });
+
+  it('rejects a payload one byte beyond the largest level M code', () => {
+    expect(() => encodeQr('a'.repeat(2332))).toThrow(RangeError);
+  });
+
   it('draws every dark module exactly once', () => {
     const qr = encodeQr('https://app.example.com/pl/b/gestalt-barbershop');
     let drawn = 0;
