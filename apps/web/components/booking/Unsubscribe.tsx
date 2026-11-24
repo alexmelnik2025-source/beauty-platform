@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
-import { ErrorBox, LanguageSwitch } from '../ui';
+import { FieldError, LanguageSwitch } from '../ui';
 
 /**
  * Task 165c: "unsubscribe" from the salon's messages. The link only opens this page; the
@@ -45,7 +45,6 @@ export function Unsubscribe({ token }: { token: string }) {
         </div>
       </header>
       <main className="narrow stack">
-        <ErrorBox>{error}</ErrorBox>
         {salon ? (
           <p className="note" role="status">
             {fill(u.done, { salon })}
@@ -53,9 +52,18 @@ export function Unsubscribe({ token }: { token: string }) {
         ) : (
           <>
             <p>{u.lead}</p>
-            <button type="button" className="btn" disabled={busy} onClick={confirm}>
+            {/* Task 773 (owner's rule: errors where the action is): a refusal is said under
+                "Wypisz się", with the "!" mark — not as a box above the text. */}
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              aria-describedby={error ? 'unsubscribe-error' : undefined}
+              onClick={confirm}
+            >
               {u.button}
             </button>
+            <FieldError id="unsubscribe-error" text={error || undefined} />
           </>
         )}
       </main>
