@@ -169,7 +169,27 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await form.getByLabel('E-mail').fill(ANNA);
   await form.getByRole('checkbox').check();
   await shot(page, '80-client-waitlist-form');
-  await form.getByRole('button', { name: 'Zapisz mnie na listę' }).click();
+  // Task 762 (owner's rule: errors where the action is): a refusal that is not about one field is
+  // said right under "Zapisz mnie na listę", not above the form; what was typed stays.
+  await page.route('**/waitlist', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const join = form.getByRole('button', { name: 'Zapisz mnie na listę' });
+  await join.click();
+  await expect(form.locator('#waitlist-submit-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(join).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(form.locator('.alert')).toHaveCount(0);
+  await expect(form.getByLabel('Imię i nazwisko')).toHaveValue('Anna Kowalska');
+  await shot(page, '762-waitlist-join-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await join.click();
   await expect(page.getByText('Jesteś na liście oczekujących.')).toBeVisible();
   await shot(page, '80a-client-waitlist-joined');
 
