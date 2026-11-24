@@ -80,6 +80,13 @@ describe('the client’s data (task 334)', () => {
     expect(eraseErrorText(new Error('offline'), t)).toBeNull();
   });
 
+  it('shows only the access restriction when a forbidden response contains visit details', () => {
+    const denied = new ApiError(403, 'Access denied', 'CUSTOMER_HAS_UPCOMING_VISITS', [
+      { path: 'upcoming', message: '7' },
+    ]);
+    expect(eraseErrorText(denied, t)).toBe(t.clientPrivacy.ownerOnly);
+  });
+
   it('has the texts in all four languages', () => {
     for (const dict of Object.values(DICTIONARIES)) {
       expect(Object.keys(dict.clientPrivacy)).toEqual(Object.keys(t.clientPrivacy));

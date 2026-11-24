@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError, type Availability, type ServiceList, type StaffList } from '../src/api';
+import {
+  ApiError,
+  BusinessApi,
+  type Availability,
+  type ServiceList,
+  type StaffList,
+} from '../src/api';
 import {
   activeServices,
   checkNewClient,
@@ -82,15 +88,33 @@ describe('who may add visits', () => {
 
 describe('services and times', () => {
   it('lists services still offered, in the salon order', () => {
-    const service = (id: string, sortOrder: number, active: boolean, staffIds: string[]) =>
-      ({ id, name: id, sortOrder, active, staffIds }) as unknown as ServiceList[number];
+    const service = (
+      id: string,
+      sortOrder: number,
+      active: boolean,
+      staffIds: string[],
+      durationMinutes = 30,
+    ) =>
+      ({
+        id,
+        name: id,
+        sortOrder,
+        active,
+        staffIds,
+        durationMinutes,
+      }) as unknown as ServiceList[number];
     const list = [
       service('beard', 2, true, ['ola']),
       service('cut', 1, true, ['kasia']),
+      service('zero', 0, true, ['ola'], 0),
       service('hidden', 0, false, ['kasia']),
       service('nobody', 0, true, []),
     ];
     expect(activeServices(list).map((s) => s.id)).toEqual(['cut', 'beard']);
+  });
+
+  it('offers no service when the salon has none', () => {
+    expect(activeServices([])).toEqual([]);
   });
 
   const overnight: Availability = {
@@ -122,6 +146,50 @@ describe('services and times', () => {
     expect(freeTimes(overnight, 'ola', '2027-01-01')).toEqual([
       { time: '00:15', start: '2026-12-31T23:15:00Z' },
     ]);
+  });
+
+  it('offers no start time for a service with zero duration, even if slots were returned', () => {
+    expect(freeTimes({ ...overnight, durationMinutes: 0 }, 'ola', '2026-12-31')).toEqual([]);
+  });
+
+  it('handles a competing visit booked after a slot crossing midnight was offered', async () => {
+    const [slot] = freeTimes(overnight, 'ola', '2026-12-31');
+    const body = newAppointmentBody({
+      start: slot!.start,
+      serviceId: overnight.serviceId,
+      staffId: 'ola',
+      client: { id: 'c1' },
+      locale: 'pl',
+      note: '',
+      walkIn: null,
+    });
+    const api = new BusinessApi(
+      'https://api.test',
+      {
+        get: async () => 'refresh',
+        set: async () => undefined,
+      },
+      async (url, init) => {
+        if (url.endsWith('/auth/refresh')) {
+          return Response.json({ accessToken: 'access', refreshToken: 'refresh', expiresIn: 900 });
+        }
+        expect(init?.method).toBe('POST');
+        expect(url).toMatch(/\/appointments$/);
+        expect(JSON.parse(String(init?.body))).toEqual({
+          start: '2026-12-31T22:45:00Z',
+          serviceId: 'cut',
+          staffId: 'ola',
+          customerId: 'c1',
+        });
+        return Response.json(
+          { error: { code: 'SLOT_TAKEN', message: 'This time is already booked' } },
+          { status: 409 },
+        );
+      },
+    );
+    await expect(api.createAppointment('o1', 'l1', body).catch(createProblem)).resolves.toBe(
+      'taken',
+    );
   });
 
   it.each([null, {}, { slots: [] }, { slots: {} }])(
@@ -330,6 +398,13 @@ describe('"Umów ponownie" (task 223)', () => {
     expect(presetFromVisit({ ...visit, date: '2026-11-20' }, '2026-11-07')?.date).toBe(
       '2026-11-20',
     );
+  });
+
+  it('keeps the customer id for rebooking when the specialist cannot see the phone', () => {
+    const customer = { ...visit.customer, phone: null };
+    const preset = presetFromVisit({ ...visit, customer }, '2026-11-07');
+    expect(preset?.customer).toEqual({ id: 'cust-1', name: 'Jan Kowalski', phone: null });
+    expect(preset?.client).toEqual({ name: '', phone: '', email: '' });
   });
 
   it('is not offered for a visit without a client, a held or an expired one', () => {

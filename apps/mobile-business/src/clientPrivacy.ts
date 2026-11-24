@@ -32,12 +32,12 @@ export function shareExport(
 export function eraseErrorText(error: unknown, t: Dictionary): string | null {
   if (!(error instanceof ApiError)) return null;
   const p = t.clientPrivacy;
+  if (error.status === 403) return p.ownerOnly;
   if (error.code === 'CUSTOMER_HAS_UPCOMING_VISITS') {
     const n = error.details.find((d) => d.path === 'upcoming')?.message;
     return n ? `${p.upcoming} (${n})` : p.upcoming;
   }
   if (error.code === 'CUSTOMER_ANONYMIZED') return p.already;
   if (error.code === 'VERSION_CONFLICT') return t.clients.conflict;
-  if (error.status === 403) return p.ownerOnly;
   return null;
 }

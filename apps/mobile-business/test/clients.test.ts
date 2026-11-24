@@ -137,7 +137,9 @@ describe('BusinessApi clients', () => {
     await api.restore();
     const name = 'Łucja Żółć Ольга Коваль';
     expect(await api.customers('o1', '  ' + name + '  ')).toEqual([]);
-    await api.customers('o1', '', 20);
+    const lowerName = name.toLocaleLowerCase('pl');
+    await api.customers('o1', lowerName);
+    await api.customers('o1', '   ', 20);
     await api.customers('o1', '', 50, 90);
     await api.customers('o1', '', 50, 0, 'stały klient');
     await api.customerTags('o1');
@@ -149,6 +151,11 @@ describe('BusinessApi clients', () => {
     expect(calls.slice(1).map((c) => [c.key, c.body, c.auth])).toEqual([
       [
         `GET /v1/organizations/o1/customers?limit=50&${new URLSearchParams({ search: name })}`,
+        undefined,
+        'Bearer a9',
+      ],
+      [
+        `GET /v1/organizations/o1/customers?limit=50&${new URLSearchParams({ search: lowerName })}`,
         undefined,
         'Bearer a9',
       ],
