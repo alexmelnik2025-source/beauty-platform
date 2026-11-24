@@ -190,7 +190,7 @@ test('the owner drags a visit to another specialist and time, and before working
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
   await expect(sheet.getByRole('button', { name: 'Przenieś wizytę' })).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
   );
   await expect(sheet.locator('.alert')).toHaveCount(0);
   await shot(page, '832-move-save-error');

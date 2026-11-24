@@ -165,7 +165,7 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   await owner.getByRole('button', { name: 'Zapisz' }).click();
   await expect(owner.locator('#guard-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(owner.getByRole('button', { name: 'Zapisz' })).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
   );
   await expect(owner.locator('.page .alert')).toHaveCount(0);
   await expect(noShows).toHaveValue('2');

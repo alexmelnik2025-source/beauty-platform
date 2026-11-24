@@ -733,7 +733,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   );
   await expect(
     visitCard.getByRole('button', { name: 'Odwołaj', exact: true }),
-  ).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(visitCard.locator('.alert')).toHaveCount(0);
   await expect(visitCard.getByLabel('Powód odwołania')).toHaveValue('Test');
   await shot(ownerPage, '831-visit-cancel-error');
@@ -792,7 +792,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
   await expect(dialog.getByRole('button', { name: 'Zapisz wizytę' })).toHaveAccessibleDescription(
-    'Zbyt wiele prób. Odczekaj chwilę.',
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
   );
   await expect(dialog.locator('.alert')).toHaveCount(0);
   await expect(dialog.getByLabel('Imię i nazwisko')).toHaveValue('Jan Kowalski');
