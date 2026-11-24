@@ -34,6 +34,43 @@ describe('week overview', () => {
     expect(weekStart('2027-01-01')).toBe('2026-12-28'); // Friday
   });
 
+  it('keeps seven consecutive dates and counts a New Year visit once', () => {
+    const calendar: Calendar = {
+      location: {
+        id: 'l1',
+        name: 'Salon',
+        timezone: 'Europe/Warsaw',
+        currency: 'PLN',
+        slotStepMinutes: 15,
+      },
+      from: '2026-12-28',
+      to: '2027-01-03',
+      staff: [],
+      timeOff: [],
+      blocks: [],
+      appointments: [
+        visit(
+          'night',
+          '2026-12-31',
+          '23:45',
+          '2026-12-31T22:45:00Z',
+          '2026-12-31T23:15:00Z',
+          'confirmed',
+        ),
+      ],
+    };
+    const days = weekSummary(calendar, weekStart('2027-01-01'));
+    expect(days.map((d) => [d.date, d.visits, d.span])).toEqual([
+      ['2026-12-28', 0, null],
+      ['2026-12-29', 0, null],
+      ['2026-12-30', 0, null],
+      ['2026-12-31', 1, '23:45–00:15'],
+      ['2027-01-01', 0, null],
+      ['2027-01-02', 0, null],
+      ['2027-01-03', 0, null],
+    ]);
+  });
+
   it('counts visits that are not cancelled, their span, waiting ones and who works', () => {
     const calendar = {
       location: { timezone: 'Europe/Warsaw' },

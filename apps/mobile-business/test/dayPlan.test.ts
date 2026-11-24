@@ -91,6 +91,22 @@ describe('dayPlanText (task 351)', () => {
     );
   });
 
+  it('prints an overnight visit with both local clock times', () => {
+    const text = dayPlanText(
+      {
+        salon: 'S',
+        title: 'czwartek, 31 grudnia',
+        working: [],
+        blocks: [],
+        visits: [visit({ start: '23:45', end: '00:15' })],
+      },
+      labels,
+    );
+    expect(text.split('\n').at(-1)).toBe(
+      '23:45–00:15 · Kasia · Strzyżenie — Jan Kowalski, +48600100200',
+    );
+  });
+
   it('says so when nobody works and there are no visits', () => {
     expect(
       dayPlanText({ salon: 'S', title: 'niedziela', visits: [], working: [], blocks: [] }, labels),

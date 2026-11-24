@@ -41,6 +41,11 @@ describe('"Kasa dnia" (task 228)', () => {
     });
   });
 
+  it('keeps a completed visit in the till after its only payment was undone', () => {
+    const till = tillOf(report({ completed: 1, paid: 0, revenueGrosze: 0 }), '2026-11-06');
+    expect(till).toMatchObject({ revenueGrosze: 0, methods: [], unpaid: 1 });
+  });
+
   it('nothing before anyone came, for another day, or without a report', () => {
     expect(tillOf(report({}), '2026-11-06')).toBeNull();
     expect(tillOf(report({ completed: 1 }), '2026-11-07')).toBeNull();

@@ -28,6 +28,20 @@ describe('catalogue map (task 160)', () => {
     );
   });
 
+  it('ignores corrupt coordinates when choosing both the tiles and the markers', () => {
+    const good = { latitude: 0, longitude: 0 };
+    const bad = [
+      null,
+      { latitude: 52 },
+      { latitude: '52', longitude: 21 },
+      { latitude: 91, longitude: 21 },
+      { latitude: 52, longitude: -181 },
+      { latitude: NaN, longitude: 21 },
+    ] as unknown as (typeof good)[];
+    expect(mapLayout([...bad, good], 320, 300)).toEqual(mapLayout([good], 320, 300));
+    expect(mapLayout(bad, 320, 300)).toEqual(mapLayout([], 320, 300));
+  });
+
   it('keeps both pins tappable for salons at the same address', () => {
     const point = { latitude: 52.2297, longitude: 21.0122 };
     const salons = [
