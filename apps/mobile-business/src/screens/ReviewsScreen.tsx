@@ -26,7 +26,6 @@ import {
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
-import { screenRead } from './GuardScreen';
 
 // Store completed pages for each filter only for the current salon session.
 const reviewsCache = new WeakMap<
@@ -156,15 +155,19 @@ export function ReviewsScreen(props: {
         for (;;) {
           result =
             cached?.value ??
-            (await screenRead(
-              signal,
-              api.reviews(salon.orgId, salon.locationId, {
-                before: previous?.nextBefore ?? undefined,
-                staffId: staffId ?? undefined,
-                serviceId: serviceId ?? undefined,
-                rating: rating ?? undefined,
-                unanswered,
-              }),
+            (await withNetworkTimeout(
+              api.reviews(
+                salon.orgId,
+                salon.locationId,
+                {
+                  before: previous?.nextBefore ?? undefined,
+                  staffId: staffId ?? undefined,
+                  serviceId: serviceId ?? undefined,
+                  rating: rating ?? undefined,
+                  unanswered,
+                },
+                signal,
+              ),
             ));
           if (signal.aborted || request.current !== id) return;
           const latest = recentPages(salon);
@@ -590,7 +593,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
     const signal = lifetime.current!.signal;
     if (signal.aborted) return;
     const current = await settingsCache.read(salon, () =>
-      screenRead(signal, api.reviewSettings(salon.orgId, salon.locationId)),
+      withNetworkTimeout(api.reviewSettings(salon.orgId, salon.locationId, signal)),
     );
     if (signal.aborted) return;
     setSaved(current);

@@ -34,22 +34,6 @@ const ruleFields = new Map<string, GuardProblem>([
 const settingsCache = new SalonReadCache<CancellationGuard>();
 const clientsCache = new SalonReadCache<GuardedClients>();
 
-// BusinessApi reads do not accept an AbortSignal. Release the pending cache entry
-// when its screen closes, so a later visit never subscribes to the abandoned read.
-export async function screenRead<T>(signal: AbortSignal, read: Promise<T>): Promise<T> {
-  let cancel!: () => void;
-  const left = new Promise<never>((_, reject) => {
-    cancel = () => reject(new Error('Screen closed'));
-  });
-  signal.addEventListener('abort', cancel);
-  try {
-    if (signal.aborted) cancel();
-    return await withNetworkTimeout(Promise.race([read, left]));
-  } finally {
-    signal.removeEventListener('abort', cancel);
-  }
-}
-
 /**
  * Task 207: "Ochrona przed odwołaniami" — the owner or a manager sees the salon's rules,
  * switches the protection on or off (switching off asks first) and lifts a marked client's
@@ -89,10 +73,10 @@ export function GuardScreen(props: {
     try {
       const [s, list] = await Promise.all([
         settingsCache.read(salon, () =>
-          screenRead(signal, api.guardSettings(salon.orgId, salon.locationId)),
+          withNetworkTimeout(api.guardSettings(salon.orgId, salon.locationId, signal)),
         ),
         clientsCache.read(salon, () =>
-          screenRead(signal, api.guardedClients(salon.orgId, salon.locationId)),
+          withNetworkTimeout(api.guardedClients(salon.orgId, salon.locationId, signal)),
         ),
       ]);
       if (signal.aborted) return;

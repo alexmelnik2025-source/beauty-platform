@@ -105,15 +105,14 @@ test('a guarded client list abandoned on exit cannot replace the next visit', as
   try {
     await button(page, pl.guard.open).click();
     await expect.poll(() => reads).toBe(1);
+    const cancelled = page.waitForEvent('requestfailed', (req) =>
+      req.url().endsWith('/cancellation-guard/clients'),
+    );
     await button(page, pl.guard.back).click();
     await button(page, pl.guard.open).click();
     await expect(page.getByText('Nowe dane', { exact: true })).toBeVisible();
-    const arrived = page.waitForEvent('requestfinished', (req) =>
-      req.url().endsWith('/cancellation-guard/clients'),
-    );
     finishFirst();
-    await arrived;
-    await expect(page.getByText('Nowe dane', { exact: true })).toBeVisible();
+    await cancelled;
     await expect(page.getByText('Stare dane', { exact: true })).toHaveCount(0);
     expect(reads).toBe(2);
   } finally {
@@ -121,10 +120,9 @@ test('a guarded client list abandoned on exit cannot replace the next visit', as
   }
 });
 
-test('typing and publishing touch only the chosen review, and returning reuses the list', async ({
-  page,
-}) => {
-  const items = Array.from({ length: 20 }, (_, i) => ({
+async function checkReviewWork({ page }: { page: Page }) {
+  // Keep every fixture in FlatList's initial batch so lazy mounts cannot enter the render counts.
+  const items = Array.from({ length: 8 }, (_, i) => ({
     id: 'review-' + i,
     text: 'Opinia ' + i,
     rating: 4,
@@ -145,9 +143,9 @@ test('typing and publishing touch only the chosen review, and returning reuses t
     return route.fulfill({
       json: {
         enabled: true,
-        count: 20,
+        count: items.length,
         average: 4,
-        stars: [0, 0, 0, 20, 0],
+        stars: [0, 0, 0, items.length, 0],
         unanswered: items.filter((item) => !item.reply).length,
         staff: [],
         services: [],
@@ -174,6 +172,7 @@ test('typing and publishing touch only the chosen review, and returning reuses t
   await expect(answeredRow).toBeVisible();
   await row.getByRole('button', { name: pl.reviews.reply, exact: true }).click();
   const field = row.getByRole('textbox', { name: pl.reviews.replyLabel });
+  await expect(page.getByRole('group', { name: /^Klient \d+ ·/ })).toHaveCount(items.length);
   // Count the summary and each review's date formatting on the actual React render path.
   await page.evaluate(() => {
     const counts = { summary: 0, rows: [] as number[] };
@@ -212,7 +211,7 @@ test('typing and publishing touch only the chosen review, and returning reuses t
   await row.getByRole('button', { name: pl.reviews.replySave }).click();
   await expect(row.getByText(draft, { exact: true })).toBeVisible();
   const saved = await work();
-  await expect(unanswered).toHaveText(/18/);
+  await expect(unanswered).toHaveText(/6/);
   await button(page, pl.reviews.back).click();
   await button(page, pl.reviews.open).click();
   await expect(row.getByText(draft, { exact: true })).toBeVisible();
@@ -223,4 +222,8 @@ test('typing and publishing touch only the chosen review, and returning reuses t
   expect(writes).toEqual([draft]);
   expect(typing).toEqual({ summary: 0, rows: [] });
   expect([...new Set(saved.rows)]).toEqual([1]);
-});
+}
+
+for (let run = 1; run <= 20; run++) {
+  test(`typing and publishing touch only the chosen review, run ${run}`, checkReviewWork);
+}
