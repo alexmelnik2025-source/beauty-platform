@@ -50,6 +50,19 @@ const photoCache = new SalonReadCache<SalonPhoto[]>();
 
 type FieldProblem = SalonProblem | 'email';
 
+const problemByField = {
+  name: 'name',
+  addressLine: 'address',
+  city: 'city',
+  postalCode: 'postalCode',
+  phone: 'phone',
+  email: 'email',
+  minLeadMinutes: 'lead',
+  bookingHorizonDays: 'horizon',
+  clientCancelDeadlineMinutes: 'deadline',
+  coordinates: 'coordinates',
+} as const;
+
 function settingsForm(location: Location) {
   return { ...salonForm(location), email: location.email ?? '' };
 }
@@ -83,6 +96,7 @@ export function SalonScreen(props: {
   const invalidInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const saving = useRef(false);
   const [busy, setBusy] = useState(false);
   /** Task 324: the text whose template waits for "replace?"; a template was put in (not saved). */
   const [replacing, setReplacing] = useState<LegalKey | null>(null);
@@ -251,7 +265,7 @@ export function SalonScreen(props: {
   }
 
   async function save() {
-    if (!location || !form || busy) return;
+    if (!location || !form || saving.current) return;
     setError('');
     setInfo('');
     setFieldProblem(null);
@@ -279,6 +293,7 @@ export function SalonScreen(props: {
       return;
     }
     const signal = lifetime.current!.signal;
+    saving.current = true;
     setBusy(true);
     try {
       const saved = await api.updateLocation(
@@ -304,11 +319,25 @@ export function SalonScreen(props: {
       } else if (problem === 'changedMeanwhile') {
         setError(s.changedMeanwhile);
         await load();
-      } else if (e instanceof ApiError && e.details.some((issue) => issue.path === 'email')) {
-        setSection('details');
-        setFieldProblem('email');
-      } else setError(errorText(e, t));
+      } else {
+        const field =
+          e instanceof ApiError &&
+          e.details
+            .map(({ path }) =>
+              Object.hasOwn(problemByField, path)
+                ? problemByField[path as keyof typeof problemByField]
+                : path === 'latitude' || path === 'longitude'
+                  ? 'coordinates'
+                  : undefined,
+            )
+            .find((issue) => issue !== undefined);
+        if (field) {
+          setSection(['lead', 'horizon', 'deadline'].includes(field) ? 'rules' : 'details');
+          setFieldProblem(field);
+        } else setError(errorText(e, t));
+      }
     } finally {
+      saving.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }
@@ -333,18 +362,6 @@ export function SalonScreen(props: {
       placeholder?: string;
     },
   ) => {
-    const problemByField = {
-      name: 'name',
-      addressLine: 'address',
-      city: 'city',
-      postalCode: 'postalCode',
-      phone: 'phone',
-      email: 'email',
-      minLeadMinutes: 'lead',
-      bookingHorizonDays: 'horizon',
-      clientCancelDeadlineMinutes: 'deadline',
-      coordinates: 'coordinates',
-    } as const;
     const problem = fieldProblem === problemByField[key] ? problems[fieldProblem] : null;
     return form ? (
       <View style={styles.field}>
@@ -784,9 +801,17 @@ export function SalonScreen(props: {
               ))}
             </Card>
           )
-        ) : !error ? (
+        ) : error ? (
+          <Button
+            label={t.day.refresh}
+            onPress={() => {
+              setError('');
+              void load();
+            }}
+          />
+        ) : (
           <Text style={styles.muted}>{t.loading}</Text>
-        ) : null}
+        )}
       </ScrollView>
       {dirty ? (
         <View style={styles.saveBar}>
