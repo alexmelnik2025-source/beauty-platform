@@ -764,6 +764,7 @@ pnpm --filter @beauty/api-client generate
 - Отказ сервера не про адрес или код (нет связи, «Zbyt wiele prób» и т. п.) — под «Wyślij kod», «Zaloguj się» или
   «Wyślij ponownie» (с «!»), введённое остаётся; раньше — рамкой над формой. Ввод убирает ошибку. e2e
   `client-visits-field-errors`, скриншоты `770-visits-send-error`, `770-visits-verify-error`.
+
 ## Карточка клиента → «Bonusy»: отказ у своего места (задача 763, 24.11.2026)
 
 - Отказ сервера на «Wymień» — под этой наградой, на «Anuluj kupon» — под этим купоном, на «Zapisz zmianę» — под
