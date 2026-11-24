@@ -9,35 +9,71 @@ import type { SalonChoice } from './SalonsScreen';
 
 // A stalled connection must release the screen and let the user retry. Late responses
 // settle only the original promise and never update the UI or its cache.
-export async function withNetworkTimeout<T>(request: Promise<T>): Promise<T> {
+export async function withNetworkTimeout<T>(request: Promise<T>, signal?: AbortSignal): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
   try {
     return await Promise.race([
       request,
       new Promise<never>((_, reject) => {
+        if (signal) {
+          onAbort = () => reject(new Error('Screen closed'));
+          if (signal.aborted) return onAbort();
+          signal.addEventListener('abort', onAbort);
+        }
         timer = setTimeout(() => reject(new Error('Request timed out')), 30_000);
       }),
     ]);
   } finally {
     clearTimeout(timer);
+    if (onAbort) signal?.removeEventListener('abort', onAbort);
   }
+}
+
+interface CacheEntry<T> {
+  key: string;
+  expires: number;
+  result: Promise<T>;
+  value?: T;
+  pendingSignal?: AbortSignal;
 }
 
 // App creates fresh SalonChoice objects on sign-in, even for the same location.
 // A weak key therefore keeps short-lived reads inside the selected account.
 export class SalonReadCache<T> {
-  private entries = new WeakMap<
-    SalonChoice,
-    { key: string; expires: number; result: Promise<T> }
-  >();
+  private entries = new WeakMap<SalonChoice, CacheEntry<T>>();
 
-  read(salon: SalonChoice, fetchValue: () => Promise<T>, key = ''): Promise<T> {
+  peek(salon: SalonChoice, key = ''): T | undefined {
+    const entry = this.entries.get(salon);
+    return entry && entry.key === key && entry.expires > Date.now() ? entry.value : undefined;
+  }
+
+  read(
+    salon: SalonChoice,
+    fetchValue: () => Promise<T>,
+    key = '',
+    signal?: AbortSignal,
+  ): Promise<T> {
     const current = this.entries.get(salon);
-    if (current && current.key === key && current.expires > Date.now()) return current.result;
-    const entry = { key, expires: Infinity, result: fetchValue() };
+    if (
+      current &&
+      current.key === key &&
+      !current.pendingSignal?.aborted &&
+      current.expires > Date.now()
+    )
+      return current.result;
+    const result = fetchValue();
+    const entry: CacheEntry<T> = {
+      key,
+      expires: Infinity,
+      result: signal ? withNetworkTimeout(result, signal) : result,
+      pendingSignal: signal,
+    };
     this.entries.set(salon, entry);
     entry.result.then(
-      () => {
+      (value) => {
+        entry.value = value;
+        entry.pendingSignal = undefined;
         entry.expires = Date.now() + 60_000;
       },
       () => {
@@ -48,7 +84,12 @@ export class SalonReadCache<T> {
   }
 
   set(salon: SalonChoice, value: T, key = '') {
-    this.entries.set(salon, { key, expires: Date.now() + 60_000, result: Promise.resolve(value) });
+    this.entries.set(salon, {
+      key,
+      expires: Date.now() + 60_000,
+      result: Promise.resolve(value),
+      value,
+    });
   }
 
   clear(salon: SalonChoice) {
@@ -121,7 +162,7 @@ export function HistoryScreen(props: {
 }) {
   const { api, t, salon, onBack } = props;
   const h = t.history;
-  const [page, setPage] = useState<AuditLog | null>(null);
+  const [page, setPage] = useState<AuditLog | null>(() => historyCache.peek(salon) ?? null);
   const [failure, setFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
@@ -131,19 +172,27 @@ export function HistoryScreen(props: {
     async (previous?: AuditLog) => {
       const signal = lifetime.current!.signal;
       if (pending.current || signal.aborted) return;
+      const cached = !previous && historyCache.peek(salon);
+      if (cached) {
+        setPage(cached);
+        return;
+      }
       pending.current = true;
       setBusy(true);
       setFailure(null);
       try {
         let result: AuditLog;
         if (previous?.next) {
-          const older = await withNetworkTimeout(api.auditLog(salon.orgId, previous.next));
+          const older = await withNetworkTimeout(api.auditLog(salon.orgId, previous.next), signal);
           if (signal.aborted) return;
           result = { ...older, items: appendPage(previous.items, older.items) };
           historyCache.set(salon, result);
         } else {
-          result = await historyCache.read(salon, () =>
-            withNetworkTimeout(api.auditLog(salon.orgId)),
+          result = await historyCache.read(
+            salon,
+            () => api.auditLog(salon.orgId),
+            undefined,
+            signal,
           );
         }
         if (!signal.aborted) setPage(result);
