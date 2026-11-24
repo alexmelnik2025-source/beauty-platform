@@ -7,12 +7,14 @@ export function DiscountedTime({
   percent,
   listPrice,
   labels,
+  disabled,
   onPress,
 }: {
   time: string;
   percent: number;
   listPrice?: string;
   labels: Pick<Dictionary['visit'], 'price' | 'discount'>;
+  disabled: boolean;
   onPress: () => void;
 }) {
   return (
@@ -25,6 +27,8 @@ export function DiscountedTime({
       ]
         .filter(Boolean)
         .join(' · ')}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       style={styles.slot}
     >
