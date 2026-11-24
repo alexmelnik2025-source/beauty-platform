@@ -31,12 +31,17 @@ describe('salonTimeZones (task 323)', () => {
 });
 
 describe('defaults for an unlisted country', () => {
-  it('uses Warsaw, Poland and PLN when setting up a salon', () => {
-    const zone = 'America/Toronto';
-    expect(salonZoneOf(zone)).toBe('Europe/Warsaw');
-    expect(regionForTimeZone(zone)).toBe('PL');
-    expect(currencyForTimeZone(zone)).toBe('PLN');
-  });
+  it.each(['America/Toronto', 'ZZ', 'Unknown/City'])(
+    'keeps the saved zone %s visible but uses Polish defaults for a new salon',
+    (zone) => {
+      expect(salonTimeZones('en', zone).filter((item) => item.timeZone === zone)).toEqual([
+        { timeZone: zone, label: zone },
+      ]);
+      expect(salonZoneOf(zone)).toBe('Europe/Warsaw');
+      expect(regionForTimeZone(zone)).toBe('PL');
+      expect(currencyForTimeZone(zone)).toBe('PLN');
+    },
+  );
 });
 
 describe('currencyName', () => {

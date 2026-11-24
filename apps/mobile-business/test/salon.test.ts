@@ -139,6 +139,21 @@ describe('salonChanges', () => {
     });
   });
 
+  it('saves a street without a house number and keeps an explicit foreign calling code', () => {
+    const saved = salon({ timezone: 'America/Toronto' });
+    const form = {
+      ...salonForm(saved),
+      addressLine: '  Rynek Starego Miasta ',
+      phone: '+1 416 555 0123',
+    };
+    expect(salonChanges(saved, form)).toEqual({
+      changes: { addressLine: 'Rynek Starego Miasta', phone: '+14165550123' },
+    });
+    expect(salonChanges(saved, { ...salonForm(saved), phone: '600 100 200' })).toEqual({
+      changes: { phone: '+48600100200' },
+    });
+  });
+
   it('names what is missing or wrong, as the server would', () => {
     const form = salonForm(salon());
     expect(salonChanges(salon(), { ...form, name: ' ' })).toEqual({ problem: 'name' });
@@ -297,6 +312,19 @@ describe('salonChanges — terms and privacy (task 324)', () => {
       changes: { privacyPolicy: '' },
     });
   });
+
+  it.each(['123 456 32 18', '123-456-32-18'])(
+    'keeps NIP %s as entered in the legal text',
+    (nip) => {
+      const template = 'Dane firmy: NIP {NIP}, KRS {KRS}.';
+      const saved = salon({ bookingTerms: template });
+      const bookingTerms = template.replace('{NIP}', nip);
+      expect(placeholders(bookingTerms)).toEqual(['{KRS}']);
+      expect(salonChanges(saved, { ...salonForm(saved), bookingTerms })).toEqual({
+        changes: { bookingTerms },
+      });
+    },
+  );
 
   it('starts empty when the salon has no texts yet and refuses a text over 50 000 characters', () => {
     expect(salonForm(salon({ bookingTerms: null }))).toMatchObject({ bookingTerms: '' });
