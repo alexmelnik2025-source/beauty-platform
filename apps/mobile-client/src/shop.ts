@@ -1,4 +1,14 @@
-import type { ClientAppointment, ShopCategory, ShopOffer, ShopProduct } from './api';
+import {
+  ClientApi,
+  type ClientAppointment,
+  type ShopCategory,
+  type ShopOffer,
+  type ShopProduct,
+  type ShopList,
+  type TokenStore,
+  type VisitProducts,
+  type UsedProducts,
+} from './api';
 
 /**
  * Task Q3 (screen 2): the "Sklep" tab of the client app. Plain helpers without React Native, so
@@ -61,4 +71,53 @@ export function nextVisitAt(
     if (!best || start < Date.parse(best.start)) best = v;
   }
   return best;
+}
+
+/** Keep recent reads across a quick return. Rejections and invalidated reads can be retried. */
+export function recentReads<T>() {
+  const clients = new WeakMap<ClientApi, Map<string, { result: Promise<T>; until: number }>>();
+  function clear(api: ClientApi, key?: string) {
+    if (key === undefined) clients.delete(api);
+    else clients.get(api)?.delete(key);
+  }
+  function read(api: ClientApi, key: string, fetchData: () => Promise<T>) {
+    let entries = clients.get(api);
+    if (!entries) {
+      entries = new Map();
+      clients.set(api, entries);
+    }
+    const cached = entries.get(key);
+    if (cached && cached.until > Date.now()) return cached.result;
+    const result = fetchData();
+    entries.delete(key);
+    if (entries.size >= 32) entries.delete(entries.keys().next().value!);
+    entries.set(key, { result, until: Date.now() + 30_000 });
+    result.catch(() => {
+      if (entries.get(key)?.result === result) entries.delete(key);
+    });
+    return result;
+  }
+  return { read, clear };
+}
+
+export const catalogPages = recentReads<ShopList>();
+export const visitProductLists = recentReads<VisitProducts>();
+export const usedProductLists = recentReads<UsedProducts>();
+
+/** A reservation changes availability in the catalog and in both types of visit card. */
+export function invalidateProductLists(api: ClientApi) {
+  catalogPages.clear(api);
+  visitProductLists.clear(api);
+  usedProductLists.clear(api);
+}
+
+/** Use the existing public shop endpoint and error handling with a cancellable transport. */
+export function searchShop(
+  baseUrl: string,
+  store: TokenStore,
+  query: Parameters<ClientApi['shop']>[0],
+  signal: AbortSignal,
+) {
+  const publicApi = new ClientApi(baseUrl, store, (url, init) => fetch(url, { ...init, signal }));
+  return publicApi.shop(query);
 }

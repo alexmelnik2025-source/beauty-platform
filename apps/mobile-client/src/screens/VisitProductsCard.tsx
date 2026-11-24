@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, VisitProducts } from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
 import { formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
+import { visitProductLists, invalidateProductLists } from '../shop';
 import { Button, colors, ErrorText } from '../ui';
 
 /**
@@ -13,12 +14,17 @@ import { Button, colors, ErrorText } from '../ui';
  * products; "Odbiorę przy wizycie" puts one aside, paid at the salon. Nothing is shown when the
  * salon has no products for clients and nothing was put aside — the visit card stays as it was.
  */
-export function VisitProductsCard(props: {
+type Props = {
   api: ClientApi;
   t: Dictionary;
   locale: Locale;
   visitId: string;
-}) {
+};
+export function VisitProductsCard(props: Props) {
+  return <VisitProductsContent key={props.visitId} {...props} />;
+}
+
+function VisitProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;
   const s = t.visitProducts;
   const [data, setData] = useState<VisitProducts | null>(null);
@@ -26,18 +32,22 @@ export function VisitProductsCard(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(
-    () =>
-      api
-        .visitProducts(visitId)
-        .then(setData)
-        .catch(() => setData(null)),
-    [api, visitId],
-  );
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    let live = true;
+    visitProductLists
+      .read(api, visitId, () => api.visitProducts(visitId))
+      .then(
+        (items) => {
+          if (live) setData(items);
+        },
+        () => {
+          if (live) setData(null);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, [api, visitId]);
 
   const run = async (action: () => Promise<VisitProducts>) => {
     if (busy) return;
@@ -47,8 +57,9 @@ export function VisitProductsCard(props: {
       setData(await action());
     } catch (e) {
       setError(errorText(e, t));
-      await load();
+      await api.visitProducts(visitId).then(setData, () => setData(null));
     } finally {
+      invalidateProductLists(api);
       setBusy(false);
     }
   };
@@ -57,7 +68,6 @@ export function VisitProductsCard(props: {
   const reserved = data.reservations.filter((r) => r.status !== 'cancelled');
   if (reserved.length === 0 && (!data.canChange || data.available.length === 0)) return null;
   const money = (n: number) => formatPrice(n, data.currency, locale);
-  const photo = (id: string) => ({ uri: `${API_URL}/v1/public/photos/${id}` });
 
   return (
     <View role="region" aria-label={s.title} style={styles.card} testID="visit-products">
@@ -66,23 +76,21 @@ export function VisitProductsCard(props: {
       </Text>
       {reserved.map((r) => (
         <View key={r.id} style={styles.row}>
-          {r.photoId ? (
-            <Image
-              accessible
-              accessibilityLabel={r.name}
-              source={photo(r.photoId)}
-              style={styles.photo}
-            />
-          ) : null}
-          <View style={styles.grow}>
-            <Text style={styles.name}>{r.quantity > 1 ? `${r.name} × ${r.quantity}` : r.name}</Text>
-            <Text style={styles.price}>{money(r.totalGrosze)}</Text>
-            <Text style={styles.muted}>
-              {r.status === 'reserved' ? s.statusReserved : null}
-              {r.status === 'handed' ? s.statusHanded : null}
-              {r.status === 'expired' ? s.statusExpired : null}
-            </Text>
-          </View>
+          <ProductDetails
+            name={r.name}
+            photoId={r.photoId}
+            quantity={r.quantity}
+            amount={r.totalGrosze}
+            currency={data.currency}
+            locale={locale}
+            status={
+              r.status === 'reserved'
+                ? s.statusReserved
+                : r.status === 'handed'
+                  ? s.statusHanded
+                  : s.statusExpired
+            }
+          />
           {data.canChange && r.status === 'reserved' ? (
             <Button
               kind="link"
@@ -103,24 +111,16 @@ export function VisitProductsCard(props: {
           {open
             ? data.available.map((p) => (
                 <View key={p.id} style={styles.row}>
-                  {p.photoId ? (
-                    <Image
-                      accessible
-                      accessibilityLabel={p.name}
-                      source={photo(p.photoId)}
-                      style={styles.photo}
-                    />
-                  ) : null}
-                  <View style={styles.grow}>
-                    <Text style={styles.name}>
-                      {p.name}
-                      {p.brand ? <Text style={styles.muted}> · {p.brand}</Text> : null}
-                    </Text>
-                    <Text style={styles.muted}>
-                      {money(p.priceGrosze)}
-                      {!p.available ? ` · ${s.unavailable}` : ''}
-                    </Text>
-                  </View>
+                  <ProductDetails
+                    name={p.name}
+                    photoId={p.photoId}
+                    brand={p.brand}
+                    amount={p.priceGrosze}
+                    currency={data.currency}
+                    locale={locale}
+                    available={p.available}
+                    status={s.unavailable}
+                  />
                   <Button
                     kind="secondary"
                     label={s.reserve}
@@ -138,6 +138,60 @@ export function VisitProductsCard(props: {
     </View>
   );
 }
+
+const ProductDetails = memo(function ProductDetails({
+  name,
+  photoId,
+  quantity,
+  brand,
+  amount,
+  currency,
+  locale,
+  available,
+  status,
+}: {
+  name: string;
+  photoId: string | null;
+  quantity?: number;
+  brand?: string | null;
+  amount: number;
+  currency: string;
+  locale: Locale;
+  available?: boolean;
+  status: string;
+}) {
+  const price = formatPrice(amount, currency, locale);
+  return (
+    <>
+      {photoId ? (
+        <Image
+          accessible
+          accessibilityLabel={name}
+          resizeMethod="resize"
+          source={{ uri: `${API_URL}/v1/public/photos/${photoId}` }}
+          style={styles.photo}
+        />
+      ) : null}
+      <View style={styles.grow}>
+        <Text style={styles.name}>
+          {quantity && quantity > 1 ? `${name} × ${quantity}` : name}
+          {brand ? <Text style={styles.muted}> · {brand}</Text> : null}
+        </Text>
+        {available === undefined ? (
+          <>
+            <Text style={styles.price}>{price}</Text>
+            <Text style={styles.muted}>{status}</Text>
+          </>
+        ) : (
+          <Text style={styles.muted}>
+            {price}
+            {!available ? ` · ${status}` : ''}
+          </Text>
+        )}
+      </View>
+    </>
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

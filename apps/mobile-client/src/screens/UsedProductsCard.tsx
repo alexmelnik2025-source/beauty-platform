@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, UsedProducts } from '../api';
 import type { BookingPreset } from '../booking';
@@ -6,6 +6,7 @@ import { API_URL } from '../config';
 import { errorText } from '../errors';
 import { formatDay, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
+import { usedProductLists, invalidateProductLists } from '../shop';
 import { Button, colors, ErrorText } from '../ui';
 
 /**
@@ -14,31 +15,40 @@ import { Button, colors, ErrorText } from '../ui';
  * on each. Without one: "Umów kolejną wizytę" opens the booking with the same specialist and the
  * products come along (put aside right after booking). Nothing when nothing was used.
  */
-export function UsedProductsCard(props: {
+type Props = {
   api: ClientApi;
   t: Dictionary;
   locale: Locale;
   visitId: string;
   onBookNext: (preset: BookingPreset) => void;
-}) {
+};
+export function UsedProductsCard(props: Props) {
+  return <UsedProductsContent key={props.visitId} {...props} />;
+}
+
+function UsedProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;
   const s = t.visitProducts;
   const [data, setData] = useState<UsedProducts | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(
-    () =>
-      api
-        .usedProducts(visitId)
-        .then(setData)
-        .catch(() => setData(null)),
-    [api, visitId],
-  );
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    let live = true;
+    usedProductLists
+      .read(api, visitId, () => api.usedProducts(visitId))
+      .then(
+        (items) => {
+          if (live) setData(items);
+        },
+        () => {
+          if (live) setData(null);
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, [api, visitId]);
 
   async function save(productId: string) {
     if (busy) return;
@@ -48,8 +58,9 @@ export function UsedProductsCard(props: {
       setData(await api.reserveForNext(visitId, productId));
     } catch (e) {
       setError(errorText(e, t));
-      await load();
+      await api.usedProducts(visitId).then(setData, () => setData(null));
     } finally {
+      invalidateProductLists(api);
       setBusy(false);
     }
   }
@@ -58,7 +69,6 @@ export function UsedProductsCard(props: {
   const next = data.nextVisit;
   const when = next ? `${next.time} · ${formatDay(next.date, locale)}` : '';
   const toBring = data.products.filter((p) => p.available).map((p) => p.id);
-  const photo = (id: string) => ({ uri: `${API_URL}/v1/public/photos/${id}` });
 
   return (
     <View role="region" aria-label={s.usedTitle} style={styles.card} testID="used-products">
@@ -67,26 +77,15 @@ export function UsedProductsCard(props: {
       </Text>
       {data.products.map((p) => (
         <View key={p.id} style={styles.item}>
-          <View style={styles.row}>
-            {p.photoId ? (
-              <Image
-                accessible
-                accessibilityLabel={p.name}
-                source={photo(p.photoId)}
-                style={styles.photo}
-              />
-            ) : null}
-            <View style={styles.grow}>
-              <Text style={styles.name}>
-                {p.name}
-                {p.brand ? <Text style={styles.muted}> · {p.brand}</Text> : null}
-              </Text>
-              <Text style={styles.muted}>
-                {formatPrice(p.priceGrosze, data.currency, locale)}
-                {!p.available && !p.reservedForNext ? ` · ${s.unavailable}` : ''}
-              </Text>
-            </View>
-          </View>
+          <ProductDetails
+            name={p.name}
+            brand={p.brand}
+            photoId={p.photoId}
+            amount={p.priceGrosze}
+            currency={data.currency}
+            locale={locale}
+            status={!p.available && !p.reservedForNext ? s.unavailable : ''}
+          />
           {next && p.reservedForNext ? (
             <Text role="status" style={styles.saved}>
               ✓ {fill(s.savedForNext, { when })}
@@ -125,6 +124,49 @@ export function UsedProductsCard(props: {
     </View>
   );
 }
+
+const ProductDetails = memo(function ProductDetails({
+  name,
+  brand,
+  photoId,
+  amount,
+  currency,
+  locale,
+  status,
+}: {
+  name: string;
+  brand: string | null;
+  photoId: string | null;
+  amount: number;
+  currency: string;
+  locale: Locale;
+  status: string;
+}) {
+  const price = formatPrice(amount, currency, locale);
+  return (
+    <View style={styles.row}>
+      {photoId ? (
+        <Image
+          accessible
+          accessibilityLabel={name}
+          resizeMethod="resize"
+          source={{ uri: `${API_URL}/v1/public/photos/${photoId}` }}
+          style={styles.photo}
+        />
+      ) : null}
+      <View style={styles.grow}>
+        <Text style={styles.name}>
+          {name}
+          {brand ? <Text style={styles.muted}> · {brand}</Text> : null}
+        </Text>
+        <Text style={styles.muted}>
+          {price}
+          {status ? ` · ${status}` : ''}
+        </Text>
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   card: {
