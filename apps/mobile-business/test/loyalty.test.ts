@@ -230,6 +230,29 @@ describe('program rules (task 344)', () => {
     });
   });
 
+  it('preserves zero and the maximum spend in grosze and rejects one grosz over', () => {
+    const p = program({
+      mode: 'points',
+      pointsPerUnit: 0,
+      spendUnitGrosze: 10_000_000,
+      minSpendGrosze: 0,
+    });
+    const form = rulesForm(p);
+    expect(rulesToSave(p, form)).toEqual({ ok: true, save: programToSave(p, p.enabled) });
+    expect(rulesToSave(p, { ...form, minSpend: '99 999,99' })).toMatchObject({
+      ok: true,
+      save: { minSpendGrosze: 9_999_999 },
+    });
+    expect(rulesToSave(p, { ...form, spendUnit: '100 000,01' })).toEqual({
+      ok: false,
+      problem: 'spendUnit',
+    });
+    expect(rulesToSave(p, { ...form, minSpend: '100 000,01' })).toEqual({
+      ok: false,
+      problem: 'minSpend',
+    });
+  });
+
   it('empty validity = no limit; stamps keep the points fields as saved', () => {
     const p = program({ pointsValidityDays: 90 });
     const points = rulesToSave(p, { ...rulesForm(p), mode: 'points', validityDays: ' ' });
