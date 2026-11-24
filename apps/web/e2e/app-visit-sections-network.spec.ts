@@ -13,6 +13,7 @@ import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
 const customer = 'Katarzyna Kowalska';
+const service = 'Strzyżenie';
 const product = 'Odżywka';
 const barcode = '5901234567893';
 async function createVisit(request: APIRequestContext) {
@@ -56,7 +57,7 @@ async function createVisit(request: APIRequestContext) {
   });
   const base = `${locations}/${location}`;
   const serviceId = await create(`${base}/services`, {
-    name: 'Strzyżenie',
+    name: service,
     durationMinutes: 30,
     priceGrosze: 9000,
   });
@@ -139,7 +140,7 @@ test('visit actions keep drafts and send one write on a slow or broken connectio
     date: today,
     status: 'waiting',
     createdAt: today + 'T08:00:00Z',
-    serviceName: 'Strzyżenie',
+    serviceName: service,
     email: 'ce@example.com',
   };
   await page.route(`**${base}/waitlist?*`, (route) => route.fulfill({ json: { items: [entry] } }));
@@ -180,7 +181,9 @@ test('visit actions keep drafts and send one write on a slow or broken connectio
     });
 
     await button(page, pl.day.previous).click();
-    await page.getByRole('button', { name: new RegExp(customer) }).click();
+    // The day report can move the visit row between pointerdown and pointerup.
+    await page.getByRole('button', { name: `${customer} · ${service}` }).press('Enter');
+    await expect(button(page, pl.visit.back)).toBeVisible();
     await test.step('coupon actions and voucher redemption keep the entered code and amount', async () => {
       const coupons = page.getByRole('heading', { name: c.title }).locator('..');
       await interruptWrite(
