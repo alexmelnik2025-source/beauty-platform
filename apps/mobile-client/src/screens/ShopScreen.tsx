@@ -24,7 +24,6 @@ import { fill, type Dictionary } from '../i18n';
 import { tokenStore } from '../storage';
 import {
   catalogPages,
-  invalidateProductLists,
   recentReads,
   searchShop,
   fromCurrency,
@@ -32,6 +31,7 @@ import {
   SHOP_CATEGORIES,
   sellersLine,
 } from '../shop';
+import { ProductActionButton, reserveOne, useProductLock } from './VisitProductsCard';
 import { Button, Card, Chip, colors, ErrorText, Heading, Pressable } from '../ui';
 
 /** The search asks the server once the client stops typing for this long. */
@@ -65,7 +65,7 @@ export function ShopScreen(props: {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [busy, setBusy] = useState(true);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<{ page: number; message: string } | null>(null);
   const [open, setOpen] = useState<ShopProduct | null>(null);
   const active = useRef<AbortController | null>(null);
   const submit = useRef<(() => void) | null>(null);
@@ -80,7 +80,7 @@ export function ShopScreen(props: {
       const controller = new AbortController();
       active.current = controller;
       setBusy(true);
-      setError('');
+      setFailure(null);
       const key = JSON.stringify([search, category, nextPage]);
       try {
         const res = await catalogPages.read(api, key, () => {
@@ -101,7 +101,8 @@ export function ShopScreen(props: {
         setPage(res.page);
         setTotal(res.total);
       } catch (e) {
-        if (!controller.signal.aborted) setError(errorText(e, tRef.current));
+        if (!controller.signal.aborted)
+          setFailure({ page: nextPage, message: errorText(e, tRef.current) });
       } finally {
         if (active.current === controller) {
           active.current = null;
@@ -154,7 +155,7 @@ export function ShopScreen(props: {
   }
 
   const filtered = Boolean(search || category);
-  const empty = !busy && !error && items.length === 0;
+  const empty = !busy && !failure && items.length === 0;
   function clearFilters() {
     setQuery('');
     setCategory(null);
@@ -196,7 +197,12 @@ export function ShopScreen(props: {
           />
         ))}
       </ScrollView>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {failure && !busy ? (
+        <View>
+          <ErrorText>{failure.message}</ErrorText>
+          <Button kind="secondary" label={t.retry} onPress={() => void load(failure.page)} />
+        </View>
+      ) : null}
       {empty ? (
         <View style={styles.empty}>
           <Text role="status" style={styles.text}>
@@ -229,7 +235,7 @@ export function ShopScreen(props: {
       ) : busy ? (
         <ActivityIndicator accessibilityLabel={t.shop.title} color={colors.ink} />
       ) : null}
-      {!busy && !error && items.length < total ? (
+      {!busy && !failure && items.length < total ? (
         <Button kind="secondary" label={t.shop.more} onPress={() => void load(page + 1)} />
       ) : null}
     </ScrollView>
@@ -302,43 +308,21 @@ function ProductView(props: {
 }) {
   const { product: p, api, t, locale } = props;
   const [visits, setVisits] = useState<ClientAppointment[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [done, setDone] = useState<Record<string, string>>({});
-  const [error, setError] = useState('');
+  const [visitsError, setVisitsError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!props.signedIn) return;
     let live = true;
+    setVisitsError('');
     props.visitReads
       .read(api, 'upcoming', () => api.appointments('upcoming'))
       .then((res) => live && setVisits(res.items))
-      // Without the visits the page still works: each offer shows "Umów wizytę".
-      .catch(() => undefined);
+      .catch((e) => live && setVisitsError(errorText(e, t)));
     return () => {
       live = false;
     };
-  }, [api, props.signedIn, props.visitReads]);
-
-  const reserving = useRef(false);
-  const reserve = useCallback(
-    async (productId: string, visit: ClientAppointment, when: string) => {
-      if (reserving.current) return;
-      reserving.current = true;
-      setBusy(productId);
-      setError('');
-      try {
-        await api.reserveProduct(visit.id, productId);
-        setDone((d) => ({ ...d, [productId]: when }));
-      } catch (e) {
-        setError(errorText(e, t));
-      } finally {
-        invalidateProductLists(api);
-        reserving.current = false;
-        setBusy(null);
-      }
-    },
-    [api, t],
-  );
+  }, [api, props.signedIn, props.visitReads, attempt, t]);
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -360,18 +344,21 @@ function ProductView(props: {
         {t.shop.where}
       </Text>
       <Text style={styles.small}>{t.shop.pickup}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {visitsError ? (
+        <View>
+          <ErrorText>{visitsError}</ErrorText>
+          <Button kind="secondary" label={t.retry} onPress={() => setAttempt((n) => n + 1)} />
+        </View>
+      ) : null}
       {p.offers.map((o) => (
         <OfferRow
           key={o.productId}
           offer={o}
           productName={p.name}
           visit={o.available ? nextVisitAt(visits, o.salon.slug) : null}
-          reservedFor={done[o.productId]}
-          busy={busy === o.productId}
+          api={api}
           locale={locale}
           t={t}
-          reserve={reserve}
           onOpenSalon={props.onOpenSalon}
           onBookWith={props.onBookWith}
         />
@@ -384,25 +371,24 @@ const OfferRow = memo(function OfferRow({
   offer: o,
   productName,
   visit,
-  reservedFor,
-  busy,
+  api,
   locale,
   t,
-  reserve,
   onOpenSalon,
   onBookWith,
 }: {
   offer: ShopOffer;
   productName: string;
   visit: ClientAppointment | null;
-  reservedFor: string | undefined;
-  busy: boolean;
+  api: ClientApi;
   locale: Locale;
   t: Dictionary;
-  reserve: (productId: string, visit: ClientAppointment, when: string) => void;
   onOpenSalon: (salon: { slug: string; name: string }) => void;
   onBookWith: (salon: { slug: string; name: string }, productId: string) => void;
 }) {
+  const [reservedFor, setReservedFor] = useState('');
+  const lock = useProductLock();
+  const reserve = visit ? reserveOne(api, visit.id, o.productId) : null;
   const when = visit ? formatMoment(visit.start, visit.timezone, locale) : '';
   return (
     <Card>
@@ -418,13 +404,18 @@ const OfferRow = memo(function OfferRow({
         <Text accessibilityRole="alert" style={styles.done}>
           {fill(t.shop.reserved, { when: reservedFor })}
         </Text>
-      ) : visit ? (
+      ) : reserve ? (
         <View style={{ marginTop: 8 }}>
-          <Button
+          <ProductActionButton
+            api={api}
+            t={t}
+            lock={lock}
             label={fill(t.shop.reserve, { when })}
             a11yLabel={`${fill(t.shop.reserve, { when })}, ${productName}: ${o.salon.name}`}
-            busy={busy}
-            onPress={() => void reserve(o.productId, visit, when)}
+            action={async (retry) => {
+              await reserve(retry);
+              setReservedFor(when);
+            }}
           />
         </View>
       ) : o.available ? (
