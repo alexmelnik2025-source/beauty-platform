@@ -93,6 +93,58 @@ describe('services and times', () => {
     expect(activeServices(list).map((s) => s.id)).toEqual(['cut', 'beard']);
   });
 
+  const overnight: Availability = {
+    timezone: 'Europe/Warsaw',
+    serviceId: 'cut',
+    durationMinutes: 90,
+    slots: [
+      {
+        date: '2026-12-31',
+        time: '23:45',
+        start: '2026-12-31T22:45:00Z',
+        staffIds: ['ola'],
+        discountPercent: null,
+      },
+      {
+        date: '2027-01-01',
+        time: '00:15',
+        start: '2026-12-31T23:15:00Z',
+        staffIds: ['ola'],
+        discountPercent: null,
+      },
+    ],
+  };
+
+  it('lists a service crossing midnight under its local start day', () => {
+    expect(freeTimes(overnight, 'ola', '2026-12-31')).toEqual([
+      { time: '23:45', start: '2026-12-31T22:45:00Z' },
+    ]);
+    expect(freeTimes(overnight, 'ola', '2027-01-01')).toEqual([
+      { time: '00:15', start: '2026-12-31T23:15:00Z' },
+    ]);
+  });
+
+  it.each([null, {}, { slots: [] }, { slots: {} }])(
+    'returns no times without a slot list (%j)',
+    (response) => {
+      expect(freeTimes(response as Availability, 'ola', '2026-12-31')).toEqual([]);
+    },
+  );
+
+  it('keeps bookable times when other slots in the response are damaged', () => {
+    const slot = overnight.slots[0]!;
+    const slots = [
+      null,
+      { ...slot, staffIds: 'ola' },
+      { ...slot, time: '24:15' },
+      { ...slot, start: 'invalid' },
+      slot,
+    ] as Availability['slots'];
+    expect(freeTimes({ ...overnight, slots }, 'ola', slot.date)).toEqual([
+      { time: slot.time, start: slot.start },
+    ]);
+  });
+
   it('free times of one specialist on one day, in order', () => {
     const availability: Availability = {
       timezone: 'Europe/Warsaw',
@@ -179,6 +231,19 @@ describe('the client', () => {
     expect(checkNewClient({ name: 'Jan', phone: '600100200', email: 'jan@' }, '48')).toEqual({
       ok: false,
       problem: 'email',
+    });
+  });
+
+  it('checks the 100-character name limit after trimming', () => {
+    const name = 'Ł'.repeat(99) + 'Я';
+    const form = { name: '  ' + name + '  ', phone: '600100200', email: '' };
+    expect(checkNewClient(form, '48')).toEqual({
+      ok: true,
+      customer: { name, phone: '+48600100200' },
+    });
+    expect(checkNewClient({ ...form, name: name + 'я' }, '48')).toEqual({
+      ok: false,
+      problem: 'name',
     });
   });
 

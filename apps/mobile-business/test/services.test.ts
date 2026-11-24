@@ -99,6 +99,13 @@ describe('service helpers', () => {
     expect(parsePrice('')).toBeNull();
   });
 
+  it('round-trips free and high prices to the last grosz', () => {
+    for (const price of [0, 9_999_999, 10_000_000]) {
+      expect(parsePrice(priceInput(price))).toBe(price);
+    }
+    expect(parsePrice('100 000,01')).toBeNull();
+  });
+
   it('takes minutes in 5-minute steps from 5 to 480', () => {
     expect(parseDuration('45')).toBe(45);
     expect(parseDuration('480')).toBe(480);
@@ -221,6 +228,11 @@ describe('"Duplikuj" (task 310)', () => {
       categoryId: 'c-hair',
     });
     expect(copyName('{name} (kopia)', 'x'.repeat(100))).toHaveLength(100);
+  });
+
+  it('copies a long service name with a literal dollar sign', () => {
+    const name = 'Ż'.repeat(88) + ' $&';
+    expect(copyName('{name} (kopia)', name)).toBe(name + ' (kopia)');
   });
 
   it('keeps everything else of the source', () => {

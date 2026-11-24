@@ -200,7 +200,7 @@ export interface CopyForm {
 
 /** "Strzyżenie (kopia)" from the dictionary's template, cut to the 100 letters the server takes. */
 export function copyName(template: string, name: string): string {
-  return template.replace('{name}', name).slice(0, 100);
+  return template.replace('{name}', () => name).slice(0, 100);
 }
 
 /** The form of a copy, filled as the source (the owner checks it before "Zapisz"). */

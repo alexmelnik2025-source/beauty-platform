@@ -135,7 +135,8 @@ describe('BusinessApi clients', () => {
     };
     const api = new BusinessApi('https://api.test', store, fetchFn);
     await api.restore();
-    await api.customers('o1', ' Anna Kow ');
+    const name = 'Łucja Żółć Ольга Коваль';
+    expect(await api.customers('o1', '  ' + name + '  ')).toEqual([]);
     await api.customers('o1', '', 20);
     await api.customers('o1', '', 50, 90);
     await api.customers('o1', '', 50, 0, 'stały klient');
@@ -146,7 +147,11 @@ describe('BusinessApi clients', () => {
     await api.updateCustomerNotes('o1', 'c1', 3, null, []);
     await api.loyaltyAccount('o1', 'c1');
     expect(calls.slice(1).map((c) => [c.key, c.body, c.auth])).toEqual([
-      ['GET /v1/organizations/o1/customers?limit=50&search=Anna+Kow', undefined, 'Bearer a9'],
+      [
+        `GET /v1/organizations/o1/customers?limit=50&${new URLSearchParams({ search: name })}`,
+        undefined,
+        'Bearer a9',
+      ],
       ['GET /v1/organizations/o1/customers?limit=20', undefined, 'Bearer a9'],
       // Task 140: "who hasn't been for a while".
       ['GET /v1/organizations/o1/customers?limit=50&inactiveDays=90', undefined, 'Bearer a9'],
@@ -194,6 +199,16 @@ describe('bonus part of the client card', () => {
 
   it('nothing in the program yet → no bonus part', () => {
     expect(bonusSummary(account({}), now)).toBeNull();
+  });
+
+  it('skips coupons with an unreadable expiry or expiring at the current instant', () => {
+    const valid = coupon('valid', 'active', null);
+    const coupons = [
+      coupon('broken', 'active', 'invalid'),
+      coupon('expired', 'active', now.toISOString()),
+      valid,
+    ];
+    expect(bonusSummary(account({ coupons }), now)?.coupons).toEqual([valid]);
   });
 
   it('balance, tier with its discount and only usable coupons', () => {
