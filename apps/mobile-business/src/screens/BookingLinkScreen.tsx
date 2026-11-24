@@ -146,13 +146,17 @@ function BookingLinks(props: Props) {
       ) : (
         <>
           <Card>
-            <Text selectable style={styles.link} accessibilityLabel={b.title}>
+            <Text selectable style={styles.link} accessibilityLabel={`${b.title}: ${link}`}>
               {link}
             </Text>
           </Card>
           {!location.onlineBookingEnabled ? <Text style={styles.warn}>{b.offline}</Text> : null}
           <Text style={styles.muted}>{b.hint}</Text>
-          <Button label={b.share} onPress={() => void share()} />
+          <Button
+            label={b.share}
+            a11yLabel={`${b.share}: ${location.name}`}
+            onPress={() => void share()}
+          />
           {info ? (
             <Text role="status" style={styles.info}>
               {info}
@@ -166,7 +170,12 @@ function BookingLinks(props: Props) {
               {shortLink(WEB_URL, location)}
             </Text>
             <Text style={styles.muted}>{b.shortHint}</Text>
-            <Button kind="secondary" label={b.shortShare} onPress={() => void shareShort()} />
+            <Button
+              kind="secondary"
+              label={b.shortShare}
+              a11yLabel={`${b.shortShare}: ${location.name}`}
+              onPress={() => void shareShort()}
+            />
             {shortInfo ? (
               <Text role="status" style={styles.info}>
                 {shortInfo}
@@ -205,7 +214,12 @@ function BookingLinks(props: Props) {
               {staff
                 .filter((s) => s.id === qrStaff)
                 .map((s) => (
-                  <View key={s.id} style={styles.staffBlock}>
+                  <View
+                    key={s.id}
+                    style={styles.staffBlock}
+                    role="group"
+                    accessibilityLabel={s.displayName}
+                  >
                     <SalonQr
                       link={staffQrLink(WEB_URL, location, s.id)}
                       name={location.name}
@@ -235,7 +249,12 @@ function BookingLinks(props: Props) {
               {embedCode(WEB_URL, location)}
             </Text>
             <Text style={styles.muted}>{b.embedHint}</Text>
-            <Button kind="secondary" label={b.embedCopy} onPress={() => void shareEmbed()} />
+            <Button
+              kind="secondary"
+              label={b.embedCopy}
+              a11yLabel={`${b.embedCopy}: ${b.embedTitle}`}
+              onPress={() => void shareEmbed()}
+            />
             {embedInfo ? (
               <Text role="status" style={styles.info}>
                 {embedInfo}
@@ -264,22 +283,29 @@ const SalonQr = memo(function SalonQr(props: {
   const b = t.bookingLink;
   const qr = useMemo(() => encodeQr(link), [link]);
   const runs = useMemo(() => qrRuns(qr), [qr]);
-  const side = (qr.size + QUIET * 2) * MODULE;
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const modulesPerSide = qr.size + QUIET * 2;
+  const moduleSize = Math.min(MODULE, Math.floor(availableWidth / modulesPerSide));
+  const side = modulesPerSide * moduleSize;
   const modules: ReactElement[] = runs.map((r) => (
     <View
       key={`${r.x}-${r.y}`}
       style={[
         styles.module,
         {
-          left: (r.x + QUIET) * MODULE,
-          top: (r.y + QUIET) * MODULE,
-          width: r.length * MODULE,
+          left: (r.x + QUIET) * moduleSize,
+          top: (r.y + QUIET) * moduleSize,
+          width: r.length * moduleSize,
+          height: moduleSize,
         },
       ]}
     />
   ));
   const code = (
-    <View style={styles.qrCard}>
+    <View
+      style={styles.qrCard}
+      onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)}
+    >
       <View
         role="img"
         accessibilityLabel={staffName ? fill(b.staffQrAlt, { name: staffName }) : b.qrAlt}
@@ -291,7 +317,9 @@ const SalonQr = memo(function SalonQr(props: {
       <Text style={styles.qrName}>{name}</Text>
       {staffName ? <Text style={styles.qrName}>{staffName}</Text> : null}
       <Text style={styles.qrScan}>{b.qrScan}</Text>
-      <Text style={styles.muted}>{link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}</Text>
+      <Text style={[styles.muted, styles.qrCaption]}>
+        {link.replace(/^https?:\/\//, '').replace(/\?.*$/, '')}
+      </Text>
     </View>
   );
   // A specialist's code sits inside the "Kod QR specjalisty" card.
@@ -341,11 +369,19 @@ const styles = StyleSheet.create({
   qrTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
   qrCard: { alignItems: 'center', gap: 4, paddingVertical: 8 },
   qr: { backgroundColor: '#fff', position: 'relative' },
-  module: { position: 'absolute', height: MODULE, backgroundColor: '#000' },
-  qrName: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  module: { position: 'absolute', backgroundColor: '#000' },
+  qrName: {
+    maxWidth: '100%',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.ink,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   staffBlock: { gap: 8 },
   chip: {
+    maxWidth: '100%',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
@@ -355,6 +391,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { fontSize: 15, color: colors.ink },
+  qrCaption: { maxWidth: '100%', textAlign: 'center' },
   qrScan: { fontSize: 15, color: colors.ink },
   code: {
     fontSize: 13,
