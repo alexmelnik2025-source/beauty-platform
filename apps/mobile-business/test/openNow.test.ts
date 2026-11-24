@@ -17,6 +17,55 @@ describe('"Klienci widzą teraz" (task 366)', () => {
     });
   });
 
+  it('switches from yesterday’s actual hours to the new weekday at local midnight', () => {
+    const salon = {
+      openingHours: [{ weekday: 1, intervals: [{ start: '00:00', end: '01:00' }] }],
+      todayHours: { date: '2026-11-15', intervals: [] },
+    };
+    const statusAt = (instant: string) =>
+      openStatus(salon, salonNow(Date.parse(instant), 'Europe/Warsaw'));
+    expect(statusAt('2026-11-15T22:59:00Z')).toEqual({
+      kind: 'opensLater',
+      inDays: 1,
+      weekday: 1,
+      at: '00:00',
+    });
+    expect(statusAt('2026-11-15T23:00:00Z')).toEqual({ kind: 'open', until: '01:00' });
+    expect(statusAt('2026-11-16T00:00:00Z')).toEqual({
+      kind: 'opensLater',
+      inDays: 7,
+      weekday: 1,
+      at: '00:00',
+    });
+  });
+
+  it('opens at 03:00 as Warsaw skips from 01:59 to 03:00 in spring', () => {
+    const salon = {
+      openingHours: [],
+      todayHours: { date: '2026-03-29', intervals: [{ start: '03:00', end: '04:00' }] },
+    };
+    const statusAt = (instant: string) =>
+      openStatus(salon, salonNow(Date.parse(instant), 'Europe/Warsaw'));
+    expect(statusAt('2026-03-29T00:59:00Z')).toEqual({ kind: 'opensToday', at: '03:00' });
+    expect(statusAt('2026-03-29T01:00:00Z')).toEqual({ kind: 'open', until: '04:00' });
+  });
+
+  it.each(['2026-10-25T00:30:00Z', '2026-10-25T01:30:00Z'])(
+    'is open at both occurrences of 02:30 in Warsaw (%s)',
+    (instant) => {
+      const now = salonNow(Date.parse(instant), 'Europe/Warsaw');
+      expect(
+        openStatus(
+          {
+            openingHours: [],
+            todayHours: { date: '2026-10-25', intervals: [{ start: '02:30', end: '02:45' }] },
+          },
+          now,
+        ),
+      ).toEqual({ kind: 'open', until: '02:45' });
+    },
+  );
+
   it('says until when the salon is open, with hours that continue without a break', () => {
     const salon = {
       openingHours: week('09:00', '20:00'),

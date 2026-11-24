@@ -96,7 +96,7 @@ export function newLastMinuteRule(form: {
 }
 
 function discountPercent(text: string): number | null {
-  const amount = Number(text.trim().replace('%', ''));
+  const amount = Number(text.trim().replace(/%$/, ''));
   return Number.isInteger(amount) && amount >= 1 && amount <= 90 ? amount : null;
 }
 
