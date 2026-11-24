@@ -6,6 +6,14 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, colors } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
+import { invalidateSaleStock } from './ProductSalesSection';
+
+const reservationCache = new SalonReadCache<VisitReservations>();
+
+function hasVisibleReservations(data: VisitReservations) {
+  return data.reservations.some((row) => row.status === 'reserved' || row.status === 'handed');
+}
 
 type Action = 'hand-over' | 'cancel';
 
@@ -50,49 +58,73 @@ export function ToHandSection(props: {
   const [error, setError] = useState<{ id: string; action: Action; message: string } | null>(null);
   const money = (n: number) => formatPrice(n, salon.currency, props.locale);
 
+  const lifetime = useScreenLifetime(salon, appointmentId);
   const load = useCallback(
-    () => api.visitReservations(salon.orgId, salon.locationId, appointmentId),
-    [api, salon.orgId, salon.locationId, appointmentId],
+    () =>
+      reservationCache.read(
+        salon,
+        () =>
+          withNetworkTimeout(api.visitReservations(salon.orgId, salon.locationId, appointmentId)),
+        appointmentId,
+      ),
+    [api, salon, appointmentId],
   );
 
   useEffect(() => {
     let active = true;
+    let reusable = false;
     setData(null);
     setError(null);
     void load().then(
       (result) => {
-        if (active) setData(result);
+        if (!active) return;
+        reusable = hasVisibleReservations(result);
+        setData(result);
       },
       () => {},
     );
     return () => {
       active = false;
+      // The client can reserve their first product while the visit is closed.
+      if (!reusable) reservationCache.clear(salon);
     };
-  }, [load]);
+  }, [load, salon]);
 
   const run = async (reservationId: string, action: Action) => {
-    if (submitting.current) return;
+    const signal = lifetime.current?.signal;
+    if (!signal || signal.aborted || submitting.current) return;
     submitting.current = true;
     setBusy(true);
     setError(null);
     try {
-      setData(
-        await api.reservationAction(
-          salon.orgId,
-          salon.locationId,
-          appointmentId,
-          reservationId,
-          action,
-        ),
+      const updated = await api.reservationAction(
+        salon.orgId,
+        salon.locationId,
+        appointmentId,
+        reservationId,
+        action,
       );
+      if (hasVisibleReservations(updated)) reservationCache.set(salon, updated, appointmentId);
+      else reservationCache.clear(salon);
+      invalidateSaleStock(salon, action === 'hand-over');
+      if (signal.aborted) return;
+      setData(updated);
       if (action === 'hand-over') onHanded();
     } catch (e) {
+      reservationCache.clear(salon);
+      invalidateSaleStock(salon, action === 'hand-over');
+      if (signal.aborted) return;
       setError({ id: reservationId, action, message: errorText(e, t) });
       // The mutation may have reached the server. Keep the row available if the refresh also fails.
-      await load().then(setData, () => {});
+      await load().then(
+        (next) => {
+          if (!signal.aborted) setData(next);
+        },
+        () => {},
+      );
     } finally {
       submitting.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   };
 

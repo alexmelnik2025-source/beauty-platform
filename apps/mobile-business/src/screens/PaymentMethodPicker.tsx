@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Dictionary } from '../i18n';
 import { PAYMENT_METHODS, toggleMethod, type PaymentMethod } from '../payment';
 import { Button, colors, Pressable } from '../ui';
 
 /** Task 227: Gotówka / Karta / BLIK / Przelew / Inna — only a mark for the report and the till. */
-export function PaymentMethodPicker({
+export const PaymentMethodPicker = memo(function PaymentMethodPicker({
   t,
   value,
   onChange,
@@ -68,7 +68,7 @@ export function PaymentMethodPicker({
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   box: { gap: 6 },
