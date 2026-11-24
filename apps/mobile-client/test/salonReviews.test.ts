@@ -67,6 +67,26 @@ describe('reviews on the salon page of the client app (task 212)', () => {
     ]);
   });
 
+  it('keeps the first occurrence within a page and leaves the loaded list intact', () => {
+    const shown = [review('a')];
+    const first = review('b', { text: null, reply: null });
+    const page = [first, review('b'), review('a')];
+    expect(appendSalonReviews(shown, page)).toEqual([shown[0], first]);
+    expect(appendSalonReviews([], page)).toEqual([first, page[2]]);
+    expect(appendSalonReviews(shown, [])).toEqual(shown);
+    expect(shown).toEqual([review('a')]);
+  });
+
+  it('handles empty distributions, a selected empty rating and out-of-range scores', () => {
+    expect(starChips([], null)).toEqual([]);
+    expect(starChips([], 2)).toEqual([{ rating: 2, label: '★ 2 (0)' }]);
+    expect(starText(-1)).toBe('☆☆☆☆☆');
+    expect(starText(NaN)).toBe('☆☆☆☆☆');
+    expect(starText(3.5)).toBe('★★★★☆');
+    expect(salonReviewSummary({ enabled: false, count: 3, average: 4 }, pl, 'pl')).toBeNull();
+    expect(salonReviewSummary({ enabled: true, count: 0, average: 4 }, pl, 'pl')).toBeNull();
+  });
+
   it('asks the public reviews of the salon, by specialist and page', async () => {
     const calls: string[] = [];
     const store: TokenStore = { get: async () => null, set: async () => undefined };
