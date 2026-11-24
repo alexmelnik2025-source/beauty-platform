@@ -10,11 +10,11 @@ const data = {
   salon: { name: 'GESTALT' },
   client: {
     id: 'c1',
-    name: 'Jan Kowalski',
+    name: 'Łucja Коваль',
     phone: '+48600100200',
     email: null,
     language: 'pl',
-    note: null,
+    note: 'Zażółć gęślą jaźń. Побажання клієнтки.',
     tags: [],
     birthday: null,
     createdAt: '2026-10-01T10:00:00.000Z',
@@ -52,6 +52,14 @@ describe('the client’s data (task 334)', () => {
     ).toBe('shared');
     expect(sent[0]?.title).toBe('client-c1.json');
     expect(JSON.parse(sent[0]!.message)).toEqual(data);
+  });
+
+  it('reports a dismissed native export as cancelled', async () => {
+    await expect(
+      shareExport('c1', data, {
+        native: async () => ({ action: 'dismissedAction' }),
+      }),
+    ).resolves.toBe('cancelled');
   });
 
   it('explains why erasing was refused', () => {
