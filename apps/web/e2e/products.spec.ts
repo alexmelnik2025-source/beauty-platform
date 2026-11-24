@@ -538,7 +538,24 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(stocktake.getByTestId('stocktake-diff')).toHaveText('brakuje 1 szt.');
   await stocktake.scrollIntoViewIfNeeded();
   await shot(page, '457-a-owner-stocktake');
-  await stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' }).click();
+  // Task 811 (owner's rule: errors where the action is): a refused save is said under
+  // "Zapisz inwentaryzację", not above the list; the counted number stays.
+  const stocktakeUrl = (url: URL) => url.pathname.endsWith('/products/stocktake');
+  await page.route(stocktakeUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const saveStocktake = stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' });
+  await saveStocktake.click();
+  await expect(stocktake.locator('#stocktake-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveStocktake).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(stocktake.getByLabel('Na półce — Zestaw')).toHaveValue('2');
+  await expect(stocktake.locator('.alert')).toHaveCount(0);
+  await stocktake.scrollIntoViewIfNeeded();
+  await shot(page, '811-stocktake-save-error');
+  await page.unroute(stocktakeUrl);
+  await saveStocktake.click();
   await expect(products.getByTestId('stocktake-done')).toHaveText(
     'Inwentaryzacja zapisana: zmienione produkty: 1, brakuje 1 szt., nadwyżka 0 szt.',
   );

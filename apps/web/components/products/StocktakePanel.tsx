@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { Product, Stocktake } from '@/lib/types';
-import { ErrorBox, FieldError } from '../ui';
+import { FieldError } from '../ui';
 
 /** "" → null (not counted now), "12" → 12; anything else → undefined (wrong). */
 function parseCount(value: string): number | null | undefined {
@@ -46,6 +46,10 @@ export function StocktakePanel({
     ),
   );
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 811 (owner's rule: errors where the action is): a refused "Zapisz inwentaryzację" is
+   * said under that button at the bottom of the list, not above it; the counted numbers stay.
+   */
   const [error, setError] = useState('');
   /**
    * Task 670 (owner's rule: errors at the field): the products whose number the server did not
@@ -110,7 +114,6 @@ export function StocktakePanel({
     >
       <h3>{p.stocktakeTitle}</h3>
       <p className="small muted">{p.stocktakeHint}</p>
-      <ErrorBox>{error}</ErrorBox>
       <ul className="commission-list">
         {parsed.map(({ product: x, count }) => (
           <li key={x.id} className="commission-row" data-testid="stocktake-row">
@@ -133,6 +136,7 @@ export function StocktakePanel({
                   setCounts({ ...counts, [x.id]: e.target.value });
                   setServerWrong(serverWrong.filter((id) => id !== x.id));
                   setSame(false);
+                  setError('');
                 }}
               />
               <span aria-hidden="true">{p.pieces}</span>
@@ -162,11 +166,13 @@ export function StocktakePanel({
           type="button"
           className="btn btn--small"
           disabled={busy || parsed.length === 0}
+          aria-describedby={error ? 'stocktake-save-error' : undefined}
           onClick={() => void save()}
         >
           {p.stocktakeSave}
         </button>
       </p>
+      <FieldError id="stocktake-save-error" text={error} />
     </div>
   );
 }
