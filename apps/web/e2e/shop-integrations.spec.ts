@@ -262,6 +262,21 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await expect(baseCard.getByText('z Base: 1 prod.', { exact: false })).toBeVisible();
   await baseCard.getByText('Dziennik synchronizacji').click();
   await shot(page, 'Q4-base-done');
+  // Task 837 (owner's rule: errors where the action is): a refused "Synchronizuj teraz" is said
+  // under the row of buttons and tied to it, not as a box at the top of the page.
+  const tooMany = { status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } };
+  await page.route('**/shop/integrations/base/sync', (route) =>
+    route.request().method() === 'POST' ? route.fulfill(tooMany) : route.fallback(),
+  );
+  const syncNow = baseCard.getByRole('button', { name: 'Synchronizuj teraz' });
+  await syncNow.click();
+  await expect(syncNow).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(baseCard.getByRole('button', { name: 'Ustawienia' })).not.toHaveAttribute(
+    'aria-describedby',
+  );
+  await expect(page.locator('[aria-labelledby="integrations-title"] .alert')).toHaveCount(0);
+  await shot(page, '837-base-sync-error');
+  await page.unroute('**/shop/integrations/base/sync');
 
   // Task Q4 (part 5): products put aside for a visit go to Base as orders, in chosen statuses.
   const orders = baseCard.getByTestId('integration-base-orders');
@@ -280,6 +295,21 @@ test('the owner imports products from Base and from a CSV file', async ({ browse
   await page.setViewportSize(PHONE);
   const feedCard = page.getByTestId('integration-feed');
   await feedCard.scrollIntoViewIfNeeded();
+  // Task 837: a file the server refused is said under "Plik CSV lub XML".
+  await page.route('**/shop/integrations/feed', (route) =>
+    route.request().method() === 'POST' ? route.fulfill(tooMany) : route.fallback(),
+  );
+  await feedCard.getByLabel('Plik CSV lub XML').setInputFiles({
+    name: 'produkty.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Symbol;Nazwa;EAN;Cena;Stan\nGR-1;Grzebień do brody;;12,00;10\n'),
+  });
+  await expect(feedCard.getByLabel('Plik CSV lub XML')).toHaveAccessibleDescription(
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
+  );
+  await expect(page.locator('[aria-labelledby="integrations-title"] .alert')).toHaveCount(0);
+  await shot(page, '837-feed-file-error');
+  await page.unroute('**/shop/integrations/feed');
   await feedCard.getByLabel('Plik CSV lub XML').setInputFiles({
     name: 'produkty.csv',
     mimeType: 'text/csv',
