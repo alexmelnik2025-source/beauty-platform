@@ -605,19 +605,46 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect.poll(() => timesAsked).toBe(1);
   await expect(movePanel.locator('.times button').first()).toBeVisible();
   await shot(client, '720-client-move-slot-taken');
+  // Task 833 (owner's rule: errors where the action is): any other refusal of "Tak, przenieś" is
+  // said under that button; the proposed time stays, and "Nie" takes the error away.
+  await client.unroute('**/reschedule');
+  await client.route('**/reschedule', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await movePanel.locator('.times button').first().click();
+  await moveConfirm.getByRole('button', { name: 'Tak, przenieś' }).click();
+  await expect(moveConfirm.locator('#manage-move-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(
+    moveConfirm.getByRole('button', { name: 'Tak, przenieś' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(movePanel.locator('.alert')).toHaveCount(0);
+  await shot(client, '833-client-move-error');
+  await moveConfirm.getByRole('button', { name: 'Nie', exact: true }).click();
+  await expect(client.locator('#manage-move-error')).toHaveCount(0);
   // Back on the visit, the panel's error went with it.
   await movePanel.getByRole('button', { name: 'Wstecz' }).click();
   await expect(client.locator('.alert')).toBeHidden();
-  // "Odwołaj wizytę": the answer stands above "Tak, odwołaj", not at the top of the page.
+  // "Odwołaj wizytę": the answer stands under "Tak, odwołaj" (task 833), not at the top of the
+  // page; the reason stays.
   await client.route('**/cancel', (route) =>
     route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
   );
   await client.getByRole('button', { name: 'Odwołaj wizytę' }).click();
   const cancelPanel = client.getByRole('form', { name: 'Odwołaj wizytę' });
+  await cancelPanel.getByLabel('Powód').fill('Choroba');
   await cancelPanel.getByRole('button', { name: 'Tak, odwołaj' }).click();
-  await expect(cancelPanel.getByRole('alert')).toBeVisible();
-  await expect(client.locator('.alert')).toHaveCount(1);
+  await expect(cancelPanel.locator('#manage-cancel-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(
+    cancelPanel.getByRole('button', { name: 'Tak, odwołaj' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(client.locator('.alert')).toHaveCount(0);
+  await expect(cancelPanel.getByLabel('Powód')).toHaveValue('Choroba');
   await shot(client, '720-client-cancel-error');
+  await shot(client, '833-client-cancel-error');
   await client.unrouteAll({ behavior: 'wait' });
   await client.goto(manageLink);
   await expect(client.getByText('Potwierdzona')).toBeVisible();

@@ -63,6 +63,15 @@ export function AppointmentManager<T extends PublicAppointment>({
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 833 (owner's rule: errors where the action is): a refused "Tak, przenieś" is said under
+   * that button in the proposal (the proposed time stays), a refused "Tak, odwołaj" under that
+   * button (the reason stays) — not as a box at the top of the panel or above the buttons.
+   */
+  const [actionError, setActionError] = useState<{ at: 'move' | 'cancel'; text: string } | null>(
+    null,
+  );
+  const errorAt = (at: 'move' | 'cancel') => (actionError?.at === at ? actionError.text : '');
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [day, setDay] = useState('');
@@ -78,6 +87,7 @@ export function AppointmentManager<T extends PublicAppointment>({
    */
   const openMode = useCallback((next: Mode) => {
     setError('');
+    setActionError(null);
     setMode(next);
   }, []);
 
@@ -131,21 +141,28 @@ export function AppointmentManager<T extends PublicAppointment>({
     else summaryRef.current?.focus();
   }, [mode]);
 
-  async function run(action: () => Promise<T>, done: string) {
+  async function run(action: () => Promise<T>, done: string, at: 'move' | 'cancel') {
     setBusy(true);
     setError('');
+    setActionError(null);
     try {
       setA(await action());
       setMessage(done);
       setMode('view');
     } catch (err) {
-      setError(errorText(t, err));
-      if (err instanceof ApiError && err.code === 'TOO_LATE_TO_CHANGE') {
+      const text = errorText(t, err);
+      const tooLate = err instanceof ApiError && err.code === 'TOO_LATE_TO_CHANGE';
+      const taken = err instanceof ApiError && err.code === 'SLOT_TAKEN';
+      // The visit's page and the free times keep their answer above them; any other refusal is
+      // said under the pressed button.
+      if (tooLate || taken) setError(text);
+      else setActionError({ at, text });
+      if (tooLate) {
         // Nothing can be changed any more: back to the visit, where the error stands above it
         // with "Zmiana tylko telefonicznie" and the salon's phone.
         await load();
         setMode('view');
-      } else if (err instanceof ApiError && err.code === 'SLOT_TAKEN') {
+      } else if (taken) {
         // Task 720: the time went to someone else meanwhile — the proposal closes and the free
         // times are asked again, so the client is not left tapping a time that is gone.
         setPending(null);
@@ -331,6 +348,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                     body: reason ? { reason } : {},
                   }),
                 t.manage.cancelled,
+                'cancel',
               );
             }}
           >
@@ -339,7 +357,10 @@ export function AppointmentManager<T extends PublicAppointment>({
               <textarea
                 value={reason}
                 maxLength={300}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  setActionError(null);
+                }}
               />
             </label>
             <ErrorBox>{error}</ErrorBox>
@@ -347,10 +368,15 @@ export function AppointmentManager<T extends PublicAppointment>({
               <button type="button" className="btn btn--quiet" onClick={() => openMode('view')}>
                 {t.manage.keep}
               </button>
-              <button className="btn btn--danger" disabled={busy}>
+              <button
+                className="btn btn--danger"
+                disabled={busy}
+                aria-describedby={errorAt('cancel') ? 'manage-cancel-error' : undefined}
+              >
                 {t.manage.confirmCancel}
               </button>
             </div>
+            <FieldError id="manage-cancel-error" text={errorAt('cancel')} />
           </form>
         ) : null}
 
@@ -373,6 +399,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                       onClick={() => {
                         setDay(d);
                         setPending(null);
+                        setActionError(null);
                       }}
                     >
                       <span>{weekdayShort(d, tag)}</span>
@@ -389,7 +416,10 @@ export function AppointmentManager<T extends PublicAppointment>({
                         type="button"
                         disabled={busy}
                         aria-pressed={pending?.start === s.start}
-                        onClick={() => setPending(s)}
+                        onClick={() => {
+                          setPending(s);
+                          setActionError(null);
+                        }}
                       >
                         {s.time}
                       </button>
@@ -408,7 +438,10 @@ export function AppointmentManager<T extends PublicAppointment>({
                         type="button"
                         className="btn btn--quiet"
                         disabled={busy}
-                        onClick={() => setPending(null)}
+                        onClick={() => {
+                          setPending(null);
+                          setActionError(null);
+                        }}
                       >
                         {t.manage.moveNo}
                       </button>
@@ -416,6 +449,7 @@ export function AppointmentManager<T extends PublicAppointment>({
                         type="button"
                         className="btn"
                         disabled={busy}
+                        aria-describedby={errorAt('move') ? 'manage-move-error' : undefined}
                         onClick={() =>
                           void run(
                             () =>
@@ -426,12 +460,14 @@ export function AppointmentManager<T extends PublicAppointment>({
                                 body: { start: pending.start },
                               }),
                             t.manage.moved,
+                            'move',
                           )
                         }
                       >
                         {t.manage.moveYes}
                       </button>
                     </div>
+                    <FieldError id="manage-move-error" text={errorAt('move')} />
                   </div>
                 ) : null}
               </>
