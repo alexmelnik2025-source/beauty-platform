@@ -214,7 +214,27 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await sheet.getByLabel('Strzyżenie męskie').check();
   await sheet.getByLabel('Kupon ważny (dni)').fill('30');
   await shot(page, '41-owner-loyalty-reward');
-  await sheet.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 810 (owner's rule: errors where the action is): a refused save is said under "Zapisz" at
+  // the bottom of the sheet, not above the form; what was typed stays.
+  const rewardsUrl = (url: URL) => url.pathname.endsWith('/loyalty/rewards');
+  await page.route(rewardsUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveReward = sheet.getByRole('button', { name: 'Zapisz' });
+  await saveReward.click();
+  await expect(sheet.locator('#reward-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveReward).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(sheet.getByLabel('Zniżka (%)')).toHaveValue('25');
+  await expect(sheet.locator('.alert')).toHaveCount(0);
+  await saveReward.scrollIntoViewIfNeeded();
+  await shot(page, '810-loyalty-reward-save-error');
+  await page.unroute(rewardsUrl);
+  await saveReward.click();
   await expect(sheet).toBeHidden();
   await page.getByRole('button', { name: '+ Dodaj nagrodę' }).click();
   sheet = page.getByRole('dialog');
@@ -231,6 +251,30 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(rewardList.getByRole('button', { name: /Broda gratis/ })).toContainText(
     'Gratis: Broda',
   );
+  // Task 810: a refused "Usuń z katalogu" is said under that button; the sheet stays open.
+  await rewardList.getByRole('button', { name: /Broda gratis/ }).click();
+  sheet = page.getByRole('dialog');
+  const rewardUrl = (url: URL) => /\/loyalty\/rewards\/[^/]+$/.test(url.pathname);
+  await page.route(rewardUrl, (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const archiveReward = sheet.getByRole('button', { name: 'Usuń z katalogu' });
+  await archiveReward.click();
+  await expect(sheet.locator('#reward-archive-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(archiveReward).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(sheet.locator('#reward-save-error')).toHaveCount(0);
+  await archiveReward.scrollIntoViewIfNeeded();
+  await shot(page, '810-loyalty-reward-archive-error');
+  await page.unroute(rewardUrl);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
   const rewards = await json<Reward[]>(
     await request.get(`${orgBase}/loyalty/rewards`, { headers: owner }),
   );
@@ -416,8 +460,29 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await shot(page, '664-loyalty-tier-threshold-error');
   await silverFrom.fill('1');
   await expect(tiersForm.locator('#tier-1-threshold-error')).toHaveCount(0);
-  await tiersForm.getByRole('button', { name: 'Zapisz poziomy' }).click();
+  // Task 810: a refused save is said under "Zapisz poziomy", not at the top of the form.
+  const tiersUrl = (url: URL) => url.pathname.endsWith('/loyalty/tiers');
+  await page.route(tiersUrl, (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveTiers = tiersForm.getByRole('button', { name: 'Zapisz poziomy' });
+  await saveTiers.click();
+  await expect(tiersForm.locator('#tier-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveTiers).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(tiersForm.locator('.alert')).toHaveCount(0);
+  await saveTiers.scrollIntoViewIfNeeded();
+  await shot(page, '810-loyalty-tiers-save-error');
+  await page.unroute(tiersUrl);
+  await saveTiers.click();
   await expect(tiersForm.getByText('Zapisano')).toBeVisible();
+  await expect(tiersForm.locator('#tier-save-error')).toHaveCount(0);
   await tiersForm.scrollIntoViewIfNeeded();
   await shot(page, '73-owner-loyalty-tiers');
   const tiers = await json<{ tiers: { name: string; threshold: number }[] }>(

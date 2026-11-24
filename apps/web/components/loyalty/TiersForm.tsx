@@ -60,6 +60,11 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
   const [periodDays, setPeriodDays] = useState('365');
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState('');
+  /**
+   * Task 810 (owner's rule: errors where the action is): a refused save is said under
+   * "Zapisz poziomy" at the bottom of the form, not at its top; the typed tiers stay.
+   */
+  const [saveError, setSaveError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   /** Task 664: what is wrong, by field — said under the field, gone when it is changed. */
@@ -79,6 +84,7 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
   async function save(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setSaveError('');
     setMessage('');
     // Task 664: a name of spaces only, or a threshold another tier already has — said at once.
     const local: Record<FieldKey, string> = {};
@@ -146,7 +152,7 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
           ),
         );
       } else {
-        setError(errorText(t, err));
+        setSaveError(errorText(t, err));
       }
     } finally {
       setBusy(false);
@@ -159,6 +165,7 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
   };
   /** Task 664: a changed field drops its error. */
   const clear = (...keys: FieldKey[]) => {
+    setSaveError('');
     if (!keys.some((key) => fieldErrors[key])) return;
     setFieldErrors((errors) =>
       Object.fromEntries(Object.entries(errors).filter(([key]) => !keys.includes(key))),
@@ -279,10 +286,15 @@ export function TiersForm({ org, currency }: { org: string; currency: string }) 
             {t.loyalty.tierAdd}
           </button>
         ) : null}
-        <button className="btn" disabled={busy}>
+        <button
+          className="btn"
+          disabled={busy}
+          aria-describedby={saveError ? 'tier-save-error' : undefined}
+        >
           {t.loyalty.tierSave}
         </button>
       </div>
+      <FieldError id="tier-save-error" text={saveError} />
     </form>
   );
 }
