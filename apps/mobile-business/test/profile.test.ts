@@ -15,6 +15,13 @@ describe('the specialist’s languages', () => {
     expect(languagesChanged(['pl'], [])).toBe(true);
   });
 
+  it('can clear the last language and leave an already empty profile unchanged', () => {
+    const cleared = toggleLanguage(['uk'], 'uk');
+    expect(cleared).toEqual([]);
+    expect(languagesChanged(['uk'], cleared)).toBe(true);
+    expect(languagesChanged([], cleared)).toBe(false);
+  });
+
   it('shows flags in the clients’ order', () => {
     expect(flags(['en', 'pl'])).toBe('🇵🇱 🇬🇧');
     expect(flags([])).toBe('');
