@@ -1,10 +1,27 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { ApiError, parseContact, type BusinessApi, type Contact, type Locale } from '../api';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import {
+  ApiError,
+  parseContact,
+  type BusinessApi,
+  type Contact,
+  type Locale,
+  type LoginCodeSent,
+} from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { LanguagePicker } from './LanguagePicker';
-import { Button, colors, ErrorText, Heading } from '../ui';
+import { Button, colors, Heading } from '../ui';
+
+type Challenge = { contact: Contact; channel: LoginCodeSent['channel'] };
+type SignInError = { field: 'badContact' | 'badCode' } | { request: unknown };
+
+function deliveryMessage({ contact, channel }: Challenge, t: Dictionary) {
+  if ('email' in contact) return fill(t.signIn.sentEmail, { to: contact.email });
+  return channel === 'sms'
+    ? fill(t.signIn.sentSms, { to: contact.phone })
+    : t.signIn.sentToInviteEmail;
+}
 
 /**
  * Sign-in without a password: email or phone from the invitation → 6-digit code.
@@ -19,117 +36,135 @@ export function SignInScreen(props: {
 }) {
   const { api, t, locale } = props;
   const [input, setInput] = useState('');
-  const [contact, setContact] = useState<Contact | null>(null);
-  const [sentText, setSentText] = useState('');
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<SignInError | null>(null);
+  const [pending, setPending] = useState<'send' | 'confirm' | null>(null);
+  const busy = pending !== null;
 
   async function send() {
-    const parsed = parseContact(input);
-    if (!parsed) return setError(t.signIn.badContact);
-    setBusy(true);
-    setError('');
+    if (busy) return;
+    const parsed = challenge?.contact ?? parseContact(input);
+    if (!parsed) return setError({ field: 'badContact' });
+    setPending('send');
+    setError(null);
     try {
       const sent = await api.requestCode(parsed, locale);
-      const to = 'email' in parsed ? parsed.email : parsed.phone;
-      setSentText(
-        sent.channel === 'sms'
-          ? fill(t.signIn.sentSms, { to })
-          : 'phone' in parsed
-            ? t.signIn.sentToInviteEmail
-            : fill(t.signIn.sentEmail, { to }),
-      );
-      setContact(parsed);
+      setChallenge({ contact: parsed, channel: sent.channel });
       setCode('');
     } catch (e) {
-      setError(errorText(e, t));
+      setError({ request: e });
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
   async function confirm() {
-    if (!contact) return;
-    setBusy(true);
-    setError('');
+    if (busy || !challenge || code.length !== 6) return;
+    setPending('confirm');
+    setError(null);
     try {
-      await api.verifyCode(contact, code, locale);
+      await api.verifyCode(challenge.contact, code, locale);
       props.onSignedIn();
     } catch (e) {
       setError(
         e instanceof ApiError && e.status !== 429 && e.status < 500
-          ? t.signIn.badCode
-          : errorText(e, t),
+          ? { field: 'badCode' }
+          : { request: e },
       );
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
+  const invalid = error !== null && 'field' in error;
+  const feedback = error ? (
+    <Text nativeID="signin-error" role="alert" style={styles.error}>
+      ! {invalid ? t.signIn[error.field] : errorText(error.request, t)}
+    </Text>
+  ) : null;
+
   return (
-    <View style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <Text style={styles.brand}>{t.appTitle}</Text>
       <Heading>{t.signIn.title}</Heading>
-      {!contact ? (
+      {!challenge ? (
         <>
           <Text style={styles.text}>{t.signIn.subtitle}</Text>
           <TextInput
             accessibilityLabel={t.signIn.contact}
+            aria-invalid={invalid}
+            aria-describedby={error ? 'signin-error' : undefined}
             placeholder={t.signIn.contact}
             placeholderTextColor={colors.placeholder}
             value={input}
-            onChangeText={setInput}
+            onChangeText={(value) => {
+              setInput(value);
+              setError(null);
+            }}
             onSubmitEditing={send}
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="email"
             inputMode="email"
-            style={styles.input}
+            style={[styles.input, invalid && styles.invalid]}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          {feedback}
           <Button label={t.signIn.sendCode} onPress={send} busy={busy} disabled={!input.trim()} />
         </>
       ) : (
         <>
-          <Text style={styles.text}>{sentText}</Text>
+          <Text style={styles.text}>{deliveryMessage(challenge, t)}</Text>
           <TextInput
             accessibilityLabel={t.signIn.code}
+            aria-invalid={invalid}
+            aria-describedby={error ? 'signin-error' : undefined}
             placeholder="000000"
             placeholderTextColor={colors.line}
             value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            onChangeText={(v) => {
+              setCode(v.replace(/\D/g, '').slice(0, 6));
+              setError(null);
+            }}
             onSubmitEditing={confirm}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
             inputMode="numeric"
             maxLength={6}
-            style={[styles.input, styles.code]}
+            style={[styles.input, styles.code, invalid && styles.invalid]}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
+          {feedback}
           <Button
             label={t.signIn.confirm}
             onPress={confirm}
-            busy={busy}
-            disabled={code.length !== 6}
+            busy={pending === 'confirm'}
+            disabled={busy || code.length !== 6}
           />
           <Button
             kind="link"
+            label={t.signIn.sendCode}
+            onPress={send}
+            busy={pending === 'send'}
+            disabled={busy}
+          />
+          <Button
+            kind="link"
+            disabled={busy}
             label={t.signIn.otherContact}
             onPress={() => {
-              setContact(null);
-              setError('');
+              setChallenge(null);
+              setError(null);
             }}
           />
         </>
       )}
       <LanguagePicker t={t} locale={locale} onLocale={props.onLocale} />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
+  screen: { flexGrow: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   input: {
@@ -142,5 +177,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.ink,
   },
+  error: { color: colors.danger, fontSize: 15 },
+  invalid: { borderColor: colors.danger },
   code: { fontSize: 28, letterSpacing: 8, textAlign: 'center' },
 });
