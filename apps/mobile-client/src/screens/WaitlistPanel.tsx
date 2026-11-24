@@ -80,7 +80,21 @@ export function WaitlistPanel(props: {
         locale,
         ...(autoBook ? { autoBook: true, phone: normalized } : {}),
       });
-      setJoined({ date, auto: autoBook && !result.alreadyWaiting });
+      // Joining twice leaves the original preference in place, even if the switch changed.
+      let auto = autoBook;
+      if (result.alreadyWaiting) {
+        const { items } = await api.waitlist();
+        auto = items.some(
+          (entry) =>
+            entry.salon.slug === salon.slug &&
+            entry.serviceId === props.serviceId &&
+            entry.staffId === (props.staffId ?? null) &&
+            entry.date === date &&
+            entry.status === 'waiting' &&
+            entry.autoBook,
+        );
+      }
+      setJoined({ date, auto });
     } catch (e) {
       const field = validationField(e, ['name', 'phone', 'date']);
       if (field === 'name') setNameError(w.nameNeeded);

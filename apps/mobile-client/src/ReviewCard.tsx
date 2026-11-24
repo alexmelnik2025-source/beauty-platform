@@ -103,7 +103,12 @@ export function ReviewCard(props: {
         <>
           <Text style={styles.ask}>{fill(r.ask, { staff: props.staffName })}</Text>
           <FieldGroup error={field === 'rating' ? r.badRating : undefined}>
-            <View style={styles.stars} role="radiogroup" aria-label={r.rating}>
+            <View
+              style={styles.stars}
+              role="radiogroup"
+              aria-label={r.rating}
+              aria-invalid={field === 'rating'}
+            >
               {[1, 2, 3, 4, 5].map((n) => (
                 <Pressable
                   key={n}
