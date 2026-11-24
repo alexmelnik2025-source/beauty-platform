@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -37,6 +37,7 @@ export function ProductSalesSection(props: {
   const [codeError, setCodeError] = useState('');
   const wanted = parseBarcode(code);
   const codeHint = wanted === undefined ? p.barcodeInvalid : codeError;
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -61,25 +62,32 @@ export function ProductSalesSection(props: {
   }, [load]);
 
   const run = async (action: () => Promise<VisitProductSales>, byCode = false) => {
-    if (busy) return;
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setCodeError('');
     setError('');
     try {
-      setSales(await action());
-      // Task 431: the pieces left in stock changed with the sale.
+      let sold: VisitProductSales;
+      try {
+        sold = await action();
+      } catch (e) {
+        const message =
+          e instanceof ApiError && e.code === 'OUT_OF_STOCK' ? p.outOfStock : errorText(e, t);
+        if (byCode) setCodeError(message);
+        else setError(message);
+        return;
+      }
+      setSales(sold);
+      if (byCode) setCode('');
       if (canChange) {
         const list = await api.products(salon.orgId, salon.locationId);
         setProducts(list.products.filter((x) => x.active));
       }
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'OUT_OF_STOCK') {
-        if (byCode) setCodeError(p.outOfStock);
-        else setError(p.outOfStock);
-      } else {
-        setError(errorText(e, t));
-      }
+      setError(errorText(e, t));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
@@ -93,15 +101,14 @@ export function ProductSalesSection(props: {
       setCodeError(fill(p.codeUnknown, { code: wanted }));
       return;
     }
-    void run(async () => {
-      const sold = await api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id);
-      setCode('');
-      return sold;
-    }, true);
+    void run(
+      () => api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id),
+      true,
+    );
   };
   const withCodes = products.some((x) => x.barcode !== null);
 
-  if (!sales) return null;
+  if (!sales) return error ? <ErrorText>{error}</ErrorText> : null;
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
