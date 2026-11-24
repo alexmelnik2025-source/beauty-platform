@@ -20,8 +20,20 @@ export function OpenNow(props: {
   );
   const text = openStatusText(status, props.t.salon, props.locale);
   return (
-    <Text style={{ color: colors.ink, fontSize: 14, fontWeight: '600' }} accessibilityLabel={text}>
-      <Text style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>● </Text>
+    <Text
+      accessible
+      accessibilityLabel={text}
+      style={{
+        color: colors.ink,
+        fontSize: 14,
+        fontWeight: '600',
+        flexShrink: 1,
+        maxWidth: '100%',
+      }}
+    >
+      <Text aria-hidden style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>
+        ●{' '}
+      </Text>
       {text}
     </Text>
   );

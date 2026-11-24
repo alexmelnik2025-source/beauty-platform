@@ -10,7 +10,7 @@ import { Button, colors } from '../ui';
  * Task Q3 in the app: "Przenieść produkty na nowy termin?" — the visit was cancelled while
  * products waited for it at the salon. One button opens the booking with the same service and
  * specialist and the products come along (put aside right after booking), like on the visit page
- * by link. Nothing is shown when nothing waited.
+ * by link. An empty visit keeps its regular rebooking action.
  */
 export function MoveProductsCard(props: {
   api: ClientApi;
@@ -42,7 +42,10 @@ export function MoveProductsCard(props: {
   useEffect(() => {
     onShown?.(shown);
   }, [onShown, shown]);
-  if (!data || !shown) return null;
+  if (!data) return null;
+  if (!shown) {
+    return <Text style={styles.muted}>{`${s.title}: 0`}</Text>;
+  }
   const productIds = Array.from(new Set(waiting.map((r) => r.productId as string)));
 
   return (
@@ -51,7 +54,7 @@ export function MoveProductsCard(props: {
         {s.moveTitle}
       </Text>
       {waiting.map((r) => (
-        <View key={r.id} style={styles.row}>
+        <View key={r.id} accessible style={styles.row}>
           <Text style={styles.name}>{r.quantity > 1 ? `${r.name} × ${r.quantity}` : r.name}</Text>
           <Text style={styles.price}>{formatPrice(r.totalGrosze, data.currency, locale)}</Text>
         </View>
@@ -77,8 +80,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: { fontSize: 18, fontWeight: '700', color: colors.ink },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
   name: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: colors.ink },
-  price: { fontSize: 15, color: colors.ink },
-  muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  price: { maxWidth: '100%', fontSize: 15, color: colors.ink },
+  muted: { color: colors.muted, fontSize: 14 },
 });
