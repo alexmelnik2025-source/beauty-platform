@@ -80,9 +80,9 @@ export function rolesToInvite(myRole: 'owner' | 'manager' | 'staff'): ('staff' |
   return [];
 }
 
-/** Only the owner removes people, and never another owner. */
+/** Only the owner removes managers and specialists. */
 export function mayRemove(myRole: 'owner' | 'manager' | 'staff', member: Member): boolean {
-  return myRole === 'owner' && member.role !== 'owner';
+  return myRole === 'owner' && (member.role === 'manager' || member.role === 'staff');
 }
 
 export type InviteProblem = 'email' | 'phone';
