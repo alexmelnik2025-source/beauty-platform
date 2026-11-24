@@ -3,14 +3,25 @@ import { ApiError } from './api';
 /**
  * Task 522: "Kod kreskowy" — the code printed under the bars of a product's package. Like the
  * server: spaces dropped (a scanner or a person may add them), capital letters, 3–32 letters,
- * digits or "-".
+ * digits or "-". Numeric EAN-8 and EAN-13 codes also carry a check digit.
  */
 
 /** "" → null (not written), " 590 123 " → "590123"; a wrong code → undefined. */
 export function parseBarcode(value: string): string | null | undefined {
   const code = value.replace(/\s+/g, '').toUpperCase();
   if (code === '') return null;
-  return /^[0-9A-Z-]{3,32}$/.test(code) ? code : undefined;
+  if (!/^[0-9A-Z-]{3,32}$/.test(code)) return undefined;
+  if (/^(?:\d{8}|\d{13})$/.test(code)) {
+    // From the check digit on the right, weights alternate between 1 and 3.
+    let sum = 0;
+    let weight = 1;
+    for (let i = code.length - 1; i >= 0; i--) {
+      sum += Number(code[i]) * weight;
+      weight = weight === 1 ? 3 : 1;
+    }
+    if (sum % 10 !== 0) return undefined;
+  }
+  return code;
 }
 
 /**

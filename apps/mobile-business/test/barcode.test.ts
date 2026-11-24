@@ -13,6 +13,21 @@ describe('parseBarcode (task 522)', () => {
     expect(parseBarcode('gst-wosk-1')).toBe('GST-WOSK-1');
   });
 
+  it.each([
+    ['9638 5074', '96385074', '96385075'],
+    ['01234565', '01234565', '01234564'],
+    ['5901234 123457', '5901234123457', '5901234123458'],
+    ['4006381333931', '4006381333931', '4016381333931'],
+  ])('checks the EAN digits of %s', (scanned, expected, damaged) => {
+    expect(parseBarcode(scanned)).toBe(expected);
+    expect(parseBarcode(damaged)).toBeUndefined();
+  });
+
+  it('also accepts custom product codes outside the EAN formats', () => {
+    expect(parseBarcode('1234567')).toBe('1234567');
+    expect(parseBarcode('ab-12345')).toBe('AB-12345');
+  });
+
   it('refuses a code too short, too long or with other signs', () => {
     expect(parseBarcode('12')).toBeUndefined();
     expect(parseBarcode('1'.repeat(33))).toBeUndefined();
