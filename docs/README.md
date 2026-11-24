@@ -746,6 +746,12 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## «Ustawienia» → «Regulamin i prywatność»: отказ «Wstaw szablon» под этой кнопкой (задача 749, 24.11.2026)
+
+- Если шаблон не удалось получить (нет связи, «Zbyt wiele prób» и т. п.), ошибка — под той кнопкой «Wstaw szablon»
+  (регламента или политики), которую нажали (с «!»), а не рамкой вверху карточки. e2e `booking`, скриншот
+  `749-legal-template-error`.
+
 ## «Mój grafik» → «Moje języki»: отказ «Zapisz» под кнопкой (задача 745, 24.11.2026)
 
 - Мастер сохраняет свои языки; отказ сервера (нет связи, «Zbyt wiele prób» и т. п.) — под кнопкой «Zapisz» (с «!»),

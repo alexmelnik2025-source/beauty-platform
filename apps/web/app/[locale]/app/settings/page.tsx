@@ -87,6 +87,11 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [coordinates, setCoordinates] = useState('');
   const [templateNote, setTemplateNote] = useState(false);
+  /**
+   * Task 749 (owner's rule: errors where the action is): a template that could not be fetched is
+   * said under its own "Wstaw szablon", not as a box at the top of the card.
+   */
+  const [templateError, setTemplateError] = useState<{ key: LegalKey; text: string } | null>(null);
   const [coordinatesError, setCoordinatesError] = useState('');
   const [problem, setProblem] = useState<{ field: SettingsField; text: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -265,13 +270,13 @@ export default function SettingsPage() {
   async function insertTemplate(key: LegalKey) {
     if (!form) return;
     if (form[key]?.trim() && !window.confirm(t.legal.replaceAsk)) return;
-    setError('');
+    setTemplateError(null);
     try {
       const templates = await api<LegalTemplates>(`${url}/legal-templates`);
       setForm({ ...form, [key]: templates[key] });
       setTemplateNote(true);
     } catch (err) {
-      setError(errorText(t, err));
+      setTemplateError({ key, text: errorText(t, err) });
     }
   }
 
@@ -714,6 +719,9 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       className="btn btn--quiet"
+                      aria-describedby={
+                        templateError?.key === key ? `legal-template-error-${key}` : undefined
+                      }
                       onClick={() => void insertTemplate(key)}
                     >
                       {t.legal.useTemplate}
@@ -729,6 +737,10 @@ export default function SettingsPage() {
                       </a>
                     ) : null}
                   </div>
+                  <FieldError
+                    id={`legal-template-error-${key}`}
+                    text={templateError?.key === key ? templateError.text : undefined}
+                  />
                 </div>
               ))}
               <span className="small muted">{t.legal.markdownHint}</span>
