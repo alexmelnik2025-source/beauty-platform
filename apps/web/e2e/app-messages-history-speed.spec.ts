@@ -165,33 +165,29 @@ test('leaving history drops the unfinished read and ignores its late response', 
   expect(reads).toBe(2);
 });
 
-test('returning to an empty inbox checks the bell and loads a newly arrived notification', async ({
+test('an empty salon inbox checks one recent item and finds arrivals even if already read', async ({
   page,
 }) => {
   const n = pl.notifications;
-  let unread = 0;
-  let reads = 0;
-  let badgeReads = 0;
-  await page.route('**/v1/me/notifications/unread-count', (route) => {
-    badgeReads++;
-    return route.fulfill({ json: { unread } });
-  });
+  const elsewhere = { ...notice('Ewa'), data: { ...notice('Ewa').data, locationId: 'elsewhere' } };
+  const arrived = { ...notice('Nowa'), read: true };
+  const feed = [elsewhere];
+  const limits: number[] = [];
   await page.route('**/v1/me/notifications?*', (route) => {
-    reads++;
-    return route.fulfill({ json: unread ? [notice('Nowa')] : [] });
+    const limit = Number(new URL(route.request().url()).searchParams.get('limit'));
+    limits.push(limit);
+    return route.fulfill({ json: feed.slice(0, limit) });
   });
   const back = page.getByRole('button', { name: n.back, exact: true });
   await openBusinessMenu(page, n.open);
   await expect(page.getByText(n.empty)).toBeVisible();
   await back.click();
-  const before = badgeReads;
   await openBusinessMenu(page, n.open);
-  await expect.poll(() => badgeReads).toBe(before + 1);
+  await expect.poll(() => limits).toEqual([100, 1]);
   await expect(page.getByText(n.empty)).toBeVisible();
-  expect(reads).toBe(1);
   await back.click();
-  unread = 1;
+  feed.unshift(arrived);
   await openBusinessMenu(page, n.open);
-  await expect(page.getByRole('button', { name: /Nowa · Broda/ })).toBeVisible();
-  expect(reads).toBe(2);
+  await expect(page.getByRole('listitem', { name: /Nowa · Broda/ })).toBeVisible();
+  expect(limits).toEqual([100, 1, 1, 100]);
 });
