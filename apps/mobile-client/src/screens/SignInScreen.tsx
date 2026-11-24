@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
-import { errorText, formFailure, isCodeError, validationField, type FormFailure } from '../errors';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ApiError, parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
+import { errorText, formFailure, isCodeError, validationField } from '../errors';
 import { FormFeedback } from '../FormFeedback';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
@@ -40,8 +40,17 @@ export function SignInScreen(props: {
   const [input, setInput] = useState(props.initialEmail ?? '');
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
-  const [fieldError, setFieldError] = useState('');
-  const [failure, setFailure] = useState<FormFailure | null>(null);
+  const [fieldIssue, setFieldIssue] = useState<'badEmail' | 'badCode' | ApiError | null>(null);
+  const fieldError =
+    typeof fieldIssue === 'string'
+      ? t.signIn[fieldIssue]
+      : fieldIssue
+        ? errorText(fieldIssue, t)
+        : undefined;
+  const [requestIssue, setRequestIssue] = useState<{
+    error: unknown;
+    action: 'send' | 'confirm';
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [what, setWhat] = useState('');
   // Task 370: how many salons are open right now; the button is there only when some are.
@@ -62,17 +71,17 @@ export function SignInScreen(props: {
 
   async function send(email = parseEmail(input)) {
     if (busy) return;
-    setFieldError('');
-    setFailure(null);
-    if (!email) return setFieldError(t.signIn.badEmail);
+    setFieldIssue(null);
+    setRequestIssue(null);
+    if (!email) return setFieldIssue('badEmail');
     setBusy(true);
     try {
       await api.requestCode(email, locale);
       setSentTo(email);
       setCode('');
     } catch (e) {
-      if (!sentTo && validationField(e, ['email'])) setFieldError(t.signIn.badEmail);
-      else setFailure(formFailure(e, t, () => void send(sentTo || parseEmail(input))));
+      if (!sentTo && validationField(e, ['email'])) setFieldIssue('badEmail');
+      else setRequestIssue({ error: e, action: 'send' });
     } finally {
       setBusy(false);
     }
@@ -80,22 +89,29 @@ export function SignInScreen(props: {
 
   async function confirm() {
     if (busy) return;
-    if (code.length !== 6) return setFieldError(t.signIn.badCode);
-    setFieldError('');
+    if (code.length !== 6) return setFieldIssue('badCode');
+    setFieldIssue(null);
     setBusy(true);
-    setFailure(null);
+    setRequestIssue(null);
     try {
       props.onSignedIn(await api.verifyCode(sentTo, code, locale));
     } catch (e) {
-      if (isCodeError(e)) setFieldError(errorText(e, t));
-      else if (validationField(e, ['code'])) setFieldError(t.signIn.badCode);
-      else setFailure(formFailure(e, t, () => void confirm()));
+      if (e instanceof ApiError && isCodeError(e)) setFieldIssue(e);
+      else if (validationField(e, ['code'])) setFieldIssue('badCode');
+      else setRequestIssue({ error: e, action: 'confirm' });
       setBusy(false);
     }
   }
 
+  const failure =
+    requestIssue &&
+    formFailure(requestIssue.error, t, () => {
+      if (requestIssue.action === 'send') void send(sentTo || parseEmail(input));
+      else void confirm();
+    });
+
   return (
-    <View style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <Text style={styles.brand}>{t.appTitle.toUpperCase()}</Text>
       {/* Task 180b: the client looks for a salon first; signing in is only needed for "Moje wizyty". */}
       <View role="group" aria-label={t.catalog.searchGo} style={styles.search}>
@@ -142,8 +158,8 @@ export function SignInScreen(props: {
             value={input}
             onChangeText={(value) => {
               setInput(value);
-              setFailure(null);
-              setFieldError('');
+              setRequestIssue(null);
+              setFieldIssue(null);
             }}
             onSubmitEditing={() => void send()}
             autoCapitalize="none"
@@ -171,8 +187,8 @@ export function SignInScreen(props: {
             editable={!busy}
             value={code}
             onChangeText={(v) => {
-              setFieldError('');
-              setFailure(null);
+              setFieldIssue(null);
+              setRequestIssue(null);
               setCode(v.replace(/\D/g, '').slice(0, 6));
             }}
             onSubmitEditing={confirm}
@@ -202,8 +218,8 @@ export function SignInScreen(props: {
               disabled={busy}
               onPress={() => {
                 setSentTo('');
-                setFieldError('');
-                setFailure(null);
+                setFieldIssue(null);
+                setRequestIssue(null);
               }}
             />
           </View>
@@ -212,7 +228,7 @@ export function SignInScreen(props: {
       <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
       <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
       <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -223,7 +239,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
+  screen: { flexGrow: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   input: {
