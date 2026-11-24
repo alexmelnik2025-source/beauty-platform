@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
-import { addDays, dayTitle } from '../day';
+import { addDays, calendarDate, dayTitle } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
@@ -67,6 +67,7 @@ export function WeekScreen(props: {
   }, [onBack]);
 
   const shown = days && days.from === from ? days.list : null;
+  const through = addDays(from, 6);
   const total = shown?.reduce((sum, d) => sum + d.visits, 0) ?? 0;
 
   return (
@@ -78,25 +79,33 @@ export function WeekScreen(props: {
         <Button kind="link" label={w.back} onPress={onBack} />
         <Text style={styles.salon}>{salon.locationName}</Text>
       </View>
-      <Heading>{w.title}</Heading>
-      <Text style={styles.muted}>
-        {dayTitle(from, props.locale)} – {dayTitle(addDays(from, 6), props.locale)}
-      </Text>
+      <View style={styles.row}>
+        <Heading>{w.title}</Heading>
+        <Text
+          accessibilityLabel={`${dayTitle(from, props.locale)} – ${dayTitle(through, props.locale)}`}
+          style={styles.muted}
+        >
+          {calendarDate(from, props.locale)}–{calendarDate(through, props.locale)}
+        </Text>
+      </View>
       <View style={styles.row}>
         <Button
           kind="secondary"
+          compact
           label="‹"
           a11yLabel={w.previous}
           onPress={() => setFrom(addDays(from, -7))}
         />
         <Button
           kind="secondary"
+          compact
           label={w.thisWeek}
           onPress={() => setFrom(weekStart(today))}
           disabled={from === weekStart(today)}
         />
         <Button
           kind="secondary"
+          compact
           label="›"
           a11yLabel={w.next}
           onPress={() => setFrom(addDays(from, 7))}
@@ -148,7 +157,6 @@ export function WeekScreen(props: {
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   top: {
-    flexWrap: 'wrap',
     gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
