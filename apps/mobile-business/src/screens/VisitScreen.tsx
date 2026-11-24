@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ProductSalesSection } from './ProductSalesSection';
 import { ToHandSection } from './ToHandSection';
 import { VisitVoucherSection } from './VisitVoucherSection';
@@ -45,7 +45,7 @@ import type { SalonChoice } from './SalonsScreen';
  * One visit: time, client (contacts only with the permission — the server leaves them out),
  * service, specialist, price, note; "came / did not come" and "paid" as in the web calendar.
  */
-export function VisitScreen(props: {
+type VisitProps = {
   api: BusinessApi;
   t: Dictionary;
   locale: Locale;
@@ -57,7 +57,14 @@ export function VisitScreen(props: {
   onChanged: () => void;
   /** Task 223: "Umów ponownie" — absent when this person may not add visits. */
   onBookAgain?: (preset: NewVisitPreset) => void;
-}) {
+};
+
+export function VisitScreen(props: VisitProps) {
+  const { orgId, locationId, role } = props.salon;
+  return <VisitCard key={JSON.stringify([orgId, locationId, role, props.id])} {...props} />;
+}
+
+function VisitCard(props: VisitProps) {
   const { api, t, salon, id, onBack } = props;
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
   /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
@@ -82,24 +89,38 @@ export function VisitScreen(props: {
   const badReason = reasonSubmitted && !cancelReason(reason);
   const [askCancel, setAskCancel] = useState(false);
   const [notice, setNotice] = useState('');
-  const today = todayIn(props.timeZone);
-
-  const load = useCallback(async () => {
-    try {
-      const [detail, pictures] = await Promise.all([
-        api.appointment(salon.orgId, salon.locationId, id),
-        api.visitPhotos(salon.orgId, salon.locationId, id).catch(() => null),
-      ]);
-      setVisit(detail);
-      setPhotos(pictures);
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, id, t]);
+  const { orgId, locationId } = salon;
+  const scope = useRef<AbortController | null>(null);
+  const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
+  const loadDetail = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const detail = await api.appointment(orgId, locationId, id);
+        if (!signal.aborted) {
+          setVisit(detail);
+          setLoadFailure(null);
+        }
+      } catch (cause) {
+        if (!signal.aborted) setLoadFailure({ cause });
+      }
+    },
+    [api, orgId, locationId, id],
+  );
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    scope.current = controller;
+    // Start both reads together. Only the detail is needed to show the card.
+    void loadDetail(signal);
+    api.visitPhotos(orgId, locationId, id).then(
+      (pictures) => {
+        if (!signal.aborted && pictures.items.length) setPhotos(pictures);
+      },
+      () => undefined,
+    );
+    return () => controller.abort();
+  }, [api, orgId, locationId, id, loadDetail]);
 
   // Android "back" closes the card instead of the app (the client card handles it itself).
   useEffect(() => {
@@ -115,26 +136,31 @@ export function VisitScreen(props: {
     action: (v: AppointmentDetail) => Promise<AppointmentDetail>,
     reportError = setError,
   ): Promise<boolean> {
-    if (!visit) return false;
+    const signal = scope.current?.signal;
+    if (!visit || busy || !signal || signal.aborted) return false;
     setBusy(true);
+    setLoadFailure(null);
     setFormError('');
     setError('');
     setNotice('');
     try {
-      setVisit(await action(visit));
+      const updated = await action(visit);
+      if (signal.aborted) return false;
+      setVisit(updated);
       props.onChanged();
       return true;
     } catch (e) {
+      if (signal.aborted) return false;
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(t.visit.conflict);
-        await load();
+        await loadDetail(signal);
       } else {
         const kind = createProblem(e);
         reportError(kind === 'other' ? errorText(e, t) : t.newVisit.problem[kind]);
       }
       return false;
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
@@ -146,21 +172,26 @@ export function VisitScreen(props: {
     let alive = true;
     setTimes(null);
     api
-      .availability(salon.orgId, salon.locationId, { serviceId, staffId, date: moveDate })
+      .availability(orgId, locationId, { serviceId, staffId, date: moveDate })
       .then((a) => alive && setTimes(freeTimes(a, staffId, moveDate)))
       .catch((e: unknown) => alive && setError(errorText(e, t)));
     return () => {
       alive = false;
     };
-  }, [api, salon, mode, moveDate, serviceId, staffId, t]);
+  }, [api, orgId, locationId, mode, moveDate, serviceId, staffId, t]);
 
   const v = t.visit;
+  const displayedError = loadFailure ? errorText(loadFailure.cause, t) : error;
   const back = <Button kind="link" label={v.back} onPress={onBack} />;
   if (!visit) {
     return (
       <View style={styles.screen}>
         <View style={styles.row}>{back}</View>
-        {error ? <ErrorText>{error}</ErrorText> : <Text style={styles.muted}>{t.loading}</Text>}
+        {displayedError ? (
+          <ErrorText>{displayedError}</ErrorText>
+        ) : (
+          <Text style={styles.muted}>{t.loading}</Text>
+        )}
       </View>
     );
   }
@@ -179,6 +210,7 @@ export function VisitScreen(props: {
     );
   }
 
+  const wishes = wishLines(visit.wishes, v);
   const actions = visitActions(visit, props.canChange);
   const badPrice =
     visit.priceGrosze !== null &&
@@ -195,32 +227,9 @@ export function VisitScreen(props: {
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>{back}</View>
-      <Heading>
-        {visit.time}–{timeIn(visit.end, props.timeZone)}
-      </Heading>
-      <Text style={styles.muted}>{dayTitle(visit.date, props.locale)}</Text>
+      <VisitHeader visit={visit} v={v} timeZone={props.timeZone} locale={props.locale} />
 
-      <View style={styles.chips}>
-        <Text style={[styles.chip, visit.status === 'no_show' && styles.chipBad]}>
-          {v.status[visit.status]}
-        </Text>
-        {visit.awaitingApproval ? (
-          <Text style={[styles.chip, styles.chipStrong]}>⏳ {v.awaitingApproval}</Text>
-        ) : null}
-        {visit.paidAt ? (
-          <Text style={styles.chip}>
-            ✓ {v.paid}
-            {visit.paymentMethod ? ` · ${v.paymentMethods[visit.paymentMethod]}` : ''}
-          </Text>
-        ) : null}
-        <Text style={styles.chip}>{visit.source === 'online' ? v.online : v.manual}</Text>
-        {visit.firstVisit ? <Text style={styles.chip}>{v.firstVisit}</Text> : null}
-        {visit.customer?.birthdayToday ? (
-          <Text style={styles.chip}>🎂 {v.birthdayToday}</Text>
-        ) : null}
-      </View>
-
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {displayedError ? <ErrorText>{displayedError}</ErrorText> : null}
 
       <Card>
         <Text style={styles.label}>{v.client}</Text>
@@ -250,7 +259,7 @@ export function VisitScreen(props: {
                 kind="link"
                 label={v.bookAgain}
                 onPress={() => {
-                  const preset = presetFromVisit(visit, today);
+                  const preset = presetFromVisit(visit, todayIn(props.timeZone));
                   if (preset) props.onBookAgain?.(preset);
                 }}
               />
@@ -293,10 +302,10 @@ export function VisitScreen(props: {
         ) : null}
 
         {/* Task 80: what the client asked for when booking (the server shows them by permission). */}
-        {wishLines(visit.wishes, v).length > 0 ? (
+        {wishes.length > 0 ? (
           <>
             <Text style={styles.label}>{v.wishes}</Text>
-            {wishLines(visit.wishes, v).map((line) => (
+            {wishes.map((line) => (
               <Text key={line} style={styles.value}>
                 {line}
               </Text>
@@ -497,6 +506,7 @@ export function VisitScreen(props: {
               setFormError('');
               setMode('move');
               setAsk(null);
+              const today = todayIn(props.timeZone);
               setMoveDate(visit.date < today ? today : visit.date);
             }}
           />
@@ -521,7 +531,7 @@ export function VisitScreen(props: {
               kind="secondary"
               label="‹"
               a11yLabel={v.previousDay}
-              disabled={moveDate <= today}
+              disabled={moveDate <= todayIn(props.timeZone)}
               onPress={() => {
                 setMoveDate(addDays(moveDate, -1));
                 setAsk(null);
@@ -650,6 +660,47 @@ export function VisitScreen(props: {
     </ScrollView>
   );
 }
+
+const VisitHeader = memo(function VisitHeader({
+  visit,
+  v,
+  timeZone,
+  locale,
+}: {
+  visit: AppointmentDetail;
+  v: Dictionary['visit'];
+  timeZone: string;
+  locale: Locale;
+}) {
+  return (
+    <>
+      <Heading>
+        {visit.time}–{timeIn(visit.end, timeZone)}
+      </Heading>
+      <Text style={styles.muted}>{dayTitle(visit.date, locale)}</Text>
+
+      <View style={styles.chips}>
+        <Text style={[styles.chip, visit.status === 'no_show' && styles.chipBad]}>
+          {v.status[visit.status]}
+        </Text>
+        {visit.awaitingApproval ? (
+          <Text style={[styles.chip, styles.chipStrong]}>⏳ {v.awaitingApproval}</Text>
+        ) : null}
+        {visit.paidAt ? (
+          <Text style={styles.chip}>
+            ✓ {v.paid}
+            {visit.paymentMethod ? ` · ${v.paymentMethods[visit.paymentMethod]}` : ''}
+          </Text>
+        ) : null}
+        <Text style={styles.chip}>{visit.source === 'online' ? v.online : v.manual}</Text>
+        {visit.firstVisit ? <Text style={styles.chip}>{v.firstVisit}</Text> : null}
+        {visit.customer?.birthdayToday ? (
+          <Text style={styles.chip}>🎂 {v.birthdayToday}</Text>
+        ) : null}
+      </View>
+    </>
+  );
+});
 
 const styles = StyleSheet.create({
   photos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },

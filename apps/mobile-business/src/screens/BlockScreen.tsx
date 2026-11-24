@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type Locale } from '../api';
 import { localToIso, nextFullHour, seriesDoneText, SERIES_WEEKS, shiftTime } from '../blocks';
@@ -31,12 +31,14 @@ export function BlockScreen(props: {
 }) {
   const { api, t, salon, date, onBack } = props;
   const b = t.blocks;
-  const startAt = props.date === props.today ? nextFullHour(props.timeZone) : '12:00';
   const [staffId, setStaffId] = useState<string | null>(
-    props.targets.find((x) => x.staffId !== null)?.staffId ?? props.targets[0]?.staffId ?? null,
+    () =>
+      props.targets.find((x) => x.staffId !== null)?.staffId ?? props.targets[0]?.staffId ?? null,
   );
-  const [from, setFrom] = useState(startAt);
-  const [to, setTo] = useState(shiftTime(startAt, 60));
+  const [from, setFrom] = useState(() =>
+    date === props.today ? nextFullHour(props.timeZone) : '12:00',
+  );
+  const [to, setTo] = useState(() => shiftTime(from, 60));
   const [reason, setReason] = useState('');
   const [weekly, setWeekly] = useState(false);
   const [weeks, setWeeks] = useState<number>(SERIES_WEEKS.start);
@@ -45,6 +47,9 @@ export function BlockScreen(props: {
   const badRange = submitted && to <= from;
   const missingReason = submitted && !reason.trim();
   const [busy, setBusy] = useState(false);
+
+  const saving = useRef(false);
+  const title = useMemo(() => dayTitle(date, props.locale), [date, props.locale]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -55,9 +60,11 @@ export function BlockScreen(props: {
   }, [onBack]);
 
   async function save() {
+    if (saving.current) return;
     setSubmitted(true);
     setError('');
     if (to <= from || !reason.trim()) return;
+    saving.current = true;
     setBusy(true);
     try {
       const body = {
@@ -83,6 +90,7 @@ export function BlockScreen(props: {
           : errorText(e, t),
       );
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -135,7 +143,7 @@ export function BlockScreen(props: {
         <Button kind="link" label={t.schedule.back} onPress={onBack} />
       </View>
       <Heading>{b.add}</Heading>
-      <Text style={styles.muted}>{dayTitle(date, props.locale)}</Text>
+      <Text style={styles.muted}>{title}</Text>
 
       {props.targets.length > 1 ? (
         <>
