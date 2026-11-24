@@ -1082,9 +1082,9 @@ export function BookingScreen(props: {
 
       {step === 'done' && done ? (
         <View style={{ gap: 14 }}>
-          <Text style={styles.doneMark} aria-hidden>
-            ✓
-          </Text>
+          <View style={styles.doneBadge} aria-hidden>
+            <Text style={styles.doneMark}>✓</Text>
+          </View>
           {/* Task 161b: the salon's cancellation guard asks it to accept this visit first. */}
           <Heading>{done.appointment.awaitingApproval ? b.doneTitleWaiting : b.doneTitle}</Heading>
           <Text style={styles.text}>
@@ -1367,16 +1367,14 @@ const styles = StyleSheet.create({
   },
   boxOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   boxMark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  doneMark: {
+  doneBadge: {
     alignSelf: 'flex-start',
-    fontSize: 28,
-    color: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#1e6b3a',
-    width: 52,
-    height: 52,
-    lineHeight: 52,
-    textAlign: 'center',
+    minWidth: 52,
+    minHeight: 52,
     borderRadius: 26,
-    overflow: 'hidden',
   },
+  doneMark: { fontSize: 28, color: '#fff' },
 });
