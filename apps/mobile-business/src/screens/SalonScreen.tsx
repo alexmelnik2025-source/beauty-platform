@@ -790,7 +790,7 @@ export function SalonScreen(props: {
             <Text accessibilityLiveRegion="polite" style={styles.value}>
               {t.navigation.unsaved}
             </Text>
-            <View style={styles.row}>
+            <View style={[styles.row, { maxWidth: '100%' }]}>
               <Button
                 compact
                 kind="secondary"
