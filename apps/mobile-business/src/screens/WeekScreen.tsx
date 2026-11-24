@@ -171,7 +171,7 @@ export function WeekScreen(props: {
             const parts = [
               d.visits > 0 ? fill(w.visits, { n: String(d.visits) }) : w.free,
               d.span,
-              d.waiting > 0 ? `⏳ ${fill(w.waiting, { n: String(d.waiting) })}` : null,
+              d.waiting > 0 ? fill(w.waiting, { n: String(d.waiting) }) : null,
               d.working > 0 ? fill(w.working, { n: String(d.working) }) : w.closed,
             ].filter(Boolean);
             const title = `${dayTitle(d.date, props.locale)}${d.date === today ? ` · ${w.today}` : ''}`;
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1 },
+  salon: { color: colors.accent, fontWeight: '700', fontSize: 15, flexShrink: 1, minWidth: 0 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   muted: { color: colors.muted, fontSize: 15 },

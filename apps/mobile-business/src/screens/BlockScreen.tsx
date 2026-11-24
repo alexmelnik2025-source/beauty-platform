@@ -5,12 +5,35 @@ import { localToIso, nextFullHour, seriesDoneText, SERIES_WEEKS, shiftTime } fro
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { Button, colors, ErrorText, Heading } from '../ui';
+import { Button, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 const STEP = 15;
 type BlockField = 'staffId' | 'start' | 'end' | 'weeks' | 'reason';
 type FieldErrors = Partial<Record<BlockField, string>>;
+
+function ChoiceButton(props: {
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ selected: props.selected, disabled: props.disabled }}
+      aria-pressed={props.selected}
+      disabled={props.disabled}
+      onPress={props.onPress}
+      style={[styles.choice, props.selected && styles.selectedChoice]}
+    >
+      <Text style={[styles.choiceLabel, props.selected && styles.selectedLabel]}>
+        {props.label}
+      </Text>
+    </Pressable>
+  );
+}
 
 function fieldError(field: BlockField, message?: string) {
   return message ? (
@@ -199,9 +222,9 @@ export function BlockScreen(props: {
             style={[styles.row, fields.staffId && styles.invalidRange]}
           >
             {props.targets.map((target) => (
-              <Button
+              <ChoiceButton
                 key={target.staffId ?? 'salon'}
-                kind={target.staffId === staffId ? 'primary' : 'secondary'}
+                selected={target.staffId === staffId}
                 label={target.name ?? b.wholeSalon}
                 disabled={busy}
                 onPress={() => {
@@ -219,8 +242,8 @@ export function BlockScreen(props: {
       {stepper(b.to, to, setTo, '00:15', '24:00', 'end', endError)}
 
       <View style={styles.row}>
-        <Button
-          kind={weekly ? 'secondary' : 'primary'}
+        <ChoiceButton
+          selected={!weekly}
           label={b.once}
           disabled={busy}
           onPress={() => {
@@ -228,8 +251,8 @@ export function BlockScreen(props: {
             clearField('weeks');
           }}
         />
-        <Button
-          kind={weekly ? 'primary' : 'secondary'}
+        <ChoiceButton
+          selected={weekly}
           label={b.repeat}
           disabled={busy}
           onPress={() => setWeekly(true)}
@@ -273,13 +296,12 @@ export function BlockScreen(props: {
       ) : null}
 
       <View style={styles.stepper}>
+        <Text style={styles.label}>{b.reason}</Text>
         <TextInput
           accessibilityLabel={b.reason}
           accessibilityHint={reasonError}
           aria-invalid={!!reasonError}
           aria-describedby={reasonError ? 'block-reason-error' : undefined}
-          placeholder={b.reason}
-          placeholderTextColor={colors.placeholder}
           value={reason}
           editable={!busy}
           onChangeText={(value) => {
@@ -304,12 +326,34 @@ const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   stepper: { gap: 6 },
+  choice: {
+    maxWidth: '100%',
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
+  selectedChoice: { backgroundColor: colors.ink, borderColor: colors.ink },
+  choiceLabel: {
+    maxWidth: '100%',
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedLabel: { color: colors.card },
   invalidRange: { borderWidth: 1, borderColor: colors.danger, borderRadius: 12 },
   invalidInput: { borderColor: colors.danger },
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   time: { fontSize: 24, fontWeight: '700', color: colors.ink, minWidth: 80, textAlign: 'center' },
   muted: { color: colors.muted, fontSize: 15 },
   input: {
+    minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
