@@ -51,6 +51,20 @@ export function useScreenLifetime(salon: SalonChoice, key = '') {
   return lifetime;
 }
 
+export function LoadingSkeleton({ label }: { label: string }) {
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      style={styles.skeleton}
+    >
+      <View style={styles.skeletonLine} />
+      <View style={[styles.skeletonLine, { width: '60%' }]} />
+    </View>
+  );
+}
+
 const historyCache = new SalonReadCache<AuditLog>();
 const HistoryRow = memo(function HistoryRow({
   entry,
@@ -63,10 +77,12 @@ const HistoryRow = memo(function HistoryRow({
   locale: Locale;
   timeZone: string;
 }) {
+  const title = historyTitle(entry, t);
+  const detail = historyLine(entry, t, locale, timeZone);
   return (
-    <View style={styles.row}>
-      <Text style={styles.title}>{historyTitle(entry, t)}</Text>
-      <Text style={styles.muted}>{historyLine(entry, t, locale, timeZone)}</Text>
+    <View accessible accessibilityLabel={`${title}. ${detail}`} style={styles.row}>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.muted}>{detail}</Text>
     </View>
   );
 });
@@ -151,18 +167,22 @@ export function HistoryScreen(props: {
         <View style={styles.header}>
           <Button kind="link" label={h.back} onPress={onBack} />
           <Heading>{h.title}</Heading>
-          <Text style={styles.muted}>{h.hint}</Text>
+          {page?.items.length ? <Text style={styles.muted}>{h.hint}</Text> : null}
           {failure ? <ErrorText>{errorText(failure, t)}</ErrorText> : null}
         </View>
       }
       ListEmptyComponent={
-        page || !failure ? (
-          <Text style={styles.muted}>{page ? h.empty : t.loading}</Text>
+        page ? (
+          <Text style={styles.muted}>{h.empty}</Text>
+        ) : !failure ? (
+          <LoadingSkeleton label={t.loading} />
         ) : undefined
       }
       ListFooterComponent={
-        page?.next ? (
-          <Button kind="secondary" label={h.more} busy={busy} onPress={more} />
+        busy ? (
+          <LoadingSkeleton label={t.loading} />
+        ) : page?.next ? (
+          <Button kind="secondary" label={h.more} onPress={more} />
         ) : undefined
       }
     />
@@ -170,6 +190,8 @@ export function HistoryScreen(props: {
 }
 
 const styles = StyleSheet.create({
+  skeleton: { backgroundColor: colors.card, borderRadius: 12, padding: 16, gap: 12 },
+  skeletonLine: { backgroundColor: colors.soft, height: 14, borderRadius: 4 },
   screen: { padding: 20 },
   header: { gap: 12, marginBottom: 12 },
   row: {

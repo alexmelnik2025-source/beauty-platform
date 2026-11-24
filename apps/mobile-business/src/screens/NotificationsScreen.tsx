@@ -8,7 +8,7 @@ import { noticeKind, noticesOfSalon, opensVisit, type Notice } from '../notifica
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { VisitScreen } from './VisitScreen';
-import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import { LoadingSkeleton, SalonReadCache, useScreenLifetime } from './HistoryScreen';
 
 let noticeCache = new SalonReadCache<Notice[]>();
 
@@ -149,7 +149,7 @@ export function NotificationsScreen(props: {
       data={list ?? []}
       renderItem={renderItem}
       contentContainerStyle={styles.screen}
-      refreshing={loading}
+      refreshing={loading && list !== null}
       onRefresh={() => void load(true)}
       ListHeaderComponent={
         <View style={styles.header}>
@@ -166,7 +166,11 @@ export function NotificationsScreen(props: {
         </View>
       }
       ListEmptyComponent={
-        list || !error ? <Text style={styles.muted}>{list ? n.empty : t.loading}</Text> : undefined
+        list ? (
+          <Text style={styles.muted}>{n.empty}</Text>
+        ) : !error ? (
+          <LoadingSkeleton label={t.loading} />
+        ) : undefined
       }
     />
   );
@@ -185,11 +189,13 @@ const NoticeRow = memo(function NoticeRow({
 }) {
   const n = t.notifications;
   const kind = n.kind[noticeKind(notice)];
+  const source = notice.data.by === 'client' ? n.byClient : n.bySalon;
+  const date = dayTitle(notice.data.date, locale);
+  const detail = `${notice.data.customerName ?? t.day.walkIn} · ${notice.data.serviceName} · ${notice.data.staffName}`;
   return (
     <Pressable
-      key={notice.id}
       accessibilityRole="button"
-      accessibilityLabel={`${notice.read ? '' : `${n.unread}: `}${kind}, ${notice.data.time} ${notice.data.customerName ?? t.day.walkIn}`}
+      accessibilityLabel={`${notice.read ? '' : `${n.unread}: `}${kind}, ${notice.data.time} ${detail}, ${date}, ${source}`}
       onPress={() => void open(notice)}
       style={({ pressed }) => pressed && { opacity: 0.7 }}
     >
@@ -199,15 +205,12 @@ const NoticeRow = memo(function NoticeRow({
             {notice.read ? '' : '● '}
             {kind}
           </Text>
-          <Text style={styles.small}>{notice.data.by === 'client' ? n.byClient : n.bySalon}</Text>
+          <Text style={styles.small}>{source}</Text>
         </View>
         <Text style={styles.value}>
-          {dayTitle(notice.data.date, locale)}, {notice.data.time}
+          {date}, {notice.data.time}
         </Text>
-        <Text style={styles.muted}>
-          {notice.data.customerName ?? t.day.walkIn} · {notice.data.serviceName} ·{' '}
-          {notice.data.staffName}
-        </Text>
+        <Text style={styles.muted}>{detail}</Text>
       </Card>
     </Pressable>
   );
@@ -217,10 +220,16 @@ const styles = StyleSheet.create({
   header: { gap: 12 },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  top: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
   kind: { fontSize: 15, fontWeight: '700', color: colors.ink, flexShrink: 1 },
   bad: { color: colors.danger },
   value: { fontSize: 17, color: colors.ink },
   muted: { color: colors.muted, fontSize: 15 },
-  small: { color: colors.muted, fontSize: 13 },
+  small: { flexShrink: 1, color: colors.muted, fontSize: 13 },
 });
