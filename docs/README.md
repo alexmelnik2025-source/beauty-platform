@@ -746,6 +746,14 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## «Do wydania klientowi» и ссылка листа ожидания: отказ под кнопкой (задачи 756–757, 24.11.2026)
+
+- Карточка визита → «Do wydania klientowi»: отказ сервера на «Anuluj rezerwację» или «Wydaj i dolicz» — под строкой
+  этого товара (с «!»); раньше — рамкой над списком. Если строки после обновления уже нет — под списком. e2e
+  `visit-to-hand`, скриншот `756-to-hand-cancel-error`.
+- Страница по ссылке из письма «Jesteś na liście oczekujących»: отказ «Wypisz mnie z listy» — сразу под кнопкой, а не
+  рамкой вверху страницы. e2e `waitlist`, скриншот `757-waitlist-leave-error`.
+
 ## «Raporty» → «Ustaw prowizje»: отказ «Zapisz» под строкой мастера (задача 750, 24.11.2026)
 
 - Отказ сервера при сохранении процента мастера — под его строкой (с «!»), введённое число остаётся; раньше — рамкой

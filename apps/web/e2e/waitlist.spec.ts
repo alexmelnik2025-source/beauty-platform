@@ -235,7 +235,22 @@ test('a full day: the client joins the waiting list and leaves it from the email
   await expect(page.getByRole('heading', { name: 'Gestalt Barbershop' })).toBeVisible();
   await expect(page.getByText('Czekasz na wolny termin.')).toBeVisible();
   await shot(page, '80b-client-waitlist-link');
-  await page.getByRole('button', { name: 'Wypisz mnie z listy' }).click();
+  // Task 757 (owner's rule: errors where the action is): a refused "Wypisz mnie z listy" is said
+  // right under the button, not at the top of the page.
+  await page.route('**/v1/public/waitlist/*/cancel', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const leave = page.getByRole('button', { name: 'Wypisz mnie z listy' });
+  await leave.click();
+  await expect(page.locator('#waitlist-leave-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(leave).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await expect(page.getByText('Czekasz na wolny termin.')).toBeVisible();
+  await shot(page, '757-waitlist-leave-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await leave.click();
   await expect(page.getByText('Nie ma Cię już na liście oczekujących.')).toBeVisible();
   await context.close();
 

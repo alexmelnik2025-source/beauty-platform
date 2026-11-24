@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { VisitReservations } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 
 /**
  * Task Q3 (screen D): "Do wydania klientowi" in the visit card — the products the client put aside
@@ -34,7 +34,11 @@ export function VisitToHand({
   const tag = LOCALE_TAGS[locale];
   const [data, setData] = useState<VisitReservations | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 756 (owner's rule: errors where the action is): a refused "Wydaj i dolicz" or "Anuluj
+   * rezerwację" is said under that product's row, not as a box above the whole list.
+   */
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
   const url = `${base}/appointments/${appointmentId}/reservations`;
   const money = (n: number) => formatPrice(n, currency, tag);
 
@@ -52,14 +56,14 @@ export function VisitToHand({
 
   async function run(reservationId: string, action: 'hand-over' | 'cancel') {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       setData(
         await api<VisitReservations>(`${url}/${reservationId}/${action}`, { method: 'POST' }),
       );
       if (action === 'hand-over') onHanded();
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ id: reservationId, text: errorText(t, err) });
       await load();
     } finally {
       setBusy(false);
@@ -70,6 +74,9 @@ export function VisitToHand({
   const waiting = data.reservations.filter((r) => r.status === 'reserved');
   const handed = data.reservations.filter((r) => r.status === 'handed');
   if (waiting.length === 0 && handed.length === 0) return null;
+  const rows = [...waiting, ...handed];
+  // The row may be gone after the refresh (e.g. cancelled elsewhere): then under the list.
+  const lostError = error && !rows.some((r) => r.id === error.id) ? error.text : undefined;
 
   return (
     <section
@@ -79,9 +86,8 @@ export function VisitToHand({
       data-testid="visit-to-hand"
     >
       <strong id={`to-hand-${appointmentId}`}>🛍️ {p.toHandTitle}</strong>
-      <ErrorBox>{error}</ErrorBox>
       <ul className="commission-list" aria-label={p.toHandTitle}>
-        {[...waiting, ...handed].map((r) => (
+        {rows.map((r) => (
           <li key={r.id} className="commission-row" style={{ flexWrap: 'wrap', gap: 8 }}>
             <span style={{ flex: '1 1 10rem' }}>
               {r.name}
@@ -98,6 +104,7 @@ export function VisitToHand({
                     className="btn btn--small"
                     disabled={busy}
                     aria-label={`${p.toHandGive} — ${r.name}`}
+                    aria-describedby={error?.id === r.id ? `to-hand-${r.id}-error` : undefined}
                     onClick={() => void run(r.id, 'hand-over')}
                   >
                     {p.toHandGive}
@@ -108,15 +115,22 @@ export function VisitToHand({
                   className="link-btn small"
                   disabled={busy}
                   aria-label={`${p.toHandCancel} — ${r.name}`}
+                  aria-describedby={error?.id === r.id ? `to-hand-${r.id}-error` : undefined}
                   onClick={() => void run(r.id, 'cancel')}
                 >
                   {p.toHandCancel}
                 </button>
               </span>
             ) : null}
+            {error?.id === r.id ? (
+              <div style={{ flexBasis: '100%' }}>
+                <FieldError id={`to-hand-${r.id}-error`} text={error.text} />
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>
+      <FieldError id={`to-hand-${appointmentId}-error`} text={lostError} />
       {data.toHandGrosze > 0 ? (
         <span className="small">{fill(p.toHandTotal, { amount: money(data.toHandGrosze) })}</span>
       ) : null}
