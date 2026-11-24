@@ -1242,6 +1242,26 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   // Task Q6: the changes wait for "Zapisz" in the bar "Niezapisane zmiany" while moving between cards.
   await expect(ownerPage.getByRole('region', { name: 'Niezapisane zmiany' })).toBeVisible();
   await shot(ownerPage, 'q6-settings-unsaved');
+  // Task 829 (owner's rule: errors where the action is): a refused save is said under "Zapisz" in
+  // the bar "Niezapisane zmiany", not in a box inside the card; the changes stay unsaved.
+  const unsaved = ownerPage.getByRole('region', { name: 'Niezapisane zmiany' });
+  const settingsPut = (url: URL) => new RegExp(`/locations/${location.id}$`).test(url.pathname);
+  await ownerPage.route(settingsPut, (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await unsaved.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(unsaved.locator('#settings-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(ownerPage.locator('.settings-card .alert')).toHaveCount(0);
+  await expect(reminder).toHaveValue('3');
+  await shot(ownerPage, '829-settings-save-error');
+  await ownerPage.unroute(settingsPut);
   // Task 80: questions when booking — mood and note on by default; the salon offers coffee and tea.
   await openSettingsCard(ownerPage, 'Pytania przy rezerwacji');
   const wishSettings = ownerPage.getByRole('region', { name: 'Pytania przy rezerwacji' });

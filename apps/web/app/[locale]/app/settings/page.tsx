@@ -323,9 +323,16 @@ export default function SettingsPage() {
             <button type="button" className="btn btn--quiet" onClick={discard} disabled={busy}>
               {t.settings.discard}
             </button>
-            <button className="btn" disabled={busy}>
+            <button
+              className="btn"
+              disabled={busy}
+              aria-describedby={error ? 'settings-save-error' : undefined}
+            >
               {t.common.save}
             </button>
+            {/* Task 829 (owner's rule: errors where the action is): a refused save is said under
+                "Zapisz" in this bar, not in a box inside the open card. */}
+            <FieldError id="settings-save-error" text={error} />
           </div>
         ) : null}
         <nav className="settings-nav" aria-label={t.settings.title}>
@@ -359,7 +366,7 @@ export default function SettingsPage() {
           >
             ‹ {t.settings.title}
           </button>
-          <ErrorBox>{error}</ErrorBox>
+          {dirty ? null : <ErrorBox>{error}</ErrorBox>}
           {message ? (
             <p className="note" role="status">
               {message}

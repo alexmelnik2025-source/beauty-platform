@@ -3852,11 +3852,18 @@ ul.wish-photos {
   top: 0;
   z-index: 30;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
   border-radius: var(--radius-m);
   background: var(--ink);
+  color: var(--paper);
+}
+
+/* Task 829: a refused save is said under the buttons, on its own line, light on the dark bar. */
+.unsaved-bar .field-error {
+  flex-basis: 100%;
   color: var(--paper);
 }
 
