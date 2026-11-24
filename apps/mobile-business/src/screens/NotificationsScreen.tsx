@@ -8,7 +8,12 @@ import { noticeKind, noticesOfSalon, opensVisit, type Notice } from '../notifica
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { VisitScreen } from './VisitScreen';
-import { LoadingSkeleton, SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import {
+  LoadingSkeleton,
+  SalonReadCache,
+  useScreenLifetime,
+  withNetworkTimeout,
+} from './HistoryScreen';
 
 let noticeCache = new SalonReadCache<Notice[]>();
 
@@ -43,10 +48,15 @@ export function NotificationsScreen(props: {
       const request = ++latest.current;
       if (refresh) noticeCache.clear(salon);
       refreshing.current = true;
+      setError('');
       setLoading(true);
       try {
         const notices = await noticeCache.read(salon, async () =>
-          noticesOfSalon(await api.notifications(100), salon.orgId, salon.locationId),
+          noticesOfSalon(
+            await withNetworkTimeout(api.notifications(100)),
+            salon.orgId,
+            salon.locationId,
+          ),
         );
         if (signal.aborted || request !== latest.current) return;
         // Recheck an empty inbox on return so the first new booking appears.
@@ -87,7 +97,7 @@ export function NotificationsScreen(props: {
       marking.current.add(key);
       const signal = lifetime.current!.signal;
       try {
-        await api.markNotificationsRead(id ? { ids: [id] } : { all: true });
+        await withNetworkTimeout(api.markNotificationsRead(id ? { ids: [id] } : { all: true }));
         // The all endpoint also marks notifications of the user's other salons.
         if (!id) noticeCache = new SalonReadCache<Notice[]>();
         if (signal.aborted) {
@@ -165,6 +175,14 @@ export function NotificationsScreen(props: {
             </View>
           ) : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
+          {error || (Platform.OS === 'web' && list?.length) ? (
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              disabled={loading}
+              onPress={() => void load(true)}
+            />
+          ) : null}
         </View>
       }
       ListEmptyComponent={
