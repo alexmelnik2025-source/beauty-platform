@@ -226,12 +226,11 @@ function CouponCodeForm({
   }
   return (
     <View style={styles.form}>
+      <Text style={styles.label}>{c.code}</Text>
       <TextInput
         accessibilityLabel={c.code}
         aria-invalid={!!error}
         aria-describedby={error ? 'visit-coupon-error' : undefined}
-        placeholder={c.code}
-        placeholderTextColor={colors.placeholder}
         autoCapitalize="characters"
         autoCorrect={false}
         editable={!busy}
