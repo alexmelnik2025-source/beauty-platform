@@ -85,6 +85,7 @@ function BookingLinks(props: Props) {
   }, [onBack]);
 
   const link = location ? bookingLink(WEB_URL, location) : null;
+  const shortUrl = location ? shortLink(WEB_URL, location) : null;
 
   const share = async () => {
     if (!location || !link) return;
@@ -98,11 +99,10 @@ function BookingLinks(props: Props) {
   };
 
   const shareShort = async () => {
-    if (!location) return;
-    const url = shortLink(WEB_URL, location);
+    if (!location || !shortUrl) return;
     const content = {
-      message: fill(b.message, { name: location.name, url }),
-      url,
+      message: fill(b.message, { name: location.name, url: shortUrl }),
+      url: shortUrl,
       title: location.name,
     };
     const result = await shareLink(content, shareTools());
@@ -158,7 +158,7 @@ function BookingLinks(props: Props) {
             onPress={() => void share()}
           />
           {info ? (
-            <Text role="status" style={styles.info}>
+            <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
               {info}
             </Text>
           ) : null}
@@ -166,8 +166,12 @@ function BookingLinks(props: Props) {
             <Text role="heading" style={styles.qrTitle}>
               {b.shortTitle}
             </Text>
-            <Text selectable style={styles.link}>
-              {shortLink(WEB_URL, location)}
+            <Text
+              selectable
+              style={styles.link}
+              accessibilityLabel={`${b.shortTitle}: ${shortUrl}`}
+            >
+              {shortUrl}
             </Text>
             <Text style={styles.muted}>{b.shortHint}</Text>
             <Button
@@ -177,7 +181,7 @@ function BookingLinks(props: Props) {
               onPress={() => void shareShort()}
             />
             {shortInfo ? (
-              <Text role="status" style={styles.info}>
+              <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
                 {shortInfo}
               </Text>
             ) : null}
@@ -232,7 +236,7 @@ function BookingLinks(props: Props) {
                       onPress={() => void shareStaff(s)}
                     />
                     {staffInfo ? (
-                      <Text role="status" style={styles.info}>
+                      <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
                         {staffInfo}
                       </Text>
                     ) : null}
@@ -256,7 +260,7 @@ function BookingLinks(props: Props) {
               onPress={() => void shareEmbed()}
             />
             {embedInfo ? (
-              <Text role="status" style={styles.info}>
+              <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
                 {embedInfo}
               </Text>
             ) : null}
