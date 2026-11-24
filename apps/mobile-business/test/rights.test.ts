@@ -83,6 +83,18 @@ describe('a specialist’s rights (task 330)', () => {
     expect(effective([], senior, { viewOwnEarnings: true })).toEqual({});
   });
 
+  it('ignores saved category rights and exceptions missing from the current catalog', () => {
+    const current = catalog.filter((p) => p.key === 'createOwnAppointments');
+    expect(categoryBody(categoryForm(senior, current))).toEqual({
+      ok: true,
+      name: senior.name,
+      permissions: { createOwnAppointments: true },
+    });
+    expect(effective(current, senior, { viewOwnEarnings: true })).toEqual({
+      createOwnAppointments: true,
+    });
+  });
+
   it('clearing the last exception restores the default and is a change to save', () => {
     const kasia = member({ overrides: { createOwnAppointments: false } });
     const cleared = withException(kasia.overrides, 'createOwnAppointments', 'category');
@@ -122,6 +134,7 @@ describe('a specialist’s rights (task 330)', () => {
       member({ membershipId: 'a', user: { id: 'u3', name: 'Ania', email: 'a@x.pl' } }),
       member({ membershipId: 'o', role: 'owner' }),
       member({ membershipId: 'm', role: 'manager' }),
+      member({ membershipId: 'new-role', role: 'future-role' as MemberList[number]['role'] }),
       member({ membershipId: 'i', status: 'invited' }),
       member({ membershipId: 'x', locationIds: ['l2'] }),
     ];

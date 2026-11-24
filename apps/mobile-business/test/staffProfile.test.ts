@@ -60,6 +60,19 @@ describe('a specialist’s profile (tasks 326–327)', () => {
     });
   });
 
+  it('keeps an 80-character display name intact when saving an otherwise empty profile', () => {
+    const specialist = { ...kasia, bio: null, specialties: [], serviceIds: [], languages: [] };
+    const name = 'Łucja'.repeat(16);
+    const form = profileForm(specialist);
+    expect(profileChanges(specialist, { ...form, displayName: '  ' })).toEqual({
+      problem: 'noName',
+    });
+    expect(profileChanges(specialist, { ...form, displayName: ` ${name} ` })).toEqual({
+      change: { displayName: name },
+      serviceIds: null,
+    });
+  });
+
   it('sends only what changed, trimmed; empty texts clear them', () => {
     const withBio = { ...kasia, bio: 'Fade', customSpecialty: 'Trycholog' };
     const result = profileChanges(withBio, {
