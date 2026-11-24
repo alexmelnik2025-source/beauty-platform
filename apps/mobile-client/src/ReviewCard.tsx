@@ -4,8 +4,12 @@ import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
 import { formFailure, isNetworkError, validationField, type FormFailure } from './errors';
 import { FieldGroup, FormFeedback } from './FormFeedback';
 import { fill, type Dictionary } from './i18n';
+import { recentReads } from './shop';
+import { withNetworkTimeout } from './withNetworkTimeout';
 import { Button, colors, FieldInput, Pressable } from './ui';
 
+const visitReviews = recentReads<VisitReview>();
+const saving = new WeakMap<ClientApi, Map<string, Promise<VisitReview>>>();
 const TEXT_MAX = 1000;
 
 /**
@@ -37,9 +41,22 @@ export const ReviewCard = memo(function ReviewCard(props: {
 
   useEffect(() => {
     let live = true;
-    api
-      .visitReview(visitId)
+    let reading = false;
+    const pending = saving.get(api)?.get(visitId);
+    const read = () =>
+      visitReviews.read(api, visitId, () => {
+        reading = true;
+        return withNetworkTimeout(api.visitReview(visitId));
+      });
+    const result = pending
+      ? pending.catch((error: unknown) => {
+          if (!live) throw error;
+          return read();
+        })
+      : read();
+    result
       .then((res) => {
+        reading = false;
         if (!live) return;
         setState(res);
         setEditing(res.canReview && !res.review);
@@ -47,6 +64,7 @@ export const ReviewCard = memo(function ReviewCard(props: {
         setText(res.review?.text ?? '');
       })
       .catch((error: unknown) => {
+        reading = false;
         if (live && isNetworkError(error)) {
           setFailure(
             formFailure(error, tRef.current, () => {
@@ -58,6 +76,7 @@ export const ReviewCard = memo(function ReviewCard(props: {
       });
     return () => {
       live = false;
+      if (reading) visitReviews.clear(api, visitId);
     };
   }, [api, visitId, loadAttempt]);
 
@@ -71,8 +90,15 @@ export const ReviewCard = memo(function ReviewCard(props: {
     setBusy(true);
     setFailure(null);
     setField(undefined);
+    // A quick return during a save must wait for the write, even after the read cache expires.
+    const writes = saving.get(api) ?? new Map<string, Promise<VisitReview>>();
+    saving.set(api, writes);
+    visitReviews.clear(api, visitId);
+    const write = api.writeReview(visitId, rating, text);
+    writes.set(visitId, write);
     try {
-      const res = await api.writeReview(visitId, rating, text);
+      const res = await write;
+      void visitReviews.read(api, visitId, () => Promise.resolve(res));
       setState(res);
       setEditing(false);
       setThanks(true);
@@ -83,6 +109,7 @@ export const ReviewCard = memo(function ReviewCard(props: {
         setFailure({ message: r.notPossible });
       } else setFailure(formFailure(e, tRef.current, () => void send()));
     } finally {
+      writes.delete(visitId);
       submitting.current = false;
       setBusy(false);
     }

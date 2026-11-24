@@ -5,8 +5,13 @@ import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
 import { formatPrice } from '../format';
 import type { Dictionary } from '../i18n';
+import { visitProductLists } from '../shop';
 import { Button, colors, ErrorText } from '../ui';
 import { withNetworkTimeout } from '../withNetworkTimeout';
+
+function canMove(reservation: VisitProducts['reservations'][number]) {
+  return reservation.status === 'reserved' && reservation.productId !== null;
+}
 
 /**
  * Task Q3 in the app: "Przenieść produkty na nowy termin?" — the visit was cancelled while
@@ -34,25 +39,34 @@ export function MoveProductsCard(props: {
 
   useEffect(() => {
     let live = true;
-    withNetworkTimeout(api.visitProducts(visitId)).then(
-      (result) => {
-        if (live) {
-          setData(result);
-          setFailure(null);
-        }
-      },
-      (cause: unknown) => {
-        if (live) setFailure({ cause });
-      },
-    );
+    let reading = false;
+    visitProductLists
+      .read(api, visitId, () => {
+        reading = true;
+        return withNetworkTimeout(api.visitProducts(visitId));
+      })
+      .then(
+        (result) => {
+          reading = false;
+          if (live) {
+            // A newly reserved product must appear on return to an initially empty visit.
+            if (!result.reservations.some(canMove)) visitProductLists.clear(api, visitId);
+            setData(result);
+            setFailure(null);
+          }
+        },
+        (cause: unknown) => {
+          reading = false;
+          if (live) setFailure({ cause });
+        },
+      );
     return () => {
       live = false;
+      if (reading) visitProductLists.clear(api, visitId);
     };
   }, [api, visitId, attempt]);
 
-  const waiting = (data?.reservations ?? []).filter(
-    (r) => r.status === 'reserved' && r.productId !== null,
-  );
+  const waiting = data?.reservations.filter(canMove) ?? [];
   const shown = !!data && waiting.length > 0;
   const { onShown } = props;
   useEffect(() => {
