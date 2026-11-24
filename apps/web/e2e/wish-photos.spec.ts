@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
@@ -28,9 +29,9 @@ const SALON = `Gestalt Foto ${run}`;
 const DESKTOP = { width: 1280, height: 900 };
 const PHONE = { width: 390, height: 844 };
 /** The salon's own address: the API limits sign-ups, sign-ins and codes per address. */
-const OWNER_IP = { 'x-forwarded-for': '203.0.113.82' };
+const OWNER_IP = freshAddress();
 /** A client of its own (the API limits holds and codes per address). */
-const CLIENT_IP = { 'x-forwarded-for': '203.0.113.80' };
+const CLIENT_IP = freshAddress();
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -271,7 +272,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   const phoneContext = await browser.newContext({
     viewport: PHONE,
     locale: 'pl-PL',
-    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.81' },
+    extraHTTPHeaders: freshAddress(),
   });
   const client = await phoneContext.newPage();
   await client.goto(`/pl/b/${location.slug}`);
@@ -358,7 +359,7 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
     isMobile: true,
     locale: 'pl-PL',
     timezoneId: 'Europe/Warsaw',
-    extraHTTPHeaders: { 'x-forwarded-for': '203.0.113.86' },
+    extraHTTPHeaders: freshAddress(),
   });
   try {
     const app = await appContext.newPage();
