@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useId, useRef, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type PublicGiftVoucher } from '../api';
 import { errorText } from '../errors';
 import { formatPrice, LOCALE_TAGS } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, FieldInput } from '../ui';
+import { Button, Card, colors, ErrorText } from '../ui';
 
 /** "17 lutego 2027": a voucher may be valid into the next year, so the year is shown. */
 function dayWithYear(date: string, tag: string): string {
@@ -22,13 +22,20 @@ function dayWithYear(date: string, tag: string): string {
  * its code and sees what is left and until when (the same as on the salon page, task 537). Only
  * the value and the dates: who it is for and the payments stay in the salon.
  */
-export function VoucherCheck(props: {
+type VoucherProps = {
   api: ClientApi;
   t: Dictionary;
   locale: Locale;
   slug: string;
-}) {
-  const { api, t, locale, slug } = props;
+};
+
+export function VoucherCheck(props: VoucherProps) {
+  return <VoucherForm key={props.slug} {...props} />;
+}
+
+function VoucherForm({ api, t, locale, slug }: VoucherProps) {
+  const requestId = useRef(0);
+  const errorId = useId();
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -38,17 +45,20 @@ export function VoucherCheck(props: {
 
   async function check() {
     if (code.trim().length < 4 || busy) return;
+    const current = ++requestId.current;
     setBusy(true);
     setError('');
     setInvalidCode(false);
     setVoucher(null);
     try {
-      setVoucher(await api.voucherBalance(slug, code));
+      const result = await api.voucherBalance(slug, code);
+      if (current === requestId.current) setVoucher(result);
     } catch (err) {
+      if (current !== requestId.current) return;
       if (err instanceof ApiError && err.status === 404) setInvalidCode(true);
       else setError(errorText(err, t));
     } finally {
-      setBusy(false);
+      if (current === requestId.current) setBusy(false);
     }
   }
 
@@ -64,6 +74,7 @@ export function VoucherCheck(props: {
         cancelled: t.voucherCheck.statusCancelled,
       }[voucher.status]
     : '';
+  const message = invalidCode ? t.voucherCheck.notFound : error;
   const money = (value: number) => formatPrice(value, voucher?.currency ?? 'PLN', locale);
 
   return (
@@ -72,31 +83,41 @@ export function VoucherCheck(props: {
         {t.voucherCheck.title}
       </Text>
       <Text style={styles.small}>{t.voucherCheck.hint}</Text>
-      <FieldInput
-        error={invalidCode ? t.voucherCheck.notFound : undefined}
+      <TextInput
+        aria-invalid={invalidCode}
+        aria-describedby={message ? errorId : undefined}
         accessibilityLabel={t.voucherCheck.code}
+        accessibilityHint={message || undefined}
         placeholder="ABCD-EFGH"
         placeholderTextColor={colors.placeholder}
         value={code}
         onChangeText={(value) => {
+          requestId.current++;
           setCode(value);
+          setBusy(false);
+          setVoucher(null);
+          setError('');
           setInvalidCode(false);
         }}
         onSubmitEditing={() => void check()}
         autoCapitalize="characters"
         autoCorrect={false}
         maxLength={20}
-        style={styles.input}
+        style={[styles.input, invalidCode && styles.invalid]}
       />
+      {message ? (
+        <View nativeID={errorId}>
+          <ErrorText>{invalidCode ? `! ${message}` : message}</ErrorText>
+        </View>
+      ) : null}
       <Button
         label={t.voucherCheck.check}
         onPress={() => void check()}
         busy={busy}
         disabled={code.trim().length < 4}
       />
-      {error ? <ErrorText>{error}</ErrorText> : null}
       {voucher ? (
-        <View role="status" style={styles.result}>
+        <View role="status" aria-live="polite" style={styles.result}>
           <Text style={styles.strong}>
             {fill(t.voucherCheck.left, {
               left: money(voucher.balanceGrosze),
@@ -127,6 +148,7 @@ const styles = StyleSheet.create({
   body: { color: colors.ink, fontSize: 15 },
   strong: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   result: { gap: 4, marginTop: 10 },
+  invalid: { borderColor: colors.danger },
   input: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -137,6 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.ink,
     letterSpacing: 2,
-    marginBottom: 8,
+    minHeight: 44,
   },
 });

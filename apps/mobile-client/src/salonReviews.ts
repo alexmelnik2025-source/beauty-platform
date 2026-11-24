@@ -50,12 +50,18 @@ export function salonReviewLine(review: SalonReview, locale: Locale): string {
 /** An older page is added below; a review already shown is not repeated. */
 export function appendSalonReviews(shown: SalonReview[], page: SalonReview[]): SalonReview[] {
   const seen = new Set(shown.map((r) => r.id));
-  return [...shown, ...page.filter((r) => !seen.has(r.id))];
+  const result = [...shown];
+  for (const review of page) {
+    if (seen.has(review.id)) continue;
+    result.push(review);
+    seen.add(review.id);
+  }
+  return result;
 }
 
 /** "★★★★☆" for 4 of 5. */
 export function starText(rating: number): string {
-  const full = Math.max(0, Math.min(5, Math.round(rating)));
+  const full = Math.max(0, Math.min(5, Math.round(rating) || 0));
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
 
