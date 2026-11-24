@@ -81,40 +81,45 @@ export function CommissionsSection(props: {
 
   return (
     <View style={{ gap: 6 }} testID="report-commissions">
-      <Text style={styles.section}>
-        {rows.length > 0 ? fill(r.commissionsTotal, { amount: money(total) }) : r.commissions}
+      <Text role="heading" aria-level={2} style={styles.section}>
+        {fill(r.commissionsTotal, { amount: rows.length ? money(total) : r.commissionNone })}
       </Text>
-      {rows.map((row) => (
-        <View key={row.id} style={styles.cardTop}>
-          <Text style={styles.name}>{row.displayName}</Text>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.muted}>
-              {fill(r.commissionRow, {
-                percent: percentText(row.commissionPercent!, locale),
-                amount: money(row.commissionGrosze ?? 0),
-              })}
-            </Text>
-            {tipsOf(row.id) > 0 ? (
-              <Text style={styles.small}>
-                {fill(r.payoutRow, {
-                  tips: money(tipsOf(row.id)),
-                  total: money((row.commissionGrosze ?? 0) + tipsOf(row.id)),
-                })}
-              </Text>
-            ) : null}
+      {rows.map((row) => {
+        const commission = row.commissionGrosze ?? 0;
+        const tips = tipsOf(row.id);
+        const detail = fill(r.commissionRow, {
+          percent: percentText(row.commissionPercent!, locale),
+          amount: money(commission),
+        });
+        const withTips =
+          tips > 0 ? fill(r.payoutRow, { tips: money(tips), total: money(commission + tips) }) : '';
+        return (
+          <View
+            key={row.id}
+            accessible
+            role="group"
+            accessibilityLabel={[row.displayName, detail, withTips].filter(Boolean).join(', ')}
+            style={styles.summaryRow}
+          >
+            <Text style={[styles.name, styles.summaryColumn]}>{row.displayName}</Text>
+            <View style={styles.summaryColumn}>
+              <Text style={styles.muted}>{detail}</Text>
+              {withTips ? <Text style={styles.small}>{withTips}</Text> : null}
+            </View>
           </View>
-        </View>
-      ))}
-      {payout > total ? (
+        );
+      })}
+      {rows.length > 0 ? (
         <Text style={styles.name} testID="report-payout">
           {fill(r.payoutTotal, { amount: money(payout) })}
         </Text>
       ) : null}
-      <Text style={styles.small}>{r.commissionsHint}</Text>
+      {rows.length > 0 ? <Text style={styles.small}>{r.commissionsHint}</Text> : null}
       {canSet ? (
         <Button
           kind="secondary"
           label={list ? r.commissionsHide : r.commissionsSet}
+          expanded={list !== null}
           onPress={() => void open()}
         />
       ) : null}
@@ -128,20 +133,22 @@ export function CommissionsSection(props: {
                 {s.active ? '' : ` · ${r.commissionInactive}`}
               </Text>
               <View style={styles.row}>
-                <TextInput
-                  accessibilityLabel={fill(r.commissionLabel, { name: s.displayName })}
-                  placeholder={r.commissionNone}
-                  placeholderTextColor={colors.placeholder}
-                  keyboardType="decimal-pad"
-                  value={drafts[s.staffId] ?? ''}
-                  onChangeText={(text) => {
-                    setSaved('');
-                    setDrafts({ ...drafts, [s.staffId]: text });
-                  }}
-                  maxLength={5}
-                  style={styles.input}
-                />
-                <Text style={styles.muted}>%</Text>
+                <View style={styles.percentField}>
+                  <TextInput
+                    accessibilityLabel={fill(r.commissionLabel, { name: s.displayName })}
+                    placeholder={r.commissionNone}
+                    placeholderTextColor={colors.placeholder}
+                    keyboardType="decimal-pad"
+                    value={drafts[s.staffId] ?? ''}
+                    onChangeText={(text) => {
+                      setSaved('');
+                      setDrafts({ ...drafts, [s.staffId]: text });
+                    }}
+                    maxLength={5}
+                    style={styles.input}
+                  />
+                  <Text style={styles.muted}>%</Text>
+                </View>
                 <Button
                   label={r.commissionSave}
                   a11yLabel={fill(r.commissionSaveFor, { name: s.displayName })}
@@ -168,9 +175,11 @@ const styles = StyleSheet.create({
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
+  summaryColumn: { flexBasis: 150, flexGrow: 1, minWidth: 0 },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
-  row: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 },
+  percentField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -180,6 +189,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     color: colors.ink,
-    width: 90,
+    width: 100,
+    minHeight: 44,
   },
 });
