@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENCIES, currencyName, matching, salonTimeZones, timeZoneLabel } from '../src/country';
+import {
+  CURRENCIES,
+  currencyForTimeZone,
+  currencyName,
+  matching,
+  regionForTimeZone,
+  salonTimeZones,
+  salonZoneOf,
+  timeZoneLabel,
+} from '../src/country';
 
 describe('salonTimeZones (task 323)', () => {
   it('puts Poland first and names the country in the reader’s language', () => {
@@ -18,6 +27,15 @@ describe('salonTimeZones (task 323)', () => {
       'America/New_York',
     );
     expect(timeZoneLabel('America/New_York', 'en')).toBe('America/New_York');
+  });
+});
+
+describe('defaults for an unlisted country', () => {
+  it('uses Warsaw, Poland and PLN when setting up a salon', () => {
+    const zone = 'America/Toronto';
+    expect(salonZoneOf(zone)).toBe('Europe/Warsaw');
+    expect(regionForTimeZone(zone)).toBe('PL');
+    expect(currencyForTimeZone(zone)).toBe('PLN');
   });
 });
 
