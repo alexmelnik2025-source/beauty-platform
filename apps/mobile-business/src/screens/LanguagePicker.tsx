@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Locale } from '../api';
 import { LANGUAGE_NAMES, LOCALES, type Dictionary } from '../i18n';
-import { Button } from '../ui';
+import { Button, colors, Pressable } from '../ui';
 
 const codes: Record<Locale, string> = { pl: 'PL', uk: 'UA', ru: 'RU', en: 'EN' };
 
@@ -17,7 +17,7 @@ export function LanguagePicker({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ alignSelf: 'flex-start' }}>
+    <View style={{ alignSelf: 'flex-start', maxWidth: '100%' }}>
       <Button
         kind="secondary"
         label={`${codes[locale]} ${open ? '▴' : '▾'}`}
@@ -26,20 +26,34 @@ export function LanguagePicker({
         expanded={open}
         onPress={() => setOpen(!open)}
       />
-      {open
-        ? LOCALES.map((language) => (
-            <Button
+      {open ? (
+        <View role="group" accessibilityLabel={t.language}>
+          {LOCALES.map((language) => (
+            <Pressable
               key={language}
-              kind="link"
-              label={`${codes[language]} · ${LANGUAGE_NAMES[language]}`}
-              selected={language === locale}
+              accessibilityRole="button"
+              accessibilityLanguage={language}
+              accessibilityState={{ selected: language === locale }}
+              aria-pressed={language === locale}
+              style={[styles.option, language === locale && styles.selected]}
               onPress={() => {
                 onLocale(language);
                 setOpen(false);
               }}
-            />
-          ))
-        : null}
+            >
+              <Text style={styles.name}>
+                {codes[language]} · {LANGUAGE_NAMES[language]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  option: { justifyContent: 'center', alignItems: 'center', padding: 8, borderRadius: 12 },
+  selected: { backgroundColor: colors.soft },
+  name: { fontSize: 16, fontWeight: '600', color: colors.ink, textAlign: 'center' },
+});

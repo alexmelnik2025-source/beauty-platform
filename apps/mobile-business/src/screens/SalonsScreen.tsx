@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Dictionary } from '../i18n';
-import { Button, Card, colors, Heading } from '../ui';
+import { Button, Card, colors, Heading, Pressable } from '../ui';
 
 export type SalonChoice = {
   orgId: string;
@@ -36,17 +36,26 @@ export function SalonsScreen(props: {
         </Card>
       ) : null}
       {props.choices.length === 0 ? <Text style={styles.text}>{t.salons.none}</Text> : null}
-      {props.choices.map((c) => (
-        <Card key={c.locationId}>
-          <Text style={styles.name}>{c.locationName}</Text>
-          <Text style={styles.text}>
-            {c.orgName} · {c.city} · {t.salons.role[c.role]}
-          </Text>
-          <View style={{ marginTop: 8 }}>
-            <Button kind="secondary" label={c.locationName} onPress={() => props.onChoose(c)} />
-          </View>
-        </Card>
-      ))}
+      {props.choices.map((c) => {
+        const details = `${c.orgName} · ${c.city} · ${t.salons.role[c.role]}`;
+        const detailsId = `salon-details-${c.locationId}`;
+        return (
+          <Pressable
+            key={c.locationId}
+            accessibilityRole="button"
+            accessibilityLabel={c.locationName}
+            accessibilityHint={details}
+            aria-describedby={detailsId}
+            onPress={() => props.onChoose(c)}
+            style={({ pressed }) => [styles.choice, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.name}>{c.locationName}</Text>
+            <Text nativeID={detailsId} style={styles.text}>
+              {details}
+            </Text>
+          </Pressable>
+        );
+      })}
       <Button kind="link" label={t.signOut} onPress={props.onSignOut} />
     </ScrollView>
   );
@@ -54,6 +63,14 @@ export function SalonsScreen(props: {
 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 14 },
+  choice: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    gap: 4,
+  },
   name: { fontSize: 18, fontWeight: '700', color: colors.ink },
   text: { color: colors.muted, fontSize: 15 },
 });
