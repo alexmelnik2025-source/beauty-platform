@@ -4511,6 +4511,13 @@ zaznaczone (n)»; затем статус (токен …1234, каталог, �
 Задача 724 (ошибки у поля, 23.11.2026): «Importuj zaznaczone (0)» больше не выключена молча — нажатие без галочек
 пишет под списком «Nic nie zaznaczono — zaznacz produkty z ceną.» и ставит курсор на первую галочку; отмеченный товар
 убирает текст. e2e `shop-integrations`, скриншот `724-import-none-ticked`.
+
+Задача 837 (ошибки у поля, 24.11.2026): отказ сервера на «Sklep» → «Integracje» говорится под нажатой кнопкой, а не
+рамкой вверху страницы: «Połącz» — под ней, «Zapisz» выбора каталога — под ней, «Wybierz produkty» / «Synchronizuj
+teraz» / «Ustawienia» / «Odłącz» — под их строкой (связан с нажатой, `aria-describedby`), «Importuj zaznaczone» — под
+кнопками списка, «Zamówienia do Base» → «Zapisz» — под ней (статусы, которые не прочитались, — на месте списка),
+файл, который не принят, — под «Plik CSV lub XML». Наверху страницы остаётся только ошибка загрузки карточки Base.
+e2e `shop-integrations`, скриншоты `837-base-sync-error`, `837-feed-file-error`.
 Когда «Mój sklep» (Q3) будет в main, ссылку на «Integracje» стоит поставить и туда.
 
 ## Base в бизнес-приложении (задача Q4)

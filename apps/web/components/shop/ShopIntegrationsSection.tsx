@@ -133,6 +133,11 @@ function choiceFor(options: BaseOptions, inventoryId: string, want: Partial<Choi
  * tick products), or from a product file (CSV, Google Merchant or Ceneo XML). Nothing is shown
  * to clients until ticked. Owners and managers only (the server checks it too).
  */
+/** Task 837: the Base card's actions, each refusal said under its own button. */
+type BaseAction = 'connect' | 'save' | 'products' | 'sync' | 'options' | 'disconnect' | 'import';
+/** The actions of the row under "Połączono" — their refusal is said under that row. */
+const ROW_ACTIONS: BaseAction[] = ['products', 'sync', 'options', 'disconnect'];
+
 export function ShopIntegrationsSection({ base }: { base: string }) {
   const { t } = useI18n();
   const s = t.shopIntegrations;
@@ -144,7 +149,7 @@ export function ShopIntegrationsSection({ base }: { base: string }) {
       <p className="muted">{s.hint}</p>
       {error ? <ErrorBox>{error}</ErrorBox> : null}
       <BaseCard base={`${base}/shop/integrations/base`} onError={setError} />
-      <FeedCard base={`${base}/shop/integrations/feed`} onError={setError} />
+      <FeedCard base={`${base}/shop/integrations/feed`} />
       <p className="small muted">{s.nothingAutomatic}</p>
     </section>
   );
@@ -184,6 +189,15 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
   const [runs, setRuns] = useState<SyncRun[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState('');
+  /**
+   * Task 837 (owner's rule: errors where the action is): a refused action is said under the
+   * pressed button ("Połącz", "Zapisz", the row of "Wybierz produkty" / "Synchronizuj teraz" /
+   * "Ustawienia" / "Odłącz", "Importuj zaznaczone"), not as a box at the top of the page.
+   */
+  const [actionError, setActionError] = useState<{ at: BaseAction; text: string } | null>(null);
+  const errorAt = (at: BaseAction) => (actionError?.at === at ? actionError.text : '');
+  const describedBy = (at: BaseAction, id: string) => (errorAt(at) ? id : undefined);
+  const rowAction = actionError && ROW_ACTIONS.includes(actionError.at) ? actionError : null;
 
   const load = useCallback(async () => {
     const [st, log] = await Promise.all([
@@ -199,15 +213,16 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
     load().catch((e: unknown) => onError(errorText(t, e)));
   }, [load, onError, t]);
 
-  const run = async (action: () => Promise<unknown>) => {
+  const run = async (action: () => Promise<unknown>, at: BaseAction) => {
     setBusy(true);
     onError('');
+    setActionError(null);
     setDone('');
     try {
       await action();
       await load();
     } catch (e) {
-      onError(errorText(t, e));
+      setActionError({ at, text: errorText(t, e) });
     } finally {
       setBusy(false);
     }
@@ -226,13 +241,14 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
       );
       setChoiceProblem(null);
       setEditing(true);
-    });
+    }, 'options');
 
   const connect = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = token.trim();
     if (trimmed.length < 20) {
       onError('');
+      setActionError(null);
       setTokenProblem(trimmed ? s.tokenTooShort : t.onboarding.fieldRequired);
       tokenRef.current?.focus();
       return;
@@ -255,7 +271,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
       setChoice(choiceFor(got, got.inventories[0]?.id ?? ''));
       setChoiceProblem(null);
       setEditing(true);
-    });
+    }, 'connect');
   };
 
   /** Task 707: a list with nothing to choose is said under it, not by a switched-off "Zapisz". */
@@ -294,7 +310,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
         throw err;
       }
       setEditing(false);
-    });
+    }, 'save');
   };
 
   const showProducts = () =>
@@ -303,7 +319,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
         products: (Omit<Row, 'key'> & { externalId: string })[];
       }>(`${base}/products`);
       setRows(res.products.map((p) => ({ ...p, key: p.externalId })));
-    });
+    }, 'products');
 
   const importRows = (items: { key: string; online: boolean }[]) =>
     run(async () => {
@@ -313,7 +329,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
       });
       setRows(null);
       setDone(importedText(s, res));
-    });
+    }, 'import');
 
   if (!status) return <Spinner />;
   const configured = Boolean(status.inventoryId);
@@ -345,16 +361,23 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
               onChange={(e) => {
                 setToken(e.target.value);
                 setTokenProblem('');
+                setActionError(null);
               }}
             />
             <FieldError id="base-token-error" text={tokenProblem || undefined} />
           </label>
           <p className="small muted">{s.tokenWhere}</p>
           <div>
-            <button type="submit" className="btn" disabled={busy}>
+            <button
+              type="submit"
+              className="btn"
+              disabled={busy}
+              aria-describedby={describedBy('connect', 'base-connect-error')}
+            >
               {s.connect}
             </button>
           </div>
+          <FieldError id="base-connect-error" text={errorAt('connect') || undefined} />
         </form>
       ) : (
         <>
@@ -400,6 +423,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                       onChange={(e) => {
                         const value = e.target.value;
                         setChoiceProblem(null);
+                        setActionError(null);
                         setChoice(
                           field === 'inventoryId'
                             ? choiceFor(options, value, choice)
@@ -428,19 +452,28 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                 </select>
               </label>
               <div className="row">
-                <button type="submit" className="btn" disabled={busy}>
+                <button
+                  type="submit"
+                  className="btn"
+                  disabled={busy}
+                  aria-describedby={describedBy('save', 'base-save-error')}
+                >
                   {t.common.save}
                 </button>
                 {configured ? (
                   <button
                     type="button"
                     className="btn btn--quiet"
-                    onClick={() => setEditing(false)}
+                    onClick={() => {
+                      setActionError(null);
+                      setEditing(false);
+                    }}
                   >
                     {t.common.cancel}
                   </button>
                 ) : null}
               </div>
+              <FieldError id="base-save-error" text={errorAt('save') || undefined} />
             </form>
           ) : (
             <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -450,6 +483,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                     type="button"
                     className="btn"
                     disabled={busy}
+                    aria-describedby={describedBy('products', 'base-action-error')}
                     onClick={() => void showProducts()}
                   >
                     {s.chooseProducts}
@@ -458,7 +492,8 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                     type="button"
                     className="btn btn--quiet"
                     disabled={busy || status.importedProducts === 0}
-                    onClick={() => void run(() => api(`${base}/sync`, { method: 'POST' }))}
+                    aria-describedby={describedBy('sync', 'base-action-error')}
+                    onClick={() => void run(() => api(`${base}/sync`, { method: 'POST' }), 'sync')}
                   >
                     {s.syncNow}
                   </button>
@@ -468,6 +503,7 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                 type="button"
                 className="btn btn--quiet"
                 disabled={busy}
+                aria-describedby={describedBy('options', 'base-action-error')}
                 onClick={() => void loadOptions()}
               >
                 {configured ? s.settings : s.chooseInventory}
@@ -476,9 +512,10 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
                 type="button"
                 className="link-btn small"
                 disabled={busy}
+                aria-describedby={describedBy('disconnect', 'base-action-error')}
                 onClick={() => {
                   if (window.confirm(s.disconnectConfirm)) {
-                    void run(() => api(base, { method: 'DELETE' }));
+                    void run(() => api(base, { method: 'DELETE' }), 'disconnect');
                   }
                 }}
               >
@@ -486,10 +523,13 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
               </button>
             </div>
           )}
+          {!editing ? (
+            <FieldError id="base-action-error" text={rowAction?.text || undefined} />
+          ) : null}
         </>
       )}
       {configured && !editing ? (
-        <OrdersToBase base={base} orders={status.orders} onSaved={load} onError={onError} />
+        <OrdersToBase base={base} orders={status.orders} onSaved={load} />
       ) : null}
       {done ? (
         <p className="small" role="status">
@@ -497,7 +537,17 @@ function BaseCard({ base, onError }: { base: string; onError: (text: string) => 
         </p>
       ) : null}
       {rows ? (
-        <Picker rows={rows} busy={busy} onImport={importRows} onClose={() => setRows(null)} />
+        <Picker
+          rows={rows}
+          busy={busy}
+          error={errorAt('import')}
+          errorId="base-import-error"
+          onImport={importRows}
+          onClose={() => {
+            setActionError(null);
+            setRows(null);
+          }}
+        />
       ) : null}
       {runs.length > 0 ? (
         <details>
@@ -536,12 +586,10 @@ function OrdersToBase({
   base,
   orders,
   onSaved,
-  onError,
 }: {
   base: string;
   orders: BaseStatus['orders'];
   onSaved: () => Promise<void>;
-  onError: (text: string) => void;
 }) {
   const { t } = useI18n();
   const s = t.shopIntegrations;
@@ -553,21 +601,28 @@ function OrdersToBase({
     cancelledStatusId: orders.cancelledStatusId ?? '',
   });
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 837: the Base statuses that could not be read are said where the list would be; a refused
+   * "Zapisz" under that button — not at the top of the page.
+   */
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
 
   const open = () => {
     if (statuses) return;
+    setLoadError('');
     api<{ statuses: { id: string; name: string }[] }>(`${base}/order-statuses`)
       .then((res) => {
         setStatuses(res.statuses);
         setForm((f) => ({ ...f, newStatusId: f.newStatusId || (res.statuses[0]?.id ?? '') }));
       })
-      .catch((e: unknown) => onError(errorText(t, e)));
+      .catch((e: unknown) => setLoadError(errorText(t, e)));
   };
 
   const save = (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    onError('');
+    setSaveError('');
     api(`${base}/orders`, {
       method: 'PUT',
       body: {
@@ -578,7 +633,7 @@ function OrdersToBase({
       },
     })
       .then(onSaved)
-      .catch((err: unknown) => onError(errorText(t, err)))
+      .catch((err: unknown) => setSaveError(errorText(t, err)))
       .finally(() => setBusy(false));
   };
 
@@ -588,7 +643,10 @@ function OrdersToBase({
       <select
         value={form[key]}
         required={key === 'newStatusId' && form.enabled}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+        onChange={(e) => {
+          setForm({ ...form, [key]: e.target.value });
+          setSaveError('');
+        }}
       >
         {key === 'newStatusId' ? null : <option value="">{s.ordersLeave}</option>}
         {(statuses ?? []).map((st) => (
@@ -622,7 +680,10 @@ function OrdersToBase({
             <input
               type="checkbox"
               checked={form.enabled}
-              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+              onChange={(e) => {
+                setForm({ ...form, enabled: e.target.checked });
+                setSaveError('');
+              }}
             />
             <span>{s.ordersEnable}</span>
           </label>
@@ -634,11 +695,19 @@ function OrdersToBase({
             </>
           ) : null}
           <div>
-            <button type="submit" className="btn" disabled={busy}>
+            <button
+              type="submit"
+              className="btn"
+              disabled={busy}
+              aria-describedby={saveError ? 'base-orders-save-error' : undefined}
+            >
               {t.common.save}
             </button>
           </div>
+          <FieldError id="base-orders-save-error" text={saveError || undefined} />
         </form>
+      ) : loadError ? (
+        <FieldError id="base-orders-load-error" text={loadError} />
       ) : (
         <Spinner />
       )}
@@ -646,7 +715,7 @@ function OrdersToBase({
   );
 }
 
-function FeedCard({ base, onError }: { base: string; onError: (text: string) => void }) {
+function FeedCard({ base }: { base: string }) {
   const { t } = useI18n();
   const s = t.shopIntegrations;
   const [feed, setFeed] = useState<{ feedId: string; unreadable: number; rows: Row[] } | null>(
@@ -654,10 +723,17 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
   );
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState('');
+  /**
+   * Task 837: a file that could not be sent is said under "Plik CSV lub XML", a refused import
+   * under "Importuj zaznaczone" — not at the top of the page.
+   */
+  const [fileError, setFileError] = useState('');
+  const [importError, setImportError] = useState('');
 
   const upload = async (file: File) => {
     setBusy(true);
-    onError('');
+    setFileError('');
+    setImportError('');
     setDone('');
     try {
       const type =
@@ -669,7 +745,7 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
       }>(base, { method: 'POST', file: new Blob([file], { type }) });
       setFeed({ feedId: res.feedId, unreadable: res.unreadable, rows: res.products });
     } catch (e) {
-      onError(errorText(t, e));
+      setFileError(errorText(t, e));
     } finally {
       setBusy(false);
     }
@@ -678,7 +754,7 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
   const importRows = async (items: { key: string; online: boolean }[]) => {
     if (!feed) return;
     setBusy(true);
-    onError('');
+    setImportError('');
     try {
       const res = await api<ImportResult>(`${base}/${feed.feedId}/import`, {
         method: 'POST',
@@ -687,7 +763,7 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
       setFeed(null);
       setDone(importedText(s, res));
     } catch (e) {
-      onError(errorText(t, e));
+      setImportError(errorText(t, e));
     } finally {
       setBusy(false);
     }
@@ -703,12 +779,15 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
           type="file"
           accept=".csv,.txt,.xml,text/csv,application/xml,text/xml"
           disabled={busy}
+          aria-invalid={fileError ? true : undefined}
+          aria-describedby={fileError ? 'feed-file-error' : undefined}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) void upload(file);
             e.target.value = '';
           }}
         />
+        <FieldError id="feed-file-error" text={fileError || undefined} />
       </label>
       {busy && !feed ? <Spinner /> : null}
       {done ? (
@@ -724,8 +803,13 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
           <Picker
             rows={feed.rows}
             busy={busy}
+            error={importError}
+            errorId="feed-import-error"
             onImport={(items) => void importRows(items)}
-            onClose={() => setFeed(null)}
+            onClose={() => {
+              setImportError('');
+              setFeed(null);
+            }}
           />
         </>
       ) : null}
@@ -737,11 +821,16 @@ function FeedCard({ base, onError }: { base: string; onError: (text: string) => 
 function Picker({
   rows,
   busy,
+  error,
+  errorId,
   onImport,
   onClose,
 }: {
   rows: Row[];
   busy: boolean;
+  /** Task 837: a refused import, said under "Importuj zaznaczone". */
+  error?: string;
+  errorId: string;
   onImport: (items: { key: string; online: boolean }[]) => void;
   onClose: () => void;
 }) {
@@ -839,6 +928,7 @@ function Picker({
           type="button"
           className="btn"
           disabled={busy}
+          aria-describedby={error ? errorId : undefined}
           onClick={(e) => {
             if (chosen.length === 0) {
               setNoneTicked(true);
@@ -857,6 +947,7 @@ function Picker({
           {t.common.cancel}
         </button>
       </div>
+      <FieldError id={errorId} text={error || undefined} />
     </div>
   );
 }
