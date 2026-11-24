@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { BackHandler, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
   type BusinessApi,
@@ -25,6 +25,10 @@ import {
 } from '../reviews';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+const reviewsCache = new SalonReadCache<SalonReviews>();
+const settingsCache = new SalonReadCache<ReviewSettings>();
+type ReplyEditor = { text: string; editing: boolean; busy?: boolean; error?: string };
 
 /**
  * Task 201: "Opinie" in the business app — the average, then each review: stars, the client's
@@ -48,24 +52,26 @@ export function ReviewsScreen(props: {
   const { api, t, salon, onBack } = props;
   const manager = salon.role !== 'staff';
   const r = t.reviews;
-  const [summary, setSummary] = useState<Pick<
-    SalonReviews,
-    'count' | 'average' | 'enabled'
-  > | null>(null);
-  const [items, setItems] = useState<Review[] | null>(null);
+  const [page, setPage] = useState<SalonReviews | null>(null);
+  const displayed = useRef<SalonReviews | null>(null);
+  const show = useCallback((value: SalonReviews | null) => {
+    displayed.current = value;
+    setPage(value);
+  }, []);
   const [rating, setRating] = useState<number | null>(null);
-  const [counts, setCounts] = useState<number[]>([]);
-  const [unanswered, setUnanswered] = useState(false);
-  const [unansweredCount, setUnansweredCount] = useState(0);
   const [staffId, setStaffId] = useState<string | null>(null);
-  const [team, setTeam] = useState<SalonReviews['staff']>([]);
   const [serviceId, setServiceId] = useState<string | null>(null);
-  const [services, setServices] = useState<SalonReviews['services']>([]);
+  const [unanswered, setUnanswered] = useState(false);
+  const key = JSON.stringify([staffId, serviceId, rating, unanswered]);
+  const lifetime = useScreenLifetime(salon, key);
+  const request = useRef<symbol | null>(null);
+  const [editors, setEditors] = useState<Record<string, ReplyEditor | undefined>>({});
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
 
   const downloadCsv = async () => {
     if (csvBusy) return;
+    const signal = lifetime.current!.signal;
     setCsvBusy(true);
     setCsvInfo('');
     try {
@@ -75,51 +81,137 @@ export function ReviewsScreen(props: {
         rating: rating ?? undefined,
         unanswered,
       });
+      if (signal.aborted) return;
       const result = await shareCsv(file, csvTools());
-      setCsvInfo(result === 'failed' ? r.csvFailed : '');
+      if (!signal.aborted) setCsvInfo(result === 'failed' ? r.csvFailed : '');
     } catch (e) {
-      setCsvInfo(errorText(e, t));
+      if (!signal.aborted) setCsvInfo(errorText(e, t));
     } finally {
-      setCsvBusy(false);
+      if (!signal.aborted) setCsvBusy(false);
     }
   };
-  const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
   const load = useCallback(
-    async (before?: string) => {
+    async (previous?: SalonReviews) => {
+      if (previous && (request.current || !previous.nextBefore)) return;
+      const signal = lifetime.current!.signal;
+      const id = Symbol();
+      request.current = id;
       setBusy(true);
       try {
-        const page = await api.reviews(salon.orgId, salon.locationId, {
-          before,
-          staffId: staffId ?? undefined,
-          serviceId: serviceId ?? undefined,
-          rating: rating ?? undefined,
-          unanswered,
-        });
-        setUnansweredCount(page.unanswered);
-        setTeam(page.staff);
-        setServices(page.services);
-        setSummary({ count: page.count, average: page.average, enabled: page.enabled });
-        setCounts(page.stars);
-        setItems((shown) => (before && shown ? appendReviews(shown, page.items) : page.items));
-        setNext(page.nextBefore);
+        const fetchPage = () =>
+          api.reviews(salon.orgId, salon.locationId, {
+            before: previous?.nextBefore ?? undefined,
+            staffId: staffId ?? undefined,
+            serviceId: serviceId ?? undefined,
+            rating: rating ?? undefined,
+            unanswered,
+          });
+        const result = previous
+          ? await fetchPage()
+          : await reviewsCache.read(salon, fetchPage, key);
+        if (signal.aborted || request.current !== id) return;
+        const current = displayed.current;
+        const merged =
+          previous && current
+            ? {
+                ...result,
+                ...(previous === current
+                  ? {}
+                  : { enabled: current.enabled, unanswered: current.unanswered }),
+                items: appendReviews(current.items, result.items),
+              }
+            : result;
+        if (previous) reviewsCache.set(salon, merged, key);
+        show(merged);
         setError('');
       } catch (e) {
-        setError(errorText(e, t));
+        if (!signal.aborted && request.current === id) setError(errorText(e, t));
       } finally {
-        setBusy(false);
+        if (!signal.aborted && request.current === id) {
+          request.current = null;
+          setBusy(false);
+        }
       }
     },
-    [api, salon, t, rating, unanswered, staffId, serviceId],
+    [api, salon, t, rating, unanswered, staffId, serviceId, key, lifetime, show],
   );
 
   useEffect(() => {
+    const current = displayed.current;
+    if (current) show({ ...current, items: [], nextBefore: null });
+    setCsvInfo('');
+    setCsvBusy(false);
     void load();
-  }, [load]);
+  }, [load, show]);
 
-  const chips = starChips(counts, rating);
+  const edit = useCallback((id: string, editor?: ReplyEditor) => {
+    setEditors((current) => ({ ...current, [id]: editor }));
+  }, []);
+  const screen = useScreenLifetime(salon);
+  const reply = useCallback(
+    async (review: Review, value: string | null, editor: ReplyEditor) => {
+      const signal = screen.current!.signal;
+      const filterSignal = lifetime.current!.signal;
+      edit(review.id, { ...editor, busy: true });
+      try {
+        const saved =
+          value === null
+            ? await api.removeReviewReply(salon.orgId, salon.locationId, review.id)
+            : await api.replyToReview(salon.orgId, salon.locationId, review.id, value);
+        reviewsCache.clear(salon);
+        if (signal.aborted) return;
+        edit(review.id);
+        if (filterSignal.aborted) return;
+        const current = displayed.current;
+        if (!current || !current.items.some((item) => item.id === saved.id)) return;
+        const delta = Number(!saved.reply) - Number(!review.reply);
+        const updated = {
+          ...current,
+          unanswered: Math.max(0, current.unanswered + delta),
+          items:
+            unanswered && saved.reply
+              ? current.items.filter((item) => item.id !== saved.id)
+              : current.items.map((item) => (item.id === saved.id ? saved : item)),
+        };
+        reviewsCache.set(salon, updated, key);
+        show(updated);
+      } catch (e) {
+        if (!signal.aborted) edit(review.id, { ...editor, busy: false, error: errorText(e, t) });
+      }
+    },
+    [api, salon, screen, lifetime, key, unanswered, edit, show, t],
+  );
+  const settingsSaved = useCallback(
+    (enabled: boolean) => {
+      reviewsCache.clear(salon);
+      if (displayed.current) show({ ...displayed.current, enabled });
+    },
+    [salon, show],
+  );
+
+  const { locale, timeZone } = props;
+  const renderItem = useCallback(
+    ({ item }: { item: Review }) => (
+      <ReviewRow
+        review={item}
+        manager={manager}
+        t={t}
+        locale={locale}
+        timeZone={timeZone}
+        editor={editors[item.id]}
+        edit={edit}
+        reply={reply}
+      />
+    ),
+    [manager, t, locale, timeZone, editors, edit, reply],
+  );
+  const summary = page;
+  const team = page?.staff ?? [];
+  const services = page?.services ?? [];
+  const unansweredCount = page?.unanswered ?? 0;
+  const chips = starChips(page?.stars ?? [], rating);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -131,195 +223,169 @@ export function ReviewsScreen(props: {
   }, [onBack]);
 
   return (
-    <ScrollView contentContainerStyle={styles.screen}>
-      <Button kind="link" label={r.back} onPress={onBack} />
-      <Heading>{r.title}</Heading>
-      <Text style={styles.muted}>{r.hint}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
-      {manager ? (
-        <ReviewSettingsCard
-          api={api}
-          t={t}
-          salon={salon}
-          onSaved={(enabled) => setSummary((shown) => (shown ? { ...shown, enabled } : shown))}
-        />
-      ) : summary && !summary.enabled ? (
-        <Text style={styles.note}>{r.off}</Text>
-      ) : null}
-      {summary ? (
-        <Text style={styles.summary} accessibilityRole="header">
-          {reviewSummary(summary, t, props.locale)}
-        </Text>
-      ) : null}
-      {manager && summary && summary.count > 0 ? (
-        <Button kind="secondary" label={r.csv} busy={csvBusy} onPress={() => void downloadCsv()} />
-      ) : null}
-      {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
-      {team.length > 1 ? (
-        <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
-          {[
-            { staffId: null, label: r.everyone },
-            ...team.map((s) => ({ staffId: s.staffId, label: staffReviewChip(s, props.locale) })),
-          ].map((chip) => (
-            <Pressable
-              accessibilityLabel={chip.label}
-              key={chip.staffId ?? 'all'}
-              accessibilityRole="button"
-              aria-pressed={staffId === chip.staffId}
-              accessibilityState={{ selected: staffId === chip.staffId }}
-              onPress={() => {
-                setStaffId(chip.staffId);
-                setRating(null);
-              }}
-              style={[styles.chip, staffId === chip.staffId && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, staffId === chip.staffId && { color: '#fff' }]}>
-                {chip.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      {services.length > 1 || serviceId !== null ? (
-        <View style={styles.actions} role="group" aria-label={r.byService}>
-          {[
-            { serviceId: null, label: r.allServices },
-            ...services.map((s) => ({
-              serviceId: s.serviceId,
-              label: serviceReviewChip(s, props.locale),
-            })),
-          ].map((chip) => (
-            <Pressable
-              accessibilityLabel={chip.label}
-              key={chip.serviceId ?? 'all'}
-              accessibilityRole="button"
-              aria-pressed={serviceId === chip.serviceId}
-              accessibilityState={{ selected: serviceId === chip.serviceId }}
-              onPress={() => {
-                setServiceId(chip.serviceId);
-                setRating(null);
-              }}
-              style={[styles.chip, serviceId === chip.serviceId && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, serviceId === chip.serviceId && { color: '#fff' }]}>
-                {chip.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      {chips.length > 0 ? (
-        <View style={styles.actions} role="group" aria-label={r.byStars}>
-          {[{ rating: null, label: r.allStars }, ...chips].map((chip) => (
-            <Pressable
-              accessibilityLabel={chip.label}
-              key={chip.rating ?? 'all'}
-              accessibilityRole="button"
-              aria-pressed={rating === chip.rating}
-              accessibilityState={{ selected: rating === chip.rating }}
-              onPress={() => setRating(chip.rating)}
-              style={[styles.chip, rating === chip.rating && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, rating === chip.rating && { color: '#fff' }]}>
-                {chip.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      {manager && (unansweredCount > 0 || unanswered) ? (
-        <View style={styles.actions}>
-          <Pressable
-            accessibilityLabel={fill(r.unanswered, { n: String(unansweredCount) })}
-            accessibilityRole="button"
-            aria-pressed={unanswered}
-            accessibilityState={{ selected: unanswered }}
-            onPress={() => setUnanswered(!unanswered)}
-            style={[styles.chip, unanswered && styles.chipOn]}
-          >
-            <Text style={[styles.chipText, unanswered && { color: '#fff' }]}>
-              {fill(r.unanswered, { n: String(unansweredCount) })}
+    <FlatList
+      data={page?.items ?? []}
+      renderItem={renderItem}
+      contentContainerStyle={styles.screen}
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <Button kind="link" label={r.back} onPress={onBack} />
+          <Heading>{r.title}</Heading>
+          <Text style={styles.muted}>{r.hint}</Text>
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          {manager ? (
+            <ReviewSettingsCard api={api} t={t} salon={salon} onSaved={settingsSaved} />
+          ) : summary && !summary.enabled ? (
+            <Text style={styles.note}>{r.off}</Text>
+          ) : null}
+          {summary ? (
+            <Text style={styles.summary} accessibilityRole="header">
+              {reviewSummary(summary, t, props.locale)}
             </Text>
-          </Pressable>
-        </View>
-      ) : null}
-      {items === null ? (
-        error ? null : (
-          <Text style={styles.muted}>{t.loading}</Text>
-        )
-      ) : items.length > 0 ? (
-        <Card>
-          {items.map((review, i) => (
-            <ReviewRow
-              key={review.id}
-              review={review}
-              first={i === 0}
-              manager={manager}
-              t={t}
-              line={reviewLine(review, t, props.locale, props.timeZone)}
-              onReply={(text) =>
-                text === null
-                  ? api.removeReviewReply(salon.orgId, salon.locationId, review.id)
-                  : api.replyToReview(salon.orgId, salon.locationId, review.id, text)
-              }
-              onSaved={(saved) =>
-                setItems((shown) =>
-                  shown ? shown.map((x) => (x.id === saved.id ? saved : x)) : shown,
-                )
-              }
+          ) : null}
+          {manager && summary && summary.count > 0 ? (
+            <Button
+              kind="secondary"
+              label={r.csv}
+              busy={csvBusy}
+              onPress={() => void downloadCsv()}
             />
-          ))}
-        </Card>
-      ) : null}
-      {next ? (
-        <Button kind="secondary" label={r.more} busy={busy} onPress={() => void load(next)} />
-      ) : null}
-    </ScrollView>
+          ) : null}
+          {csvInfo ? <Text style={styles.muted}>{csvInfo}</Text> : null}
+          {team.length > 1 ? (
+            <View style={styles.actions} role="group" aria-label={r.bySpecialist}>
+              {[
+                { staffId: null, label: r.everyone },
+                ...team.map((s) => ({
+                  staffId: s.staffId,
+                  label: staffReviewChip(s, props.locale),
+                })),
+              ].map((chip) => (
+                <Pressable
+                  accessibilityLabel={chip.label}
+                  key={chip.staffId ?? 'all'}
+                  accessibilityRole="button"
+                  aria-pressed={staffId === chip.staffId}
+                  accessibilityState={{ selected: staffId === chip.staffId }}
+                  onPress={() => {
+                    setStaffId(chip.staffId);
+                    setRating(null);
+                  }}
+                  style={[styles.chip, staffId === chip.staffId && styles.chipOn]}
+                >
+                  <Text style={[styles.chipText, staffId === chip.staffId && { color: '#fff' }]}>
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {services.length > 1 || serviceId !== null ? (
+            <View style={styles.actions} role="group" aria-label={r.byService}>
+              {[
+                { serviceId: null, label: r.allServices },
+                ...services.map((s) => ({
+                  serviceId: s.serviceId,
+                  label: serviceReviewChip(s, props.locale),
+                })),
+              ].map((chip) => (
+                <Pressable
+                  accessibilityLabel={chip.label}
+                  key={chip.serviceId ?? 'all'}
+                  accessibilityRole="button"
+                  aria-pressed={serviceId === chip.serviceId}
+                  accessibilityState={{ selected: serviceId === chip.serviceId }}
+                  onPress={() => {
+                    setServiceId(chip.serviceId);
+                    setRating(null);
+                  }}
+                  style={[styles.chip, serviceId === chip.serviceId && styles.chipOn]}
+                >
+                  <Text
+                    style={[styles.chipText, serviceId === chip.serviceId && { color: '#fff' }]}
+                  >
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {chips.length > 0 ? (
+            <View style={styles.actions} role="group" aria-label={r.byStars}>
+              {[{ rating: null, label: r.allStars }, ...chips].map((chip) => (
+                <Pressable
+                  accessibilityLabel={chip.label}
+                  key={chip.rating ?? 'all'}
+                  accessibilityRole="button"
+                  aria-pressed={rating === chip.rating}
+                  accessibilityState={{ selected: rating === chip.rating }}
+                  onPress={() => setRating(chip.rating)}
+                  style={[styles.chip, rating === chip.rating && styles.chipOn]}
+                >
+                  <Text style={[styles.chipText, rating === chip.rating && { color: '#fff' }]}>
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {manager && (unansweredCount > 0 || unanswered) ? (
+            <View style={styles.actions}>
+              <Pressable
+                accessibilityLabel={fill(r.unanswered, { n: String(unansweredCount) })}
+                accessibilityRole="button"
+                aria-pressed={unanswered}
+                accessibilityState={{ selected: unanswered }}
+                onPress={() => setUnanswered(!unanswered)}
+                style={[styles.chip, unanswered && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, unanswered && { color: '#fff' }]}>
+                  {fill(r.unanswered, { n: String(unansweredCount) })}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+      }
+      ListEmptyComponent={
+        !page && !error ? <Text style={styles.muted}>{t.loading}</Text> : undefined
+      }
+      ListFooterComponent={
+        page?.nextBefore ? (
+          <Button kind="secondary" label={r.more} busy={busy} onPress={() => void load(page)} />
+        ) : undefined
+      }
+    />
   );
 }
 
-function ReviewRow(props: {
+const ReviewRow = memo(function ReviewRow(props: {
   review: Review;
-  first: boolean;
   manager: boolean;
   t: Dictionary;
-  line: string;
-  onReply: (text: string | null) => Promise<Review>;
-  onSaved: (review: Review) => void;
+  locale: Locale;
+  timeZone: string;
+  editor?: ReplyEditor;
+  edit: (id: string, editor?: ReplyEditor) => void;
+  reply: (review: Review, value: string | null, editor: ReplyEditor) => Promise<void>;
 }) {
   const { review, t } = props;
+  const editor = props.editor ?? { editing: false, text: review.reply ?? '' };
+  const { editing, text, busy, error } = editor;
   const r = t.reviews;
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(review.reply ?? '');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function send(value: string | null) {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      const saved = await props.onReply(value);
-      setEditing(false);
-      setText(saved.reply ?? '');
-      props.onSaved(saved);
-    } catch (e) {
-      setError(errorText(e, t));
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  const line = reviewLine(review, t, props.locale, props.timeZone);
+  const send = (value: string | null) => props.reply(review, value, editor);
   return (
-    <View style={[styles.row, !props.first && styles.divider]}>
+    <View style={styles.row}>
       <View
         accessible
-        accessibilityLabel={`${review.rating}/5. ${review.text ?? ''} ${props.line}`}
+        accessibilityLabel={`${review.rating}/5. ${review.text ?? ''} ${line}`}
         style={styles.gap}
       >
         <Text style={styles.stars}>{stars(review.rating)}</Text>
         {review.text ? <Text style={styles.text}>{review.text}</Text> : null}
-        <Text style={styles.muted}>{props.line}</Text>
+        <Text style={styles.muted}>{line}</Text>
       </View>
       {review.reply && !editing ? (
         <View
@@ -338,7 +404,7 @@ function ReviewRow(props: {
             placeholder={r.replyLabel}
             placeholderTextColor={colors.placeholder}
             value={text}
-            onChangeText={setText}
+            onChangeText={(text) => props.edit(review.id, { ...editor, text })}
             maxLength={1000}
             multiline
             style={[styles.input, styles.multiline]}
@@ -354,9 +420,7 @@ function ReviewRow(props: {
             kind="link"
             label={r.replyCancel}
             onPress={() => {
-              setEditing(false);
-              setText(review.reply ?? '');
-              setError('');
+              props.edit(review.id);
             }}
           />
         </View>
@@ -365,7 +429,7 @@ function ReviewRow(props: {
           <Button
             kind="secondary"
             label={review.reply ? r.replyChange : r.reply}
-            onPress={() => setEditing(true)}
+            onPress={() => props.edit(review.id, { ...editor, editing: true })}
           />
           {review.reply ? (
             <Button kind="link" label={r.replyRemove} busy={busy} onPress={() => void send(null)} />
@@ -375,10 +439,10 @@ function ReviewRow(props: {
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
-}
+});
 
 /** Task 341: "Ustawienia opinii" (owners and managers; the server checks the role too). */
-function ReviewSettingsCard(props: {
+const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
   api: BusinessApi;
   t: Dictionary;
   salon: SalonChoice;
@@ -391,15 +455,24 @@ function ReviewSettingsCard(props: {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
+  const lifetime = useScreenLifetime(salon);
   const load = useCallback(async () => {
-    const current = await api.reviewSettings(salon.orgId, salon.locationId);
+    const signal = lifetime.current!.signal;
+    if (signal.aborted) return;
+    const current = await settingsCache.read(salon, () =>
+      api.reviewSettings(salon.orgId, salon.locationId),
+    );
+    if (signal.aborted) return;
     setSaved(current);
     setForm(current);
-  }, [api, salon]);
+  }, [api, salon, lifetime]);
 
   useEffect(() => {
-    load().catch((e) => setNote({ text: errorText(e, t), bad: true }));
-  }, [load, t]);
+    const signal = lifetime.current!.signal;
+    load().catch((e) => {
+      if (!signal.aborted) setNote({ text: errorText(e, t), bad: true });
+    });
+  }, [load, t, lifetime]);
 
   if (!saved || !form) {
     return note ? <ErrorText>{note.text}</ErrorText> : null;
@@ -407,23 +480,29 @@ function ReviewSettingsCard(props: {
 
   async function save() {
     if (!form) return;
+    const signal = lifetime.current!.signal;
     setBusy(true);
     setNote(null);
     try {
       const done = await api.saveReviewSettings(salon.orgId, salon.locationId, form);
+      settingsCache.set(salon, done);
+      reviewsCache.clear(salon);
+      if (signal.aborted) return;
       setSaved(done);
       setForm(done);
       props.onSaved(done.enabled);
       setNote({ text: r.saved, bad: false });
     } catch (e) {
+      if (signal.aborted) return;
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
+        settingsCache.clear(salon);
         setNote({ text: r.conflict, bad: true });
         await load().catch(() => undefined);
       } else {
         setNote({ text: errorText(e, t), bad: true });
       }
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
@@ -478,7 +557,7 @@ function ReviewSettingsCard(props: {
       />
     </Card>
   );
-}
+});
 
 function Chip(props: { label: string; a11yLabel?: string; on: boolean; onPress: () => void }) {
   return (
@@ -518,9 +597,15 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  screen: { padding: 20, gap: 12 },
-  row: { paddingVertical: 10, gap: 8 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.line },
+  screen: { padding: 20 },
+  header: { gap: 12, marginBottom: 12 },
+  row: {
+    backgroundColor: colors.card,
+    padding: 12,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
   stars: { fontSize: 18, color: colors.ink, letterSpacing: 2 },
   summary: { fontSize: 20, fontWeight: '700', color: colors.ink },
   text: { fontSize: 16, color: colors.ink },

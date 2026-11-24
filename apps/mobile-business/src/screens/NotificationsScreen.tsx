@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { BackHandler, FlatList, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
@@ -8,6 +8,9 @@ import { noticeKind, noticesOfSalon, opensVisit, type Notice } from '../notifica
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { VisitScreen } from './VisitScreen';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+
+let noticeCache = new SalonReadCache<Notice[]>();
 
 /**
  * The bell: new online bookings, visits added, moved or cancelled — in this salon, newest first.
@@ -25,21 +28,43 @@ export function NotificationsScreen(props: {
   const { api, t, salon, onBack } = props;
   const n = t.notifications;
   const [list, setList] = useState<Notice[] | null>(null);
+  const shown = useRef<Notice[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setList(noticesOfSalon(await api.notifications(100), salon.orgId, salon.locationId));
-      setError('');
-    } catch (e) {
-      setError(errorText(e, t));
-    } finally {
-      setLoading(false);
-    }
-  }, [api, salon, t]);
+  const lifetime = useScreenLifetime(salon);
+  const latest = useRef(0);
+  const refreshing = useRef(false);
+  const load = useCallback(
+    async (refresh = false) => {
+      if (refresh && refreshing.current) return;
+      const signal = lifetime.current!.signal;
+      const request = ++latest.current;
+      if (refresh) noticeCache.clear(salon);
+      refreshing.current = true;
+      setLoading(true);
+      try {
+        const notices = await noticeCache.read(salon, async () =>
+          noticesOfSalon(await api.notifications(100), salon.orgId, salon.locationId),
+        );
+        if (signal.aborted || request !== latest.current) return;
+        // Recheck an empty inbox on return so the first new booking appears.
+        if (notices.length === 0) noticeCache.clear(salon);
+        shown.current = notices;
+        setList(notices);
+        setError('');
+      } catch (e) {
+        if (!signal.aborted && request === latest.current) setError(errorText(e, t));
+      } finally {
+        if (!signal.aborted && request === latest.current) {
+          refreshing.current = false;
+          setLoading(false);
+        }
+      }
+    },
+    [api, salon, lifetime, t],
+  );
 
   useEffect(() => {
     void load();
@@ -54,24 +79,53 @@ export function NotificationsScreen(props: {
     return () => sub.remove();
   }, [onBack, openId]);
 
-  async function open(notice: Notice) {
-    if (!notice.read) {
-      setList((current) =>
-        current ? current.map((x) => (x.id === notice.id ? { ...x, read: true } : x)) : current,
-      );
-      void api.markNotificationsRead({ ids: [notice.id] }).catch(() => undefined);
-    }
-    if (opensVisit(notice)) setOpenId(notice.appointmentId);
-  }
+  const marking = useRef(new Set<string>());
+  const markRead = useCallback(
+    async (id?: string) => {
+      const key = id ?? 'all';
+      if (marking.current.has(key) || marking.current.has('all')) return;
+      marking.current.add(key);
+      const signal = lifetime.current!.signal;
+      try {
+        await api.markNotificationsRead(id ? { ids: [id] } : { all: true });
+        // The all endpoint also marks notifications of the user's other salons.
+        if (!id) noticeCache = new SalonReadCache<Notice[]>();
+        if (signal.aborted) {
+          noticeCache.clear(salon);
+          return;
+        }
+        ++latest.current;
+        refreshing.current = false;
+        setLoading(false);
+        const updated = shown.current.map((item) =>
+          !item.read && (!id || item.id === id) ? { ...item, read: true } : item,
+        );
+        shown.current = updated;
+        noticeCache.set(salon, updated);
+        setList(updated);
+        setError('');
+      } catch (e) {
+        if (!signal.aborted) setError(errorText(e, t));
+      } finally {
+        marking.current.delete(key);
+      }
+    },
+    [api, lifetime, salon, t],
+  );
 
-  async function readAll() {
-    try {
-      await api.markNotificationsRead({ all: true });
-      await load();
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }
+  const open = useCallback(
+    (notice: Notice) => {
+      if (!notice.read) void markRead(notice.id);
+      if (opensVisit(notice)) setOpenId(notice.appointmentId);
+    },
+    [markRead],
+  );
+
+  const { locale } = props;
+  const renderItem = useCallback(
+    ({ item }: { item: Notice }) => <NoticeRow notice={item} t={t} locale={locale} open={open} />,
+    [t, locale, open],
+  );
 
   if (openId) {
     return (
@@ -91,66 +145,76 @@ export function NotificationsScreen(props: {
 
   const unread = list?.some((x) => !x.read) ?? false;
   return (
-    <ScrollView
+    <FlatList
+      data={list ?? []}
+      renderItem={renderItem}
       contentContainerStyle={styles.screen}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-    >
-      <View style={styles.row}>
-        <Button kind="link" label={n.back} onPress={onBack} />
-      </View>
-      <Heading>{n.title}</Heading>
-      {unread ? (
-        <View style={styles.row}>
-          <Button kind="secondary" label={n.readAll} onPress={() => void readAll()} />
+      refreshing={loading}
+      onRefresh={() => void load(true)}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <View style={styles.row}>
+            <Button kind="link" label={n.back} onPress={onBack} />
+          </View>
+          <Heading>{n.title}</Heading>
+          {unread ? (
+            <View style={styles.row}>
+              <Button kind="secondary" label={n.readAll} onPress={() => void markRead()} />
+            </View>
+          ) : null}
+          {error ? <ErrorText>{error}</ErrorText> : null}
         </View>
-      ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
-      {list === null ? (
-        !error ? (
-          <Text style={styles.muted}>{t.loading}</Text>
-        ) : null
-      ) : list.length === 0 ? (
-        <Text style={styles.muted}>{n.empty}</Text>
-      ) : (
-        list.map((notice) => {
-          const kind = n.kind[noticeKind(notice)];
-          return (
-            <Pressable
-              key={notice.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${notice.read ? '' : `${n.unread}: `}${kind}, ${notice.data.time} ${notice.data.customerName ?? t.day.walkIn}`}
-              onPress={() => void open(notice)}
-              style={({ pressed }) => pressed && { opacity: 0.7 }}
-            >
-              <Card>
-                <View style={styles.top}>
-                  <Text
-                    style={[styles.kind, notice.type === 'appointment.cancelled' && styles.bad]}
-                  >
-                    {notice.read ? '' : '● '}
-                    {kind}
-                  </Text>
-                  <Text style={styles.small}>
-                    {notice.data.by === 'client' ? n.byClient : n.bySalon}
-                  </Text>
-                </View>
-                <Text style={styles.value}>
-                  {dayTitle(notice.data.date, props.locale)}, {notice.data.time}
-                </Text>
-                <Text style={styles.muted}>
-                  {notice.data.customerName ?? t.day.walkIn} · {notice.data.serviceName} ·{' '}
-                  {notice.data.staffName}
-                </Text>
-              </Card>
-            </Pressable>
-          );
-        })
-      )}
-    </ScrollView>
+      }
+      ListEmptyComponent={
+        list || !error ? <Text style={styles.muted}>{list ? n.empty : t.loading}</Text> : undefined
+      }
+    />
   );
 }
 
+const NoticeRow = memo(function NoticeRow({
+  notice,
+  t,
+  locale,
+  open,
+}: {
+  notice: Notice;
+  t: Dictionary;
+  locale: Locale;
+  open: (notice: Notice) => void;
+}) {
+  const n = t.notifications;
+  const kind = n.kind[noticeKind(notice)];
+  return (
+    <Pressable
+      key={notice.id}
+      accessibilityRole="button"
+      accessibilityLabel={`${notice.read ? '' : `${n.unread}: `}${kind}, ${notice.data.time} ${notice.data.customerName ?? t.day.walkIn}`}
+      onPress={() => void open(notice)}
+      style={({ pressed }) => pressed && { opacity: 0.7 }}
+    >
+      <Card>
+        <View style={styles.top}>
+          <Text style={[styles.kind, notice.type === 'appointment.cancelled' && styles.bad]}>
+            {notice.read ? '' : '● '}
+            {kind}
+          </Text>
+          <Text style={styles.small}>{notice.data.by === 'client' ? n.byClient : n.bySalon}</Text>
+        </View>
+        <Text style={styles.value}>
+          {dayTitle(notice.data.date, locale)}, {notice.data.time}
+        </Text>
+        <Text style={styles.muted}>
+          {notice.data.customerName ?? t.day.walkIn} · {notice.data.serviceName} ·{' '}
+          {notice.data.staffName}
+        </Text>
+      </Card>
+    </Pressable>
+  );
+});
+
 const styles = StyleSheet.create({
+  header: { gap: 12 },
   screen: { padding: 20, gap: 12 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
