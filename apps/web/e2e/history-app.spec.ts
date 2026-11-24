@@ -18,7 +18,7 @@ import { openBusinessMenu, serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `history-app-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -80,10 +80,11 @@ test('the owner reads the change log in the business app (task 150)', async ({
     }),
   );
   const base = `/v1/organizations/${org.id}/locations/${location.id}`;
+  const serviceName = 'Strzyżenie męskie i modelowanie długich włosów z konsultacją';
   const service = await json<{ id: string }>(
     await request.post(`${base}/services`, {
       headers: owner,
-      data: { name: 'Strzyżenie męskie', durationMinutes: 45, priceGrosze: 9000, bufferMinutes: 0 },
+      data: { name: serviceName, durationMinutes: 45, priceGrosze: 9000, bufferMinutes: 0 },
     }),
   );
   const staff = await json<{ id: string }>(
@@ -117,18 +118,49 @@ test('the owner reads the change log in the business app (task 150)', async ({
     await signInToApp(app, businessApp.url, OWNER);
     await openBusinessMenu(app, 'Dziennik zmian');
     await expect(app.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
+    await app.addStyleTag({ content: '[dir="auto"] { font-size: 1.3rem !important }' });
     // Newest first: the hours, the specialist, the service — each with who did it.
     const titles = app.getByText(/^(Zmieniono godziny pracy|Dodano specjalistę|Dodano usługę)/);
     await expect(titles).toHaveText([
       'Zmieniono godziny pracy: Kasia Nowak',
       'Dodano specjalistę: Kasia Nowak',
-      'Dodano usługę: Strzyżenie męskie',
+      `Dodano usługę: ${serviceName}`,
     ]);
     await expect(app.getByText(/^Aleksander Owner · /).first()).toBeVisible();
+    const serviceEntry = app.getByLabel(`Dodano usługę: ${serviceName}. Aleksander Owner`, {
+      exact: false,
+    });
+    await serviceEntry.scrollIntoViewIfNeeded();
+    await expect(serviceEntry).toBeInViewport({ ratio: 1 });
+    expect(await titles.last().evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await shot(app, '150-business-app-history');
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await app.getByRole('tab', { name: 'Kalendarz', exact: true }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    // A new app session reads the log afresh. Hold the empty response to inspect its loading state.
+    await app.reload();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await app.route(
+      '**/audit-log?*',
+      async (route) => {
+        await pending;
+        await route.fulfill({ json: { items: [], next: null } });
+      },
+      { times: 1 },
+    );
+    await openBusinessMenu(app, 'Dziennik zmian');
+    const skeleton = app.getByRole('progressbar', { name: 'Ładowanie…' });
+    await expect(skeleton).toBeVisible();
+    await expect(app.getByText('Brak zmian.')).toBeHidden();
+    release();
+    await expect(app.getByText('Brak zmian.')).toBeVisible();
+    await expect(skeleton).toBeHidden();
+    await expect(app.getByRole('button', { name: 'Pokaż starsze' })).toBeHidden();
+    await expect(app.getByRole('button')).toHaveCount(1);
+    await app.getByRole('button', { name: '‹ Wróć' }).click();
     await context.close();
   } finally {
     businessApp.server.close();
