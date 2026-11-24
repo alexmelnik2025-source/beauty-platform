@@ -75,8 +75,30 @@ test('the new-salon form says errors at the field and never creates the company 
   await expect(page.locator('#onboarding-postalCode-error')).toHaveText('Sprawdź kod pocztowy.');
   await expect(postal).toHaveAttribute('aria-invalid', 'true');
 
-  // Trying again adds the salon to that company.
+  // Task 798 (owner's rule: errors where the action is): a refusal not about a field (too many
+  // tries) is said under "Utwórz salon", not at the top of the form.
   await postal.fill('34710');
+  const locationsUrl = '**/v1/organizations/*/locations';
+  await page.route(locationsUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const create = page.getByRole('button', { name: 'Utwórz salon' });
+  await create.click();
+  await expect(page.locator('#onboarding-submit-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(create).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(create).toBeEnabled();
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await page.screenshot({ path: 'e2e/screenshots/798-onboarding-submit-error.png' });
+  await page.unroute(locationsUrl);
+
+  // Trying again adds the salon to that company.
   await page.getByRole('button', { name: 'Utwórz salon' }).click();
   await page.waitForURL(/\/pl\/app\/calendar/);
   await page.waitForLoadState('networkidle');

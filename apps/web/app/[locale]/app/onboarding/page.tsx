@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
-import { ErrorBox, FieldError } from '@/components/ui';
+import { FieldError } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import {
   browserSalonTimeZone,
@@ -162,7 +162,6 @@ export default function OnboardingPage() {
         <p className="muted">{t.onboarding.lead}</p>
       </div>
       <form noValidate className="form" onSubmit={(e) => void submit(e)}>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.onboarding.orgName}</span>
           <input required value={form.orgName} {...invalid('orgName')} onChange={set('orgName')} />
@@ -237,9 +236,17 @@ export default function OnboardingPage() {
             ))}
           </select>
         </label>
-        <button className="btn btn--block" disabled={busy}>
+        {/* Task 798 (owner's rule: errors where the action is): a refusal that is not about one
+            field (no connection, too many tries) is said under "Utwórz salon", not at the top of
+            the form above all the fields. */}
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error ? 'onboarding-submit-error' : undefined}
+        >
           {t.onboarding.create}
         </button>
+        <FieldError id="onboarding-submit-error" text={error} />
       </form>
     </AuthPage>
   );
