@@ -64,6 +64,19 @@ describe('a manual change of the balance', () => {
     }
   });
 
+  it('accepts both signed limits and rejects signed zero and unsafe integers', () => {
+    for (const points of [-100_000, 100_000]) {
+      expect(parseAdjustment(String(points), 'Bonus')).toEqual({
+        ok: true,
+        points,
+        reason: 'Bonus',
+      });
+    }
+    for (const points of ['−0', '+0', '9007199254740993', '-9007199254740993']) {
+      expect(parseAdjustment(points, 'Bonus')).toEqual({ ok: false, problem: 'points' });
+    }
+  });
+
   it('points out a missing or too long reason', () => {
     expect(parseAdjustment('5', ' ab ')).toEqual({ ok: false, problem: 'reason' });
     expect(parseAdjustment('5', 'x'.repeat(501))).toEqual({ ok: false, problem: 'reason' });
@@ -96,6 +109,15 @@ describe('rewards to exchange', () => {
     expect(rewardChoices({ balance: '100000' }, [max])).toEqual([{ reward: max, enough: false }]);
     expect(rewardChoices({ balance: 99_999 }, [max])).toEqual([{ reward: max, enough: false }]);
     expect(rewardChoices({ balance: 100_000 }, [max])).toEqual([{ reward: max, enough: true }]);
+  });
+
+  it('requires a valid balance even for a reward costing one point', () => {
+    const cheapest = reward('one', { cost: 1 });
+    for (const balance of [-1, 0, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(rewardChoices({ balance }, [cheapest])).toEqual([{ reward: cheapest, enough: false }]);
+    }
+    // @ts-expect-error A partial API response can omit the balance.
+    expect(rewardChoices({}, [cheapest])).toEqual([{ reward: cheapest, enough: false }]);
   });
 
   it('cheaper first, removed ones left out, "enough" from the balance', () => {

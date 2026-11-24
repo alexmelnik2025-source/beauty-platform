@@ -35,8 +35,8 @@ export function rewardForm(reward: LoyaltyReward): RewardFormFull {
     percent: reward.discountPercent === null ? '' : String(reward.discountPercent),
     serviceId: reward.freeServiceId,
     cost: String(reward.cost),
-    validityDays: reward.couponValidityDays === null ? '' : String(reward.couponValidityDays),
-    serviceIds: [...reward.serviceIds],
+    validityDays: String(reward.couponValidityDays ?? ''),
+    serviceIds: [...(reward.serviceIds ?? [])],
   };
 }
 
@@ -84,10 +84,10 @@ export function rewardLimits(
   fill: (text: string, values: Record<string, string>) => string,
 ): string | null {
   const parts: string[] = [];
-  if (reward.couponValidityDays !== null) {
+  if (reward.couponValidityDays != null) {
     parts.push(fill(l.validityLine, { days: String(reward.couponValidityDays) }));
   }
-  if (reward.serviceIds.length > 0) {
+  if (reward.serviceIds?.length) {
     const names = reward.serviceIds.map((id) => services.get(id) ?? l.otherService);
     parts.push(fill(l.onlyLine, { services: names.join(', ') }));
   }

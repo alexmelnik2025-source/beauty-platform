@@ -166,6 +166,17 @@ describe('newReward', () => {
     });
   });
 
+  it('accepts a percent sign only after the complete discount', () => {
+    const form = { ...EMPTY_REWARD, name: 'Discount', cost: '1' };
+    for (const percent of ['2%5', '%25']) {
+      expect(newReward({ ...form, percent })).toEqual({ ok: false, problem: 'percent' });
+    }
+    expect(newReward({ ...form, percent: ' 25 % ' })).toMatchObject({
+      ok: true,
+      reward: { discountPercent: 25 },
+    });
+  });
+
   it('a free service needs the service, not a percent', () => {
     const form = {
       ...EMPTY_REWARD,
@@ -250,6 +261,23 @@ describe('program rules (task 344)', () => {
     expect(rulesToSave(p, { ...form, minSpend: '100 000,01' })).toEqual({
       ok: false,
       problem: 'minSpend',
+    });
+  });
+
+  it('saves single grosze exactly and rejects fractions of a grosz', () => {
+    const p = program({ mode: 'points' });
+    const form = { ...rulesForm(p), spendUnit: '0,01', minSpend: '0.29' };
+    expect(rulesToSave(p, form)).toMatchObject({
+      ok: true,
+      save: { spendUnitGrosze: 1, minSpendGrosze: 29 },
+    });
+    expect(rulesToSave(p, { ...form, minSpend: '0.299' })).toEqual({
+      ok: false,
+      problem: 'minSpend',
+    });
+    expect(rulesToSave(p, { ...form, pointsPerUnit: '-1' })).toEqual({
+      ok: false,
+      problem: 'pointsPerUnit',
     });
   });
 

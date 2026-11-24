@@ -89,6 +89,27 @@ describe('customer tiers (task 345)', () => {
     });
   });
 
+  it('keeps distinct thresholds out of order and flags a nonadjacent duplicate', () => {
+    const rows = [row('Gold', '0,30', '10'), row('Base', '0'), row('Silver', '0.29', '5')];
+    expect(tiersToSave('spend', '365', rows)).toEqual({
+      ok: true,
+      save: {
+        basis: 'spend',
+        periodDays: 365,
+        tiers: [
+          { name: 'Gold', threshold: 30, discountPercent: 10 },
+          { name: 'Base', threshold: 0, discountPercent: 0 },
+          { name: 'Silver', threshold: 29, discountPercent: 5 },
+        ],
+      },
+    });
+    expect(tiersToSave('spend', '365', [...rows, row('Other', '0.3')])).toEqual({
+      ok: false,
+      problem: 'same',
+      row: 3,
+    });
+  });
+
   it('reads and replaces the tiers', async () => {
     const calls: { key: string; body: unknown }[] = [];
     const fetchFn = async (url: string, init?: RequestInit) => {

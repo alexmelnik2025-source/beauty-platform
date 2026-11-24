@@ -67,6 +67,17 @@ describe('stamps and points per service (task 347)', () => {
     }
   });
 
+  it('keeps the active service list when no service overrides the general rule', () => {
+    const empty = { earnRules: [] };
+    const services = earnServices(empty, 'l1', active);
+    expect(services).toEqual(active);
+    expect(earnSummary(empty, 'l1', services)).toEqual([]);
+    expect(earnToSave(earnRows(empty, 'l1'), services)).toEqual({
+      ok: true,
+      save: { rules: [] },
+    });
+  });
+
   it('replaces the rules of one salon', async () => {
     const calls: { key: string; body: unknown }[] = [];
     const fetchFn = async (url: string, init?: RequestInit) => {
