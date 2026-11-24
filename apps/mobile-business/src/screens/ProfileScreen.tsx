@@ -86,13 +86,18 @@ export function ProfileScreen(props: {
               {me.languages.length ? ` · ${flags(me.languages)}` : ''}
             </Text>
           </Card>
-          <Text style={styles.section}>{p.languages}</Text>
-          <Text style={styles.muted}>{p.languagesHint}</Text>
+          <Text nativeID="profile-languages-label" style={styles.section}>
+            {p.languages}
+          </Text>
+          <Text nativeID="profile-languages-hint" style={styles.muted}>
+            {p.languagesHint}
+          </Text>
           <View
             role="group"
             accessibilityLabel={p.languages}
+            aria-labelledby="profile-languages-label"
             aria-invalid={!!saveError}
-            aria-describedby={saveError ? 'profile-languages-error' : undefined}
+            aria-describedby={saveError ? 'profile-languages-error' : 'profile-languages-hint'}
             style={[styles.choices, !!saveError && styles.invalid]}
           >
             {SPOKEN.map((l) => {
@@ -102,6 +107,7 @@ export function ProfileScreen(props: {
                   key={l.code}
                   accessibilityRole="checkbox"
                   accessibilityLabel={l.name}
+                  accessibilityHint={saveError || undefined}
                   disabled={busy}
                   accessibilityState={{ checked: on, disabled: busy }}
                   aria-checked={on}
@@ -121,11 +127,20 @@ export function ProfileScreen(props: {
             {chosen.length === 0 ? <Text style={styles.muted}>{p.none}</Text> : null}
           </View>
           {saveError ? (
-            <Text nativeID="profile-languages-error" role="alert" style={styles.fieldError}>
+            <Text
+              nativeID="profile-languages-error"
+              role="alert"
+              accessibilityLiveRegion="assertive"
+              style={styles.fieldError}
+            >
               ! {saveError}
             </Text>
           ) : null}
-          {info ? <Text style={styles.info}>{info}</Text> : null}
+          {info ? (
+            <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
+              {info}
+            </Text>
+          ) : null}
           <Button
             label={p.save}
             busy={busy}
