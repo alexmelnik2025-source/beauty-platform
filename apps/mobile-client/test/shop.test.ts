@@ -66,6 +66,23 @@ describe('"Sklep" in the client app (task Q3, screen 2)', () => {
     expect(fromCurrency(product([]))).toBe('PLN');
   });
 
+  it('distinguishes a product without a price quote from a free offer', () => {
+    // The API sends zero for the starting price when it has no offers to price.
+    const unpriced = { ...product([]), fromPriceGrosze: 0 };
+    const free = { ...unpriced, offers: [offer('a', 0)] };
+    expect(availableOffers(unpriced)).toEqual([]);
+    expect(sellersLine(unpriced)).toBeNull();
+    expect(availableOffers(free)).toEqual(free.offers);
+    expect(sellersLine(free)).toEqual({ kind: 'one', salon: 'Salon a' });
+  });
+
+  it('names a single salon even when it has two offers for the same product', () => {
+    expect(sellersLine(product([offer('a', 4900), offer('a', 5500)]))).toEqual({
+      kind: 'one',
+      salon: 'Salon a',
+    });
+  });
+
   it('has every category and line of the shop in all six languages', () => {
     for (const l of LOCALES) {
       const shop = DICTIONARIES[l].shop;

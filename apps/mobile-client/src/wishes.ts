@@ -45,10 +45,12 @@ export function wishesToSend(w: VisitWishes, q: WishQuestions): VisitWishes {
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 /**
- * The type a picked photo is sent as: its own when the API takes it, otherwise JPEG (the
+ * The type a picked photo is sent as: a supported picker or blob type, otherwise JPEG (the
  * phone's picker converts other formats, such as HEIC from an iPhone, to JPEG).
  */
 export function photoType(mimeType: string | null | undefined, blobType: string): string {
-  const type = (mimeType || blobType || '').toLowerCase();
-  return PHOTO_TYPES.includes(type) ? type : 'image/jpeg';
+  const picked = mimeType?.toLowerCase();
+  if (picked && PHOTO_TYPES.includes(picked)) return picked;
+  const uploaded = blobType.toLowerCase();
+  return PHOTO_TYPES.includes(uploaded) ? uploaded : 'image/jpeg';
 }

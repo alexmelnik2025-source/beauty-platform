@@ -30,9 +30,12 @@ export function sellersLine(
   product: ShopProduct,
 ): { kind: 'one'; salon: string } | { kind: 'many'; n: number } | null {
   const offers = availableOffers(product);
-  if (offers.length === 0) return null;
-  if (offers.length === 1) return { kind: 'one', salon: offers[0]!.salon.name };
-  return { kind: 'many', n: new Set(offers.map((o) => o.salon.slug)).size };
+  const first = offers[0];
+  if (!first) return null;
+  const salonCount = new Set(offers.map((o) => o.salon.slug)).size;
+  return salonCount === 1
+    ? { kind: 'one', salon: first.salon.name }
+    : { kind: 'many', n: salonCount };
 }
 
 /** The currency of the cheapest available offer (the API's `fromPriceGrosze` is in it). */
