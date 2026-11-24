@@ -617,7 +617,14 @@ function ClientSheet({
   const [problems, setProblems] = useState<ClientField[]>([]);
   /** Task 689: the phone was left empty (only the country code) — "Uzupełnij to pole.". */
   const [phoneEmpty, setPhoneEmpty] = useState(false);
+  /**
+   * Task 815 (owner's rule: errors where the action is): a refused save that names no field is
+   * said under "Zapisz" at the bottom of the card, not at its top; the typed data stays.
+   */
+  const [saveError, setSaveError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Any change to the card takes the refused-save line away.
+  useEffect(() => setSaveError(''), [form]);
 
   useEffect(() => {
     if (!id) return;
@@ -641,6 +648,7 @@ function ClientSheet({
     e.preventDefault();
     const formEl = (e.currentTarget as HTMLElement | null)?.closest('form') ?? null;
     setError('');
+    setSaveError('');
     // Task 689 (owner's rule: errors at the field): no browser checks (they showed a bubble) — an
     // empty name or phone and a wrong phone or e-mail are said under them; the cursor to the first.
     const phone = normalizePhone(form.phone, dial);
@@ -702,7 +710,7 @@ function ClientSheet({
       const fields = dup ? (['phone'] as ClientField[]) : clientFieldsOf(err);
       setDuplicate(dup);
       setProblems(fields);
-      if (fields.length === 0) setError(errorText(t, err));
+      if (fields.length === 0) setSaveError(errorText(t, err));
       setBusy(false);
     }
   }
@@ -854,9 +862,14 @@ function ClientSheet({
             {t.clients.marketing}: {client.marketingConsent ? t.actions.yes : t.actions.no}
           </p>
         ) : null}
-        <button className="btn btn--block" disabled={busy}>
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={saveError ? 'client-save-error' : undefined}
+        >
           {t.common.save}
         </button>
+        <FieldError id="client-save-error" text={saveError} />
       </form>
       {client ? <ClientSummary summary={client.summary} tag={tag} /> : null}
       {client ? (
