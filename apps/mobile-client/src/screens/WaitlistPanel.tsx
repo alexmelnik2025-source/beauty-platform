@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
@@ -50,10 +50,21 @@ export function WaitlistPanel(props: {
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const [dateError, setDateError] = useState('');
 
+  const today = open && props.signedIn ? todayIn(salon.timezone) : null;
+  const days = useMemo(
+    () =>
+      today
+        ? waitlistDays(today, props.freeDates, BOOKING_DAYS).map((date) => ({
+            date,
+            chip: dayChip(date, locale),
+            label: formatDay(date, locale),
+          }))
+        : [],
+    [today, props.freeDates, locale],
+  );
+
   if (!open) return <Button kind="link" label={w.open} onPress={() => setOpen(true)} />;
   if (!props.signedIn) return <Text style={styles.muted}>{w.signInFirst}</Text>;
-
-  const days = waitlistDays(todayIn(salon.timezone), props.freeDates, BOOKING_DAYS);
 
   const join = async (date: string) => {
     if (busy) return;
@@ -173,14 +184,13 @@ export function WaitlistPanel(props: {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.days}
             >
-              {days.map((date) => {
-                const chip = dayChip(date, locale);
+              {days.map(({ date, chip, label }) => {
                 const on = date === joined?.date;
                 return (
                   <Pressable
                     key={date}
                     accessibilityRole="button"
-                    accessibilityLabel={`${w.wait}: ${formatDay(date, locale)}`}
+                    accessibilityLabel={`${w.wait}: ${label}`}
                     aria-pressed={on}
                     disabled={busy !== null}
                     onPress={() => void join(date)}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
 import { formFailure, isNetworkError, validationField, type FormFailure } from './errors';
@@ -13,7 +13,7 @@ const TEXT_MAX = 1000;
  * 1–5 stars to the specialist and a few words, and may change them for 30 days. Nothing is
  * shown when there is nothing to write and nothing written.
  */
-export function ReviewCard(props: {
+export const ReviewCard = memo(function ReviewCard(props: {
   api: ClientApi;
   t: Dictionary;
   locale: Locale;
@@ -85,11 +85,12 @@ export function ReviewCard(props: {
     }
   }
 
-  const until = state.reviewUntil
-    ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(
-        new Date(state.reviewUntil),
-      )
-    : null;
+  const until =
+    !editing && state.canReview && state.reviewUntil
+      ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(
+          new Date(state.reviewUntil),
+        )
+      : null;
 
   return (
     <View style={styles.box} aria-label={r.title} role="region">
@@ -178,7 +179,7 @@ export function ReviewCard(props: {
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   box: {
