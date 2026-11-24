@@ -76,13 +76,13 @@ export function VisitProductsCard(props: {
           ) : null}
           <View style={styles.grow}>
             <Text style={styles.name}>{r.quantity > 1 ? `${r.name} × ${r.quantity}` : r.name}</Text>
+            <Text style={styles.price}>{money(r.totalGrosze)}</Text>
             <Text style={styles.muted}>
               {r.status === 'reserved' ? s.statusReserved : null}
               {r.status === 'handed' ? s.statusHanded : null}
               {r.status === 'expired' ? s.statusExpired : null}
             </Text>
           </View>
-          <Text style={styles.price}>{money(r.totalGrosze)}</Text>
           {data.canChange && r.status === 'reserved' ? (
             <Button
               kind="link"

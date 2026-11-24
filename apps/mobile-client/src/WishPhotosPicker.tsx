@@ -143,7 +143,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
   }
 
   return (
-    <View style={styles.box}>
+    <View role="region" accessibilityLabel={w.photosQ} style={styles.box}>
       <Text role="heading" aria-level={3} style={styles.title}>
         📷 {w.photosQ}
       </Text>
@@ -256,7 +256,7 @@ export function VisitPhotos(props: {
 
   if (!list?.items.length && !failure) return null;
   return (
-    <View style={styles.box}>
+    <View role="region" accessibilityLabel={w.photosQ} style={styles.box}>
       <Text role="heading" aria-level={2} style={styles.title}>
         📷 {w.photosQ}
       </Text>
