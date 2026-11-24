@@ -57,7 +57,11 @@ function VisitCouponsCard(props: Props) {
 
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
-  async function run(action: () => Promise<AppointmentDetail>, done: string) {
+  async function run(
+    action: () => Promise<AppointmentDetail>,
+    done: string,
+    onCodeError?: (text: string) => void,
+  ) {
     const signal = scope.current?.signal;
     if (!signal || signal.aborted || busy) return;
     setBusy(true);
@@ -69,14 +73,19 @@ function VisitCouponsCard(props: Props) {
       setNote({ text: done, bad: false });
       setCodeReset((n) => n + 1);
     } catch (e) {
-      if (!signal.aborted) setNote({ text: couponErrorText(e, t) ?? errorText(e, t), bad: true });
+      if (signal.aborted) return;
+      const fieldError = couponErrorText(e, t);
+      if (onCodeError && fieldError) onCodeError(fieldError);
+      else setNote({ text: fieldError ?? errorText(e, t), bad: true });
     } finally {
       if (!signal.aborted) setBusy(false);
     }
   }
 
-  // Nothing to offer (no tier, no coupons): the card stays away from every visit.
-  if (!coupons || (!hasCoupons(coupons) && !note)) return null;
+  if (!coupons) return null;
+  if (!hasCoupons(coupons) && !note) {
+    return <Text style={styles.muted}>{t.clients.coupons} (0)</Text>;
+  }
   const tier = coupons.tier;
   const at = [salon.orgId, salon.locationId, visit.id, visit.version] as const;
 
@@ -171,7 +180,9 @@ function VisitCouponsCard(props: Props) {
         key={codeReset}
         c={c}
         busy={busy}
-        onApply={(code) => void run(() => api.applyVisitCoupon(...at, { code }), c.applied)}
+        onApply={(code, onError) =>
+          void run(() => api.applyVisitCoupon(...at, { code }), c.applied, onError)
+        }
       />
 
       {note ? (
@@ -200,32 +211,44 @@ function CouponCodeForm({
 }: {
   c: Dictionary['visit']['coupons'];
   busy: boolean;
-  onApply: (code: string) => void;
+  onApply: (code: string, onError: (text: string) => void) => void;
 }) {
   const [code, setCode] = useState('');
-  const typed = couponCode(code);
+  const [error, setError] = useState('');
+  function apply() {
+    const typed = couponCode(code);
+    if (!typed) {
+      setError(code.trim() ? c.error.notFound : c.code);
+      return;
+    }
+    setError('');
+    onApply(typed, setError);
+  }
   return (
-    <View style={styles.row}>
+    <View style={styles.form}>
       <TextInput
         accessibilityLabel={c.code}
+        aria-invalid={!!error}
+        aria-describedby={error ? 'visit-coupon-error' : undefined}
         placeholder={c.code}
         placeholderTextColor={colors.placeholder}
         autoCapitalize="characters"
         autoCorrect={false}
+        editable={!busy}
         value={code}
-        onChangeText={setCode}
-        maxLength={24}
-        style={[styles.input, { flex: 1, minWidth: 160 }]}
-      />
-      <Button
-        kind="secondary"
-        label={c.useCode}
-        busy={busy}
-        disabled={typed === null}
-        onPress={() => {
-          if (typed) onApply(typed);
+        onChangeText={(value) => {
+          setCode(value);
+          setError('');
         }}
+        maxLength={24}
+        style={[styles.input, !!error && styles.invalid]}
       />
+      {error ? (
+        <View nativeID="visit-coupon-error">
+          <ErrorText>! {error}</ErrorText>
+        </View>
+      ) : null}
+      <Button kind="secondary" label={c.useCode} busy={busy} onPress={apply} />
     </View>
   );
 }
@@ -238,7 +261,11 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 14 },
   info: { color: '#2e7d32', fontSize: 15 },
   item: { gap: 6, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.line },
+  form: { gap: 6 },
+  invalid: { borderColor: colors.danger },
   input: {
+    minHeight: 44,
+    minWidth: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,

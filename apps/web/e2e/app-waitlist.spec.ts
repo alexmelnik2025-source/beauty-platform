@@ -19,7 +19,8 @@ import { serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-waitlist-owner-${run}@example.com`;
-const ANNA = `app-waitlist-anna-${run}@example.com`;
+const annaName = 'Anna Aleksandra Kowalska-Wojciechowska';
+const ANNA = `anna.aleksandra.kowalska.wojciechowska.waitlist-${run}@example.com`;
 const BOB = `app-waitlist-bob-${run}@example.com`;
 const PHONE = { width: 320, height: 700 };
 // Addresses of this test only (sign-ups and codes are limited per address).
@@ -136,7 +137,7 @@ test('business app: the day’s waiting list — remove one client, book the oth
   );
   // Anna waits for Kasia, Bob for anyone.
   for (const [name, email, phone, staffId] of [
-    ['Anna Kowalska', ANNA, '+48600111222', kasia.id],
+    [annaName, ANNA, '+48600111222', kasia.id],
     ['Bob Brown', BOB, '+48600222333', undefined],
   ] as const) {
     await json(
@@ -172,6 +173,7 @@ test('business app: the day’s waiting list — remove one client, book the oth
     await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(code.text)![1]!);
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    await expect(phone.getByRole('heading', { name: 'Lista oczekujących (0)' })).toBeVisible();
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
       new Date(),
     );
@@ -183,14 +185,43 @@ test('business app: the day’s waiting list — remove one client, book the oth
     // ── The full day: both waiting clients with their contacts ─────────────
     await expect(phone.getByText('Jan Nowak')).toBeVisible();
     await expect(phone.getByText('Lista oczekujących (2)')).toBeVisible();
-    await expect(phone.getByText('Anna Kowalska')).toBeVisible();
+    await expect(phone.getByText(annaName)).toBeVisible();
     // Jan's visit and Anna's wait are both for Kasia.
     await expect(phone.getByText('Strzyżenie męskie · Kasia')).toHaveCount(2);
     await expect(phone.getByText('Strzyżenie męskie · dowolny specjalista')).toBeVisible();
     await expect(phone.getByRole('button', { name: '+48600222333' })).toBeVisible();
+    const largeText = await phone.addStyleTag({
+      content: 'div, span { font-size: 24px !important; }',
+    });
     const email = phone.getByRole('button', { name: ANNA });
     await email.scrollIntoViewIfNeeded();
     await expect(email).toBeInViewport({ ratio: 1 });
+    const actions = [
+      email,
+      phone.getByRole('button', { name: '+48600222333' }),
+      phone.getByRole('button', { name: `Nowa wizyta dla: ${annaName}` }),
+      phone.getByRole('button', { name: `Usuń z listy: ${annaName}` }),
+    ];
+    for (const action of actions) {
+      const box = (await action.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width);
+    }
+    for (const label of [email, phone.getByText(annaName, { exact: true })]) {
+      const fits = await label.evaluate((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const box = range.getBoundingClientRect();
+        return (
+          box.left >= 0 &&
+          box.right <= document.documentElement.clientWidth &&
+          el.scrollWidth <= el.clientWidth + 1
+        );
+      });
+      expect(fits).toBe(true);
+    }
     await phone.getByText('Lista oczekujących (2)').scrollIntoViewIfNeeded();
     await shot(phone, '88-business-app-waitlist');
 
@@ -205,7 +236,9 @@ test('business app: the day’s waiting list — remove one client, book the oth
     const list = await json<{ items: { name: string }[] }>(
       await request.get(`${base}/waitlist`, { headers: owner, params: { from: taken.date } }),
     );
-    expect(list.items.map((e) => e.name)).toEqual(['Anna Kowalska']);
+    expect(list.items.map((e) => e.name)).toEqual([annaName]);
+
+    await largeText.evaluate((style) => style.parentNode?.removeChild(style));
 
     // Jan cancels, so Kasia's 10:00 is free again.
     await json(
@@ -216,11 +249,11 @@ test('business app: the day’s waiting list — remove one client, book the oth
     );
 
     // ── "+ Nowa wizyta" for Anna: everything filled in ─────────────────────
-    await phone.getByRole('button', { name: 'Nowa wizyta dla: Anna Kowalska' }).click();
+    await phone.getByRole('button', { name: `Nowa wizyta dla: ${annaName}` }).click();
     await expect(phone.getByRole('heading', { name: 'Nowa wizyta' })).toBeVisible();
     await expect(phone.getByText('✓ Strzyżenie męskie', { exact: false })).toBeVisible();
     await expect(phone.getByText('✓ Kasia')).toBeVisible();
-    await expect(phone.getByLabel('Imię i nazwisko', { exact: true })).toHaveValue('Anna Kowalska');
+    await expect(phone.getByLabel('Imię i nazwisko', { exact: true })).toHaveValue(annaName);
     await expect(phone.getByLabel('Telefon', { exact: true })).toHaveValue('+48600111222');
     await expect(phone.getByLabel(/^E-mail/)).toHaveValue(ANNA);
     const ten = phone.getByRole('button', { name: '10:00', exact: true });
@@ -228,7 +261,7 @@ test('business app: the day’s waiting list — remove one client, book the oth
     await ten.click();
     await shot(phone, '88b-business-app-waitlist-new-visit');
     await phone.getByRole('button', { name: 'Zapisz wizytę' }).click();
-    await expect(phone.getByText('Anna Kowalska').first()).toBeVisible();
+    await expect(phone.getByText(annaName).first()).toBeVisible();
     await expect(phone.getByRole('heading', { name: 'Nowa wizyta' })).toHaveCount(0);
     await shot(phone, '88c-business-app-waitlist-booked');
     await context.close();
@@ -247,7 +280,7 @@ test('business app: the day’s waiting list — remove one client, book the oth
   );
   expect(
     calendar.appointments.filter((a) => a.status === 'confirmed').map((a) => a.customer?.name),
-  ).toEqual(['Anna Kowalska']);
+  ).toEqual([annaName]);
 
   // Online booking off again: the public catalogue in booking.spec.ts expects only its own salon.
   const current = await json<{ version: number }>(await request.get(base, { headers: owner }));
