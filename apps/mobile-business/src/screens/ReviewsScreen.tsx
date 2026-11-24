@@ -26,10 +26,47 @@ import {
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
-const reviewsCache = new SalonReadCache<SalonReviews>();
+import { screenRead } from './GuardScreen';
+
+// Store completed pages for each filter only for the current salon session.
+const reviewsCache = new WeakMap<
+  SalonChoice,
+  Map<string, { value: SalonReviews; unansweredOnly: boolean; expires: number }>
+>();
+function recentPages(salon: SalonChoice) {
+  let pages = reviewsCache.get(salon);
+  if (!pages) {
+    pages = new Map();
+    reviewsCache.set(salon, pages);
+  }
+  const now = Date.now();
+  for (const [key, entry] of pages) if (entry.expires <= now) pages.delete(key);
+  return pages;
+}
+function withReply(page: SalonReviews, saved: Review, unansweredOnly: boolean) {
+  const previous = page.items.find((item) => item.id === saved.id);
+  if (!previous) return;
+  return {
+    ...page,
+    unanswered: Math.max(0, page.unanswered + Number(!saved.reply) - Number(!previous.reply)),
+    items:
+      unansweredOnly && saved.reply
+        ? page.items.filter((item) => item.id !== saved.id)
+        : page.items.map((item) => (item.id === saved.id ? saved : item)),
+  };
+}
+
+function cacheReply(salon: SalonChoice, saved: Review) {
+  const pages = new Map(recentPages(salon));
+  for (const [key, entry] of pages) {
+    const value = withReply(entry.value, saved, entry.unansweredOnly);
+    if (value) pages.set(key, { ...entry, value });
+    else pages.delete(key); // The filtered count or an unloaded page may have changed.
+  }
+  reviewsCache.set(salon, pages);
+}
 const settingsCache = new SalonReadCache<ReviewSettings>();
 type ReplyEditor = {
-  text: string;
   editing: boolean;
   busy?: boolean;
   missingText?: boolean;
@@ -72,6 +109,7 @@ export function ReviewsScreen(props: {
   const lifetime = useScreenLifetime(salon, key);
   const request = useRef<symbol | null>(null);
   const [editors, setEditors] = useState<Record<string, ReplyEditor | undefined>>({});
+  const drafts = useRef(new Map<string, string>()).current;
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
 
@@ -110,20 +148,30 @@ export function ReviewsScreen(props: {
       setBusy(true);
       setFailure(null);
       try {
-        const fetchPage = () =>
-          withNetworkTimeout(
-            api.reviews(salon.orgId, salon.locationId, {
-              before: previous?.nextBefore ?? undefined,
-              staffId: staffId ?? undefined,
-              serviceId: serviceId ?? undefined,
-              rating: rating ?? undefined,
-              unanswered,
-            }),
-          );
-        const result = previous
-          ? await fetchPage()
-          : await reviewsCache.read(salon, fetchPage, key);
-        if (signal.aborted || request.current !== id) return;
+        let pages = recentPages(salon);
+        let cached = previous ? undefined : pages.get(key);
+        let result: SalonReviews;
+        // A write can finish while an older GET is in flight. Read from the new
+        // cache generation (or retry the affected page) before displaying it.
+        for (;;) {
+          result =
+            cached?.value ??
+            (await screenRead(
+              signal,
+              api.reviews(salon.orgId, salon.locationId, {
+                before: previous?.nextBefore ?? undefined,
+                staffId: staffId ?? undefined,
+                serviceId: serviceId ?? undefined,
+                rating: rating ?? undefined,
+                unanswered,
+              }),
+            ));
+          if (signal.aborted || request.current !== id) return;
+          const latest = recentPages(salon);
+          if (pages === latest) break;
+          pages = latest;
+          cached = previous ? undefined : pages.get(key);
+        }
         const current = displayed.current;
         const merged =
           previous && current
@@ -135,7 +183,12 @@ export function ReviewsScreen(props: {
                 items: appendReviews(current.items, result.items),
               }
             : result;
-        if (previous) reviewsCache.set(salon, merged, key);
+        if (!cached)
+          pages.set(key, {
+            value: merged,
+            unansweredOnly: unanswered,
+            expires: Date.now() + 60_000,
+          });
         displayedFilter.current = { key, unanswered };
         show(merged);
       } catch (e) {
@@ -158,9 +211,13 @@ export function ReviewsScreen(props: {
     void load();
   }, [load]);
 
-  const edit = useCallback((id: string, editor?: ReplyEditor) => {
-    setEditors((current) => ({ ...current, [id]: editor }));
-  }, []);
+  const edit = useCallback(
+    (id: string, editor?: ReplyEditor) => {
+      if (!editor) drafts.delete(id);
+      setEditors((current) => ({ ...current, [id]: editor }));
+    },
+    [drafts],
+  );
   const screen = useScreenLifetime(salon);
   const pendingReplies = useRef(new Set<string>());
   const reply = useCallback(
@@ -168,7 +225,6 @@ export function ReviewsScreen(props: {
       if (pendingReplies.current.has(review.id)) return;
       pendingReplies.current.add(review.id);
       const signal = screen.current!.signal;
-      const filterSignal = lifetime.current!.signal;
       edit(review.id, { ...editor, busy: true, error: undefined });
       try {
         const saved = await withNetworkTimeout(
@@ -176,35 +232,37 @@ export function ReviewsScreen(props: {
             ? api.removeReviewReply(salon.orgId, salon.locationId, review.id)
             : api.replyToReview(salon.orgId, salon.locationId, review.id, value),
         );
-        reviewsCache.clear(salon);
+        cacheReply(salon, saved);
         if (signal.aborted) return;
         edit(review.id);
-        if (filterSignal.aborted) return;
         const current = displayed.current;
-        if (!current || !current.items.some((item) => item.id === saved.id)) return;
-        const delta = Number(!saved.reply) - Number(!review.reply);
-        const updated = {
-          ...current,
-          unanswered: Math.max(0, current.unanswered + delta),
-          items:
-            displayedFilter.current.unanswered && saved.reply
-              ? current.items.filter((item) => item.id !== saved.id)
-              : current.items.map((item) => (item.id === saved.id ? saved : item)),
-        };
-        reviewsCache.set(salon, updated, displayedFilter.current.key);
-        show(updated);
+        const filter = displayedFilter.current;
+        if (current) {
+          const updated =
+            recentPages(salon).get(filter.key)?.value ??
+            withReply(current, saved, filter.unanswered);
+          if (updated) show(updated);
+        }
       } catch (e) {
         if (!signal.aborted) edit(review.id, { ...editor, busy: false, error: errorText(e, t) });
       } finally {
         pendingReplies.current.delete(review.id);
       }
     },
-    [api, salon, screen, lifetime, edit, show, t],
+    [api, salon, screen, edit, show, t],
   );
   const settingsSaved = useCallback(
     (enabled: boolean) => {
-      reviewsCache.clear(salon);
-      if (displayed.current) show({ ...displayed.current, enabled });
+      reviewsCache.delete(salon);
+      if (displayed.current) {
+        const updated = { ...displayed.current, enabled };
+        recentPages(salon).set(displayedFilter.current.key, {
+          value: updated,
+          unansweredOnly: displayedFilter.current.unanswered,
+          expires: Date.now() + 60_000,
+        });
+        show(updated);
+      }
     },
     [salon, show],
   );
@@ -218,12 +276,13 @@ export function ReviewsScreen(props: {
         t={t}
         locale={locale}
         timeZone={timeZone}
+        drafts={drafts}
         editor={editors[item.id]}
         edit={edit}
         reply={reply}
       />
     ),
-    [manager, t, locale, timeZone, editors, edit, reply],
+    [manager, t, locale, timeZone, drafts, editors, edit, reply],
   );
   const summary = page;
   const team = page?.staff ?? [];
@@ -409,20 +468,22 @@ const ReviewRow = memo(function ReviewRow(props: {
   t: Dictionary;
   locale: Locale;
   timeZone: string;
+  drafts: Map<string, string>;
   editor?: ReplyEditor;
   edit: (id: string, editor?: ReplyEditor) => void;
   reply: (review: Review, value: string | null, editor: ReplyEditor) => Promise<void>;
 }) {
   const { review, t } = props;
-  const editor = props.editor ?? { editing: false, text: review.reply ?? '' };
-  const { editing, text, busy, error } = editor;
+  const editor = props.editor ?? { editing: false };
+  const { editing, busy, error } = editor;
+  const draft = () => props.drafts.get(review.id) ?? review.reply ?? '';
   const r = t.reviews;
   const line = reviewLine(review, t, props.locale, props.timeZone);
   const missingText = Boolean(editor.missingText);
   const fieldError = missingText ? r.reply : error;
   const errorId = `reply-error-${review.id}`;
   function publish() {
-    const value = text.trim();
+    const value = draft().trim();
     if (!value) {
       props.edit(review.id, { ...editor, missingText: true, error: undefined });
       return;
@@ -464,15 +525,17 @@ const ReviewRow = memo(function ReviewRow(props: {
             placeholder={r.replyLabel}
             placeholderTextColor={colors.placeholder}
             editable={!busy}
-            value={text}
-            onChangeText={(text) =>
-              props.edit(review.id, {
-                ...editor,
-                text,
-                missingText: missingText && !text.trim(),
-                error: undefined,
-              })
-            }
+            defaultValue={draft()}
+            onChangeText={(text) => {
+              props.drafts.set(review.id, text);
+              if (error || (missingText && text.trim())) {
+                props.edit(review.id, {
+                  ...editor,
+                  missingText: missingText && !text.trim(),
+                  error: undefined,
+                });
+              }
+            }}
             maxLength={1000}
             multiline
             style={[styles.input, styles.multiline, missingText && { borderColor: colors.danger }]}
@@ -535,7 +598,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
     const signal = lifetime.current!.signal;
     if (signal.aborted) return;
     const current = await settingsCache.read(salon, () =>
-      withNetworkTimeout(api.reviewSettings(salon.orgId, salon.locationId)),
+      screenRead(signal, api.reviewSettings(salon.orgId, salon.locationId)),
     );
     if (signal.aborted) return;
     setSaved(current);
@@ -572,7 +635,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
         api.saveReviewSettings(salon.orgId, salon.locationId, form),
       );
       settingsCache.set(salon, done);
-      reviewsCache.clear(salon);
+      reviewsCache.delete(salon);
       if (signal.aborted) return;
       setSaved(done);
       setForm(done);
