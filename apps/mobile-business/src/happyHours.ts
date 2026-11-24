@@ -96,8 +96,10 @@ export function newLastMinuteRule(form: {
 }
 
 function discountPercent(text: string): number | null {
-  const amount = Number(text.trim().replace(/%$/, ''));
-  return Number.isInteger(amount) && amount >= 1 && amount <= 90 ? amount : null;
+  const digits = text.trim().replace(/%$/, '').trimEnd();
+  if (!/^\d+$/.test(digits)) return null;
+  const amount = Number(digits);
+  return amount >= 1 && amount <= 90 ? amount : null;
 }
 
 /** The list to save: what the server has (without its ids), optionally minus one, plus a new one. */

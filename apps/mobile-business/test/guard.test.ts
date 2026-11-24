@@ -75,6 +75,20 @@ describe('cancellation protection in the business app', () => {
     );
   });
 
+  it.each(['salon', 'trusted', 'future_rule', 'toString'])(
+    'shows only the recorded incidents when rule %s adds no known restriction',
+    (rule) => {
+      const marked: MarkedClient = {
+        ...client,
+        // The server can return a rule this app version does not know yet.
+        rule: rule as MarkedClient['rule'],
+        noShowAmountGrosze: 0,
+      };
+      expect(clientReasons(marked, 'PLN', pl, 'pl')).toBe('nieobecności: 2');
+      expect(clientReasons({ ...marked, reasons: [] }, 'PLN', pl, 'pl')).toBe('');
+    },
+  );
+
   it.each(['approval', 'phone_only', 'prepay'] as const)(
     'explains a mark caused solely by the personal rule %s even with zero debt',
     (rule) => {

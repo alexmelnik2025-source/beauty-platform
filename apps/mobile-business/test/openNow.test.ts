@@ -39,6 +39,29 @@ describe('"Klienci widzą teraz" (task 366)', () => {
     });
   });
 
+  it('follows a night shift across the week boundary, then skips a day off', () => {
+    // The public timetable splits the shift at midnight on the salon's local dates.
+    const salon = {
+      openingHours: [
+        { weekday: 7, intervals: [{ start: '22:00', end: '24:00' }] },
+        { weekday: 1, intervals: [{ start: '00:00', end: '02:00' }] },
+        { weekday: 3, intervals: [{ start: '09:00', end: '16:00' }] },
+      ],
+      todayHours: { date: '2026-11-15', intervals: [{ start: '22:00', end: '24:00' }] },
+    };
+    const statusAt = (instant: string) =>
+      openStatus(salon, salonNow(Date.parse(instant), 'Europe/Warsaw'));
+    expect(statusAt('2026-11-15T21:00:00Z')).toEqual({ kind: 'open', until: '24:00' });
+    expect(statusAt('2026-11-15T22:59:00Z')).toEqual({ kind: 'open', until: '24:00' });
+    expect(statusAt('2026-11-15T23:00:00Z')).toEqual({ kind: 'open', until: '02:00' });
+    expect(statusAt('2026-11-16T01:00:00Z')).toEqual({
+      kind: 'opensLater',
+      inDays: 2,
+      weekday: 3,
+      at: '09:00',
+    });
+  });
+
   it('opens at 03:00 as Warsaw skips from 01:59 to 03:00 in spring', () => {
     const salon = {
       openingHours: [],
@@ -48,6 +71,7 @@ describe('"Klienci widzą teraz" (task 366)', () => {
       openStatus(salon, salonNow(Date.parse(instant), 'Europe/Warsaw'));
     expect(statusAt('2026-03-29T00:59:00Z')).toEqual({ kind: 'opensToday', at: '03:00' });
     expect(statusAt('2026-03-29T01:00:00Z')).toEqual({ kind: 'open', until: '04:00' });
+    expect(statusAt('2026-03-29T02:00:00Z')).toEqual({ kind: 'closed' });
   });
 
   it.each(['2026-10-25T00:30:00Z', '2026-10-25T01:30:00Z'])(
