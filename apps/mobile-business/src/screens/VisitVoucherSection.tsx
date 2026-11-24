@@ -140,6 +140,7 @@ function VoucherPayments(props: Props) {
       {open ? (
         <View style={{ gap: 8 }}>
           {!payments.payments.length ? <Text style={styles.muted}>{v.noUses}</Text> : null}
+          <Text style={styles.label}>{v.code}</Text>
           <TextInput
             accessibilityLabel={v.code}
             placeholder="ABCD-EFGH"
@@ -163,10 +164,9 @@ function VoucherPayments(props: Props) {
               <ErrorText>! {error.text}</ErrorText>
             </View>
           ) : null}
+          <Text style={styles.label}>{v.payAmount}</Text>
           <TextInput
             accessibilityLabel={v.payAmount}
-            placeholder={v.payAmount}
-            placeholderTextColor={colors.placeholder}
             value={amount}
             keyboardType="decimal-pad"
             editable={!busy}
@@ -205,7 +205,8 @@ function VoucherPayments(props: Props) {
           onPress={() => {
             setOpen(true);
             setInfo('');
-            setAmount(visitVoucherAmount(props.toPayGrosze, payments.totalGrosze));
+            const remaining = visitVoucherAmount(props.toPayGrosze, payments.totalGrosze);
+            setAmount(props.locale === 'en' ? remaining.replace(',', '.') : remaining);
           }}
         />
       )}
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'space-between',
   },
-  name: { fontSize: 16, color: colors.ink, flexShrink: 1, flexGrow: 1 },
+  name: { fontSize: 16, color: colors.ink, maxWidth: '100%', flexShrink: 1, flexGrow: 1 },
   muted: { color: colors.muted, fontSize: 14 },
   undone: { textDecorationLine: 'line-through', opacity: 0.6 },
   info: { color: colors.ink, fontSize: 14 },

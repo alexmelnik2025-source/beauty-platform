@@ -121,11 +121,13 @@ function DayWaitlist(props: Props) {
         <Card key={e.id}>
           <WaitlistDetails entry={e} timeZone={props.timeZone} w={w} />
           {confirm === e.id ? (
-            <View style={styles.row}>
+            <>
               <Text style={styles.muted}>{fill(w.removeAsk, { name: e.name })}</Text>
-              <Button label={w.removeYes} busy={busy} onPress={() => void remove(e)} />
-              <Button kind="secondary" label={w.removeNo} onPress={() => setConfirm(null)} />
-            </View>
+              <View style={styles.row}>
+                <Button label={w.removeYes} busy={busy} onPress={() => void remove(e)} />
+                <Button kind="secondary" label={w.removeNo} onPress={() => setConfirm(null)} />
+              </View>
+            </>
           ) : (
             <View style={styles.row}>
               <Button
