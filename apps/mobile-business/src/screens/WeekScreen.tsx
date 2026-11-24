@@ -51,13 +51,16 @@ export function WeekScreen(props: {
   } | null>(null);
   const cached = useMemo(() => cache.days.get(selection.from), [cache, selection]);
   const current = result?.selection === selection && result.cache === cache ? result : null;
-  const shown = current?.days ?? cached;
+  const shown = current?.days ?? cached ?? (result?.cache === cache ? result.days : undefined);
   const error = current?.failure ? errorText(current.failure.cause, t) : '';
-  const loading = !current && (action === 'refresh' || !shown);
+  const loading = !current && (action === 'refresh' || !cached);
   const reload = () => select({ from, action: 'refresh' });
 
   useEffect(() => {
-    if (action !== 'refresh' && cached) return;
+    if (action !== 'refresh' && cached) {
+      setResult({ selection, cache, days: cached });
+      return;
+    }
     let active = true;
     // Coalesce rapid arrow taps before sending a range request.
     const timer = setTimeout(
@@ -81,7 +84,16 @@ export function WeekScreen(props: {
         }
         read.then(
           (days) => active && setResult({ selection, cache, days }),
-          (cause: unknown) => active && setResult({ selection, cache, failure: { cause } }),
+          (cause: unknown) => {
+            if (active) {
+              setResult((previous) => ({
+                selection,
+                cache,
+                days: cached ?? (previous?.cache === cache ? previous.days : undefined),
+                failure: { cause },
+              }));
+            }
+          },
         );
       },
       action === 'browse' ? BROWSE_DELAY_MS : 0,
@@ -101,7 +113,8 @@ export function WeekScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  const through = addDays(from, 6);
+  const shownFrom = shown?.[0]?.date ?? from;
+  const through = addDays(shownFrom, 6);
   const total = shown?.reduce((sum, d) => sum + d.visits, 0) ?? 0;
 
   return (
@@ -116,10 +129,10 @@ export function WeekScreen(props: {
       <View style={styles.row}>
         <Heading>{w.title}</Heading>
         <Text
-          accessibilityLabel={`${dayTitle(from, props.locale)} – ${dayTitle(through, props.locale)}`}
+          accessibilityLabel={`${dayTitle(shownFrom, props.locale)} – ${dayTitle(through, props.locale)}`}
           style={styles.muted}
         >
-          {calendarDate(from, props.locale)}–{calendarDate(through, props.locale)}
+          {calendarDate(shownFrom, props.locale)}–{calendarDate(through, props.locale)}
         </Text>
       </View>
       <View style={styles.row}>
