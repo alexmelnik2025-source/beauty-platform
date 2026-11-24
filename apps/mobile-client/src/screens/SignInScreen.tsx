@@ -91,7 +91,9 @@ export function SignInScreen(props: {
     error: unknown;
     action: 'send' | 'confirm';
   } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  const [activeRequest, setActiveRequest] = useState<'send' | 'confirm' | null>(null);
+  const busy = activeRequest !== null;
   const [what, setWhat] = useState('');
   // Task 370: how many salons are open right now; the button is there only when some are.
   const [openNowCount, setOpenNowCount] = useState(0);
@@ -117,11 +119,12 @@ export function SignInScreen(props: {
   }, [api]);
 
   async function send(email = parseEmail(input)) {
-    if (busy) return;
+    if (submitting.current) return;
     setFieldIssue(null);
     setRequestIssue(null);
     if (!email) return setFieldIssue({ reason: 'badEmail' });
-    setBusy(true);
+    submitting.current = true;
+    setActiveRequest('send');
     try {
       await api.requestCode(email, locale);
       setSentTo(email);
@@ -130,15 +133,17 @@ export function SignInScreen(props: {
       if (!sentTo && validationField(e, ['email'])) setFieldIssue({ reason: 'badEmail' });
       else setRequestIssue({ error: e, action: 'send' });
     } finally {
-      setBusy(false);
+      submitting.current = false;
+      setActiveRequest(null);
     }
   }
 
   async function confirm() {
-    if (busy) return;
+    if (submitting.current) return;
     if (code.length !== 6) return setFieldIssue({ reason: 'badCode' });
     setFieldIssue(null);
-    setBusy(true);
+    submitting.current = true;
+    setActiveRequest('confirm');
     setRequestIssue(null);
     try {
       props.onSignedIn(await api.verifyCode(sentTo, code, locale));
@@ -146,7 +151,8 @@ export function SignInScreen(props: {
       if (e instanceof ApiError && isCodeError(e)) setFieldIssue({ reason: e });
       else if (validationField(e, ['code'])) setFieldIssue({ reason: 'badCode' });
       else setRequestIssue({ error: e, action: 'confirm' });
-      setBusy(false);
+      submitting.current = false;
+      setActiveRequest(null);
     }
   }
 
@@ -252,13 +258,14 @@ export function SignInScreen(props: {
           <Button
             label={t.signIn.confirm}
             onPress={confirm}
-            busy={busy}
-            disabled={code.length !== 6}
+            busy={activeRequest === 'confirm'}
+            disabled={busy || code.length !== 6}
           />
           <View style={styles.row}>
             <Button
               kind="link"
               label={t.signIn.resend}
+              busy={activeRequest === 'send'}
               disabled={busy}
               onPress={() => void send(sentTo)}
             />
