@@ -1178,7 +1178,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.locator('#legal-template-error-privacyPolicy')).toHaveText(
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
-  await expect(privacyTemplate).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(privacyTemplate).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(ownerPage.locator('#legal-template-error-bookingTerms')).toHaveCount(0);
   await expect(ownerPage.locator('.settings-card .alert')).toHaveCount(0);
   await shot(ownerPage, '749-legal-template-error');

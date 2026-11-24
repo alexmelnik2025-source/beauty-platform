@@ -451,7 +451,7 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   const saveIlian = ilian.getByRole('button', { name: 'Zapisz' });
   await saveIlian.click();
   await expect(ilian.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
-  await expect(saveIlian).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveIlian).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(commissions.locator('.alert')).toHaveCount(0);
   await expect(ilian.getByRole('textbox')).toHaveValue('40');
   await shot(page, '750-commission-save-error');

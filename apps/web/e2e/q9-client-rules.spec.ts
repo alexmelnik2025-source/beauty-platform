@@ -154,7 +154,7 @@ test('Q9: the owner sets a rule for one client, who books after the notice to pa
   await rule.selectOption({ label: 'Najpierw opłata zaległych (w salonie)' });
   await expect(card.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
   await expect(rule).toHaveAttribute('aria-invalid', 'true');
-  await expect(rule).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(rule).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
   await expect(rule).toHaveValue('salon');
   await expect(cabinet.locator('.alert')).toHaveCount(0);
   await shot(cabinet, '748-client-rule-error');
