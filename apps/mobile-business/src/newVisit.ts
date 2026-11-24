@@ -40,7 +40,7 @@ export function maySearchClients(me: MyRights): boolean {
 /** Services the salon still offers, in the salon's order. */
 export function activeServices(services: ServiceList): ServiceList {
   return services
-    .filter((s) => s.active && s.staffIds.length > 0)
+    .filter((s) => s.active && s.durationMinutes > 0 && s.staffIds.length > 0)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 
@@ -67,7 +67,7 @@ export function freeTimes(
   staffId: string,
   date: string,
 ): { time: string; start: string }[] {
-  if (!Array.isArray(availability?.slots)) return [];
+  if (!Array.isArray(availability?.slots) || availability.durationMinutes <= 0) return [];
   return availability.slots
     .filter(
       (s) =>

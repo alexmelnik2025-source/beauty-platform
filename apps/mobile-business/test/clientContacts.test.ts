@@ -40,6 +40,23 @@ describe('a new client (task 332)', () => {
     });
   });
 
+  it('requires a name even when the phone is valid', () => {
+    expect(newCustomerBody({ ...contactsForm(client), name: '  ' }, '48')).toEqual({
+      ok: false,
+      problem: 'name',
+    });
+  });
+
+  it.each(['600 100 200', '+48 600 100 200', '0048 600-100-200'])(
+    'submits %s as the same phone for the duplicate check',
+    (phone) => {
+      expect(newCustomerBody({ ...contactsForm(client), phone }, '48')).toEqual({
+        ok: true,
+        body: { name: client.name, phone: '+48600100200', email: client.email, locale: 'pl' },
+      });
+    },
+  );
+
   it('points at the first thing to fix', () => {
     expect(newCustomerBody(emptyContacts('pl'), '48')).toEqual({ ok: false, problem: 'name' });
     expect(newCustomerBody({ ...emptyContacts('pl'), name: 'Anna', phone: '12' }, '48')).toEqual({
@@ -78,6 +95,16 @@ describe('changing a client’s details (task 333)', () => {
       locale: 'pl',
     });
     expect(contactsChange(client, form, '48')).toEqual({ ok: true, change: null });
+  });
+
+  it('omits a legacy formatted phone when only the language changed', () => {
+    const card = { ...client, phone: '+48 600 100 200' };
+    expect(
+      contactsChange(card, { ...contactsForm(card), phone: '600100200', locale: 'uk' }, '48'),
+    ).toEqual({
+      ok: true,
+      change: { locale: 'uk' },
+    });
   });
 
   it('sends only what changed; an empty email removes it', () => {
