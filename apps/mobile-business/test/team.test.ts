@@ -48,6 +48,21 @@ describe('teamOf', () => {
     });
   });
 
+  it('matches namesakes to their own accounts and invitations by ID', () => {
+    const invited = staff('s1', 'Kasia', null, 2);
+    const linked = staff('s2', 'Kasia', 'u2', 1);
+    const account = member('m2', 'u2', 'Kasia', 'staff');
+    const invite = invitation('i1', 'kasia@example.com', invited.id);
+    expect(teamOf([invited, linked], [account], [invite], LOC)).toEqual({
+      specialists: [
+        { staff: linked, state: 'account', member: account },
+        { staff: invited, state: 'invited', invitation: invite },
+      ],
+      managers: [],
+      invitations: [],
+    });
+  });
+
   it('specialists by the salon order: with an account, invited, without an account', () => {
     const team = teamOf(
       [
@@ -103,7 +118,16 @@ describe('rights', () => {
     expect(rolesToInvite('staff')).toEqual([]);
   });
 
+  it('exposes no invitation or removal action for an unrecognised role from the API', () => {
+    const unknown = 'future-role' as MemberList[number]['role'];
+    expect(rolesToInvite(unknown)).toEqual([]);
+    expect(mayRemove(unknown, member('m', 'u', 'A', 'staff'))).toBe(false);
+    expect(mayRemove('owner', member('m', 'u', 'A', unknown))).toBe(false);
+  });
+
   it('only the owner removes people, never another owner', () => {
+    expect(mayRemove('staff', member('m', 'u', 'A', 'staff'))).toBe(false);
+    expect(mayRemove('owner', member('m', 'u', 'A', 'staff'))).toBe(true);
     expect(mayRemove('owner', member('m', 'u', 'A', 'manager'))).toBe(true);
     expect(mayRemove('owner', member('m', 'u', 'A', 'owner'))).toBe(false);
     expect(mayRemove('manager', member('m', 'u', 'A', 'staff'))).toBe(false);

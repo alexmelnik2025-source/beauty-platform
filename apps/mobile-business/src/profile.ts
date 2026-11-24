@@ -11,7 +11,7 @@ export type SpokenLanguage = StaffList[number]['languages'][number];
 /** In the order clients see them; the names are written in the language itself. */
 export const SPOKEN: { code: SpokenLanguage; flag: string; name: string }[] = [
   { code: 'pl', flag: '🇵🇱', name: 'Polski' },
-  { code: 'uk', flag: '🇺🇦', name: 'Українська' },
+  { code: 'uk', flag: '🇺🇦', name: 'UA · Українська' },
   { code: 'ru', flag: '🇷🇺', name: 'Русский' },
   { code: 'be', flag: '🇧🇾', name: 'Беларуская' },
   { code: 'en', flag: '🇬🇧', name: 'English' },

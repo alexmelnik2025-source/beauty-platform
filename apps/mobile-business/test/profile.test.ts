@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BusinessApi, type TokenStore } from '../src/api';
-import { flags, languagesChanged, toggleLanguage } from '../src/profile';
+import { flags, languagesChanged, SPOKEN, toggleLanguage } from '../src/profile';
 
 describe('the specialist’s languages', () => {
   it('turns a language on and off, keeping the order clients see', () => {
@@ -22,6 +22,14 @@ describe('the specialist’s languages', () => {
     expect(languagesChanged([], cleared)).toBe(false);
   });
 
+  it('labels Ukrainian as UA and selects it with the API code uk', () => {
+    const ukrainian = SPOKEN.find((language) => language.code === 'uk')!;
+    expect(ukrainian.name).toBe('UA · Українська');
+    const chosen = toggleLanguage([], ukrainian.code);
+    expect(chosen).toEqual(['uk']);
+    expect(flags(chosen)).toBe('🇺🇦');
+  });
+
   it('shows flags in the clients’ order', () => {
     expect(flags(['en', 'pl'])).toBe('🇵🇱 🇬🇧');
     expect(flags([])).toBe('');
@@ -36,7 +44,7 @@ describe('BusinessApi languages', () => {
       calls.push({ key, body: init?.body ? JSON.parse(String(init.body)) : undefined });
       const data = key.startsWith('POST /v1/auth/refresh')
         ? { accessToken: 'a9', expiresIn: 900, refreshToken: 'refresh-token-0123456789new' }
-        : { id: 's1', languages: ['pl', 'en'] };
+        : { id: 's1', languages: ['pl', 'uk'] };
       return new Response(JSON.stringify(data), { status: 200 });
     };
     const store: TokenStore = {
@@ -45,11 +53,11 @@ describe('BusinessApi languages', () => {
     };
     const api = new BusinessApi('https://api.test', store, fetchFn);
     await api.restore();
-    await api.setStaffLanguages('o1', 'l1', 's1', ['pl', 'en']);
+    await api.setStaffLanguages('o1', 'l1', 's1', ['pl', 'uk']);
     expect(calls.slice(1)).toEqual([
       {
         key: 'PUT /v1/organizations/o1/locations/l1/staff/s1/languages',
-        body: { languages: ['pl', 'en'] },
+        body: { languages: ['pl', 'uk'] },
       },
     ]);
   });
