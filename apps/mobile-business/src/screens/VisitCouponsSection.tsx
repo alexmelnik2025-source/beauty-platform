@@ -32,6 +32,7 @@ function VisitCouponsCard(props: Props) {
   const c = t.visit.coupons;
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
   const [codeReset, setCodeReset] = useState(0);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -63,7 +64,8 @@ function VisitCouponsCard(props: Props) {
     onCodeError?: (text: string) => void,
   ) {
     const signal = scope.current?.signal;
-    if (!signal || signal.aborted || busy) return;
+    if (!signal || signal.aborted || submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setNote(null);
     try {
@@ -74,10 +76,11 @@ function VisitCouponsCard(props: Props) {
       setCodeReset((n) => n + 1);
     } catch (e) {
       if (signal.aborted) return;
-      const fieldError = couponErrorText(e, t);
-      if (onCodeError && fieldError) onCodeError(fieldError);
-      else setNote({ text: fieldError ?? errorText(e, t), bad: true });
+      const message = couponErrorText(e, t) ?? errorText(e, t);
+      if (onCodeError) onCodeError(message);
+      else setNote({ text: message, bad: true });
     } finally {
+      submitting.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }

@@ -40,6 +40,7 @@ function DayWaitlist(props: Props) {
   const w = t.waitlist;
   const [entries, setEntries] = useState<WaitlistEntry[] | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState('');
   const [error, setError] = useState('');
@@ -73,7 +74,7 @@ function DayWaitlist(props: Props) {
       () => {
         if (!active || pending.current !== request) return;
         pending.current = null;
-        setEntries(null);
+        // Keep the current list and any open confirmation on a failed refresh.
       },
     );
     return () => {
@@ -83,7 +84,8 @@ function DayWaitlist(props: Props) {
 
   async function remove(entry: WaitlistEntry) {
     const signal = scope.current?.signal;
-    if (!signal || signal.aborted || busy) return;
+    if (!signal || signal.aborted || submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError('');
     try {
@@ -92,14 +94,13 @@ function DayWaitlist(props: Props) {
       // A refresh started before this removal may still contain the entry.
       pending.current = null;
       setEntries((list) => list?.filter((e) => e.id !== entry.id) ?? null);
+      setConfirm(null);
       setInfo(fill(w.removed, { name: entry.name }));
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, t));
     } finally {
-      if (!signal.aborted) {
-        setConfirm(null);
-        setBusy(false);
-      }
+      submitting.current = false;
+      if (!signal.aborted) setBusy(false);
     }
   }
 
@@ -111,7 +112,6 @@ function DayWaitlist(props: Props) {
         {w.title} ({entries.length})
       </Text>
       {entries.length > 0 ? <Text style={styles.muted}>{w.hint}</Text> : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -122,10 +122,16 @@ function DayWaitlist(props: Props) {
           <WaitlistDetails entry={e} timeZone={props.timeZone} w={w} />
           {confirm === e.id ? (
             <>
+              {error ? <ErrorText>{error}</ErrorText> : null}
               <Text style={styles.muted}>{fill(w.removeAsk, { name: e.name })}</Text>
               <View style={styles.row}>
                 <Button label={w.removeYes} busy={busy} onPress={() => void remove(e)} />
-                <Button kind="secondary" label={w.removeNo} onPress={() => setConfirm(null)} />
+                <Button
+                  kind="secondary"
+                  label={w.removeNo}
+                  disabled={busy}
+                  onPress={() => setConfirm(null)}
+                />
               </View>
             </>
           ) : (
@@ -133,15 +139,18 @@ function DayWaitlist(props: Props) {
               <Button
                 kind="secondary"
                 label={w.book}
+                disabled={busy}
                 a11yLabel={fill(w.bookFor, { name: e.name })}
                 onPress={() => props.onBook(e)}
               />
               <Button
                 kind="link"
                 label={w.remove}
+                disabled={busy}
                 a11yLabel={`${w.remove}: ${e.name}`}
                 onPress={() => {
                   setInfo('');
+                  setError('');
                   setConfirm(e.id);
                 }}
               />

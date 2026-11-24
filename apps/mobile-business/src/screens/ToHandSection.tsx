@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, VisitReservations } from '../api';
 import { formatPrice } from '../day';
@@ -45,6 +45,7 @@ export function ToHandSection(props: {
   const { api, t, salon, appointmentId, canChange, completed, onHanded } = props;
   const p = t.products;
   const [data, setData] = useState<VisitReservations | null>(null);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ id: string; action: Action; message: string } | null>(null);
   const money = (n: number) => formatPrice(n, salon.currency, props.locale);
@@ -70,7 +71,8 @@ export function ToHandSection(props: {
   }, [load]);
 
   const run = async (reservationId: string, action: Action) => {
-    if (busy) return;
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -89,6 +91,7 @@ export function ToHandSection(props: {
       // The mutation may have reached the server. Keep the row available if the refresh also fails.
       await load().then(setData, () => {});
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
