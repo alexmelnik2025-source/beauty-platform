@@ -296,7 +296,6 @@ function EditVoucher({
     >
       <h3>{t.vouchers.edit}</h3>
       <p className="small muted">{t.vouchers.editHint}</p>
-      <ErrorBox>{error}</ErrorBox>
       <div className="row">
         <label className="field grow">
           <span>{t.vouchers.validUntilField}</span>
@@ -324,13 +323,20 @@ function EditVoucher({
       </label>
       <PaymentSelect value={payment} onChange={setPayment} />
       <div className="row">
-        <button className="btn" disabled={busy}>
+        <button
+          className="btn"
+          disabled={busy}
+          aria-describedby={error ? `voucher-edit-error-${voucher.id}` : undefined}
+        >
           {t.common.save}
         </button>
         <button type="button" className="btn btn--quiet" onClick={() => setOpen(false)}>
           {t.common.cancel}
         </button>
       </div>
+      {/* Task 777 (owner's rule: errors where the action is): a refused "Zapisz" is said under
+          it, not as a box above the fields; what was typed stays. */}
+      <FieldError id={`voucher-edit-error-${voucher.id}`} text={error} />
     </form>
   );
 }
@@ -620,16 +626,23 @@ function CheckVoucher({
             onChange={(e) => {
               setCode(e.target.value);
               setCodeError('');
+              setError('');
             }}
           />
         </label>
-        <button className="btn" disabled={busy} style={{ alignSelf: 'flex-end' }}>
+        <button
+          className="btn"
+          disabled={busy}
+          style={{ alignSelf: 'flex-end' }}
+          aria-describedby={error ? 'voucher-check-error' : undefined}
+        >
           {t.vouchers.check}
         </button>
       </form>
-      {/* Under the row, so "Sprawdź" stays level with the field. */}
+      {/* Under the row, so "Sprawdź" stays level with the field. Task 777: a refusal that is not
+          about the code (no connection, too many tries) is said there too, with its "!". */}
       <FieldError id="voucher-check-code-error" text={codeError} />
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id="voucher-check-error" text={error} />
       {found ? <VoucherDetails details={found} onChange={onFound} /> : null}
     </section>
   );
@@ -702,7 +715,6 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
     <section className="section" aria-label={t.vouchers.newTitle}>
       <h2>{t.vouchers.newTitle}</h2>
       <form noValidate className="form" onSubmit={(e) => void sell(e)}>
-        <ErrorBox>{error}</ErrorBox>
         <div className="row">
           <label className="field grow">
             <span>{t.vouchers.amount}</span>
@@ -715,6 +727,7 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
               onChange={(e) => {
                 setAmount(e.target.value);
                 setAmountError('');
+                setError('');
               }}
             />
             <FieldError id="voucher-new-amount-error" text={amountError} />
@@ -755,9 +768,16 @@ function NewVoucher({ onSold }: { onSold: (voucher: GiftVoucher) => void }) {
           </label>
         </div>
         <PaymentSelect value={payment} onChange={setPayment} />
-        <button className="btn" disabled={busy}>
+        <button
+          className="btn"
+          disabled={busy}
+          aria-describedby={error ? 'voucher-new-error' : undefined}
+        >
           {t.vouchers.sell}
         </button>
+        {/* Task 777 (owner's rule: errors where the action is): a refused "Sprzedaj bon" is said
+            under it, not as a box above the amount; what was typed stays. */}
+        <FieldError id="voucher-new-error" text={error} />
       </form>
       {sold ? (
         <p className="note" role="status">
