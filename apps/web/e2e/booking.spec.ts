@@ -1075,7 +1075,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
     ewaDialog.getByRole('button', { name: 'Pobierz dane klienta' }).click(),
   ]);
   expect(exported.suggestedFilename()).toMatch(/^client-.+\.json$/);
+  // Task 780 (owner's rule: errors where the action is): a refused "Tak, usuń dane" is said under
+  // "Usuń dane klienta", not as a box above both buttons; the client stays.
+  await ownerPage.route('**/anonymize', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
   await ewaDialog.getByRole('button', { name: 'Usuń dane klienta' }).click();
+  await ewaDialog.getByRole('button', { name: 'Tak, usuń dane' }).click();
+  const eraseButton = ewaDialog.getByRole('button', { name: 'Usuń dane klienta' });
+  await expect(eraseButton).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(ewaDialog.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(ewaDialog.locator('.alert')).toHaveCount(0);
+  await eraseButton.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '780-client-erase-error');
+  await ownerPage.unroute('**/anonymize');
+  await eraseButton.click();
+  await expect(ewaDialog.locator('.field-error')).toHaveCount(0);
   await expect(ewaDialog.getByRole('alertdialog')).toContainText('zostaną usunięte na zawsze');
   await shot(ownerPage, '78-owner-client-erase');
   await ewaDialog.getByRole('button', { name: 'Tak, usuń dane' }).click();

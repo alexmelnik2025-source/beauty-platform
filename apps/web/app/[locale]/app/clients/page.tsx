@@ -903,11 +903,17 @@ function ClientPrivacy({
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 780 (owner's rule: errors where the action is): a refused "Pobierz dane klienta" or
+   * "Tak, usuń dane" is said under "Pobierz dane klienta" / "Usuń dane klienta", not as a box
+   * above both.
+   */
+  const [error, setError] = useState<{ on: 'export' | 'erase'; text: string } | null>(null);
+  const errorOn = (on: 'export' | 'erase') => (error?.on === on ? error.text : undefined);
   const path = `/v1/organizations/${orgId}/customers/${client.id}`;
 
   async function download() {
-    setError('');
+    setError(null);
     try {
       const data = await api<unknown>(`${path}/export`);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -918,18 +924,18 @@ function ClientPrivacy({
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ on: 'export', text: errorText(t, err) });
     }
   }
 
   async function erase() {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       await api(`${path}/anonymize`, { method: 'POST', body: { version: client.version } });
       onErased();
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ on: 'erase', text: errorText(t, err) });
       setBusy(false);
       setConfirming(false);
     }
@@ -939,10 +945,15 @@ function ClientPrivacy({
     <section className="section stack">
       <h3>{t.clients.privacy}</h3>
       <p className="small muted">{t.clients.privacyHint}</p>
-      <ErrorBox>{error}</ErrorBox>
-      <button type="button" className="btn btn--quiet btn--block" onClick={() => void download()}>
+      <button
+        type="button"
+        className="btn btn--quiet btn--block"
+        aria-describedby={errorOn('export') ? `client-export-error-${client.id}` : undefined}
+        onClick={() => void download()}
+      >
         {t.clients.exportOne}
       </button>
+      <FieldError id={`client-export-error-${client.id}`} text={errorOn('export')} />
       {confirming ? (
         <div className="summary" role="alertdialog" aria-label={t.clients.erase}>
           <span>{t.clients.eraseConfirm}</span>
@@ -966,13 +977,20 @@ function ClientPrivacy({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          className="btn btn--danger btn--block"
-          onClick={() => setConfirming(true)}
-        >
-          {t.clients.erase}
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn btn--danger btn--block"
+            aria-describedby={errorOn('erase') ? `client-erase-error-${client.id}` : undefined}
+            onClick={() => {
+              setError(null);
+              setConfirming(true);
+            }}
+          >
+            {t.clients.erase}
+          </button>
+          <FieldError id={`client-erase-error-${client.id}`} text={errorOn('erase')} />
+        </>
       )}
     </section>
   );
