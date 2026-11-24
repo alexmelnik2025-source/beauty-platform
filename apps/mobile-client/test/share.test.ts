@@ -27,6 +27,19 @@ describe('recommending a salon (task 151)', () => {
     });
   });
 
+  it('copies the encoded booking link when the native share sheet fails', async () => {
+    const name = 'Łódź / A&B #1';
+    const link = bookingUrl('https://app.example.com', 'pl', name);
+    const salon = shareMessage(DICTIONARIES.pl.salon.shareText, name, link);
+    expect(salon.message).toBe(
+      'Łódź / A&B #1 — umów się online: https://app.example.com/pl/b/%C5%81%C3%B3d%C5%BA%20%2F%20A%26B%20%231',
+    );
+    const native = vi.fn().mockRejectedValue(new Error('Share sheet unavailable'));
+    const copy = vi.fn().mockResolvedValue(undefined);
+    await expect(shareSalon(salon, { native, copy })).resolves.toBe('copied');
+    expect(copy).toHaveBeenCalledExactlyOnceWith(link);
+  });
+
   it('every language has the link and the name in the text', () => {
     for (const d of Object.values(DICTIONARIES)) {
       expect(d.salon.shareText).toContain('{name}');
@@ -42,7 +55,8 @@ describe('recommending a salon (task 151)', () => {
     expect(native).toHaveBeenCalledWith(content);
     expect(copy).not.toHaveBeenCalled();
     native.mockResolvedValue({ action: 'dismissedAction' });
-    expect(await shareSalon(content, { native })).toBe('cancelled');
+    expect(await shareSalon(content, { native, copy })).toBe('cancelled');
+    expect(copy).not.toHaveBeenCalled();
   });
 
   it('in a browser: its share menu, or the link is copied', async () => {
