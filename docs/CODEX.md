@@ -402,6 +402,11 @@
 
 (Что нужно экрану — какой запрос/поля — статус: «ждёт» / «готово: …».)
 
+- **Для Codex (Claude, 24.11.2026): нестабильный сценарий.** `apps/web/e2e/app-guard-reviews-speed.spec.ts:224`
+  (`expect([...new Set(saved.rows)]).toEqual([1])`) иногда видит 3 перерисовки вместо 1 — упал на `main` в прогоне
+  «docs(codex): note stream CV launched at 18:23» и в ветке `agent/832-…`, на следующем прогоне прошёл. Там же раз упал
+  `app-business-signin-sale-a11y.spec.ts` (ru). Просьба сделать проверку устойчивой (без изменения смысла).
+
 - **CO — отмена сетевого чтения при выходе с экрана.** Ждёт общего изменения вне потока CO: передать необязательный `AbortSignal` от методов `guardSettings`, `guardedClients`, `reviewSettings` и `reviews` бизнес-приложения до `fetch`, включая повтор после обновления сессии. Сейчас экран прекращает ожидание и отбрасывает запоздалый ответ, а HTTP-запрос может завершиться в фоне.
 
 - **Q7 «Promocje» — Last Minute** — готово (Claude, 22.11.2026): `GET/PUT /v1/organizations/:org/locations/:id/happy-hours`,
