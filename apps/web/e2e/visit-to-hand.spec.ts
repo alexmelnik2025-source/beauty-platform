@@ -1,3 +1,4 @@
+import type { VisitReservations } from '@beauty/api-client';
 import {
   expect,
   test,
@@ -24,7 +25,7 @@ const run = Date.now().toString(36);
 const OWNER = `to-hand-${run}@example.com`;
 const CLIENT = `to-hand-client-${run}@example.com`;
 const DESKTOP = { width: 1440, height: 900 };
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
@@ -90,7 +91,8 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     });
   const pomade = await json<{ id: string }>(await product('Pomada Reuzel różowa', 5900));
   const wax = await json<{ id: string }>(await product('Wosk matowy', 4500));
-  const shampoo = await json<{ id: string }>(await product('Szampon Proraso', 3900));
+  const shampooName = 'Szampon Proraso do codziennej pielęgnacji włosów i skóry głowy';
+  const shampoo = await json<{ id: string }>(await product(shampooName, 9_876_543));
   const cut = await json<{ id: string }>(
     await request.post(`${salon.base}/services`, {
       headers: salon.auth,
@@ -189,7 +191,7 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   await expect(toHand.getByText('Do wydania klientowi')).toBeVisible();
   await expect(toHand.getByText('Pomada Reuzel różowa')).toBeVisible();
   await expect(toHand.getByText('Wosk matowy')).toBeVisible();
-  await expect(toHand.getByText(/Razem: 143,00\s*zł — płatność przy wizycie/)).toBeVisible();
+  await expect(toHand.getByText(/Razem: 98\s*869,43\s*zł — płatność przy wizycie/)).toBeVisible();
   await shot(page, 'Q3-D-to-hand');
 
   // The client didn't want the wax after all.
@@ -210,12 +212,12 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   await cancelWax.click();
   await expect(toHand.locator('.field-error')).toHaveCount(0);
   await expect(toHand.getByText('Wosk matowy')).toHaveCount(0);
-  await expect(toHand.getByText(/Razem: 98,00\s*zł/)).toBeVisible();
+  await expect(toHand.getByText(/Razem: 98\s*824,43\s*zł/)).toBeVisible();
 
   // The pomade is handed over: it is the visit's usual sale now.
   await toHand.getByRole('button', { name: 'Wydaj i dolicz — Pomada Reuzel różowa' }).click();
   await expect(toHand.getByText('✓ Wydano')).toBeVisible();
-  await expect(toHand.getByText(/Razem: 39,00\s*zł/)).toBeVisible();
+  await expect(toHand.getByText(/Razem: 98\s*765,43\s*zł/)).toBeVisible();
   const sold = card.getByTestId('visit-products');
   await expect(sold.getByText('Pomada Reuzel różowa', { exact: true })).toBeVisible();
   await shot(page, 'Q3-D-handed');
@@ -255,20 +257,104 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
     for (let i = 0; i < daysBack; i += 1) {
       await phone.getByRole('button', { name: 'Poprzedni dzień' }).click();
     }
+    // Simulate damaged read-only amounts on two extra reservations. The next refresh is real.
+    const brokenNames = ['Odżywka bez ceny', 'Maska z ujemną ceną'];
+    await phone.route(
+      `**/appointments/${booked.id}/reservations`,
+      async (route) => {
+        const response = await route.fetch();
+        const data: VisitReservations = await response.json();
+        const shampooRow = data.reservations.find((r) => r.productId === shampoo.id);
+        expect(shampooRow).toBeTruthy();
+        await route.fulfill({
+          response,
+          json: {
+            ...data,
+            reservations: [
+              ...data.reservations,
+              ...brokenNames.map((name, index) => ({
+                ...shampooRow,
+                id: `broken-${index}`,
+                name,
+                totalGrosze: [null, -1][index],
+              })),
+            ],
+          },
+        });
+      },
+      { times: 1 },
+    );
     await phone
       .getByRole('button', { name: /Anna Kowalska/ })
       .first()
       .click();
     const appToHand = phone.getByTestId('visit-to-hand');
-    await expect(appToHand.getByText('🛍️ Do wydania klientowi')).toBeVisible();
-    await expect(appToHand.getByText('✓ Wydano')).toBeVisible();
-    await expect(appToHand.getByText(/Razem: 39,00\s*zł/)).toBeVisible();
+    await expect(appToHand.getByRole('heading', { name: 'Do wydania klientowi' })).toBeVisible();
+    const rows = appToHand.getByTestId('to-hand-product');
+    for (const name of brokenNames) {
+      const row = rows.filter({ hasText: name });
+      await expect(
+        row.getByRole('alert', {
+          name: `${name}, Cena produktu (PLN). Coś poszło nie tak. Spróbuj ponownie.`,
+        }),
+      ).toHaveText('! Coś poszło nie tak. Spróbuj ponownie.');
+      await expect(row.getByRole('button', { name: `Wydaj i dolicz — ${name}` })).toBeDisabled();
+      await expect(row.getByRole('button', { name: `Anuluj rezerwację — ${name}` })).toBeEnabled();
+    }
+
+    // Expo web uses pixel font sizes. Scale the rendered text without changing the viewport.
+    await appToHand.locator('[dir="auto"]').evaluateAll((elements) => {
+      for (const el of elements) {
+        (el as HTMLElement).style.fontSize = `${parseFloat(getComputedStyle(el).fontSize) * 1.3}px`;
+      }
+    });
+    const shampooRow = rows.filter({ hasText: shampooName });
+    await expect(shampooRow.getByText(shampooName)).toHaveCSS('font-size', '20.8px');
+    await expect(shampooRow.getByText(/98\s*765,43\s*zł/)).toBeVisible();
+    const give = shampooRow.getByRole('button', { name: `Wydaj i dolicz — ${shampooName}` });
+    const cancel = shampooRow.getByRole('button', { name: `Anuluj rezerwację — ${shampooName}` });
+    for (const action of [give, cancel]) {
+      const box = await action.boundingBox();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    // Every line of text fits both its own box and the narrow viewport.
+    expect(
+      await appToHand.locator('[dir="auto"]').evaluateAll((elements) =>
+        elements
+          .filter((el) => {
+            const box = el.getBoundingClientRect();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return Array.from(range.getClientRects()).some(
+              (rect) =>
+                rect.left < Math.max(0, box.left) - 1 ||
+                rect.right > Math.min(320, box.right) + 1 ||
+                rect.bottom > box.bottom + 1,
+            );
+          })
+          .map((el) => el.textContent),
+      ),
+    ).toEqual([]);
     await shot(phone, 'Q3-D-app');
-    await appToHand.getByRole('button', { name: 'Wydaj i dolicz — Szampon Proraso' }).click();
+
+    await phone.route(
+      '**/reservations/*/hand-over',
+      (route) => route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED' } } }),
+      { times: 1 },
+    );
+    await give.click();
+    await expect(
+      shampooRow.getByRole('alert', {
+        name: `Wydaj i dolicz — ${shampooName}. Za dużo prób. Odczekaj chwilę.`,
+      }),
+    ).toHaveText('! Za dużo prób. Odczekaj chwilę.');
+    await expect(appToHand.getByText(/Razem: 98\s*765,43\s*zł/)).toBeVisible();
+    await give.click();
     await expect(appToHand.getByText('✓ Wydano')).toHaveCount(2);
     await expect(appToHand.getByText(/Razem:/)).toHaveCount(0);
     await expect(
-      phone.getByTestId('visit-products').getByText('Szampon Proraso', { exact: true }),
+      phone.getByTestId('visit-products').getByText(shampooName, { exact: true }),
     ).toBeVisible();
     await context.close();
   } finally {
