@@ -973,8 +973,40 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await shot(ownerPage, '698-staff-hours-error');
   await firstEnd.fill(firstEndBefore);
   await expect(ownerPage.getByRole('dialog').locator('.field-error')).toHaveCount(0);
-  // Ola's photo: a tall phone picture is made smaller in the browser, saved at once.
+  // Task 814 (owner's rule: errors where the action is): a refused "Zapisz" is said under that
+  // button at the bottom of the sheet, a refused photo under the photo; the sheet stays open.
   const olaDialog = ownerPage.getByRole('dialog');
+  const staffOne = (url: URL) => /\/staff\/[^/]+(\/photo)?$/.test(url.pathname);
+  await ownerPage.route(staffOne, (route) =>
+    ['PATCH', 'PUT'].includes(route.request().method())
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveOla = olaDialog.getByRole('button', { name: 'Zapisz', exact: true });
+  await saveOla.click();
+  await expect(olaDialog.locator('#staff-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveOla).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(olaDialog.locator('.alert')).toHaveCount(0);
+  await saveOla.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '814-staff-save-error');
+  await olaDialog
+    .getByLabel('Dodaj zdjęcie')
+    .setInputFiles(await testPhoto(ownerPage, 'ola.png', 1200, 1600));
+  await expect(olaDialog.locator('#staff-photo-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(olaDialog.getByLabel('Dodaj zdjęcie')).toHaveAccessibleDescription(
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
+  );
+  await expect(olaDialog.locator('.alert')).toHaveCount(0);
+  await shot(ownerPage, '814-staff-photo-error');
+  await ownerPage.unroute(staffOne);
+  // Ola's photo: a tall phone picture is made smaller in the browser, saved at once.
   await olaDialog
     .getByLabel('Dodaj zdjęcie')
     .setInputFiles(await testPhoto(ownerPage, 'ola.png', 1200, 1600));
