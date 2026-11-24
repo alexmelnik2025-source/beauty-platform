@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   useId,
   useRef,
@@ -54,7 +55,7 @@ function SignInField({
  * Sign-in without a password or an account: the email the client books with → 6-digit code.
  * The same visits as on the web ("Moje wizyty"), found by that email in every salon.
  */
-export function SignInScreen(props: {
+type SignInProps = {
   api: ClientApi;
   t: Dictionary;
   locale: Locale;
@@ -76,7 +77,82 @@ export function SignInScreen(props: {
   onSignedIn: (person: ClientPerson) => void;
   /** The email the client just booked with (from the booking in the app). */
   initialEmail?: string;
-}) {
+};
+
+const emptyRecent: RecentSalon[] = [];
+const noop = () => {};
+
+export function SignInScreen(props: SignInProps) {
+  const { api, t, locale } = props;
+  const [what, setWhat] = useState('');
+  // Task 370: how many salons are open right now; the button is there only when some are.
+  const [openNowCount, setOpenNowCount] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .directory({ page: 1, pageSize: 1 })
+      .then((res) => {
+        if (alive) setOpenNowCount(res.openNowCount);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
+  return (
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+      <Text style={styles.brand}>{t.appTitle.toUpperCase()}</Text>
+      {/* Task 180b: the client looks for a salon first; signing in is only needed for "Moje wizyty". */}
+      <View role="group" aria-label={t.catalog.searchGo} style={styles.search}>
+        <Text style={styles.text}>{t.catalog.startLead}</Text>
+        <TextInput
+          accessibilityLabel={t.catalog.startSearch}
+          placeholder={t.catalog.search}
+          placeholderTextColor={colors.placeholder}
+          value={what}
+          onChangeText={setWhat}
+          onSubmitEditing={() => props.onFindSalon(what.trim())}
+          autoCorrect={false}
+          inputMode="search"
+          style={styles.input}
+        />
+        <Button label={t.catalog.searchGo} onPress={() => props.onFindSalon(what.trim())} />
+        {openNowCount > 0 ? (
+          <Button
+            kind="secondary"
+            label={`● ${t.catalog.openNow} (${openNowCount})`}
+            a11yLabel={`${t.catalog.openNow} (${openNowCount})`}
+            onPress={props.onOpenNow}
+          />
+        ) : null}
+        {/* Task 379: the catalogue with the best rated salons first. */}
+        <Button kind="secondary" label={t.catalog.bestRated} onPress={props.onBestRated} />
+      </View>
+      <RecentSalons
+        t={t}
+        recent={props.recent ?? emptyRecent}
+        onOpen={props.onOpenRecent ?? noop}
+        onClear={props.onClearRecent ?? noop}
+      />
+      <SignInForm
+        api={api}
+        t={t}
+        locale={locale}
+        initialEmail={props.initialEmail}
+        onSignedIn={props.onSignedIn}
+      />
+      <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
+      <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
+      <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
+    </ScrollView>
+  );
+}
+
+const SignInForm = memo(function SignInForm(
+  props: Pick<SignInProps, 'api' | 't' | 'locale' | 'initialEmail' | 'onSignedIn'>,
+) {
   const { api, t, locale } = props;
   const [input, setInput] = useState(props.initialEmail ?? '');
   const [sentTo, setSentTo] = useState('');
@@ -94,9 +170,6 @@ export function SignInScreen(props: {
   const submitting = useRef(false);
   const [activeRequest, setActiveRequest] = useState<'send' | 'confirm' | null>(null);
   const busy = activeRequest !== null;
-  const [what, setWhat] = useState('');
-  // Task 370: how many salons are open right now; the button is there only when some are.
-  const [openNowCount, setOpenNowCount] = useState(0);
 
   useEffect(() => {
     if (fieldIssue && !busy && field.current) {
@@ -104,19 +177,6 @@ export function SignInScreen(props: {
       if (Platform.OS !== 'web') AccessibilityInfo.sendAccessibilityEvent(field.current, 'focus');
     }
   }, [fieldIssue, busy]);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .directory({ page: 1, pageSize: 1 })
-      .then((res) => {
-        if (alive) setOpenNowCount(res.openNowCount);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [api]);
 
   async function send(email = parseEmail(input)) {
     if (submitting.current) return;
@@ -164,40 +224,7 @@ export function SignInScreen(props: {
     });
 
   return (
-    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <Text style={styles.brand}>{t.appTitle.toUpperCase()}</Text>
-      {/* Task 180b: the client looks for a salon first; signing in is only needed for "Moje wizyty". */}
-      <View role="group" aria-label={t.catalog.searchGo} style={styles.search}>
-        <Text style={styles.text}>{t.catalog.startLead}</Text>
-        <TextInput
-          accessibilityLabel={t.catalog.startSearch}
-          placeholder={t.catalog.search}
-          placeholderTextColor={colors.placeholder}
-          value={what}
-          onChangeText={setWhat}
-          onSubmitEditing={() => props.onFindSalon(what.trim())}
-          autoCorrect={false}
-          inputMode="search"
-          style={styles.input}
-        />
-        <Button label={t.catalog.searchGo} onPress={() => props.onFindSalon(what.trim())} />
-        {openNowCount > 0 ? (
-          <Button
-            kind="secondary"
-            label={`● ${t.catalog.openNow} (${openNowCount})`}
-            a11yLabel={`${t.catalog.openNow} (${openNowCount})`}
-            onPress={props.onOpenNow}
-          />
-        ) : null}
-        {/* Task 379: the catalogue with the best rated salons first. */}
-        <Button kind="secondary" label={t.catalog.bestRated} onPress={props.onBestRated} />
-      </View>
-      <RecentSalons
-        t={t}
-        recent={props.recent ?? []}
-        onOpen={(salon) => props.onOpenRecent?.(salon)}
-        onClear={() => props.onClearRecent?.()}
-      />
+    <>
       <Heading>{t.signIn.title}</Heading>
       {!sentTo ? (
         <>
@@ -282,12 +309,9 @@ export function SignInScreen(props: {
           </View>
         </>
       )}
-      <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
-      <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
-      <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
-    </ScrollView>
+    </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   search: {

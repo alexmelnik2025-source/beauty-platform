@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Dictionary } from '../i18n';
 import type { RecentSalon } from '../recent';
@@ -7,7 +8,7 @@ import { Button, colors } from '../ui';
  * Tasks 402, 414, 415: "Ostatnio oglądane" — the salons opened last on this device, a tap opens
  * one; "Wyczyść listę" forgets them. On the start screen and in "Moje wizyty". Nothing when empty.
  */
-export function RecentSalons(props: {
+export const RecentSalons = memo(function RecentSalons(props: {
   t: Dictionary;
   recent: RecentSalon[];
   onOpen: (salon: RecentSalon) => void;
@@ -33,7 +34,7 @@ export function RecentSalons(props: {
       <Button kind="link" label={t.catalog.recentClear} onPress={props.onClear} />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   recent: { gap: 2 },

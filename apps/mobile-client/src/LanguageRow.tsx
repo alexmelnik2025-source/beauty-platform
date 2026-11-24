@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Locale } from './api';
 import { formFailure, validationField, type FormFailure } from './errors';
@@ -7,7 +7,7 @@ import { DICTIONARIES, LANGUAGE_NAMES, LOCALES } from './i18n';
 import { Button, colors, Pressable } from './ui';
 
 /** Each language named in itself; the chosen one is underlined. */
-export function LanguageRow(props: {
+export const LanguageRow = memo(function LanguageRow(props: {
   label: string;
   locale: Locale;
   onLocale: (locale: Locale) => void | Promise<void>;
@@ -70,7 +70,7 @@ export function LanguageRow(props: {
       <FormFeedback failure={failure} retryLabel={DICTIONARIES[props.locale].retry} busy={busy} />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
