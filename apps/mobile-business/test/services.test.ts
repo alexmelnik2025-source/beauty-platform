@@ -63,6 +63,22 @@ describe('priceList', () => {
     ]);
   });
 
+  it('uses Polish alphabetical order for tied categories and keeps empty ones in the picker', () => {
+    const tied = ['Żele', 'Źródła', 'Zabiegi'].map((name) => ({
+      id: name,
+      name,
+      sortOrder: 2,
+      version: 1,
+    }));
+    const first = { id: 'hair', name: 'Włosy', sortOrder: 1, version: 1 };
+    const all = [...tied, first];
+    const services = [first, tied[0]!, tied[2]!].map(({ id, name }) =>
+      service({ id, name, categoryId: id }),
+    );
+    expect(categoryChoices(all).map((c) => c.name)).toEqual(['Włosy', 'Zabiegi', 'Źródła', 'Żele']);
+    expect(priceList(services, all).map((g) => g.name)).toEqual(['Włosy', 'Zabiegi', 'Żele']);
+  });
+
   it('services with the same place keep the order the server sent (as on the booking page)', () => {
     const groups = priceList(
       [service({ id: '1', name: 'Strzyżenie męskie' }), service({ id: '2', name: 'Broda' })],
@@ -387,6 +403,12 @@ describe('"Nowa usługa" (task 313)', () => {
     expect(newService(form)).toMatchObject({ ok: true, service: { description: null } });
   });
 
+  it('creates a free service and rejects a duration between five-minute steps', () => {
+    const form = { ...newServiceForm([], staff), name: 'Konsultacja', price: '0,00' };
+    expect(newService(form)).toMatchObject({ ok: true, service: { priceGrosze: 0 } });
+    expect(newService({ ...form, duration: '29' })).toEqual({ ok: false, problem: 'duration' });
+  });
+
   it('says what is wrong in the form', () => {
     const form = { ...newServiceForm(categories, staff), name: 'Golenie', price: '50' };
     expect(newService({ ...form, name: ' ' })).toEqual({ ok: false, problem: 'name' });
@@ -480,6 +502,27 @@ describe('own prices and durations in "Zmień" (task 318)', () => {
       s2: { price: '', duration: '60' },
     });
     expect(ratesForm(rates, 'c')).toEqual({});
+  });
+
+  it('keeps a zero starting price set by a specialist alongside the salon price', () => {
+    // The public "od" price comes from specialist rates; the business form edits numbers.
+    const overrides = {
+      prices: [{ serviceId: 'a', staffId: 's1', priceGrosze: 0 }],
+      durations: [],
+    };
+    const form = ratesForm(overrides, 'a');
+    expect(form).toEqual({ s1: { price: '0', duration: '' } });
+    expect(ratesChange(overrides, combo, form, ['s1', 's2'])).toEqual({
+      ok: true,
+      prices: null,
+      durations: null,
+    });
+    expect(ratesChange({ prices: [], durations: [] }, combo, form, ['s1', 's2'])).toEqual({
+      ok: true,
+      prices: [{ staffId: 's1', priceGrosze: 0 }],
+      durations: null,
+    });
+    expect(parsePrice('od 130')).toBeNull();
   });
 
   it('sends nothing when nothing changed', () => {
