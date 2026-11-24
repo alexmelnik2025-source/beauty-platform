@@ -1,5 +1,20 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentRef,
+  type ComponentPropsWithRef,
+} from 'react';
+import {
+  AccessibilityInfo,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ApiError, parseEmail, type ClientApi, type ClientPerson, type Locale } from '../api';
 import { errorText, formFailure, isCodeError, validationField } from '../errors';
 import { FormFeedback } from '../FormFeedback';
@@ -7,7 +22,33 @@ import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import type { RecentSalon } from '../recent';
 import { RecentSalons } from './RecentSalons';
-import { Button, colors, FieldInput, Heading } from '../ui';
+import { Button, colors, ErrorText, Heading } from '../ui';
+
+function SignInField({
+  error,
+  style,
+  ...props
+}: ComponentPropsWithRef<typeof TextInput> & {
+  error?: string;
+}) {
+  const errorId = useId();
+  return (
+    <View style={styles.field}>
+      <TextInput
+        {...props}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
+        accessibilityHint={error}
+        style={[styles.input, style, error && styles.invalid]}
+      />
+      {error ? (
+        <View nativeID={errorId}>
+          <ErrorText>! {error}</ErrorText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 /**
  * Sign-in without a password or an account: the email the client books with → 6-digit code.
@@ -40,13 +81,12 @@ export function SignInScreen(props: {
   const [input, setInput] = useState(props.initialEmail ?? '');
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
-  const [fieldIssue, setFieldIssue] = useState<'badEmail' | 'badCode' | ApiError | null>(null);
-  const fieldError =
-    typeof fieldIssue === 'string'
-      ? t.signIn[fieldIssue]
-      : fieldIssue
-        ? errorText(fieldIssue, t)
-        : undefined;
+  const field = useRef<ComponentRef<typeof TextInput>>(null);
+  const [fieldIssue, setFieldIssue] = useState<{
+    reason: 'badEmail' | 'badCode' | ApiError;
+  } | null>(null);
+  const reason = fieldIssue?.reason;
+  const fieldError = typeof reason === 'string' ? t.signIn[reason] : reason && errorText(reason, t);
   const [requestIssue, setRequestIssue] = useState<{
     error: unknown;
     action: 'send' | 'confirm';
@@ -55,6 +95,13 @@ export function SignInScreen(props: {
   const [what, setWhat] = useState('');
   // Task 370: how many salons are open right now; the button is there only when some are.
   const [openNowCount, setOpenNowCount] = useState(0);
+
+  useEffect(() => {
+    if (fieldIssue && !busy && field.current) {
+      field.current.focus();
+      if (Platform.OS !== 'web') AccessibilityInfo.sendAccessibilityEvent(field.current, 'focus');
+    }
+  }, [fieldIssue, busy]);
 
   useEffect(() => {
     let alive = true;
@@ -73,14 +120,14 @@ export function SignInScreen(props: {
     if (busy) return;
     setFieldIssue(null);
     setRequestIssue(null);
-    if (!email) return setFieldIssue('badEmail');
+    if (!email) return setFieldIssue({ reason: 'badEmail' });
     setBusy(true);
     try {
       await api.requestCode(email, locale);
       setSentTo(email);
       setCode('');
     } catch (e) {
-      if (!sentTo && validationField(e, ['email'])) setFieldIssue('badEmail');
+      if (!sentTo && validationField(e, ['email'])) setFieldIssue({ reason: 'badEmail' });
       else setRequestIssue({ error: e, action: 'send' });
     } finally {
       setBusy(false);
@@ -89,15 +136,15 @@ export function SignInScreen(props: {
 
   async function confirm() {
     if (busy) return;
-    if (code.length !== 6) return setFieldIssue('badCode');
+    if (code.length !== 6) return setFieldIssue({ reason: 'badCode' });
     setFieldIssue(null);
     setBusy(true);
     setRequestIssue(null);
     try {
       props.onSignedIn(await api.verifyCode(sentTo, code, locale));
     } catch (e) {
-      if (e instanceof ApiError && isCodeError(e)) setFieldIssue(e);
-      else if (validationField(e, ['code'])) setFieldIssue('badCode');
+      if (e instanceof ApiError && isCodeError(e)) setFieldIssue({ reason: e });
+      else if (validationField(e, ['code'])) setFieldIssue({ reason: 'badCode' });
       else setRequestIssue({ error: e, action: 'confirm' });
       setBusy(false);
     }
@@ -149,7 +196,9 @@ export function SignInScreen(props: {
       {!sentTo ? (
         <>
           <Text style={styles.text}>{t.signIn.subtitle}</Text>
-          <FieldInput
+          <SignInField
+            key="email"
+            ref={field}
             error={fieldError}
             accessibilityLabel={t.signIn.email}
             placeholder={t.signIn.email}
@@ -166,7 +215,6 @@ export function SignInScreen(props: {
             autoCorrect={false}
             autoComplete="email"
             inputMode="email"
-            style={styles.input}
           />
           <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
           <Button
@@ -179,7 +227,9 @@ export function SignInScreen(props: {
       ) : (
         <>
           <Text style={styles.text}>{fill(t.signIn.sent, { email: sentTo })}</Text>
-          <FieldInput
+          <SignInField
+            key="code"
+            ref={field}
             error={fieldError}
             accessibilityLabel={t.signIn.code}
             placeholder="000000"
@@ -196,7 +246,7 @@ export function SignInScreen(props: {
             textContentType="oneTimeCode"
             inputMode="numeric"
             maxLength={6}
-            style={[styles.input, styles.code]}
+            style={styles.code}
           />
           <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
           <Button
@@ -239,10 +289,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  screen: { flexGrow: 1, padding: 24, gap: 16, justifyContent: 'center', maxWidth: 480 },
+  screen: {
+    flexGrow: 1,
+    width: '100%',
+    padding: 24,
+    gap: 16,
+    justifyContent: 'center',
+    maxWidth: 480,
+  },
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
+  field: { gap: 4 },
+  invalid: { borderColor: colors.danger },
   input: {
+    minHeight: 44,
+    minWidth: 0,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
