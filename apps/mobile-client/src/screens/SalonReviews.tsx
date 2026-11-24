@@ -128,6 +128,8 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
         </Text>
         {summary && all?.average != null ? (
           <Text
+            accessible
+            role="img"
             style={styles.summary}
             accessibilityLabel={`${ratingLabel(oneDecimal(all.average, locale))}, ${reviewCount(all.count)}`}
           >
