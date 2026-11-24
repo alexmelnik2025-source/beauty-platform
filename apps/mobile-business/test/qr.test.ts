@@ -39,6 +39,13 @@ describe('salon QR code in the business app (task 354)', () => {
     }
   });
 
+  it('measures the version 40 byte limit in UTF-8 bytes', () => {
+    // Version 40 at level M holds 2331 bytes in byte mode. Each ł takes two.
+    const atLimit = 'ł'.repeat(1165) + 'a';
+    expect(encodeQr(atLimit).version).toBe(40);
+    expect(() => encodeQr(atLimit + 'a')).toThrow(RangeError);
+  });
+
   it('writes letters as UTF-8 without TextEncoder', () => {
     for (const text of ['abc', 'Łódź', 'Київ', 'zł €', '✂️💈']) {
       expect(utf8(text)).toEqual(Array.from(new TextEncoder().encode(text)));

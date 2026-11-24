@@ -101,11 +101,21 @@ export function ShopScreen(props: {
     );
   }
 
+  const filtered = Boolean(search || category);
+  const empty = !busy && !error && items.length === 0;
+  function clearFilters() {
+    setQuery('');
+    setSearch('');
+    setCategory(null);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <View style={styles.top}>
-        <Button kind="link" label={t.salon.back} onPress={props.onBack} />
-      </View>
+      {(!empty || filtered) && (
+        <View style={styles.top}>
+          <Button kind="link" label={t.salon.back} onPress={props.onBack} />
+        </View>
+      )}
       <Heading>{t.shop.title}</Heading>
       <Text style={styles.text}>{t.shop.lead}</Text>
       <TextInput
@@ -136,8 +146,17 @@ export function ShopScreen(props: {
         ))}
       </ScrollView>
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {!busy && !error && items.length === 0 ? (
-        <Text style={styles.text}>{search || category ? t.shop.noMatch : t.shop.empty}</Text>
+      {empty ? (
+        <View style={styles.empty}>
+          <Text role="status" style={styles.text}>
+            {filtered ? t.shop.noMatch : t.shop.empty}
+          </Text>
+          <Button
+            kind="secondary"
+            label={filtered ? t.catalog.clearLanguages : t.salon.back}
+            onPress={filtered ? clearFilters : props.onBack}
+          />
+        </View>
       ) : null}
       {items.map((p) => {
         const sellers = sellersLine(p);
@@ -151,7 +170,11 @@ export function ShopScreen(props: {
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
           >
             {p.photoId ? (
-              <Image source={{ uri: photoUri(p.photoId) }} style={styles.thumb} />
+              <Image
+                source={{ uri: photoUri(p.photoId) }}
+                accessibilityLabel={p.name}
+                style={styles.thumb}
+              />
             ) : (
               <View style={[styles.thumb, styles.noPhoto]} />
             )}
@@ -170,7 +193,23 @@ export function ShopScreen(props: {
           </Pressable>
         );
       })}
-      {busy ? <ActivityIndicator style={{ marginTop: 16 }} color={colors.ink} /> : null}
+      {busy && items.length === 0 ? (
+        <View
+          accessible
+          role="progressbar"
+          accessibilityLabel={t.shop.title}
+          aria-busy
+          style={styles.row}
+        >
+          <View style={[styles.thumb, styles.noPhoto]} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <View style={styles.skeletonLine} />
+            <View style={[styles.skeletonLine, { width: '65%' }]} />
+          </View>
+        </View>
+      ) : busy ? (
+        <ActivityIndicator accessibilityLabel={t.shop.title} color={colors.ink} />
+      ) : null}
       {!busy && !error && items.length < total ? (
         <Button kind="secondary" label={t.shop.more} onPress={() => void load(page + 1, true)} />
       ) : null}
@@ -237,6 +276,7 @@ function ProductView(props: {
         <Image
           source={{ uri: photoUri(p.photoId) }}
           style={styles.photo}
+          accessible
           accessibilityLabel={p.name}
         />
       ) : null}
@@ -255,7 +295,7 @@ function ProductView(props: {
         return (
           <Card key={o.productId}>
             <View style={styles.offerTop}>
-              <Text style={[styles.name, { flex: 1 }]}>{o.salon.name}</Text>
+              <Text style={[styles.name, { flexGrow: 1, flexShrink: 1 }]}>{o.salon.name}</Text>
               <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
             </View>
             <Text style={styles.small}>
@@ -270,7 +310,7 @@ function ProductView(props: {
               <View style={{ marginTop: 8 }}>
                 <Button
                   label={fill(t.shop.reserve, { when })}
-                  a11yLabel={`${fill(t.shop.reserve, { when })}: ${o.salon.name}`}
+                  a11yLabel={`${fill(t.shop.reserve, { when })}, ${p.name}: ${o.salon.name}`}
                   busy={busy === o.productId}
                   onPress={() => void reserve(o.productId, visit, when)}
                 />
@@ -335,6 +375,8 @@ const styles = StyleSheet.create({
   thumb: { width: 72, height: 72, borderRadius: 10 },
   noPhoto: { backgroundColor: colors.soft },
   photo: { width: '100%', aspectRatio: 1, borderRadius: 14, backgroundColor: colors.soft },
-  offerTop: { flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+  empty: { gap: 8 },
+  skeletonLine: { height: 12, borderRadius: 6, backgroundColor: colors.soft },
+  offerTop: { flexWrap: 'wrap', flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   done: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: '600', marginTop: 8 },
 });

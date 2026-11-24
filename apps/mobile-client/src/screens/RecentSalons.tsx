@@ -38,5 +38,5 @@ export function RecentSalons(props: {
 const styles = StyleSheet.create({
   recent: { gap: 2 },
   recentTitle: { color: colors.muted, fontSize: 13, fontWeight: '700', letterSpacing: 1 },
-  recentRow: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -8 },
+  recentRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 4 },
 });

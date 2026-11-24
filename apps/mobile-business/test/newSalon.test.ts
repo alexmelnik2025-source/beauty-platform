@@ -61,6 +61,32 @@ describe('"Załóż salon" (task 350)', () => {
     });
   });
 
+  it('keeps the full company name, salon name and address at their respective limits', () => {
+    const orgName = 'Ż'.repeat(120);
+    const locationName = 'Ж'.repeat(100);
+    const addressLine = 'Ł'.repeat(200);
+    const form = { ...filled, orgName, locationName, addressLine };
+    expect(newSalonBodies(form, 'pl')).toMatchObject({
+      organization: { name: orgName },
+      location: { name: locationName, addressLine },
+    });
+    expect(newSalonBodies({ ...form, orgName: orgName + 'a' }, 'pl')).toEqual({
+      problem: 'orgName',
+    });
+    expect(newSalonBodies({ ...form, addressLine: addressLine + 'a' }, 'pl')).toEqual({
+      problem: 'address',
+    });
+  });
+
+  it('checks the fallback name against the salon limit when the separate name is blank', () => {
+    const orgName = 'Ł'.repeat(100);
+    const form = { ...filled, orgName, locationName: '  ' };
+    expect(newSalonBodies(form, 'pl')).toMatchObject({ location: { name: orgName } });
+    expect(newSalonBodies({ ...form, orgName: orgName + 'a' }, 'pl')).toEqual({
+      problem: 'locationName',
+    });
+  });
+
   it('names the first missing field', () => {
     expect(newSalonBodies({ ...filled, orgName: ' ' }, 'pl')).toEqual({ problem: 'orgName' });
     expect(newSalonBodies({ ...filled, locationName: 'x'.repeat(101) }, 'pl')).toEqual({

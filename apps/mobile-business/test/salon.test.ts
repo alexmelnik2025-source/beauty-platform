@@ -108,6 +108,37 @@ describe('salonChanges', () => {
     });
   });
 
+  it.each([
+    ['name', 100, 'name'],
+    ['addressLine', 200, 'address'],
+    ['city', 100, 'city'],
+  ] as const)('checks the trimmed length of %s', (field, limit, problem) => {
+    const saved = salon();
+    const form = salonForm(saved);
+    const value = 'Ł'.repeat(limit);
+    expect(salonChanges(saved, { ...form, [field]: ` ${value} ` })).toEqual({
+      changes: { [field]: value },
+    });
+    expect(salonChanges(saved, { ...form, [field]: value + 'ą' })).toEqual({ problem });
+  });
+
+  it.each(['+0123456789', '+1234567890123456', '600 100 ABC', 'salon@'])(
+    'rejects an invalid phone %s before saving changes',
+    (phone) => {
+      const saved = salon();
+      expect(salonChanges(saved, { ...salonForm(saved), city: 'Łódź', phone })).toEqual({
+        problem: 'phone',
+      });
+    },
+  );
+
+  it('saves an address change without resubmitting a malformed stored email', () => {
+    const saved = salon({ email: 'salon@' });
+    expect(salonChanges(saved, { ...salonForm(saved), addressLine: 'ul. Łąkowa 2' })).toEqual({
+      changes: { addressLine: 'ul. Łąkowa 2' },
+    });
+  });
+
   it('names what is missing or wrong, as the server would', () => {
     const form = salonForm(salon());
     expect(salonChanges(salon(), { ...form, name: ' ' })).toEqual({ problem: 'name' });

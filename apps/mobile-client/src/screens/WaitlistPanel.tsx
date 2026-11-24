@@ -135,7 +135,9 @@ export function WaitlistPanel(props: {
             style={styles.input}
           />
           <View style={styles.autoRow}>
-            <Text style={[styles.muted, { flex: 1 }]}>{w.autoBook}</Text>
+            <Text aria-hidden style={[styles.muted, styles.autoLabel]}>
+              {w.autoBook}
+            </Text>
             <Switch
               style={switchTouchTarget}
               accessibilityLabel={w.autoBook}
@@ -204,7 +206,8 @@ export function WaitlistPanel(props: {
 }
 
 const styles = StyleSheet.create({
-  autoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  autoRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  autoLabel: { flexGrow: 1, flexBasis: 140 },
   panel: {
     gap: 8,
     borderTopWidth: 1,
@@ -227,7 +230,8 @@ const styles = StyleSheet.create({
   },
   days: { gap: 8, paddingVertical: 2 },
   day: {
-    width: 52,
+    minWidth: 52,
+    paddingHorizontal: 4,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,

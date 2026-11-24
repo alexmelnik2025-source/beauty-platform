@@ -114,11 +114,13 @@ export function SignInScreen(props: {
         </>
       ) : (
         <>
-          <Text style={styles.text}>{deliveryMessage(challenge, t)}</Text>
+          <Text nativeID="signin-delivery" accessibilityLiveRegion="polite" style={styles.text}>
+            {deliveryMessage(challenge, t)}
+          </Text>
           <TextInput
             accessibilityLabel={t.signIn.code}
             aria-invalid={invalid}
-            aria-describedby={error ? 'signin-error' : undefined}
+            aria-describedby={error ? 'signin-error' : 'signin-delivery'}
             placeholder="000000"
             placeholderTextColor={colors.line}
             value={code}
@@ -168,6 +170,7 @@ const styles = StyleSheet.create({
   brand: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   text: { color: colors.muted, fontSize: 16, lineHeight: 22 },
   input: {
+    minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
