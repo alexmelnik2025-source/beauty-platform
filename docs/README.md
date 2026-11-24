@@ -739,6 +739,11 @@ pnpm --filter @beauty/api-client generate
 - «Specjaliści» → «↑ / ↓»: если порядок не сохранился — ответ под строкой этого мастера, порядок возвращается.
 - e2e `team-invite`, скриншот `728-team-revoke-error`.
 
+## «Klienci»: отказ «Pokaż więcej klientów» под этой кнопкой (задача 781, 24.11.2026)
+
+- Отказ сервера при «Pokaż więcej klientów» — под этой кнопкой внизу списка (с «!»), первые 100 остаются; раньше —
+  рамкой вверху страницы, которую у кнопки не видно. e2e `clients-more`, скриншот `781-clients-more-error`.
+
 ## Карточка клиента → «Dane osobowe (RODO)»: отказ под своей кнопкой (задача 780, 24.11.2026)
 
 - Отказ сервера при «Pobierz dane klienta» — под этой кнопкой, при «Tak, usuń dane» — под «Usuń dane klienta» (с «!»);

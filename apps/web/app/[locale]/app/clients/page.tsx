@@ -78,6 +78,12 @@ export default function ClientsPage() {
   // Task 277: a full page came back — there may be more clients ("Pokaż więcej").
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  /**
+   * Task 781 (owner's rule: errors where the action is): a refused "Pokaż więcej klientów" is
+   * said under that button at the bottom of the list, not at the top where nobody looking at the
+   * button sees it.
+   */
+  const [moreError, setMoreError] = useState('');
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
   // Task 272: the filters were read from the address; from now on they are written back to it.
@@ -169,6 +175,7 @@ export default function ClientsPage() {
   );
 
   const load = useCallback(async () => {
+    setMoreError('');
     try {
       const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
         query: { ...listQuery, limit: PAGE },
@@ -184,6 +191,7 @@ export default function ClientsPage() {
   async function loadMore(): Promise<void> {
     if (!rows || loadingMore) return;
     setLoadingMore(true);
+    setMoreError('');
     try {
       const page = await api<ClientRow[]>(`/v1/organizations/${orgId}/customers`, {
         query: { ...listQuery, limit: PAGE, offset: rows.length },
@@ -192,7 +200,7 @@ export default function ClientsPage() {
       setRows([...rows, ...page.filter((c) => !seen.has(c.id))]);
       setHasMore(page.length === PAGE);
     } catch (err) {
-      setError(errorText(t, err));
+      setMoreError(errorText(t, err));
     } finally {
       setLoadingMore(false);
     }
@@ -447,14 +455,18 @@ export default function ClientsPage() {
           </ul>
         )}
         {rows?.length && hasMore ? (
-          <button
-            type="button"
-            className="btn btn--quiet btn--small"
-            disabled={loadingMore}
-            onClick={() => void loadMore()}
-          >
-            {t.clients.more}
-          </button>
+          <div>
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              disabled={loadingMore}
+              aria-describedby={moreError ? 'clients-more-error' : undefined}
+              onClick={() => void loadMore()}
+            >
+              {t.clients.more}
+            </button>
+            <FieldError id="clients-more-error" text={moreError} />
+          </div>
         ) : null}
       </div>
       {open ? (
