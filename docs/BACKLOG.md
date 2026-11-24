@@ -12,16 +12,16 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **750 (ветка `agent/750-commission-save-error`, от main): «Raporty» → «Ustaw prowizje» — отказ «Zapisz» под строкой мастера**
+- **✅ Влито в main 24.11.2026, ~00:58 UTC (747–750 вместе, ветка `agent/747-750-stack`). 750 (ветка `agent/750-commission-save-error`, от main): «Raporty» → «Ustaw prowizje» — отказ «Zapisz» под строкой мастера**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `reports`, скриншот
   `750-commission-save-error`.
-- **749 (ветка `agent/749-legal-template-error`, от main): «Ustawienia» → «Regulamin i prywatność» — отказ «Wstaw szablon» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~00:58 UTC (747–750 вместе, ветка `agent/747-750-stack`). 749 (ветка `agent/749-legal-template-error`, от main): «Ustawienia» → «Regulamin i prywatność» — отказ «Wstaw szablon» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). e2e `booking`, скриншот
   `749-legal-template-error`.
-- **748 (ветка `agent/748-client-guard-errors`, от main): карточка клиента — отказ «Zasady dla klienta» и «Zdejmij blokadę» у своего места**
+- **✅ Влито в main 24.11.2026, ~00:58 UTC (747–750 вместе, ветка `agent/747-750-stack`). 748 (ветка `agent/748-client-guard-errors`, от main): карточка клиента — отказ «Zasady dla klienta» и «Zdejmij blokadę» у своего места**
   (полировка по правилу владельца «ошибки у поля», Q9, новых функций нет). e2e `q9-client-rules`, скриншот
   `748-client-rule-error`.
-- **747 (ветка `agent/747-reviews-errors`, от main): «Opinie» — отказ «Zapisz» и ответа на отзыв под кнопкой**
+- **✅ Влито в main 24.11.2026, ~00:58 UTC (747–750 вместе, ветка `agent/747-750-stack`). 747 (ветка `agent/747-reviews-errors`, от main): «Opinie» — отказ «Zapisz» и ответа на отзыв под кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Ответ сервера был рамкой над кнопками — теперь
   под «Zapisz» (настройки), под «Opublikuj odpowiedź» (текст остаётся) и под «Usuń odpowiedź». e2e `reviews`,
   скриншоты `747-review-settings-save-error`, `747-review-reply-error`.
