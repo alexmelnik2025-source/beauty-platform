@@ -1,4 +1,4 @@
-import { expect, test, type APIResponse, type Page } from '@playwright/test';
+import { expect, test, type APIResponse, type Locator, type Page } from '@playwright/test';
 import { waitForEmail } from './mailpit';
 import { openBusinessMenu, serveApp } from './mobile-app';
 
@@ -21,7 +21,7 @@ import { openBusinessMenu, serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `salon-app-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // A sign-up address of its own (reserved for tests, RFC 2544): the API allows 10 sign-ups an hour from one.
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.18.${n >> 8}.${n & 255}` };
@@ -44,6 +44,15 @@ async function drawnPhoto(page: Page, text: string): Promise<Buffer> {
 }
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
+
+async function touchTarget(control: Locator) {
+  const box = await control.boundingBox();
+  expect(box, control.toString()).toBeTruthy();
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width);
+}
 
 async function json<T>(res: APIResponse): Promise<T> {
   expect(res.ok(), `${res.url()} → ${res.status()} ${await res.text()}`).toBeTruthy();
@@ -132,16 +141,89 @@ test('the owner changes the salon from the business app (task 131)', async ({
     await expect(app.getByText('Niezapisane zmiany')).toBeVisible();
     await app.getByRole('button', { name: 'Odrzuć', exact: true }).click();
     await expect(salonName).toHaveValue('Gestalt Barbershop');
-    await app.getByLabel('Telefon salonu').fill('22 123 45 67');
-    await app.getByLabel('O salonie').fill('Strzyżemy od 2015 roku. Kawa gratis.');
+    const phone = app.getByRole('textbox', { name: 'Telefon salonu' });
+    const email = app.getByRole('textbox', { name: 'E-mail (opcjonalnie)' });
+    const about = app.getByRole('textbox', { name: 'O salonie' });
+    const save = app.getByRole('button', { name: 'Zapisz', exact: true });
+    const discard = app.getByRole('button', { name: 'Odrzuć', exact: true });
+    const unsaved = app.getByText('Niezapisane zmiany', { exact: true });
+
+    for (const [label, bad, good, message] of [
+      ['Nazwa salonu', '', 'Gestalt Barbershop', 'Wpisz nazwę salonu.'],
+      ['Ulica i numer', ' ', 'ul. Józefa Bema 91', 'Wpisz ulicę i numer.'],
+      ['Miasto', '', 'Warszawa', 'Wpisz miasto.'],
+      ['Kod pocztowy', '1', '01-233', 'Wpisz kod pocztowy.'],
+      ['Telefon salonu', '123', '22 123 45 67', 'Wpisz numer telefonu, np. 600 100 200.'],
+      ['E-mail (opcjonalnie)', 'salon@', 'SALON@example.com', 'Sprawdź adres e-mail.'],
+    ] as const) {
+      const field = app.getByRole('textbox', { name: label, exact: true });
+      await field.fill(bad);
+      await save.click();
+      await expect(field).toBeFocused();
+      await expect(field).toHaveAttribute('aria-invalid', 'true');
+      await expect(field).toHaveAccessibleDescription(`! ${message}`);
+      await expect(app.getByRole('alert')).toHaveText(`! ${message}`);
+      await field.fill(good);
+      await expect(app.getByRole('alert')).toHaveCount(0);
+    }
+    // The API also rejects addresses that pass the app's basic format check.
+    await email.fill('salon@example.c');
+    await save.click();
+    await expect(email).toHaveAccessibleDescription('! Sprawdź adres e-mail.');
+    await email.fill('SALON@example.com');
+    const description = 'Strzyżemy od 2015 roku. Kawa gratis.';
+    await about.fill(description);
+
+    // At the default font size the status and both actions share a line.
+    const statusBox = (await unsaved.boundingBox())!;
+    const saveBox = (await save.boundingBox())!;
+    expect(statusBox.y).toBeGreaterThanOrEqual(saveBox.y);
+    expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(saveBox.y + saveBox.height);
     await shot(app, '131-business-app-salon');
-    await app.getByRole('button', { name: 'Zapisz' }).click();
+
+    // Enlarge the actual text in the Expo web preview, including both action labels.
+    const largeType = await app.addStyleTag({
+      content: '[dir="auto"], input, textarea { font-size: 28px !important; }',
+    });
+    await expect(phone).toHaveCSS('font-size', '28px');
+    for (const control of [
+      ...(await app.getByRole('textbox').all()),
+      backToSettings,
+      discard,
+      save,
+    ]) {
+      await touchTarget(control);
+    }
+    for (const label of [unsaved, discard.getByText('Odrzuć'), save.getByText('Zapisz')]) {
+      await expect(label).toHaveCSS('font-size', '28px');
+      const lines = await label.evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return Array.from(range.getClientRects(), (rect) => rect.top);
+      });
+      expect(new Set(lines).size).toBe(1);
+    }
+    await largeType.evaluate((style) => style.parentNode?.removeChild(style));
+
+    await app.route(`**${path}`, (route) => route.abort('connectionfailed'), { times: 1 });
+    await save.click();
+    await expect(app.getByRole('alert')).toContainText('Brak połączenia z serwerem');
+    await expect(app.getByRole('alert')).toBeInViewport();
+    await expect(phone).toHaveValue('22 123 45 67');
+    await expect(email).toHaveValue('SALON@example.com');
+    await expect(about).toHaveValue(description);
+    await expect(unsaved).toBeVisible();
+    await save.click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
-    const saved = await json<{ phone: string; description: string; version: number }>(
-      await request.get(path, { headers: owner }),
-    );
+    const saved = await json<{
+      phone: string;
+      email: string;
+      description: string;
+      version: number;
+    }>(await request.get(path, { headers: owner }));
     expect(saved.phone).toBe('+48221234567');
-    expect(saved.description).toBe('Strzyżemy od 2015 roku. Kawa gratis.');
+    expect(saved.email).toBe('salon@example.com');
+    expect(saved.description).toBe(description);
 
     // ── Online booking needs the terms first ────────────────────────────────
     await openSettingsSection('Rezerwacja online');
@@ -372,6 +454,13 @@ test('the owner changes the salon from the business app (task 131)', async ({
 
     // ── A new name shows on the calendar at once ────────────────────────────
     await openSettingsSection('Dane salonu');
+    await expect(email).toHaveValue('salon@example.com');
+    await email.fill('');
+    await save.click();
+    await expect(unsaved).toBeHidden();
+    expect(
+      (await json<{ email: string | null }>(await request.get(path, { headers: owner }))).email,
+    ).toBeNull();
     await app.getByLabel('Nazwa salonu').fill('Gestalt Barbershop Bema');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
