@@ -88,9 +88,14 @@ export function StaffSheet({
    * absence, said under that field — an empty field, a past date, "Do" not after "Od".
    */
   const [specialProblems, setSpecialProblems] = useState<DayProblems>({});
-  const [specialError, setSpecialError] = useState('');
   const [absenceProblems, setAbsenceProblems] = useState<DayProblems>({});
-  const [absenceError, setAbsenceError] = useState('');
+  /**
+   * Task 823 (owner's rule: errors where the action is): a refused "Zapisz dzień specjalny" /
+   * "Dodaj nieobecność" is said under that button; a refused "Usuń" under the row it removes
+   * (`key` — the date or the absence id), not in a box above the add form.
+   */
+  const [specialError, setSpecialError] = useState<RowError | null>(null);
+  const [absenceError, setAbsenceError] = useState<RowError | null>(null);
   /** A changed "Od" takes its own error away, and the "Do not after Od" one under "Do". */
   const fixStart = (problems: DayProblems): DayProblems => ({
     ...problems,
@@ -218,7 +223,7 @@ export function StaffSheet({
   async function addAbsence(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!staff) return;
-    setAbsenceError('');
+    setAbsenceError(null);
     const found: DayProblems = {};
     if (!absence.start) found.start = t.onboarding.fieldRequired;
     if (!absence.end) found.end = t.onboarding.fieldRequired;
@@ -236,7 +241,7 @@ export function StaffSheet({
       setAbsence({ start: '', end: '', note: '' });
       await loadSchedule();
     } catch (err) {
-      setAbsenceError(errorText(t, err));
+      setAbsenceError({ key: ADD, text: errorText(t, err) });
     }
   }
 
@@ -244,7 +249,7 @@ export function StaffSheet({
   async function addSpecial(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!staff) return;
-    setSpecialError('');
+    setSpecialError(null);
     setSpecialNote('');
     const found: DayProblems = {};
     if (!special.date) found.date = t.onboarding.fieldRequired;
@@ -262,14 +267,14 @@ export function StaffSheet({
       setSpecialNote(t.team.specialSaved);
       await loadSchedule();
     } catch (err) {
-      setSpecialError(errorText(t, err));
+      setSpecialError({ key: ADD, text: errorText(t, err) });
     }
   }
 
   /** Task 336: the date gets the usual weekly hours back. */
   async function removeSpecial(date: string) {
     if (!staff) return;
-    setSpecialError('');
+    setSpecialError(null);
     setSpecialNote('');
     try {
       await api(`${base}/staff/${staff.id}/working-hours/overrides/${date}`, {
@@ -278,17 +283,18 @@ export function StaffSheet({
       setSpecialNote(t.team.specialRemoved);
       await loadSchedule();
     } catch (err) {
-      setSpecialError(errorText(t, err));
+      setSpecialError({ key: date, text: errorText(t, err) });
     }
   }
 
   async function removeAbsence(id: string) {
     if (!staff) return;
+    setAbsenceError(null);
     try {
       await api(`${base}/staff/${staff.id}/time-off/${id}`, { method: 'DELETE' });
       await loadSchedule();
     } catch (err) {
-      setAbsenceError(errorText(t, err));
+      setAbsenceError({ key: id, text: errorText(t, err) });
     }
   }
 
@@ -583,7 +589,10 @@ export function StaffSheet({
           {specials.length === 0 ? <p className="small muted">{t.team.specialNone}</p> : null}
           <ul className="history">
             {specials.map((d) => (
-              <li key={d.date}>
+              <li
+                key={d.date}
+                className={specialError?.key === d.date ? 'history__row--error' : undefined}
+              >
                 <span>
                   {dayName(d.date)} ·{' '}
                   {d.intervals.length
@@ -594,10 +603,16 @@ export function StaffSheet({
                   type="button"
                   className="link-btn small"
                   aria-label={`${t.actions.delete}: ${dayName(d.date)}`}
+                  aria-describedby={
+                    specialError?.key === d.date ? `special-remove-error-${d.date}` : undefined
+                  }
                   onClick={() => void removeSpecial(d.date)}
                 >
                   {t.actions.delete}
                 </button>
+                {specialError?.key === d.date ? (
+                  <FieldError id={`special-remove-error-${d.date}`} text={specialError.text} />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -619,7 +634,7 @@ export function StaffSheet({
                   {...invalid(specialProblems, 'date', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, date: e.target.value });
-                    setSpecialError('');
+                    setSpecialError(null);
                     setSpecialProblems({ ...specialProblems, date: undefined });
                   }}
                 />
@@ -636,6 +651,7 @@ export function StaffSheet({
                   {...invalid(specialProblems, 'start', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, start: e.target.value });
+                    setSpecialError(null);
                     setSpecialProblems(fixStart(specialProblems));
                   }}
                 />
@@ -652,14 +668,23 @@ export function StaffSheet({
                   {...invalid(specialProblems, 'end', 'special')}
                   onChange={(e) => {
                     setSpecial({ ...special, end: e.target.value });
+                    setSpecialError(null);
                     setSpecialProblems({ ...specialProblems, end: undefined });
                   }}
                 />
                 <FieldError id="special-end-error" text={specialProblems.end} />
               </label>
             </div>
-            <ErrorBox>{specialError}</ErrorBox>
-            <button className="btn btn--quiet">{t.team.specialSave}</button>
+            <button
+              className="btn btn--quiet"
+              aria-describedby={specialError?.key === ADD ? 'special-add-error' : undefined}
+            >
+              {t.team.specialSave}
+            </button>
+            <FieldError
+              id="special-add-error"
+              text={specialError?.key === ADD ? specialError.text : ''}
+            />
           </form>
         </section>
       ) : null}
@@ -670,7 +695,10 @@ export function StaffSheet({
           {timeOff.length === 0 ? <p className="small muted">{t.team.noTimeOff}</p> : null}
           <ul className="history">
             {timeOff.map((o) => (
-              <li key={o.id}>
+              <li
+                key={o.id}
+                className={absenceError?.key === o.id ? 'history__row--error' : undefined}
+              >
                 <span>
                   {when(o.start)} – {when(o.end)}
                   {o.note ? <span className="muted"> · {o.note}</span> : null}
@@ -678,10 +706,16 @@ export function StaffSheet({
                 <button
                   type="button"
                   className="link-btn small"
+                  aria-describedby={
+                    absenceError?.key === o.id ? `absence-remove-error-${o.id}` : undefined
+                  }
                   onClick={() => void removeAbsence(o.id)}
                 >
                   {t.actions.delete}
                 </button>
+                {absenceError?.key === o.id ? (
+                  <FieldError id={`absence-remove-error-${o.id}`} text={absenceError.text} />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -699,7 +733,7 @@ export function StaffSheet({
                   onChange={(e) => {
                     setAbsence({ ...absence, start: e.target.value });
                     setAbsenceProblems(fixStart(absenceProblems));
-                    setAbsenceError('');
+                    setAbsenceError(null);
                   }}
                 />
                 <FieldError id="absence-start-error" text={absenceProblems.start} />
@@ -716,7 +750,7 @@ export function StaffSheet({
                   onChange={(e) => {
                     setAbsence({ ...absence, end: e.target.value });
                     setAbsenceProblems({ ...absenceProblems, end: undefined });
-                    setAbsenceError('');
+                    setAbsenceError(null);
                   }}
                 />
                 <FieldError id="absence-end-error" text={absenceProblems.end} />
@@ -729,11 +763,22 @@ export function StaffSheet({
               <input
                 maxLength={200}
                 value={absence.note}
-                onChange={(e) => setAbsence({ ...absence, note: e.target.value })}
+                onChange={(e) => {
+                  setAbsence({ ...absence, note: e.target.value });
+                  setAbsenceError(null);
+                }}
               />
             </label>
-            <ErrorBox>{absenceError}</ErrorBox>
-            <button className="btn btn--quiet">{t.team.addTimeOff}</button>
+            <button
+              className="btn btn--quiet"
+              aria-describedby={absenceError?.key === ADD ? 'absence-add-error' : undefined}
+            >
+              {t.team.addTimeOff}
+            </button>
+            <FieldError
+              id="absence-add-error"
+              text={absenceError?.key === ADD ? absenceError.text : ''}
+            />
           </form>
         </section>
       ) : null}
@@ -775,6 +820,9 @@ function defaultWeek(): Interval[][] {
 
 /** Today in this browser, YYYY-MM-DD — special days start from today (task 336). */
 type DayField = 'date' | 'start' | 'end';
+/** Task 823: a refused action — `ADD` for the add form, else the date / absence id removed. */
+type RowError = { key: string; text: string };
+const ADD = 'add';
 type DayProblems = Partial<Record<DayField, string>>;
 const DAY_ORDER: DayField[] = ['date', 'start', 'end'];
 

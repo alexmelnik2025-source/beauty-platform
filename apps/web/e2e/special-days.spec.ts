@@ -4,6 +4,7 @@ import {
   type APIRequestContext,
   type APIResponse,
   type Page,
+  type Route,
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
@@ -13,7 +14,8 @@ import { waitForEmail } from './mailpit';
  * hours for one date (a wrong time is pointed out) and removes another special day, which gets
  * the usual hours back. Screenshots 336, 336a. Task 691: an empty or past day and an empty
  * absence are said under their fields. Task 660: a wrong time, a wrong absence and a
- * name of only spaces are pointed out under their field (screenshot 660).
+ * name of only spaces are pointed out under their field (screenshot 660). Task 823: a refused
+ * "Usuń" is said under its row, a refused save or absence under its button (screenshots 823).
  */
 
 const PASSWORD = 'e2e-password-123';
@@ -158,6 +160,34 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   // ── the later special day goes: the usual hours are back ───────────────
   const remove = special.getByRole('button', { name: /^Usuń: / });
   await expect(remove).toHaveCount(2);
+
+  // ── task 823: a refused "Usuń" is said under its own row, a refused save under the button ──
+  const refuse = (route: Route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } });
+  const overrides = (url: URL) => /\/working-hours\/overrides\/[^/]+$/.test(url.pathname);
+  await page.route(overrides, (route) =>
+    ['DELETE', 'PUT'].includes(route.request().method()) ? refuse(route) : route.fallback(),
+  );
+  await remove.last().click();
+  const removeError = special.locator(`#special-remove-error-${later}`);
+  await expect(removeError).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(remove.last()).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(special.locator('.alert')).toHaveCount(0);
+  await special.scrollIntoViewIfNeeded();
+  await shot(page, '823-staff-special-remove-error');
+  await day.fill(warsawDate(4));
+  await special.getByRole('button', { name: 'Zapisz dzień specjalny' }).click();
+  await expect(removeError).toHaveCount(0);
+  await expect(special.locator('#special-add-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(
+    special.getByRole('button', { name: 'Zapisz dzień specjalny' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await shot(page, '823-staff-special-save-error');
+  await day.fill('');
+  await expect(special.locator('#special-add-error')).toHaveCount(0);
+  await page.unroute(overrides);
   await remove.last().click();
   await expect(special.getByText('Przywrócono zwykłe godziny tego dnia.')).toBeVisible();
   await expect(special.getByText(/12:00–16:00/)).toHaveCount(0);
@@ -185,7 +215,21 @@ test('the owner sets and removes a specialist’s special day in the cabinet', a
   await expect(absence.locator('#absence-end-error')).toBeVisible();
   await absenceEnd.fill(`${warsawDate(5)}T18:00`);
   await expect(absence.locator('#absence-end-error')).toHaveCount(0);
+  // Task 823: a refused "Dodaj nieobecność" is said under that button; what was typed stays.
+  const timeOff = (url: URL) => /\/time-off$/.test(url.pathname);
+  await page.route(timeOff, (route) =>
+    route.request().method() === 'POST' ? refuse(route) : route.fallback(),
+  );
   await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
+  await expect(absence.locator('#absence-add-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(absenceEnd).toHaveValue(`${warsawDate(5)}T18:00`);
+  await absence.scrollIntoViewIfNeeded();
+  await shot(page, '823-staff-absence-add-error');
+  await page.unroute(timeOff);
+  await absence.getByRole('button', { name: 'Dodaj nieobecność' }).click();
+  await expect(absence.locator('#absence-add-error')).toHaveCount(0);
   await expect(absence.getByRole('button', { name: 'Usuń' })).toHaveCount(1);
 
   // ── task 660: a name of only spaces — under "Imię" ─────────────────────
