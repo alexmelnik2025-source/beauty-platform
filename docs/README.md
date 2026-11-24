@@ -745,6 +745,17 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Kreator salonu»: отказ «Utwórz salon» под кнопкой (задача 798, 24.11.2026)
+
+- Отказ сервера не про одно поле (нет связи, «Zbyt wiele prób») — под кнопкой «Utwórz salon» (с «!»), кнопка им
+  описана. Раньше — рамкой вверху формы над всеми полями. e2e `onboarding-retry`, скриншот
+  `798-onboarding-submit-error`.
+
+## «Powiadomienia»: отказ «Oznacz wszystkie jako przeczytane» под кнопкой (задача 797, 24.11.2026)
+
+- Раньше отказ сервера не ловился совсем: на экране ничего не происходило. Теперь кнопка ждёт ответа, а отказ
+  сказан сразу под ней (с «!»). e2e `booking`, скриншот `797-notifications-mark-all-error`.
+
 ## «Dostęp i uprawnienia» → человек: отказ внизу окна под кнопками (задача 796, 24.11.2026)
 
 - Отказ сервера при «Zapisz» (права) или «Usuń z zespołu» — внизу окна под кнопками (с «!»), нажатая кнопка им
