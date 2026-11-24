@@ -8,6 +8,11 @@ export function parseStock(value: string): number | null | undefined {
   return /^\d{1,6}$/.test(text) && Number(text) <= 100_000 ? Number(text) : undefined;
 }
 
+/** An untouched stocktake row keeps its recorded quantity. An edited row needs a count. */
+export function stocktakeCount(draft: string | undefined, recorded: number | null) {
+  return draft === undefined ? recorded : (parseStock(draft) ?? undefined);
+}
+
 /** Task 477: the pieces that came in a delivery — "" → null (nothing came), "12" → 12; 0 or anything else → undefined. */
 export function parseDelivery(value: string): number | null | undefined {
   const n = parseStock(value);

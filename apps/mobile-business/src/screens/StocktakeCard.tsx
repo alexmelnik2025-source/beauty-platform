@@ -1,18 +1,64 @@
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, Stocktake } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { parseStock } from '../stock';
+import { stocktakeCount } from '../stock';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task 458: "Inwentaryzacja" in the business app, as in the cabinet (457) — the owner counts what
- * is on the shelf and writes the numbers for all products on one card; the server writes each
- * difference to "Historia magazynu" and says how many pieces were missing or extra. An empty
- * field leaves the product as it is.
- */
+const StocktakeRow = memo(function StocktakeRow({
+  product,
+  draft,
+  count,
+  p,
+  onChange,
+}: {
+  product: Product;
+  draft: string | undefined;
+  count: number | null | undefined;
+  p: Dictionary['products'];
+  onChange: (id: string, value: string) => void;
+}) {
+  const { id, name, stockQuantity } = product;
+  const diff = typeof count === 'number' && stockQuantity !== null ? count - stockQuantity : 0;
+  const invalid = count === undefined;
+  const errorId = `stocktake-error-${id}`;
+  return (
+    <View style={styles.product} testID="stocktake-row">
+      <View style={styles.row}>
+        <View style={styles.details}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.muted}>
+            {stockQuantity === null
+              ? p.stocktakeWasNone
+              : fill(p.stocktakeWas, { n: String(stockQuantity) })}
+            {diff !== 0
+              ? ` · ${fill(diff < 0 ? p.stocktakeMissing : p.stocktakeExtra, { n: String(Math.abs(diff)) })}`
+              : ''}
+          </Text>
+        </View>
+        <TextInput
+          accessibilityLabel={fill(p.stocktakeCount, { name })}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? errorId : undefined}
+          placeholder="—"
+          placeholderTextColor={colors.placeholder}
+          keyboardType="number-pad"
+          value={draft ?? String(stockQuantity ?? '')}
+          onChangeText={(value) => onChange(id, value)}
+          style={[styles.input, invalid && styles.invalidInput]}
+        />
+      </View>
+      {invalid ? (
+        <Text role="alert" nativeID={errorId} style={styles.warn}>
+          ! {fill(p.orderPieces, { n: '0–100 000' })}
+        </Text>
+      ) : null}
+    </View>
+  );
+});
+
 export function StocktakeCard(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -22,24 +68,38 @@ export function StocktakeCard(props: {
 }) {
   const { api, t, salon, products } = props;
   const p = t.products;
-  const [counts, setCounts] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      products.map((x) => [x.id, x.stockQuantity === null ? '' : String(x.stockQuantity)]),
-    ),
-  );
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const parsed = products.map((x) => ({ product: x, count: parseStock(counts[x.id] ?? '') }));
-  const wrong = parsed.some((r) => r.count === undefined);
-  const changes = parsed.flatMap(({ product, count }) =>
-    typeof count === 'number' && count !== product.stockQuantity
-      ? [{ productId: product.id, quantity: count }]
-      : [],
-  );
+  const changeCount = useCallback((id: string, value: string) => {
+    setDrafts((previous) => ({ ...previous, [id]: value }));
+  }, []);
+
+  const changes: { productId: string; quantity: number }[] = [];
+  let invalid = false;
+  const rows = products.map((product) => {
+    const draft = drafts[product.id];
+    const count = stocktakeCount(draft, product.stockQuantity);
+    if (count === undefined) invalid = true;
+    else if (typeof count === 'number' && count !== product.stockQuantity) {
+      changes.push({ productId: product.id, quantity: count });
+    }
+    return (
+      <StocktakeRow
+        key={product.id}
+        product={product}
+        draft={draft}
+        count={count}
+        p={p}
+        onChange={changeCount}
+      />
+    );
+  });
+  const disabled = invalid || changes.length === 0;
 
   const save = async () => {
-    if (busy) return;
+    if (busy || disabled) return;
     setBusy(true);
     setError('');
     try {
@@ -57,42 +117,13 @@ export function StocktakeCard(props: {
         <Text role="heading" aria-level={3} style={styles.title}>
           {p.stocktakeTitle}
         </Text>
-        <Text style={styles.muted}>{p.stocktakeHint}</Text>
-        {parsed.map(({ product: x, count }) => (
-          <View key={x.id} style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{x.name}</Text>
-              <Text style={styles.muted}>
-                {x.stockQuantity === null
-                  ? p.stocktakeWasNone
-                  : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
-                {typeof count === 'number' && x.stockQuantity !== null && count !== x.stockQuantity
-                  ? ` · ${
-                      count < x.stockQuantity
-                        ? fill(p.stocktakeMissing, { n: String(x.stockQuantity - count) })
-                        : fill(p.stocktakeExtra, { n: String(count - x.stockQuantity) })
-                    }`
-                  : ''}
-              </Text>
-            </View>
-            <TextInput
-              accessibilityLabel={fill(p.stocktakeCount, { name: x.name })}
-              placeholder="—"
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-              value={counts[x.id] ?? ''}
-              onChangeText={(value) => setCounts({ ...counts, [x.id]: value })}
-              style={[styles.input, count === undefined && { borderColor: colors.danger }]}
-            />
-          </View>
-        ))}
-        {wrong ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
+        {rows}
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={{ marginTop: 8 }}>
           <Button
             label={p.stocktakeSave}
             busy={busy}
-            disabled={wrong || changes.length === 0}
+            disabled={disabled}
             onPress={() => void save()}
           />
         </View>
@@ -103,12 +134,16 @@ export function StocktakeCard(props: {
 
 const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.ink },
-  row: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
+  product: { marginTop: 8 },
+  row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  details: { flex: 1, minWidth: 0 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 14 },
-  warn: { color: colors.danger, fontSize: 14, marginTop: 8 },
+  warn: { color: colors.danger, fontSize: 14, marginTop: 4, textAlign: 'right' },
+  invalidInput: { borderColor: colors.danger },
   input: {
-    width: 80,
+    width: 88,
+    minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,

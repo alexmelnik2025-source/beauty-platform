@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { orderQuantity, orderText, parseDelivery, parseStock, toOrderNames } from '../src/stock';
+import {
+  orderQuantity,
+  orderText,
+  parseDelivery,
+  parseStock,
+  stocktakeCount,
+  toOrderNames,
+} from '../src/stock';
 
 describe('parseStock (task 431)', () => {
   it('empty means the pieces are not counted', () => {
@@ -18,6 +25,27 @@ describe('parseStock (task 431)', () => {
     expect(parseStock('1,5')).toBeUndefined();
     expect(parseStock('abc')).toBeUndefined();
     expect(parseStock('100001')).toBeUndefined();
+  });
+});
+
+describe('stocktakeCount', () => {
+  it('keeps untouched tracked and untracked quantities', () => {
+    expect(stocktakeCount(undefined, null)).toBeNull();
+    expect(stocktakeCount(undefined, 0)).toBe(0);
+    expect(stocktakeCount(undefined, 37)).toBe(37);
+  });
+
+  it.each(['', '  ', '-1', 'abc', '1.5', '1e2', '100001', '0000000'])(
+    'rejects an explicitly entered invalid count %j',
+    (text) => {
+      expect(stocktakeCount(text, 7)).toBeUndefined();
+      expect(stocktakeCount(text, null)).toBeUndefined();
+    },
+  );
+
+  it('accepts zero for an untracked product and the upper bound', () => {
+    expect(stocktakeCount('000000', null)).toBe(0);
+    expect(stocktakeCount(' 100000 ', 0)).toBe(100_000);
   });
 });
 
