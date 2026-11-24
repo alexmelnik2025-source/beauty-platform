@@ -12,11 +12,11 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **811 (ветка `agent/811-delivery-save-error`, поверх 810): «Usługi» → «Produkty» — отказ «Przyjmij dostawę» и «Zapisz inwentaryzację» под этими кнопками**
+- **✅ Влито в main 24.11.2026 (~14:55 по Варшаве, ветка `agent/810-811-stack`). 811 (ветка `agent/811-delivery-save-error`, поверх 810): «Usługi» → «Produkty» — отказ «Przyjmij dostawę» и «Zapisz inwentaryzację» под этими кнопками**
   (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). Ответ сервера был рамкой над списком
   товаров — теперь под кнопкой внизу, введённые штуки остаются, правка поля убирает ошибку. e2e `products-order`,
   `products`, скриншоты `811-delivery-save-error`, `811-stocktake-save-error`.
-- **810 (ветка `agent/810-loyalty-save-errors`, от main; номер 810 — чтобы не пересечься с параллельным запуском 805): «Program lojalnościowy» — отказ «Zapisz poziomy» под этой кнопкой; в окне награды отказ «Zapisz» и «Usuń z katalogu» — под нажатой кнопкой**
+- **✅ Влито в main 24.11.2026 (~14:55 по Варшаве, ветка `agent/810-811-stack`). 810 (ветка `agent/810-loyalty-save-errors`, от main; номер 810 — чтобы не пересечься с параллельным запуском 805): «Program lojalnościowy» — отказ «Zapisz poziomy» под этой кнопкой; в окне награды отказ «Zapisz» и «Usuń z katalogu» — под нажатой кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Ответ сервера был рамкой вверху формы/окна,
   далеко от кнопки; введённое остаётся, правка поля убирает ошибку. e2e `loyalty`, скриншоты
   `810-loyalty-tiers-save-error`, `810-loyalty-reward-save-error`, `810-loyalty-reward-archive-error`.
