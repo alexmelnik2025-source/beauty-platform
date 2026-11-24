@@ -12,10 +12,10 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **797–798 (ветки `agent/797-notifications-mark-error`, `agent/798-onboarding-submit-error` поверх неё, от main): «Powiadomienia» — отказ «Oznacz wszystkie jako przeczytane» под кнопкой (раньше не показывался вовсе); «Kreator salonu» — отказ «Utwórz salon» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~10:00 по Варшаве (вместе с PR Codex #67, #72–#77). 797–798 (ветки `agent/797-notifications-mark-error`, `agent/798-onboarding-submit-error` поверх неё, от main): «Powiadomienia» — отказ «Oznacz wszystkie jako przeczytane» под кнопкой (раньше не показывался вовсе); «Kreator salonu» — отказ «Utwórz salon» под кнопкой**
   (исправление и полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `booking`,
   `onboarding-retry`, скриншоты `797-notifications-mark-all-error`, `798-onboarding-submit-error`.
-- **PR Codex #67 (BA), #72 (BE), #73 (BG), #74 (BF), #75 (BH), #76 (BI), #77 (BJ) — одной веткой `agent/797-codex-ba-bj`** (от main, коммиты Codex без изменений, `docs/CODEX.md` — версия main) — мобильные приложения, новых функций нет.
+- **✅ Влито в main 24.11.2026, ~10:00 по Варшаве. PR Codex #67 (BA), #72 (BE), #73 (BG), #74 (BF), #75 (BH), #76 (BI), #77 (BJ) — одной веткой `agent/797-codex-ba-bj`** (от main, коммиты Codex без изменений, `docs/CODEX.md` — версия main) — мобильные приложения, новых функций нет.
 - **✅ Влито в main 24.11.2026, ~09:05 по Варшаве (вместе с 790–795 и PR Codex #70, #71). 796 (ветка `agent/796-member-sheet-error`, поверх `agent/790-795-codex-bc-bd`): «Zespół» → «Dostęp i uprawnienia» → человек — отказ «Zapisz» и «Usuń z zespołu» внизу окна под кнопками**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Ответ сервера был рамкой вверху окна, над
   длинным списком прав — у кнопок его не видно. e2e `booking`, скриншот `796-member-rights-save-error`.
