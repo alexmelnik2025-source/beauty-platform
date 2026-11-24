@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import type { FailedEmail as Failed, OutboxStats as Stats } from '@/lib/types';
@@ -13,6 +13,13 @@ export default function OutboxPage() {
   const [failed, setFailed] = useState<Failed[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  /**
+   * Task 841 (owner's rule: errors where the action is): a refused "Wyślij wszystkie ponownie" or
+   * "Wyślij ponownie" is said right under the pressed button, not as a box at the top of the page.
+   * The box stays only for a page that failed to load. `at` is 'all' or the email's id.
+   */
+  const [retryError, setRetryError] = useState<{ at: string; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -31,7 +38,11 @@ export default function OutboxPage() {
     void load();
   }, [load]);
 
-  async function retry(body: object) {
+  async function retry(body: { all: true } | { ids: string[] }, at: string) {
+    if (busy) return;
+    setBusy(true);
+    setRetryError(null);
+    setMessage('');
     try {
       const res = await api<{ requeued: number }>('/v1/admin/outbox/retry', {
         method: 'POST',
@@ -40,9 +51,13 @@ export default function OutboxPage() {
       setMessage(fill(t.admin.requeued, { count: String(res.requeued) }));
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      setRetryError({ at, text: errorText(t, err) });
+    } finally {
+      setBusy(false);
     }
   }
+
+  const errorAt = (at: string) => (retryError?.at === at ? retryError.text : undefined);
 
   if (!stats) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
 
@@ -77,12 +92,15 @@ export default function OutboxPage() {
                 type="button"
                 className="btn btn--small"
                 style={{ flex: '0 0 auto' }}
-                onClick={() => void retry({ all: true })}
+                disabled={busy}
+                aria-describedby={errorAt('all') ? 'outbox-retry-all-error' : undefined}
+                onClick={() => void retry({ all: true }, 'all')}
               >
                 {t.admin.retryAll}
               </button>
             ) : null}
           </div>
+          <FieldError id="outbox-retry-all-error" text={errorAt('all')} />
           {failed.length === 0 ? (
             <p className="note">{t.admin.empty}</p>
           ) : (
@@ -100,13 +118,18 @@ export default function OutboxPage() {
                     </span>
                     <span className="small">{f.lastError}</span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn btn--quiet btn--small"
-                    onClick={() => void retry({ ids: [f.id] })}
-                  >
-                    {t.admin.retry}
-                  </button>
+                  <span className="stack" style={{ gap: 4, flex: '0 0 auto' }}>
+                    <button
+                      type="button"
+                      className="btn btn--quiet btn--small"
+                      disabled={busy}
+                      aria-describedby={errorAt(f.id) ? `outbox-retry-error-${f.id}` : undefined}
+                      onClick={() => void retry({ ids: [f.id] }, f.id)}
+                    >
+                      {t.admin.retry}
+                    </button>
+                    <FieldError id={`outbox-retry-error-${f.id}`} text={errorAt(f.id)} />
+                  </span>
                 </li>
               ))}
             </ul>
