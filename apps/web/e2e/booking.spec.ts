@@ -905,8 +905,8 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const seriesSheet = ownerPage.getByRole('dialog');
   await expect(seriesSheet).toContainText('Powtarza się co tydzień');
   await shot(ownerPage, '70b-owner-weekly-block-card');
-  // Task 727 (owner's rule: errors where the action is): a refused removal is said right above
-  // the buttons, not at the top of the sheet.
+  // Task 727 (owner's rule: errors where the action is): a refused removal is said in the footer,
+  // not at the top of the sheet; task 836: under the buttons, tied to the pressed one.
   await ownerPage.route('**/time-blocks/series/*', (route) =>
     route.request().method() === 'DELETE'
       ? route.fulfill({
@@ -916,11 +916,18 @@ test('a client books online; the visit is in the salon and staff calendars; emai
       : route.continue(),
   );
   await seriesSheet.getByRole('button', { name: 'Usuń całą serię' }).click();
-  await expect(seriesSheet.locator('.sheet-foot').getByRole('alert')).toHaveText(
+  await expect(seriesSheet.locator('.sheet-foot #block-remove-error')).toHaveText(
     'Zbyt wiele prób. Odczekaj chwilę.',
   );
-  await expect(seriesSheet.locator('.alert')).toHaveCount(1);
+  await expect(
+    seriesSheet.getByRole('button', { name: 'Usuń całą serię' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(seriesSheet.getByRole('button', { name: 'Usuń blokadę' })).not.toHaveAttribute(
+    'aria-describedby',
+  );
+  await expect(seriesSheet.locator('.alert')).toHaveCount(0);
   await shot(ownerPage, '727-block-remove-error');
+  await shot(ownerPage, '836-block-remove-error');
   // Removed meanwhile on another device: the sheet closes, as after a removal, with no error.
   await ownerPage.unrouteAll({ behavior: 'wait' });
   await ownerPage.route('**/time-blocks/*', (route) =>
