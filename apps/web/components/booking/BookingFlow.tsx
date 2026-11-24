@@ -285,6 +285,17 @@ export function BookingFlow({
   /** Task Q5: errors shown at their own field (name, phone, e-mail, code), not in the box on top. */
   const [problems, setProblems] = useState<Problems>({});
   /**
+   * Task 771 (owner's rule: errors where the action is): a refusal that is not about one field (no
+   * connection, too many tries, …) is said under the button that was pressed — "Wyślij kod" /
+   * "Potwierdź wizytę" on the details step, "Potwierdź wizytę" or "Wyślij kod ponownie" on the code
+   * step — not as a box above the form. The box stays for what sends the client back to the times.
+   */
+  const [actionError, setActionError] = useState<{
+    on: 'details' | 'confirm' | 'resend';
+    text: string;
+  } | null>(null);
+  useEffect(() => setActionError(null), [step]);
+  /**
    * Task Q9: the salon asks this client to pay the missed visits in the salon with this one
    * (BOOKING_PAY_FIRST): the time stays held and "Potwierdź" books after the notice. `sum` only
    * when the server tells it (a code by email). Bound to the hold it was shown for.
@@ -472,6 +483,7 @@ export function BookingFlow({
     if (step === 'details' && !detailsReady(e?.currentTarget ?? null)) return;
     setBusy(true);
     setError('');
+    setActionError(null);
     setProblems({});
     try {
       const sent = await api<{ channel: 'email' | 'sms' }>(`/v1/public/holds/${hold.holdId}/code`, {
@@ -498,10 +510,14 @@ export function BookingFlow({
         setCodeChannel('email');
         setError(errorText(t, err));
       } else {
-        // On the code step ("Wyślij kod ponownie") the fields are not on screen: the box on top.
+        // On the code step ("Wyślij kod ponownie") the fields are not on screen: under that button.
         const found = step === 'details' ? fieldProblems(t, err) : null;
         if (found) setProblems(found);
-        else setError(errorText(t, err));
+        else
+          setActionError({
+            on: step === 'details' ? 'details' : 'resend',
+            text: errorText(t, err),
+          });
       }
     } finally {
       setBusy(false);
@@ -530,6 +546,7 @@ export function BookingFlow({
     if (!detailsReady(e.currentTarget)) return;
     setBusy(true);
     setError('');
+    setActionError(null);
     setProblems({});
     const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
@@ -570,7 +587,7 @@ export function BookingFlow({
       } else if (!showPayNotice(err, hold.holdId)) {
         const found = fieldProblems(t, err);
         if (found) setProblems(found);
-        else setError(errorText(t, err));
+        else setActionError({ on: 'details', text: errorText(t, err) });
       }
     } finally {
       setBusy(false);
@@ -589,6 +606,7 @@ export function BookingFlow({
     }
     setBusy(true);
     setError('');
+    setActionError(null);
     setProblems({});
     const payNoticeAccepted = payNotice?.holdId === hold.holdId;
     try {
@@ -633,7 +651,7 @@ export function BookingFlow({
       } else if (!showPayNotice(err, hold.holdId)) {
         const found = fieldProblems(t, err);
         if (found) setProblems(found);
-        else setError(errorText(t, err));
+        else setActionError({ on: 'confirm', text: errorText(t, err) });
       }
     } finally {
       setBusy(false);
@@ -641,12 +659,14 @@ export function BookingFlow({
   }
 
   /** Task Q5: typing in a field takes its error away. */
-  const fixed = (field: keyof Problems) =>
+  const fixed = (field: keyof Problems) => {
+    setActionError(null);
     setProblems((current) => {
       if (!current[field]) return current;
       const { [field]: _gone, ...rest } = current;
       return rest;
     });
+  };
 
   if (closed) {
     return (
@@ -1224,9 +1244,17 @@ export function BookingFlow({
               </div>
             ) : null}
             {signedInAs ? payNoticeBox : null}
-            <button className="btn btn--block" disabled={busy}>
+            <button
+              className="btn btn--block"
+              disabled={busy}
+              aria-describedby={actionError?.on === 'details' ? 'details-action-error' : undefined}
+            >
               {signedInAs ? confirmLabel : t.booking.sendCode}
             </button>
+            <FieldError
+              id="details-action-error"
+              text={actionError?.on === 'details' ? actionError.text : undefined}
+            />
             {signedInAs ? wishesFold : null}
           </form>
         ) : null}
@@ -1258,18 +1286,31 @@ export function BookingFlow({
             />
             <FieldError id="code-error" text={problems.code} />
             {payNoticeBox}
-            <button className="btn btn--block" disabled={busy}>
+            <button
+              className="btn btn--block"
+              disabled={busy}
+              aria-describedby={actionError?.on === 'confirm' ? 'confirm-action-error' : undefined}
+            >
               {confirmLabel}
             </button>
+            <FieldError
+              id="confirm-action-error"
+              text={actionError?.on === 'confirm' ? actionError.text : undefined}
+            />
             {wishesFold}
             <button
               type="button"
               className="link-btn small"
               disabled={busy}
+              aria-describedby={actionError?.on === 'resend' ? 'resend-action-error' : undefined}
               onClick={() => void sendCode()}
             >
               {t.booking.resend}
             </button>
+            <FieldError
+              id="resend-action-error"
+              text={actionError?.on === 'resend' ? actionError.text : undefined}
+            />
             {/* Task 608: a mistyped address is fixed here, not by picking the time again. */}
             <button
               type="button"
