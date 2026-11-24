@@ -12,6 +12,7 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **✅ Влито в main 24.11.2026 (~11:00 по Варшаве). PR Codex #78 (BK), #79 (BL), #80 (BM), #81 (BO), #82 (BN), #83 (BP) — одной веткой `agent/799-codex-bk-bp`** (от main, коммиты Codex без изменений, `docs/CODEX.md` — версия main) — мобильные приложения, доступность при крупном шрифте, новых функций нет. PR #84 (BQ) — ждёт: один прогон e2e красный.
 - **✅ Влито в main 24.11.2026, ~10:00 по Варшаве (вместе с PR Codex #67, #72–#77). 797–798 (ветки `agent/797-notifications-mark-error`, `agent/798-onboarding-submit-error` поверх неё, от main): «Powiadomienia» — отказ «Oznacz wszystkie jako przeczytane» под кнопкой (раньше не показывался вовсе); «Kreator salonu» — отказ «Utwórz salon» под кнопкой**
   (исправление и полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `booking`,
   `onboarding-retry`, скриншоты `797-notifications-mark-all-error`, `798-onboarding-submit-error`.

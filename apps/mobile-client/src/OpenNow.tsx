@@ -1,4 +1,4 @@
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import type { DirectorySalon, Locale } from './api';
 import type { Dictionary } from './i18n';
 import { openStatus, openStatusText, salonNow } from './salon';
@@ -22,14 +22,10 @@ export function OpenNow(props: {
   return (
     <Text
       accessible
+      role="status"
+      aria-live="polite"
       accessibilityLabel={text}
-      style={{
-        color: colors.ink,
-        fontSize: 14,
-        fontWeight: '600',
-        flexShrink: 1,
-        maxWidth: '100%',
-      }}
+      style={styles.status}
     >
       <Text aria-hidden style={{ color: status.kind === 'open' ? '#1f7a45' : colors.muted }}>
         ●{' '}
@@ -38,3 +34,7 @@ export function OpenNow(props: {
     </Text>
   );
 }
+
+const styles = StyleSheet.create({
+  status: { color: colors.ink, fontSize: 14, fontWeight: '600', flexShrink: 1, maxWidth: '100%' },
+});

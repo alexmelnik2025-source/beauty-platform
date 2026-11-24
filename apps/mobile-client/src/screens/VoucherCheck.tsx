@@ -35,6 +35,7 @@ export function VoucherCheck(props: VoucherProps) {
 
 function VoucherForm({ api, t, locale, slug }: VoucherProps) {
   const requestId = useRef(0);
+  const labelId = useId();
   const errorId = useId();
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -83,7 +84,11 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
         {t.voucherCheck.title}
       </Text>
       <Text style={styles.small}>{t.voucherCheck.hint}</Text>
+      <Text nativeID={labelId} style={styles.body}>
+        {t.voucherCheck.code}
+      </Text>
       <TextInput
+        aria-labelledby={labelId}
         aria-invalid={invalidCode}
         aria-describedby={message ? errorId : undefined}
         accessibilityLabel={t.voucherCheck.code}
@@ -160,5 +165,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     letterSpacing: 2,
     minHeight: 44,
+    minWidth: 44,
   },
 });

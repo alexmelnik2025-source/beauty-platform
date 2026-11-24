@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, FlatList, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
@@ -146,6 +146,8 @@ export function NotificationsScreen(props: {
   const unread = list?.some((x) => !x.read) ?? false;
   return (
     <FlatList
+      role="list"
+      accessibilityLabel={n.title}
       data={list ?? []}
       renderItem={renderItem}
       contentContainerStyle={styles.screen}
@@ -192,13 +194,9 @@ const NoticeRow = memo(function NoticeRow({
   const source = notice.data.by === 'client' ? n.byClient : n.bySalon;
   const date = dayTitle(notice.data.date, locale);
   const detail = `${notice.data.customerName ?? t.day.walkIn} · ${notice.data.serviceName} · ${notice.data.staffName}`;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${notice.read ? '' : `${n.unread}: `}${kind}, ${notice.data.time} ${detail}, ${date}, ${source}`}
-      onPress={() => void open(notice)}
-      style={({ pressed }) => pressed && { opacity: 0.7 }}
-    >
+  const label = `${kind}, ${notice.data.time} ${detail}, ${date}, ${source}`;
+  const content = (
+    <View aria-hidden>
       <Card>
         <View style={styles.top}>
           <Text style={[styles.kind, notice.type === 'appointment.cancelled' && styles.bad]}>
@@ -212,7 +210,27 @@ const NoticeRow = memo(function NoticeRow({
         </Text>
         <Text style={styles.muted}>{detail}</Text>
       </Card>
-    </Pressable>
+    </View>
+  );
+  if (notice.read && !opensVisit(notice)) {
+    return (
+      <View accessible role="listitem" accessibilityLabel={label}>
+        {content}
+      </View>
+    );
+  }
+  return (
+    <View role="listitem">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={Platform.OS === 'web' && !notice.read ? `${n.unread}: ${label}` : label}
+        accessibilityValue={Platform.OS !== 'web' && !notice.read ? { text: n.unread } : undefined}
+        onPress={() => open(notice)}
+        style={({ pressed }) => pressed && { opacity: 0.7 }}
+      >
+        {content}
+      </Pressable>
+    </View>
   );
 });
 

@@ -164,7 +164,7 @@ const WaitlistDetails = memo(function WaitlistDetails({
 }) {
   return (
     <>
-      <View style={styles.row}>
+      <View accessible style={styles.row}>
         <Text style={styles.name}>{entry.name}</Text>
         {entry.autoBook ? <Text style={styles.autoBadge}>Auto</Text> : null}
       </View>

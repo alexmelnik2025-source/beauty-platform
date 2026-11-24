@@ -382,7 +382,9 @@ export function SalonScreen(props: {
   const question = (key: 'askMood' | 'askDrink' | 'askNote', text: string, label: string) =>
     form ? (
       <View style={[styles.switchRow, { marginTop: 10 }]}>
-        <Text style={[styles.value, { flex: 1, fontWeight: '400' }]}>{text}</Text>
+        <Text aria-hidden style={[styles.value, { flex: 1, fontWeight: '400' }]}>
+          {text}
+        </Text>
         <Switch
           style={switchTouchTarget}
           accessibilityLabel={label}
@@ -584,7 +586,7 @@ export function SalonScreen(props: {
                   })}
                   <View style={styles.field}>
                     <Text style={styles.label}>{s.step}</Text>
-                    <View style={styles.row}>
+                    <View role="group" accessibilityLabel={s.step} style={styles.row}>
                       {SLOT_STEPS.map((minutes) => (
                         <Chip
                           key={minutes}
@@ -611,7 +613,7 @@ export function SalonScreen(props: {
                   {form.askDrink ? (
                     <View style={[styles.field, { paddingLeft: 12 }]}>
                       <Text style={styles.label}>{s.drinksOffered}</Text>
-                      <View style={styles.row}>
+                      <View role="group" accessibilityLabel={s.drinksOffered} style={styles.row}>
                         {OFFERED_DRINKS.map((drink) => (
                           <Chip
                             key={drink}
@@ -704,6 +706,8 @@ export function SalonScreen(props: {
                         <View key={photo.id} style={styles.photoBox}>
                           <Image
                             source={{ uri: api.absoluteUrl(photo.url) }}
+                            accessible
+                            accessibilityRole="image"
                             accessibilityLabel={name}
                             accessibilityIgnoresInvertColors
                             style={styles.photo}
@@ -756,6 +760,7 @@ export function SalonScreen(props: {
               {sections.map((item) => (
                 <Pressable
                   accessibilityLabel={item.title}
+                  accessibilityHint={item.hint}
                   key={item.key}
                   accessibilityRole="button"
                   onPress={() => {
@@ -836,16 +841,17 @@ export function ChoiceList<T extends string>(props: {
         </Text>
         <Button
           kind="link"
-          label={open ? s.choiceClose : s.choiceChange}
-          a11yLabel={`${open ? s.choiceClose : s.choiceChange}: ${props.label}`}
+          label={s.choiceChange}
+          expanded={open}
+          a11yLabel={`${s.choiceChange}: ${props.label}`}
           onPress={() => {
-            setOpen(!open);
+            setOpen(true);
             setTyped('');
           }}
         />
       </View>
       {open ? (
-        <Modal visible onRequestClose={() => setOpen(false)}>
+        <Modal visible accessibilityLabel={props.label} onRequestClose={() => setOpen(false)}>
           <SafeAreaProvider>
             <SafeAreaView style={styles.picker}>
               <Heading>{props.label}</Heading>
@@ -978,6 +984,7 @@ const styles = StyleSheet.create({
   },
   section: { fontSize: 16, color: colors.ink, fontWeight: '700', marginBottom: 10 },
   chip: {
+    maxWidth: '100%',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,

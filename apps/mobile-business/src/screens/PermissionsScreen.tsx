@@ -281,10 +281,15 @@ function SalonPermissions(props: Props) {
     const { form } = catForm;
     return (
       <Card>
-        <Text style={styles.label}>{r.categoryName}</Text>
+        <Text nativeID="category-name-label" style={styles.label}>
+          {r.categoryName}
+        </Text>
         <TextInput
           ref={categoryNameInput}
+          editable={!busy}
           accessibilityLabel={r.categoryName}
+          aria-labelledby="category-name-label"
+          accessibilityHint={catForm.nameInvalid ? r.noName : undefined}
           aria-invalid={!!catForm.nameInvalid}
           aria-describedby={catForm.nameInvalid ? 'category-name-error' : undefined}
           value={form.name}
@@ -295,7 +300,12 @@ function SalonPermissions(props: Props) {
           style={[styles.input, catForm.nameInvalid && styles.invalid]}
         />
         {catForm.nameInvalid ? (
-          <Text nativeID="category-name-error" role="alert" style={styles.fieldError}>
+          <Text
+            nativeID="category-name-error"
+            role="alert"
+            accessibilityLiveRegion="assertive"
+            style={styles.fieldError}
+          >
             ! {r.noName}
           </Text>
         ) : null}
@@ -306,7 +316,8 @@ function SalonPermissions(props: Props) {
               key={p.key}
               accessibilityRole="checkbox"
               accessibilityLabel={label(p.key)}
-              accessibilityState={{ checked: on }}
+              disabled={busy}
+              accessibilityState={{ checked: on, disabled: busy }}
               aria-checked={on}
               onPress={() =>
                 setCatForm({
@@ -498,6 +509,8 @@ const styles = StyleSheet.create({
   invalid: { borderColor: colors.danger },
   fieldError: { color: colors.danger, fontSize: 15 },
   input: {
+    minWidth: 0,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,

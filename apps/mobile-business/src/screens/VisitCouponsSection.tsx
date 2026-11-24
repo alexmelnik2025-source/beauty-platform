@@ -229,14 +229,19 @@ function CouponCodeForm({
       <Text style={styles.label}>{c.code}</Text>
       <TextInput
         accessibilityLabel={c.code}
+        accessibilityHint={error || undefined}
         aria-invalid={!!error}
         aria-describedby={error ? 'visit-coupon-error' : undefined}
+        multiline
+        numberOfLines={2}
+        blurOnSubmit
+        returnKeyType="done"
         autoCapitalize="characters"
         autoCorrect={false}
         editable={!busy}
         value={code}
         onChangeText={(value) => {
-          setCode(value);
+          setCode(value.replace(/[\r\n]/g, ''));
           setError('');
         }}
         maxLength={24}

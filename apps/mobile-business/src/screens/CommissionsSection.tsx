@@ -101,8 +101,10 @@ export function CommissionsSection(props: {
             accessibilityLabel={[row.displayName, detail, withTips].filter(Boolean).join(', ')}
             style={styles.summaryRow}
           >
-            <Text style={[styles.name, styles.summaryColumn]}>{row.displayName}</Text>
-            <View style={styles.summaryColumn}>
+            <Text aria-hidden style={[styles.name, styles.summaryColumn]}>
+              {row.displayName}
+            </Text>
+            <View aria-hidden style={styles.summaryColumn}>
               <Text style={styles.muted}>{detail}</Text>
               {withTips ? <Text style={styles.small}>{withTips}</Text> : null}
             </View>
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
-  summaryColumn: { flexBasis: 150, flexGrow: 1, minWidth: 0 },
+  summaryColumn: { flexBasis: 150, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 },
   percentField: { flexDirection: 'row', alignItems: 'center', gap: 8 },

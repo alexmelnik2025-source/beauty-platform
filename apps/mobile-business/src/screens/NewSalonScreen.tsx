@@ -87,24 +87,36 @@ export function NewSalonScreen(props: {
     options: { maxLength: number; hint?: string; placeholder?: string; numeric?: boolean },
   ) => {
     const invalid = problem !== null && problem === (key === 'addressLine' ? 'address' : key);
+    const fieldId = `new-salon-${key}`;
+    const hintId = options.hint ? `${fieldId}-hint` : undefined;
     return (
       <View style={styles.field}>
-        <Text style={styles.label}>{label}</Text>
+        <Text nativeID={`${fieldId}-label`} style={styles.label}>
+          {label}
+        </Text>
         <TextInput
           ref={(input) => {
             inputs.current[key] = input;
           }}
           accessibilityLabel={label}
+          aria-labelledby={`${fieldId}-label`}
+          accessibilityHint={invalid ? problems[problem] : options.hint}
           editable={!busy && !(key === 'orgName' && organizationId)}
           aria-invalid={invalid}
-          aria-describedby={invalid ? 'new-salon-field-error' : undefined}
+          aria-describedby={invalid ? `${fieldId}-error` : hintId}
           value={form[key]}
+          multiline={key === 'addressLine'}
+          numberOfLines={key === 'addressLine' ? 2 : undefined}
+          submitBehavior="blurAndSubmit"
           maxLength={options.maxLength}
           keyboardType={options.numeric ? 'numbers-and-punctuation' : undefined}
           placeholder={options.placeholder}
           placeholderTextColor={colors.placeholder}
           onChangeText={(value) => {
-            setForm({ ...form, [key]: value });
+            setForm({
+              ...form,
+              [key]: key === 'addressLine' ? value.replace(/[\r\n]+/g, ' ') : value,
+            });
             if (
               invalid ||
               (key === 'orgName' && problem === 'locationName' && !form.locationName.trim())
@@ -114,11 +126,20 @@ export function NewSalonScreen(props: {
           style={[styles.input, invalid && styles.invalid]}
         />
         {invalid ? (
-          <Text nativeID="new-salon-field-error" role="alert" style={styles.fieldError}>
+          <Text
+            nativeID={`${fieldId}-error`}
+            role="alert"
+            accessibilityLiveRegion="assertive"
+            style={styles.fieldError}
+          >
             ! {problems[problem]}
           </Text>
         ) : null}
-        {options.hint ? <Text style={styles.small}>{options.hint}</Text> : null}
+        {options.hint ? (
+          <Text nativeID={hintId} style={styles.small}>
+            {options.hint}
+          </Text>
+        ) : null}
       </View>
     );
   };
@@ -179,6 +200,7 @@ const styles = StyleSheet.create({
   fieldError: { color: colors.danger, fontSize: 15 },
   input: {
     minWidth: 0,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
