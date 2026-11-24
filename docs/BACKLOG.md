@@ -12,24 +12,24 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **782 (ветка `agent/782-booking-photo-errors`, поверх 781): запись → «📷 Pokaż, co chcesz» — отказ «Usuń» под фото, «Dodaj zdjęcie» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 782 (ветка `agent/782-booking-photo-errors`, поверх 781): запись → «📷 Pokaż, co chcesz» — отказ «Usuń» под фото, «Dodaj zdjęcie» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
-- **781 (ветка `agent/781-clients-more-error`, поверх 780): «Klienci» — отказ «Pokaż więcej klientów» под этой кнопкой**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 781 (ветка `agent/781-clients-more-error`, поверх 780): «Klienci» — отказ «Pokaż więcej klientów» под этой кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `clients-more`, скриншот `781-clients-more-error`.
-- **780 (ветка `agent/780-client-privacy-errors`, поверх 779): карточка клиента → «Dane osobowe (RODO)» — отказ «Pobierz dane klienta» и «Tak, usuń dane» под своей кнопкой**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 780 (ветка `agent/780-client-privacy-errors`, поверх 779): карточка клиента → «Dane osobowe (RODO)» — отказ «Pobierz dane klienta» и «Tak, usuń dane» под своей кнопкой**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `booking`, скриншот `780-client-erase-error`.
-- **779 (ветка `agent/779-services-row-errors`, поверх 778): «Usługi» — отказ «Usuń kategorię» и ↑/↓ под своей категорией или услугой**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 779 (ветка `agent/779-services-row-errors`, поверх 778): «Usługi» — отказ «Usuń kategorię» и ↑/↓ под своей категорией или услугой**
   (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). e2e `category-order`, скриншот
   `779-category-remove-error`.
-- **778 (ветка `agent/778-favorite-button-error`, поверх 777): страница салона — отказ «♡ Dodaj do ulubionych» под сердечком с «!»**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 778 (ветка `agent/778-favorite-button-error`, поверх 777): страница салона — отказ «♡ Dodaj do ulubionych» под сердечком с «!»**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). e2e `web-favorites`,
   скриншот `778-salon-page-favorite-error`.
-- **777 (ветка `agent/777-voucher-action-errors`, поверх `agent/codex-aa-aj-stack`): «Bony podarunkowe» — отказ «Sprzedaj bon», «Sprawdź» и «Zapisz» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 777 (ветка `agent/777-voucher-action-errors`, поверх `agent/codex-aa-aj-stack`): «Bony podarunkowe» — отказ «Sprzedaj bon», «Sprawdź» и «Zapisz» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). Ответ сервера был рамкой над полями —
   теперь под нажатой кнопкой, введённое остаётся. e2e `gift-vouchers`, скриншоты `777-voucher-sell-error`,
   `777-voucher-edit-error`.
-- **775–776 (ветка `agent/codex-aa-aj-stack`, вместе с PR Codex #42–#51, от main): страница визита — отказ «Zapisz życzenia» и «Usuń» (фото) у своей кнопки**
+- **✅ Влито в main 24.11.2026, ~06:00 по Варшаве (775–782 вместе с PR Codex #42–#51). 775–776 (ветка `agent/codex-aa-aj-stack`, вместе с PR Codex #42–#51, от main): страница визита — отказ «Zapisz życzenia» и «Usuń» (фото) у своей кнопки**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Ответ сервера был рамкой
   над вопросами / над всеми фото — теперь под кнопкой «Zapisz życzenia» или под этим фото, введённое остаётся. e2e
   `booking`, `wish-photos`, скриншоты `775-manage-wishes-save-error`, `776-visit-photo-remove-error`.
