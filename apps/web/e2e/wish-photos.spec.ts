@@ -294,6 +294,25 @@ test('the owner asks for photos; the client adds one; the specialist sees it', a
   const mine = client.getByRole('img', { name: 'Twoje zdjęcie 1' });
   await expect(mine).toBeVisible();
   await shot(client, '05p-booking-wish-photos');
+  // Task 782 (owner's rule: errors where the action is): a refused "Usuń" is said under that
+  // photo, with its "!", not as a box under the whole step; the photo stays.
+  await client.route('**/holds/*/photos/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const removeHeld = client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' });
+  await removeHeld.click();
+  const heldItem = client.locator('.wish-photos__item').filter({ has: removeHeld });
+  await expect(heldItem.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(removeHeld).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(client.locator('.wishes-step .alert')).toHaveCount(0);
+  await expect(mine).toBeVisible();
+  await shot(client, '782-booking-photo-remove-error');
+  await client.unroute('**/holds/*/photos/*');
   await client.getByRole('button', { name: 'Usuń: Twoje zdjęcie 1' }).click();
   await expect(mine).toHaveCount(0);
   await expect(client.getByText('＋ Dodaj zdjęcie')).toBeVisible();
