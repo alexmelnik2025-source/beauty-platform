@@ -122,11 +122,10 @@ export function VisitToHand({
                 </button>
               </span>
             ) : null}
-            {error?.id === r.id ? (
-              <div style={{ flexBasis: '100%' }}>
-                <FieldError id={`to-hand-${r.id}-error`} text={error.text} />
-              </div>
-            ) : null}
+            <FieldError
+              id={`to-hand-${r.id}-error`}
+              text={error?.id === r.id ? error.text : undefined}
+            />
           </li>
         ))}
       </ul>

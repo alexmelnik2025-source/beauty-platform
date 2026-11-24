@@ -746,6 +746,11 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## «Moje wizyty» → «Moje kupony»: отказ под купоном (задача 758, 24.11.2026)
+
+- Отказ сервера на «Użyj» или «Nie używaj» — под строкой этого купона (с «!»), а не рамкой над купонами. Если купона
+  после ответа уже нет в списке — под заголовком. e2e `loyalty`, скриншот `758-client-coupon-error`.
+
 ## «Do wydania klientowi» и ссылка листа ожидания: отказ под кнопкой (задачи 756–757, 24.11.2026)
 
 - Карточка визита → «Do wydania klientowi»: отказ сервера на «Anuluj rezerwację» или «Wydaj i dolicz» — под строкой

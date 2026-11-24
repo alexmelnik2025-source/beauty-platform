@@ -677,7 +677,27 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(annaPage.getByRole('button', { name: 'Moje bonusy' })).toBeVisible();
   await annaPage.goto(`/pl/c/${next.id}`);
   const myVisitCoupons = annaPage.getByRole('region', { name: 'Moje kupony' });
-  await myVisitCoupons.getByRole('button', { name: /Użyj −22,50/ }).click();
+  // Task 758 (owner's rule: errors where the action is): a refused "Użyj" is said under that
+  // coupon, not above the coupons.
+  await annaPage.route(`**/v1/client/appointments/${next.id}/coupons`, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const useCoupon = myVisitCoupons.getByRole('button', { name: /Użyj −22,50/ });
+  await useCoupon.click();
+  const couponRow = myVisitCoupons.getByRole('listitem').filter({ has: useCoupon });
+  await expect(couponRow.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(useCoupon).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(myVisitCoupons.locator('.alert')).toHaveCount(0);
+  await couponRow.scrollIntoViewIfNeeded();
+  await shot(annaPage, '758-client-coupon-error');
+  await annaPage.unrouteAll({ behavior: 'wait' });
+  await useCoupon.click();
+  await expect(myVisitCoupons.locator('.field-error')).toHaveCount(0);
   await expect(myVisitCoupons).toContainText('Do zapłaty: 67,50');
   await expect(myVisitCoupons.getByRole('button', { name: 'Nie używaj' })).toBeVisible();
   await myVisitCoupons.scrollIntoViewIfNeeded();
