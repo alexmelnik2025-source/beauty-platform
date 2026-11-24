@@ -6,7 +6,7 @@ import {
   newRequestKey,
   todayIn,
   type BookingConfirmed,
-  type ClientApi,
+  ClientApi,
   type Hold,
   type Locale,
   type PublicLocation,
@@ -46,6 +46,7 @@ import {
   type FormFailure,
   type WishField,
 } from '../errors';
+import { tokenStore } from '../storage';
 import { paymentNoticeAmount } from '../paymentNotice';
 import {
   ANY_STAFF,
@@ -86,6 +87,76 @@ const PROBLEM_TEXT: Record<ContactProblem, (t: Dictionary) => string> = {
   email: (t) => t.book.badEmail,
   terms: (t) => t.book.termsNeeded,
 };
+
+const AVAILABILITY_TTL = 30_000;
+type CachedDay = { slots: Slot[]; loadedAt: number };
+type AvailabilityQuery = Parameters<ClientApi['availability']>[1];
+
+function useBookingTimes(slug: string, query: AvailabilityQuery | null, preferredDay: string) {
+  const [cache, setCache] = useState(() => new Map<string, Map<string, CachedDay>>());
+  const reload = useCallback(() => setCache(new Map()), []);
+  const dates = useMemo(
+    () => (query ? Array.from({ length: BOOKING_DAYS }, (_, i) => addDays(query.from, i)) : []),
+    [query],
+  );
+  const [view, setView] = useState<{
+    query: AvailabilityQuery;
+    cache: typeof cache;
+    days: Map<string, CachedDay>;
+    error?: unknown;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!query) return;
+    const controller = new AbortController();
+    const key = JSON.stringify([slug, query]);
+    const days = cache.get(key) ?? new Map<string, CachedDay>();
+    cache.set(key, days);
+    const now = Date.now();
+    for (const [date, day] of days) {
+      if (now - day.loadedAt >= AVAILABILITY_TTL) days.delete(date);
+    }
+    const publish = (error?: unknown) => {
+      if (!controller.signal.aborted) setView({ query, cache, days: new Map(days), error });
+    };
+    publish();
+
+    // Keep the ordinary path to one range request. If the client picks a day before it
+    // finishes, fetch that day first, then fill only the gaps needed for hints and the waitlist.
+    const reader = new ClientApi(API_URL, tokenStore, (url, init) =>
+      fetch(url, { ...init, signal: controller.signal }),
+    );
+    const load = async (range: string[]) => {
+      const { slots } = await reader.availability(slug, {
+        ...query,
+        from: range[0]!,
+        to: range[range.length - 1]!,
+      });
+      if (controller.signal.aborted) return;
+      const grouped = new Map(slotsByDay(slots).map((day) => [day.date, day.slots]));
+      const loadedAt = Date.now();
+      for (const date of range) days.set(date, { slots: grouped.get(date) ?? [], loadedAt });
+      publish();
+    };
+    async function loadMissing() {
+      if (dates.includes(preferredDay) && !days.has(preferredDay)) await load([preferredDay]);
+      for (let i = 0; i < dates.length && !controller.signal.aborted;) {
+        if (days.has(dates[i]!)) {
+          i++;
+          continue;
+        }
+        const first = i;
+        while (i < dates.length && !days.has(dates[i]!)) i++;
+        await load(dates.slice(first, i));
+      }
+    }
+    void loadMissing().catch(publish);
+    return () => controller.abort();
+  }, [slug, query, preferredDay, cache, dates]);
+
+  const result = view?.query === query && view.cache === cache ? view : null;
+  return { dates, result, reload };
+}
 
 /**
  * Booking in the app, without an account: service → specialist (or anyone) → a free time,
@@ -160,6 +231,11 @@ export function BookingScreen(props: {
     [t],
   );
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  function setSubmitting(value: boolean) {
+    submitting.current = value;
+    setBusy(value);
+  }
   const holdRef = useRef<Hold | null>(null);
   holdRef.current = hold;
   const doneRef = useRef(false);
@@ -202,8 +278,6 @@ export function BookingScreen(props: {
   const from = step === 'staff' || step === 'time' ? todayIn(salon.timezone) : '';
   const selectedStaff = step === 'time' ? staffId : undefined;
   const selectedRow = step === 'time' && !staffId && rowStaff.length > 1 ? rowStaff : undefined;
-  const [revision, setRevision] = useState(0);
-  const reloadSlots = () => setRevision((n) => n + 1);
   const query = useMemo(
     () =>
       from
@@ -217,38 +291,18 @@ export function BookingScreen(props: {
         : null,
     [serviceId, selectedStaff, selectedRow, from],
   );
-  const [availability, setAvailability] = useState<{
-    query: NonNullable<typeof query>;
-    revision: number;
-    slots: Slot[];
-    loadedAt: number;
-    error?: unknown;
-  } | null>(null);
-  const result =
-    availability?.query === query && availability.revision === revision ? availability : null;
-  const slots = result?.slots ?? null;
-  useEffect(() => {
-    if (!query) return;
-    setFailure((current) => (current?.retry ? null : current));
-    let live = true;
-    api.availability(salon.slug, query).then(
-      ({ slots }) => {
-        if (live) setAvailability({ query, revision, slots, loadedAt: Date.now() });
-      },
-      (error: unknown) => {
-        if (live) setAvailability({ query, revision, slots: [], loadedAt: Date.now(), error });
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [api, salon.slug, query, revision]);
-
+  const {
+    dates,
+    result,
+    reload: reloadSlots,
+  } = useBookingTimes(salon.slug, query, step === 'time' ? selectedDay : '');
   const nearest = useMemo(
-    () => (step === 'staff' && slots ? nearestByStaff(slots) : null),
-    [step, slots],
+    () =>
+      step === 'staff' && result && result.days.size > 0
+        ? nearestByStaff(Array.from(result.days.values()).flatMap((day) => day.slots))
+        : null,
+    [step, result],
   );
-
   function nearestFree(id: string): string | undefined {
     if (nearest === null) return undefined;
     const today = todayIn(salon.timezone);
@@ -256,10 +310,11 @@ export function BookingScreen(props: {
   }
 
   const expireHold = useCallback(() => {
+    reloadSlots();
     setHold(null);
     setError(b.HOLD_EXPIRED);
     setStep('time');
-  }, [b.HOLD_EXPIRED, setError]);
+  }, [b.HOLD_EXPIRED, setError, reloadSlots]);
 
   // Leaving the booking gives the held time back to the salon.
   useEffect(
@@ -270,6 +325,7 @@ export function BookingScreen(props: {
   );
 
   const goBack = useCallback(() => {
+    if (submitting.current) return;
     setError('');
     if (currentNotice) {
       setPayNotice(null);
@@ -327,9 +383,15 @@ export function BookingScreen(props: {
     }
   }
 
+  function filterStaff(id?: string) {
+    if (submitting.current) return;
+    setFailure(null);
+    setStaffId(id);
+  }
+
   async function pickTime(slot: Slot, key = newRequestKey()) {
-    if (busy) return;
-    setBusy(true);
+    if (submitting.current) return;
+    setSubmitting(true);
     setError('');
     try {
       const created = await api.hold(
@@ -343,17 +405,19 @@ export function BookingScreen(props: {
         key,
       );
       setPayNotice(null);
+      reloadSlots();
       setHold(created);
       setStep('details');
     } catch (e) {
       fail(e, () => void pickTime(slot, key));
       if (afterBookingError(e) === 'reloadTimes') reloadSlots();
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
   function backToTimes(e: unknown) {
+    reloadSlots();
     setError(bookingErrorText(e, t));
     setHold(null);
     setCode('');
@@ -388,7 +452,7 @@ export function BookingScreen(props: {
   }
 
   async function sendCode() {
-    if (!hold || busy) return;
+    if (!hold || submitting.current) return;
     setError('');
     setCodeError('');
     setInvalidContact(null);
@@ -398,7 +462,7 @@ export function BookingScreen(props: {
       setStep('details');
       return;
     }
-    setBusy(true);
+    setSubmitting(true);
     setError('');
     try {
       await api.sendBookingCode(hold, checked.contact, locale);
@@ -409,7 +473,7 @@ export function BookingScreen(props: {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
       else contactError(e, () => void sendCode());
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
@@ -424,7 +488,7 @@ export function BookingScreen(props: {
 
   /** Task 180e: signed in - no code; the visit is booked with the session's email. */
   async function confirmSignedIn(payNoticeAccepted = false) {
-    if (!hold || busy) return;
+    if (!hold || submitting.current) return;
     setInvalidWish(undefined);
     setError('');
     setCodeError('');
@@ -435,7 +499,7 @@ export function BookingScreen(props: {
       setStep('details');
       return;
     }
-    setBusy(true);
+    setSubmitting(true);
     setError('');
     try {
       const { email: _email, ...contact } = checked.contact;
@@ -455,16 +519,16 @@ export function BookingScreen(props: {
       if (afterBookingError(e) === 'pickTimeAgain') backToTimes(e);
       else if (!showWishError(e)) contactError(e, () => void confirmSignedIn(payNoticeAccepted));
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
   async function confirm(payNoticeAccepted = false) {
-    if (!hold || busy) return;
+    if (!hold || submitting.current) return;
     if (code.length !== 6) return setCodeError(t.signIn.badCode);
     setCodeError('');
     setInvalidWish(undefined);
-    setBusy(true);
+    setSubmitting(true);
     setError('');
     try {
       const questions = salon.wishQuestions;
@@ -484,7 +548,7 @@ export function BookingScreen(props: {
       else if (validationField(e, ['code'])) setCodeError(t.signIn.badCode);
       else if (!showWishError(e)) fail(e, () => void confirm(payNoticeAccepted));
     } finally {
-      setBusy(false);
+      setSubmitting(false);
     }
   }
 
@@ -499,10 +563,11 @@ export function BookingScreen(props: {
   );
   const stepNames = [b.stepService, b.stepStaff, b.stepTime, b.stepDetails];
   const stepIndex = { service: 0, staff: 1, time: 2, details: 3, code: 3, done: 4 }[step];
-  const days = useMemo(() => slotsByDay(slots ?? []), [slots]);
-  const activeDay = days.find((d) => d.date === selectedDay) ?? days[0];
-  const day = activeDay?.date;
-  const daySlots = activeDay?.slots ?? [];
+  const complete = !!result && result.days.size === dates.length;
+  const freeDates = dates.filter((date) => result?.days.get(date)?.slots.length);
+  const visibleDates = complete ? freeDates : dates;
+  const day = visibleDates.includes(selectedDay) ? selectedDay : visibleDates[0];
+  const daySlots = day ? result?.days.get(day)?.slots : undefined;
 
   const heldListPrice =
     hold && hold.listPriceGrosze !== null
@@ -700,7 +765,13 @@ export function BookingScreen(props: {
               }
               onPress={() => {
                 // Refresh a failed or old hint before offering its times for booking.
-                if (result && (result.error || Date.now() - result.loadedAt > 30_000))
+                if (
+                  result &&
+                  (result.error ||
+                    Array.from(result.days.values()).some(
+                      (day) => Date.now() - day.loadedAt >= AVAILABILITY_TTL,
+                    ))
+                )
                   reloadSlots();
                 setStaffId(undefined);
                 setStep('time');
@@ -745,7 +816,7 @@ export function BookingScreen(props: {
           {rowStaff.length > 1 ? (
             // Task 70c: the line's specialists over the times, "Any" first (as on Booksy).
             <View style={styles.chips} accessibilityLabel={b.pickStaff}>
-              <Chip label={b.anyShort} pressed={!staffId} onPress={() => setStaffId(undefined)} />
+              <Chip label={b.anyShort} pressed={!staffId} onPress={() => filterStaff()} />
               {rowStaff.map((id) => {
                 const who = salon.staff.find((x) => x.id === id);
                 return who ? (
@@ -753,15 +824,13 @@ export function BookingScreen(props: {
                     key={id}
                     label={who.displayName}
                     pressed={staffId === id}
-                    onPress={() => setStaffId(id)}
+                    onPress={() => filterStaff(id)}
                   />
                 ) : null;
               })}
             </View>
           ) : null}
-          {slots === null ? (
-            <Text style={styles.muted}>{t.visit.loadingSlots}</Text>
-          ) : days.length === 0 ? (
+          {visibleDates.length === 0 ? (
             <Text style={styles.muted}>{b.noSlotsAtAll}</Text>
           ) : (
             <>
@@ -770,16 +839,20 @@ export function BookingScreen(props: {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.days}
               >
-                {days.map((d) => {
-                  const chip = dayChip(d.date, locale);
-                  const on = d.date === day;
+                {visibleDates.map((date) => {
+                  const chip = dayChip(date, locale);
+                  const on = date === day;
                   return (
                     <Pressable
-                      key={d.date}
+                      key={date}
                       accessibilityRole="button"
-                      accessibilityLabel={formatDay(d.date, locale)}
+                      accessibilityLabel={formatDay(date, locale)}
                       aria-pressed={on}
-                      onPress={() => setDay(d.date)}
+                      disabled={busy}
+                      onPress={() => {
+                        setFailure(null);
+                        setDay(date);
+                      }}
                       style={[styles.dayChip, on && styles.dayChipOn]}
                     >
                       <Text style={[styles.dayWeek, on && styles.onText]}>{chip.weekday}</Text>
@@ -789,15 +862,16 @@ export function BookingScreen(props: {
                 })}
               </ScrollView>
               {day ? <Text style={styles.strong}>{formatDay(day, locale)}</Text> : null}
-              {daySlots.length === 0 ? <Text style={styles.muted}>{b.noSlotsDay}</Text> : null}
-              {dayParts(daySlots).map((p) => (
+              {!daySlots && !result?.error ? (
+                <Text style={styles.muted}>{t.visit.loadingSlots}</Text>
+              ) : null}
+              {daySlots?.length === 0 ? <Text style={styles.muted}>{b.noSlotsDay}</Text> : null}
+              {dayParts(daySlots ?? []).map((p) => (
                 <View key={p.part} style={{ gap: 6 }}>
                   <Text style={styles.muted}>{b[p.part]}</Text>
                   <View style={styles.times}>
                     {p.slots.map((slot) => {
-                      const select = () => {
-                        if (!busy) void pickTime(slot);
-                      };
+                      const select = () => void pickTime(slot);
                       if (!slot.discountPercent) {
                         return (
                           <Chip
@@ -816,6 +890,7 @@ export function BookingScreen(props: {
                           key={slot.start}
                           time={slot.time}
                           percent={slot.discountPercent}
+                          disabled={busy}
                           labels={t.visit}
                           listPrice={
                             listPrice ? formatPrice(listPrice, salon.currency, locale) : undefined
@@ -829,7 +904,7 @@ export function BookingScreen(props: {
               ))}
             </>
           )}
-          {slots !== null && serviceId ? (
+          {complete && serviceId ? (
             <WaitlistPanel
               key={`${serviceId}-${staffId ?? ''}`}
               api={api}
@@ -838,7 +913,7 @@ export function BookingScreen(props: {
               salon={salon}
               serviceId={serviceId}
               staffId={staffId}
-              freeDates={days.map((d) => d.date)}
+              freeDates={freeDates}
               signedIn={props.signedIn}
             />
           ) : null}
