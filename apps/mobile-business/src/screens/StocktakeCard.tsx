@@ -23,6 +23,7 @@ const StocktakeRow = memo(function StocktakeRow({
   const { id, name, stockQuantity } = product;
   const diff = typeof count === 'number' && stockQuantity !== null ? count - stockQuantity : 0;
   const invalid = count === undefined;
+  const rangeError = invalid ? `! ${fill(p.orderPieces, { n: '0–100 000' })}` : undefined;
   const errorId = `stocktake-error-${id}`;
   return (
     <View style={styles.product} testID="stocktake-row">
@@ -38,23 +39,31 @@ const StocktakeRow = memo(function StocktakeRow({
               : ''}
           </Text>
         </View>
-        <TextInput
-          accessibilityLabel={fill(p.stocktakeCount, { name })}
-          aria-invalid={invalid}
-          aria-describedby={invalid ? errorId : undefined}
-          placeholder="—"
-          placeholderTextColor={colors.placeholder}
-          keyboardType="number-pad"
-          value={draft ?? String(stockQuantity ?? '')}
-          onChangeText={(value) => onChange(id, value)}
-          style={[styles.input, invalid && styles.invalidInput]}
-        />
+        <View style={styles.field}>
+          <TextInput
+            accessibilityLabel={fill(p.stocktakeCount, { name })}
+            accessibilityHint={rangeError}
+            aria-invalid={invalid}
+            aria-describedby={invalid ? errorId : undefined}
+            placeholder="—"
+            placeholderTextColor={colors.placeholder}
+            keyboardType="number-pad"
+            value={draft ?? String(stockQuantity ?? '')}
+            onChangeText={(value) => onChange(id, value)}
+            style={[styles.input, invalid && styles.invalidInput]}
+          />
+          {rangeError ? (
+            <Text
+              role="alert"
+              accessibilityLiveRegion="polite"
+              nativeID={errorId}
+              style={styles.warn}
+            >
+              {rangeError}
+            </Text>
+          ) : null}
+        </View>
       </View>
-      {invalid ? (
-        <Text role="alert" nativeID={errorId} style={styles.warn}>
-          ! {fill(p.orderPieces, { n: '0–100 000' })}
-        </Text>
-      ) : null}
     </View>
   );
 });
@@ -112,7 +121,7 @@ export function StocktakeCard(props: {
   };
 
   return (
-    <View testID="stocktake">
+    <View testID="stocktake" role="group" accessibilityLabel={p.stocktakeTitle} accessible={false}>
       <Card>
         <Text role="heading" aria-level={3} style={styles.title}>
           {p.stocktakeTitle}
@@ -141,8 +150,8 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 14 },
   warn: { color: colors.danger, fontSize: 14, marginTop: 4, textAlign: 'right' },
   invalidInput: { borderColor: colors.danger },
+  field: { width: 112, maxWidth: '100%' },
   input: {
-    width: 104,
     minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
