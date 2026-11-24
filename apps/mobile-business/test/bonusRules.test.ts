@@ -101,6 +101,41 @@ describe('extra stamps and points (task 346)', () => {
     }
   });
 
+  it('keeps overlapping rules for the server to choose the best bonus', () => {
+    const general = { ...EMPTY_BONUS, name: 'Week', weekdays: [1, 2] };
+    const specific = {
+      ...general,
+      name: 'Monday',
+      weekdays: [1],
+      staffIds: ['s1'],
+      multiplier: '1',
+      extraPoints: '1',
+    };
+    expect(bonusToSave([general, specific])).toEqual({
+      ok: true,
+      save: {
+        rules: [
+          {
+            name: 'Week',
+            weekdays: [1, 2],
+            staffIds: [],
+            multiplier: 2,
+            extraPoints: 0,
+            withinDays: null,
+          },
+          {
+            name: 'Monday',
+            weekdays: [1],
+            staffIds: ['s1'],
+            multiplier: 1,
+            extraPoints: 1,
+            withinDays: null,
+          },
+        ],
+      },
+    });
+  });
+
   it('says what a rule gives and toggles choices', () => {
     expect(bonusGives({ multiplier: 2, extraPoints: 0 })).toBe('×2');
     expect(bonusGives({ multiplier: 3, extraPoints: 5 })).toBe('×3 · +5');

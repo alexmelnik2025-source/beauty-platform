@@ -111,7 +111,7 @@ export function newReward(
   let discountPercent: number | null = null;
   let freeServiceId: string | null = null;
   if (form.kind === 'discount_percent') {
-    const percent = Number(form.percent.trim().replace('%', ''));
+    const percent = Number(form.percent.trim().replace(/%$/, ''));
     if (!form.percent.trim() || !Number.isInteger(percent) || percent < 1 || percent > 100) {
       return { ok: false, problem: 'percent' };
     }
