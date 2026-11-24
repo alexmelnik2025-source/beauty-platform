@@ -1,18 +1,49 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import {
-  HOLD_MINUTES,
-  messagesChanges,
-  messagesForm,
-  REMINDER_HOURS,
-  type MessagesForm,
-} from '../messages';
+import { HOLD_MINUTES, messagesChanges, messagesForm, REMINDER_HOURS } from '../messages';
 import { saveProblem } from '../salon';
 import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+
+export const locationCache = new SalonReadCache<Location>();
+
+export function useLocationForm<T>(
+  api: BusinessApi,
+  salon: SalonChoice,
+  toForm: (location: Location) => T,
+  t: Dictionary,
+  setError: (message: string) => void,
+) {
+  const dictionary = useRef(t);
+  dictionary.current = t;
+  const [location, setLocation] = useState<Location | null>(null);
+  const [form, setForm] = useState<T | null>(null);
+  const lifetime = useScreenLifetime(salon);
+  const load = useCallback(async () => {
+    const signal = lifetime.current!.signal;
+    if (signal.aborted) return;
+    try {
+      const saved = await locationCache.read(salon, () =>
+        api.location(salon.orgId, salon.locationId),
+      );
+      if (signal.aborted) return;
+      setLocation(saved);
+      setForm(toForm(saved));
+    } catch (e) {
+      if (!signal.aborted) setError(errorText(e, dictionary.current));
+    }
+  }, [api, salon, toForm, lifetime, setError]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { location, setLocation, form, setForm, lifetime, load };
+}
 
 /**
  * Task 208: "Wiadomości do klientów" — the owner or a manager chooses when the reminder email
@@ -27,25 +58,17 @@ export function MessagesScreen(props: {
 }) {
   const { api, t, salon, onBack } = props;
   const m = t.messages;
-  const [location, setLocation] = useState<Location | null>(null);
-  const [form, setForm] = useState<MessagesForm | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const saved = await api.location(salon.orgId, salon.locationId);
-      setLocation(saved);
-      setForm(messagesForm(saved));
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, t]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
+    api,
+    salon,
+    messagesForm,
+    t,
+    setError,
+  );
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -68,6 +91,7 @@ export function MessagesScreen(props: {
       setInfo(m.nothing);
       return;
     }
+    const signal = lifetime.current!.signal;
     setBusy(true);
     try {
       const saved = await api.updateLocation(
@@ -76,16 +100,20 @@ export function MessagesScreen(props: {
         location.version,
         checked.changes,
       );
+      locationCache.set(salon, saved);
+      if (signal.aborted) return;
       setLocation(saved);
       setForm(messagesForm(saved));
       setInfo(m.saved);
     } catch (e) {
+      locationCache.clear(salon);
+      if (signal.aborted) return;
       if (saveProblem(e) === 'changedMeanwhile') {
         setError(m.changedMeanwhile);
         await load();
       } else setError(errorText(e, t));
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 

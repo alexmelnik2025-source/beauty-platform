@@ -1,8 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
   Image,
+  FlatList,
+  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -10,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, Locale, Location, SalonPhoto } from '../api';
+import type { BusinessApi, Locale, SalonPhoto } from '../api';
 import { photosLeft, photoType, uploadErrorText } from '../salonPhotos';
 import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
@@ -24,16 +26,20 @@ import {
   saveProblem,
   toggleDrink,
   type LegalKey,
-  type SalonForm,
   type SalonProblem,
 } from '../salon';
 import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import { SPOKEN, toggleLanguage } from '../profile';
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache } from './HistoryScreen';
+import { locationCache, useLocationForm } from './MessagesScreen';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 
 type SettingsSection =
   'online' | 'details' | 'languages' | 'country' | 'rules' | 'questions' | 'legal' | 'photos';
+
+const photoCache = new SalonReadCache<SalonPhoto[]>();
 
 /**
  * "Salon" (task 131): the owner or a manager changes the salon's name, address, phone and
@@ -61,8 +67,6 @@ export function SalonScreen(props: {
   const s = t.salon;
   const [section, setSection] = useState<SettingsSection | null>(null);
   const [fieldProblem, setFieldProblem] = useState<SalonProblem | null>(null);
-  const [location, setLocation] = useState<Location | null>(null);
-  const [form, setForm] = useState<SalonForm | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -75,42 +79,52 @@ export function SalonScreen(props: {
   /** Task 337: photos are being sent. */
   const [uploading, setUploading] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const saved = await api.location(salon.orgId, salon.locationId);
-      setLocation(saved);
-      setForm(salonForm(saved));
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, t]);
+  const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
+    api,
+    salon,
+    salonForm,
+    t,
+    setError,
+  );
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    api
-      .salonPhotos(salon.orgId, salon.locationId)
-      .then(setPhotos)
-      .catch((e: unknown) => setError(errorText(e, t)));
-  }, [api, salon, t]);
+    if (section !== 'photos') return;
+    let active = true;
+    photoCache
+      .read(salon, () => api.salonPhotos(salon.orgId, salon.locationId))
+      .then(
+        (list) => {
+          if (active) setPhotos(list);
+        },
+        (e) => {
+          if (active) setError(errorText(e, t));
+        },
+      );
+    return () => {
+      active = false;
+    };
+  }, [api, salon, section, t]);
 
   async function removePhoto(id: string) {
+    const signal = lifetime.current!.signal;
     setRemoving(null);
     setError('');
     setInfo('');
     try {
       await api.removeSalonPhoto(salon.orgId, salon.locationId, id);
+      photoCache.clear(salon);
+      if (signal.aborted) return;
       setPhotos((list) => list && list.filter((p) => p.id !== id));
       setInfo(s.photoRemoved);
     } catch (e) {
+      if (signal.aborted) return;
       setError(errorText(e, t));
     }
   }
 
   /** Task 337: photos from the gallery, one after another, as many as still fit. */
   async function addPhotos() {
+    const signal = lifetime.current!.signal;
     const left = photosLeft(photos?.length ?? 0);
     setError('');
     setInfo('');
@@ -122,32 +136,35 @@ export function SalonScreen(props: {
       // Smaller files: the API takes at most 3 MB per photo.
       quality: 0.7,
     }).catch(() => null);
+    if (signal.aborted) return;
     if (!picked) return setError(s.photoNoAccess);
     if (picked.canceled || picked.assets.length === 0) return;
     setUploading(true);
     try {
       for (const asset of picked.assets) {
-        const blob = await (await fetch(asset.uri)).blob();
+        const blob = await (await fetch(asset.uri, { signal })).blob();
+        if (signal.aborted) return;
         const saved = await api.addSalonPhoto(
           salon.orgId,
           salon.locationId,
           blob,
           photoType(asset.mimeType, blob.type),
         );
+        photoCache.clear(salon);
+        if (signal.aborted) return;
         setPhotos((list) => [...(list ?? []), saved]);
       }
       setInfo(s.photoAdded);
     } catch (e) {
+      if (signal.aborted) return;
       setError(uploadErrorText(e, t) ?? errorText(e, t));
     } finally {
-      setUploading(false);
+      if (!signal.aborted) setUploading(false);
     }
   }
 
-  const dirty =
-    location !== null &&
-    form !== null &&
-    JSON.stringify(salonForm(location)) !== JSON.stringify(form);
+  const savedFields = useMemo(() => location && JSON.stringify(salonForm(location)), [location]);
+  const dirty = location !== null && form !== null && savedFields !== JSON.stringify(form);
 
   const goBack = useCallback(() => {
     if (busy || uploading) return;
@@ -198,13 +215,16 @@ export function SalonScreen(props: {
       setReplacing(key);
       return;
     }
+    const signal = lifetime.current!.signal;
     setReplacing(null);
     setError('');
     try {
       const templates = await api.legalTemplates(salon.orgId, salon.locationId);
+      if (signal.aborted) return;
       setForm((current) => (current ? { ...current, [key]: templates[key] } : current));
       setTemplated(true);
     } catch (e) {
+      if (signal.aborted) return;
       setError(errorText(e, t));
     }
   }
@@ -229,6 +249,7 @@ export function SalonScreen(props: {
       setInfo(s.nothing);
       return;
     }
+    const signal = lifetime.current!.signal;
     setBusy(true);
     try {
       const saved = await api.updateLocation(
@@ -237,12 +258,16 @@ export function SalonScreen(props: {
         location.version,
         checked.changes,
       );
+      locationCache.set(salon, saved);
+      if (signal.aborted) return;
       setLocation(saved);
       setForm((current) => (current === form ? salonForm(saved) : current));
       setTemplated(false);
       setInfo(s.saved);
       if (saved.name !== location.name) onRenamed(saved.name);
     } catch (e) {
+      locationCache.clear(salon);
+      if (signal.aborted) return;
       const problem = saveProblem(e);
       if (problem === 'legalTexts') {
         setSection('legal');
@@ -252,7 +277,7 @@ export function SalonScreen(props: {
         await load();
       } else setError(errorText(e, t));
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
@@ -345,6 +370,23 @@ export function SalonScreen(props: {
     { key: 'photos', icon: '▧', title: s.photos, hint: s.photosHint },
   ];
   const selected = sections.find((item) => item.key === section);
+  const zones = useMemo(
+    () =>
+      section === 'country'
+        ? salonTimeZones(locale, location?.timezone).map((z) => ({
+            value: z.timeZone,
+            label: z.label,
+          }))
+        : [],
+    [section, locale, location?.timezone],
+  );
+  const currencies = useMemo(
+    () =>
+      section === 'country'
+        ? CURRENCIES.map((c) => ({ value: c, label: currencyName(c, locale) }))
+        : [],
+    [section, locale],
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -371,7 +413,7 @@ export function SalonScreen(props: {
         {form ? (
           selected ? (
             {
-              online: (
+              online: () => (
                 <Card>
                   <View style={styles.switchRow}>
                     <View style={{ flex: 1, gap: 2 }}>
@@ -392,7 +434,7 @@ export function SalonScreen(props: {
                   </View>
                 </Card>
               ),
-              details: (
+              details: () => (
                 <Card>
                   {field('name', s.name, { maxLength: 100 })}
                   {field('addressLine', s.address, { maxLength: 200 })}
@@ -429,7 +471,7 @@ export function SalonScreen(props: {
                   })}
                 </Card>
               ),
-              languages: (
+              languages: () => (
                 <Card>
                   <Text style={styles.section}>{s.languages}</Text>
                   <Text style={styles.small}>{s.languagesHint}</Text>
@@ -457,7 +499,7 @@ export function SalonScreen(props: {
                   </View>
                 </Card>
               ),
-              country: (
+              country: () => (
                 <Card>
                   <Text style={styles.section}>{s.country}</Text>
                   <ChoiceList
@@ -465,10 +507,7 @@ export function SalonScreen(props: {
                     label={s.timeZone}
                     hint={s.timeZoneHint}
                     value={form.timezone}
-                    options={salonTimeZones(locale, location?.timezone).map((z) => ({
-                      value: z.timeZone,
-                      label: z.label,
-                    }))}
+                    options={zones}
                     onChange={(timezone) => setForm({ ...form, timezone })}
                   />
                   <ChoiceList
@@ -476,12 +515,12 @@ export function SalonScreen(props: {
                     label={s.currency}
                     hint={s.currencyHint}
                     value={form.currency}
-                    options={CURRENCIES.map((c) => ({ value: c, label: currencyName(c, locale) }))}
+                    options={currencies}
                     onChange={(currency) => setForm({ ...form, currency })}
                   />
                 </Card>
               ),
-              rules: (
+              rules: () => (
                 <Card>
                   <Text style={styles.section}>{s.rules}</Text>
                   {field('minLeadMinutes', s.lead, {
@@ -514,7 +553,7 @@ export function SalonScreen(props: {
                   </View>
                 </Card>
               ),
-              questions: (
+              questions: () => (
                 <Card>
                   <Text style={styles.section}>{s.questions}</Text>
                   <Text style={styles.small}>{s.questionsHint}</Text>
@@ -544,7 +583,7 @@ export function SalonScreen(props: {
                   {question('askNote', `✍️ ${s.askNote}`, s.askNote)}
                 </Card>
               ),
-              legal: (
+              legal: () => (
                 <Card>
                   <Text style={styles.section}>{s.legal}</Text>
                   <Text style={styles.small}>{s.legalHint}</Text>
@@ -606,7 +645,7 @@ export function SalonScreen(props: {
                   ) : null}
                 </Card>
               ),
-              photos: (
+              photos: () => (
                 <Card>
                   <Text style={styles.section}>{s.photos}</Text>
                   <Text style={styles.small}>{s.photosHint}</Text>
@@ -666,7 +705,7 @@ export function SalonScreen(props: {
                   ) : null}
                 </Card>
               ),
-            }[selected.key]
+            }[selected.key]()
           ) : (
             <Card>
               {sections.map((item) => (
@@ -735,7 +774,10 @@ export function ChoiceList<T extends string>(props: {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
   const chosen = props.options.find((o) => o.value === props.value)?.label ?? props.value;
-  const shown = matching(props.options, typed);
+  const shown = useMemo(
+    () => (open ? matching(props.options, typed) : []),
+    [open, props.options, typed],
+  );
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{props.label}</Text>
@@ -754,49 +796,59 @@ export function ChoiceList<T extends string>(props: {
         />
       </View>
       {open ? (
-        <View style={{ gap: 6 }}>
-          <TextInput
-            accessibilityLabel={fill(s.choiceSearch, { what: props.label })}
-            placeholder={s.choiceSearchPlaceholder}
-            placeholderTextColor={colors.placeholder}
-            value={typed}
-            onChangeText={setTyped}
-            style={styles.input}
-          />
-          <ScrollView
-            nestedScrollEnabled
-            accessibilityRole="radiogroup"
-            accessibilityLabel={props.label}
-            style={styles.list}
-            contentContainerStyle={{ gap: 2 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {shown.length === 0 ? <Text style={styles.small}>{s.choiceNone}</Text> : null}
-            {shown.map((option) => {
-              const on = option.value === props.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="radio"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ checked: on }}
-                  aria-checked={on}
-                  onPress={() => {
-                    props.onChange(option.value);
-                    setOpen(false);
-                    setTyped('');
-                  }}
-                  style={[styles.option, on && styles.optionOn]}
-                >
-                  <Text style={[styles.chipText, on && { fontWeight: '700' }]}>
-                    {on ? '✓ ' : ''}
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <Modal visible onRequestClose={() => setOpen(false)}>
+          <SafeAreaProvider>
+            <SafeAreaView style={styles.picker}>
+              <Heading>{props.label}</Heading>
+              <Button
+                kind="link"
+                label={s.choiceClose}
+                a11yLabel={`${s.choiceClose}: ${props.label}`}
+                onPress={() => setOpen(false)}
+              />
+              <TextInput
+                accessibilityLabel={fill(s.choiceSearch, { what: props.label })}
+                placeholder={s.choiceSearchPlaceholder}
+                placeholderTextColor={colors.placeholder}
+                value={typed}
+                onChangeText={setTyped}
+                style={styles.input}
+              />
+              <FlatList
+                data={shown}
+                keyExtractor={(option) => option.value}
+                accessibilityRole="radiogroup"
+                accessibilityLabel={props.label}
+                contentContainerStyle={{ gap: 2 }}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={<Text style={styles.small}>{s.choiceNone}</Text>}
+                renderItem={({ item: option }) => {
+                  const on = option.value === props.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="radio"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ checked: on }}
+                      aria-checked={on}
+                      onPress={() => {
+                        props.onChange(option.value);
+                        setOpen(false);
+                        setTyped('');
+                      }}
+                      style={[styles.option, on && styles.optionOn]}
+                    >
+                      <Text style={[styles.chipText, on && { fontWeight: '700' }]}>
+                        {on ? '✓ ' : ''}
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+              />
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </Modal>
       ) : null}
       <Text style={styles.small}>{props.hint}</Text>
     </View>
@@ -878,7 +930,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { fontSize: 15, color: colors.ink },
-  list: { maxHeight: 320 },
+  picker: { flex: 1, gap: 8, padding: 20, backgroundColor: colors.background },
   option: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
   optionOn: { backgroundColor: colors.soft },
 });
