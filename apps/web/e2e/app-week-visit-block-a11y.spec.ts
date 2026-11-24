@@ -97,17 +97,21 @@ async function fits(root: Locator) {
       for (const node of el.childNodes) {
         if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) continue;
         const range = document.createRange();
-        range.selectNodeContents(node);
-        if (
-          Array.from(range.getClientRects()).some(
-            (r) =>
-              r.left < rect.left - 1 ||
-              r.right > rect.right + 1 ||
-              r.top < rect.top - 1 ||
-              r.bottom > rect.bottom + 1,
+        // RN Web uses pre-wrap. A trailing space can hang past the line while every glyph fits.
+        for (const word of node.textContent.matchAll(/\S+/gu)) {
+          range.setStart(node, word.index);
+          range.setEnd(node, word.index + word[0].length);
+          if (
+            Array.from(range.getClientRects()).some(
+              (r) =>
+                r.left < rect.left - 1 ||
+                r.right > rect.right + 1 ||
+                r.top < rect.top - 1 ||
+                r.bottom > rect.bottom + 1,
+            )
           )
-        )
-          issues.push('Clipped text: ' + node.textContent);
+            issues.push('Clipped text: ' + word[0]);
+        }
       }
       const children = Array.from(el.children, (child) => child.getBoundingClientRect());
       if (
