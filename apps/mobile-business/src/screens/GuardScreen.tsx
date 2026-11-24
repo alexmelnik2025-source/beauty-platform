@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useState } from 'react';
 import { BackHandler, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -51,6 +51,10 @@ export function GuardScreen(props: {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<GuardForm | null>(null);
+
+  const [attemptedSave, setAttemptedSave] = useState(false);
+  const checked = settings && form ? guardRulesToSave(settings, form) : null;
+  const problem = attemptedSave && checked && !checked.ok ? checked.problem : null;
 
   const lifetime = useScreenLifetime(salon);
   const load = useCallback(async () => {
@@ -128,9 +132,9 @@ export function GuardScreen(props: {
   }
 
   function saveRules() {
-    if (!settings || !form) return;
-    const checked = guardRulesToSave(settings, form);
-    if (!checked.ok) return setError(g.problem[checked.problem]);
+    if (!checked) return;
+    setAttemptedSave(true);
+    if (!checked.ok) return;
     void run(async () => {
       settingsCache.set(
         salon,
@@ -208,6 +212,7 @@ export function GuardScreen(props: {
                     kind="secondary"
                     label={g.rulesChange}
                     onPress={() => {
+                      setAttemptedSave(false);
                       setForm(guardForm(settings));
                       setInfo('');
                       setError('');
@@ -227,13 +232,17 @@ export function GuardScreen(props: {
                   {form.changesOn ? (
                     <View style={styles.pair}>
                       <Field
+                        paired
                         label={g.changes}
                         value={form.changes}
+                        error={problem === 'changes' ? g.problem.changes : undefined}
                         onChange={(changes) => setForm({ ...form, changes })}
                       />
                       <Field
+                        paired
                         label={g.windowDays}
                         value={form.windowDays}
+                        error={problem === 'windowDays' ? g.problem.windowDays : undefined}
                         onChange={(windowDays) => setForm({ ...form, windowDays })}
                       />
                     </View>
@@ -247,6 +256,7 @@ export function GuardScreen(props: {
                     <Field
                       label={g.lateMinutes}
                       value={form.lateMinutes}
+                      error={problem === 'lateMinutes' ? g.problem.lateMinutes : undefined}
                       onChange={(lateMinutes) => setForm({ ...form, lateMinutes })}
                     />
                   ) : null}
@@ -259,9 +269,11 @@ export function GuardScreen(props: {
                     <Field
                       label={g.noShows}
                       value={form.noShows}
+                      error={problem === 'noShows' ? g.problem.noShows : undefined}
                       onChange={(noShows) => setForm({ ...form, noShows })}
                     />
                   ) : null}
+                  {problem === 'needRule' ? <ErrorText>! {g.problem.needRule}</ErrorText> : null}
                   <Text style={styles.label}>{g.actionLabel}</Text>
                   <View role="radiogroup" accessibilityLabel={g.actionLabel} style={{ gap: 8 }}>
                     {GUARD_ACTIONS.map((action) => (
@@ -290,14 +302,14 @@ export function GuardScreen(props: {
               <Text style={styles.section} role="heading">
                 {g.clients}
               </Text>
-              {!settings.enabled ? (
-                <Text style={styles.muted}>{g.offList}</Text>
-              ) : !marked || marked.items.length === 0 ? (
-                <Text style={styles.muted}>{g.none}</Text>
-              ) : null}
             </>
           )}
         </View>
+      }
+      ListEmptyComponent={
+        settings && marked ? (
+          <Text style={styles.muted}>{settings.enabled ? g.none : g.offList}</Text>
+        ) : undefined
       }
       renderItem={({ item: client }) => (
         <Card>
@@ -371,28 +383,46 @@ function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
       <View style={[styles.box, props.on && styles.boxOn]}>
         {props.on ? <Text style={{ color: '#fff', fontWeight: '700' }}>✓</Text> : null}
       </View>
-      <Text style={styles.text}>{props.label}</Text>
+      <Text style={[styles.text, styles.toggleLabel]}>{props.label}</Text>
     </Pressable>
   );
 }
 
-function Field(props: { label: string; value: string; onChange: (value: string) => void }) {
+function Field(props: {
+  label: string;
+  value: string;
+  paired?: boolean;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  const errorId = useId();
   return (
-    <View style={{ gap: 4, flex: 1, minWidth: 140 }}>
+    <View style={[styles.field, props.paired && styles.pairedField]}>
       <Text style={styles.label}>{props.label}</Text>
       <TextInput
         accessibilityLabel={props.label}
+        accessibilityHint={props.error}
+        aria-invalid={Boolean(props.error)}
+        aria-describedby={props.error ? errorId : undefined}
         value={props.value}
         onChangeText={props.onChange}
         keyboardType="number-pad"
-        style={styles.input}
+        style={[styles.input, props.error && styles.invalid]}
       />
+      {props.error ? (
+        <View nativeID={errorId}>
+          <ErrorText>! {props.error}</ErrorText>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  field: { gap: 4, minWidth: 0 },
+  pairedField: { flexBasis: 140, flexGrow: 1 },
+  toggleLabel: { flexShrink: 1 },
   toggle: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 6 },
   box: {
     width: 24,
@@ -423,7 +453,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: colors.muted },
   muted: { color: colors.muted, fontSize: 15 },
   info: { color: '#2e7d32', fontSize: 15 },
+  invalid: { borderColor: colors.danger },
   input: {
+    minHeight: 44,
+    minWidth: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
