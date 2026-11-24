@@ -1,5 +1,6 @@
 import { ApiError, type LoyaltyAccount, type LoyaltyReward } from './api';
 import type { Dictionary } from './i18n';
+import { sortedRewards } from './loyalty';
 
 /**
  * Task 340: "Program lojalnościowy" in the client card of the business app (owners and managers;
@@ -32,10 +33,22 @@ export function rewardChoices(
   account: Pick<LoyaltyAccount, 'balance'>,
   rewards: LoyaltyReward[],
 ): { reward: LoyaltyReward; enough: boolean }[] {
-  return rewards
-    .filter((r) => r.archivedAt === null)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.cost - b.cost || a.name.localeCompare(b.name))
-    .map((reward) => ({ reward, enough: account.balance >= reward.cost }));
+  if (!Array.isArray(rewards)) return [];
+  const offers = rewards.filter(
+    (r) =>
+      r != null &&
+      typeof r.id === 'string' &&
+      r.id.length > 0 &&
+      typeof r.name === 'string' &&
+      Number.isInteger(r.cost) &&
+      r.cost >= 1 &&
+      r.cost <= 100_000 &&
+      Number.isInteger(r.sortOrder),
+  );
+  return sortedRewards(offers).map((reward) => ({
+    reward,
+    enough: Number.isSafeInteger(account.balance) && account.balance >= reward.cost,
+  }));
 }
 
 /** Coupons that can still be cancelled: active and not past their last day. */
