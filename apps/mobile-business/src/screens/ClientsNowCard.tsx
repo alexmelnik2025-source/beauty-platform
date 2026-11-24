@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useId, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
 import type { DayLocale } from '../day';
 import { errorText } from '../errors';
@@ -20,6 +20,7 @@ export function ClientsNowCard(props: {
   // undefined while reading, null when online booking is switched off.
   const [hours, setHours] = useState<PublicHours | null>();
   const [error, setError] = useState('');
+  const summaryId = useId();
   const [attempt, setAttempt] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -54,12 +55,20 @@ export function ClientsNowCard(props: {
 
   const line = hours
     ? openStatusText(openStatus(hours, salonNow(now, hours.timezone)), c, locale)
-    : '';
+    : hours === null
+      ? t.salon.onlineOff
+      : '';
   const today = hours && expanded ? todayHoursText(hours, now) : '';
   return (
-    <View testID="clients-now">
+    <View testID="clients-now" role="group" accessibilityLabel={c.label} accessible={false}>
       <Card>
-        <Text style={styles.title} role="heading" aria-level={2}>
+        <Text
+          style={styles.title}
+          role="heading"
+          aria-level={2}
+          aria-describedby={line ? summaryId : undefined}
+          accessibilityLabel={Platform.OS !== 'web' && line ? `${c.label}: ${line}` : undefined}
+        >
           {c.label}
         </Text>
         {error ? (
@@ -79,26 +88,32 @@ export function ClientsNowCard(props: {
             accessibilityLabel={`${c.label}: ${t.loading}`}
             style={styles.skeleton}
           />
-        ) : hours === null ? (
-          <Text style={styles.muted}>{t.salon.onlineOff}</Text>
         ) : (
           <>
-            <Text style={styles.line} accessibilityLabel={`${c.label}: ${line}`}>
-              {line}
+            <Text
+              aria-hidden
+              style={hours ? styles.line : styles.muted}
+              accessibilityLabel={`${c.label}: ${line}`}
+            >
+              <Text nativeID={summaryId}>{line}</Text>
             </Text>
-            <Button
-              kind="secondary"
-              label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
-              a11yLabel={`${t.navigation.more}: ${c.label}`}
-              expanded={expanded}
-              onPress={() => setExpanded(!expanded)}
-            />
-            {expanded && (
+            {hours && (
               <>
-                <Text style={styles.muted}>
-                  {today ? fill(c.today, { hours: today }) : c.closedToday}
-                </Text>
-                <Text style={styles.muted}>{c.hint}</Text>
+                <Button
+                  kind="secondary"
+                  label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
+                  a11yLabel={`${t.navigation.more}: ${c.label}`}
+                  expanded={expanded}
+                  onPress={() => setExpanded(!expanded)}
+                />
+                {expanded && (
+                  <>
+                    <Text style={styles.muted}>
+                      {today ? fill(c.today, { hours: today }) : c.closedToday}
+                    </Text>
+                    <Text style={styles.muted}>{c.hint}</Text>
+                  </>
+                )}
               </>
             )}
           </>

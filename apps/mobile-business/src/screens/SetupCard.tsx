@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useId, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -17,6 +17,7 @@ export function SetupCard(props: {
   const s = t.setup;
   const [steps, setSteps] = useState<ReturnType<typeof setupState> | null>(null);
   const [error, setError] = useState('');
+  const summaryId = useId();
   const [attempt, setAttempt] = useState(0);
   const [expanded, setExpanded] = useState(false);
 
@@ -52,63 +53,76 @@ export function SetupCard(props: {
   }, [api, salon, t, attempt]);
 
   if (steps && setupFinished(steps)) return null;
+  const lead = steps ? fill(s.lead, { n: String(steps.filter((step) => !step.done).length) }) : '';
   return (
-    <Card>
-      <Text style={styles.title} role="heading" aria-level={2}>
-        {s.title}
-      </Text>
-      {error ? (
-        <>
-          <ErrorText>{error}</ErrorText>
-          <Button
-            kind="secondary"
-            label={t.day.refresh}
-            a11yLabel={`${t.day.refresh}: ${s.title}`}
-            onPress={() => setAttempt((n) => n + 1)}
+    <View role="group" accessibilityLabel={s.title} accessible={false}>
+      <Card>
+        <Text
+          style={styles.title}
+          role="heading"
+          aria-level={2}
+          aria-describedby={lead ? summaryId : undefined}
+          accessibilityLabel={Platform.OS !== 'web' && lead ? `${s.title}: ${lead}` : undefined}
+        >
+          {s.title}
+        </Text>
+        {error ? (
+          <>
+            <ErrorText>{error}</ErrorText>
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              a11yLabel={`${t.day.refresh}: ${s.title}`}
+              onPress={() => setAttempt((n) => n + 1)}
+            />
+          </>
+        ) : !steps ? (
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={`${s.title}: ${t.loading}`}
+            style={styles.skeleton}
           />
-        </>
-      ) : !steps ? (
-        <View
-          accessible
-          accessibilityRole="progressbar"
-          accessibilityLabel={`${s.title}: ${t.loading}`}
-          style={styles.skeleton}
-        />
-      ) : (
-        <>
-          <Text style={styles.muted}>
-            {fill(s.lead, { n: String(steps.filter((x) => !x.done).length) })}
-          </Text>
-          <Button
-            kind="secondary"
-            label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
-            a11yLabel={`${t.navigation.more}: ${s.title}`}
-            expanded={expanded}
-            onPress={() => setExpanded(!expanded)}
-          />
-          {expanded &&
-            steps.map(({ step, done }, i) =>
-              done ? (
-                <Text
-                  key={step}
-                  style={styles.muted}
-                  accessibilityLabel={`${i + 1}. ${s.steps[step]} — ${s.doneLabel}`}
-                >
-                  ✓ {s.steps[step]}
-                </Text>
-              ) : (
-                <Button
-                  key={step}
-                  kind="secondary"
-                  label={s.steps[step]}
-                  a11yLabel={`${s.go}: ${s.steps[step]}`}
-                  onPress={() => props.onOpen(step)}
-                />
-              ),
-            )}
-        </>
-      )}
-    </Card>
+        ) : (
+          <>
+            <Text nativeID={summaryId} aria-hidden style={styles.muted}>
+              {lead}
+            </Text>
+            <Button
+              kind="secondary"
+              label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
+              a11yLabel={`${t.navigation.more}: ${s.title}`}
+              expanded={expanded}
+              onPress={() => setExpanded(!expanded)}
+            />
+            {expanded &&
+              steps.map(({ step, done }, i) =>
+                done ? (
+                  <Text
+                    key={step}
+                    accessible
+                    role="checkbox"
+                    aria-checked
+                    aria-disabled
+                    style={styles.muted}
+                    accessibilityLabel={`${i + 1}. ${s.steps[step]} — ${s.doneLabel}`}
+                  >
+                    ✓ {s.steps[step]}
+                  </Text>
+                ) : (
+                  <Button
+                    key={step}
+                    kind="secondary"
+                    label={s.steps[step]}
+                    a11yLabel={`${s.go}: ${s.steps[step]} — ${s.todoLabel}`}
+                    onPress={() => props.onOpen(step)}
+                  />
+                ),
+              )}
+          </>
+        )}
+      </Card>
+    </View>
   );
 }
 
