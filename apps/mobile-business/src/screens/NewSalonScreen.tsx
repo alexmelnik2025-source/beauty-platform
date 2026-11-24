@@ -1,4 +1,4 @@
-import { useRef, useState, type ComponentRef } from 'react';
+import { useMemo, useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type Locale } from '../api';
 import {
@@ -40,6 +40,37 @@ export function NewSalonScreen(props: {
   const creating = useRef(false);
   const [busy, setBusy] = useState(false);
   const poland = regionForTimeZone(form.timezone) === 'PL';
+
+  const { timezone, currency } = form;
+  const countryChoices = useMemo(
+    () => (
+      <Card>
+        <Text style={styles.section}>{t.salon.country}</Text>
+        <ChoiceList
+          t={t}
+          label={t.salon.timeZone}
+          hint={t.salon.timeZoneHint}
+          value={timezone}
+          options={salonTimeZones(locale).map((z) => ({ value: z.timeZone, label: z.label }))}
+          onChange={(timezone) => {
+            setForm((current) => withTimeZone(current, timezone));
+            setProblem((current) => (current === 'postalCode' ? null : current));
+          }}
+        />
+        <ChoiceList
+          t={t}
+          label={t.salon.currency}
+          hint={t.newSalon.currencyHint}
+          value={currency}
+          options={CURRENCIES.map((c) => ({ value: c, label: currencyName(c, locale) }))}
+          onChange={(currency) =>
+            setForm((current) => ({ ...current, currency, currencyChosen: true }))
+          }
+        />
+      </Card>
+    ),
+    [t, locale, timezone, currency],
+  );
 
   const problems: Record<NewSalonProblem, string> = {
     orgName: n.badOrgName,
@@ -164,28 +195,7 @@ export function NewSalonScreen(props: {
           placeholder: poland ? '00-000' : undefined,
         })}
       </Card>
-      <Card>
-        <Text style={styles.section}>{t.salon.country}</Text>
-        <ChoiceList
-          t={t}
-          label={t.salon.timeZone}
-          hint={t.salon.timeZoneHint}
-          value={form.timezone}
-          options={salonTimeZones(locale).map((z) => ({ value: z.timeZone, label: z.label }))}
-          onChange={(timezone) => {
-            setForm(withTimeZone(form, timezone));
-            if (problem === 'postalCode') setProblem(null);
-          }}
-        />
-        <ChoiceList
-          t={t}
-          label={t.salon.currency}
-          hint={n.currencyHint}
-          value={form.currency}
-          options={CURRENCIES.map((c) => ({ value: c, label: currencyName(c, locale) }))}
-          onChange={(currency) => setForm({ ...form, currency, currencyChosen: true })}
-        />
-      </Card>
+      {countryChoices}
       <Text style={styles.small}>{n.after}</Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
       <Button label={n.create} busy={busy} onPress={create} />
