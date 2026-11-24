@@ -4,6 +4,7 @@ import {
   type APIRequestContext,
   type APIResponse,
   type Page,
+  type Route,
 } from '@playwright/test';
 import { freshAddress } from './addresses';
 import { waitForEmail } from './mailpit';
@@ -192,7 +193,19 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await expect(kasia.getByRole('heading', { name: 'Zaproszenie do zespołu' })).toBeVisible();
   await expect(kasia.getByText('Nie potrzebujesz hasła ani zakładania konta')).toBeVisible();
   await expect(kasia.getByRole('link', { name: 'Załóż konto' })).toHaveCount(0);
-  await kasia.getByRole('button', { name: 'Wyślij kod' }).click();
+  // Task 774 (owner's rule: errors where the action is): a refusal is said under the button that
+  // was pressed, not as a box above it.
+  const tooMany = (route: Route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } });
+  await kasia.route('**/v1/auth/code', tooMany);
+  const sendCode = kasia.getByRole('button', { name: 'Wyślij kod' });
+  await sendCode.click();
+  await expect(kasia.locator('#invite-send-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(sendCode).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(kasia.locator('.alert')).toHaveCount(0);
+  await shot(kasia, '774-staff-invite-send-error');
+  await kasia.unrouteAll({ behavior: 'wait' });
+  await sendCode.click();
   await expect(kasia.getByRole('status')).toContainText(`Wysłaliśmy kod na ${KASIA}`);
   const codeMail = await waitForEmail(KASIA, /Kod logowania/);
   const code = /Kod: (\d{6})/.exec(codeMail.text)![1]!;
@@ -207,6 +220,16 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await codeField.fill(code);
   await expect(kasia.locator('#invite-code-error')).toHaveCount(0);
   await shot(kasia, '56-staff-invite-code');
+  // Task 774: a refused "Dołącz do zespołu" (not about the code) is said under that button.
+  await kasia.route('**/v1/auth/code/verify', tooMany);
+  await kasia.getByRole('button', { name: 'Dołącz do zespołu' }).click();
+  await expect(kasia.locator('#invite-accept-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(kasia.locator('.alert')).toHaveCount(0);
+  await expect(codeField).toHaveValue(code);
+  await shot(kasia, '774-staff-invite-accept-error');
+  await kasia.unrouteAll({ behavior: 'wait' });
   await kasia.getByRole('button', { name: 'Dołącz do zespołu' }).click();
   await expect(kasia.getByText('Jesteś w zespole.')).toBeVisible();
   await kasia.getByRole('link', { name: 'Kalendarz' }).click();

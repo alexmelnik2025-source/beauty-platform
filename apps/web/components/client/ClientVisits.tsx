@@ -85,7 +85,14 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
   const [email, setEmail] = useState('');
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
-  const [error, setError] = useState('');
+  /**
+   * Task 770 (owner's rule: errors where the action is): a refusal that is not about one field (no
+   * connection, too many tries, …) is said under the button that was pressed — "Wyślij kod",
+   * "Zaloguj się" or "Wyślij ponownie" — not as a box above the form.
+   */
+  const [error, setError] = useState<{ on: 'send' | 'verify' | 'resend'; text: string } | null>(
+    null,
+  );
   /**
    * Task 690 (owner's rule: errors at the field): an empty or wrong e-mail and a wrong or used-up
    * code are said under their field (red frame, "!"), not in the browser's bubble or a line on top.
@@ -96,7 +103,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
 
   async function sendCode(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
-    setError('');
+    setError(null);
     if (!sentTo) {
       const typed = email.trim();
       const problem = !typed
@@ -124,7 +131,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
       // The server's answer about the address (e.g. too long) — under the field too.
       if (!sentTo && err instanceof ApiError && err.code === 'VALIDATION_ERROR') {
         setEmailProblem(t.booking.emailInvalid);
-      } else setError(errorText(t, err));
+      } else setError({ on: sentTo ? 'resend' : 'send', text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -134,13 +141,13 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
     e.preventDefault();
     // Task 702: fewer than 6 digits — said under the code (the button was silently switched off).
     if (code.length !== 6) {
-      setError('');
+      setError(null);
       setCodeProblem(t.booking.codeIncomplete);
       document.getElementById('visits-code')?.focus();
       return;
     }
     setBusy(true);
-    setError('');
+    setError(null);
     setCodeProblem('');
     try {
       const res = await api<{ person: ClientPerson }>('/v1/client/auth/verify', {
@@ -154,7 +161,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
         setCodeProblem(t.visits.newCodeNeeded);
       } else if (err instanceof ApiError && err.code === 'INVALID_CODE') {
         setCodeProblem(errorText(t, err));
-      } else setError(errorText(t, err));
+      } else setError({ on: 'verify', text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -164,7 +171,6 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
     return (
       <form noValidate className="form" onSubmit={(e) => void sendCode(e)}>
         <p className="muted">{t.visits.lead}</p>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.visits.email}</span>
           <input
@@ -178,13 +184,19 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
             onChange={(e) => {
               setEmail(e.target.value);
               setEmailProblem('');
+              setError(null);
             }}
           />
           <FieldError id="visits-email-error" text={emailProblem || undefined} />
         </label>
-        <button className="btn btn--block" disabled={busy}>
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error?.on === 'send' ? 'visits-send-error' : undefined}
+        >
           {t.visits.sendCode}
         </button>
+        <FieldError id="visits-send-error" text={error?.on === 'send' ? error.text : undefined} />
       </form>
     );
   }
@@ -192,7 +204,6 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
   return (
     <form noValidate className="form" onSubmit={(e) => void verify(e)}>
       <p className="muted">{fill(t.visits.codeSent, { email: sentTo })}</p>
-      <ErrorBox>{error}</ErrorBox>
       <input
         id="visits-code"
         className="code-input"
@@ -208,17 +219,24 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
         onChange={(e) => {
           setCode(e.target.value.replace(/\D/g, ''));
           setCodeProblem('');
+          setError(null);
         }}
       />
       <FieldError id="visits-code-error" text={codeProblem || undefined} />
-      <button className="btn btn--block" disabled={busy}>
+      <button
+        className="btn btn--block"
+        disabled={busy}
+        aria-describedby={error?.on === 'verify' ? 'visits-verify-error' : undefined}
+      >
         {t.visits.signIn}
       </button>
+      <FieldError id="visits-verify-error" text={error?.on === 'verify' ? error.text : undefined} />
       <div className="row">
         <button
           type="button"
           className="link-btn small"
           disabled={busy}
+          aria-describedby={error?.on === 'resend' ? 'visits-resend-error' : undefined}
           onClick={() => void sendCode()}
         >
           {t.visits.resend}
@@ -228,13 +246,14 @@ function SignIn({ onSignedIn }: { onSignedIn: (person: ClientPerson) => void }) 
           className="link-btn small"
           onClick={() => {
             setSentTo('');
-            setError('');
+            setError(null);
             setCodeProblem('');
           }}
         >
           {t.visits.otherEmail}
         </button>
       </div>
+      <FieldError id="visits-resend-error" text={error?.on === 'resend' ? error.text : undefined} />
     </form>
   );
 }

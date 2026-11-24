@@ -131,8 +131,7 @@ export function BookingScreen(props: {
   // Shown until the client picks something: the service or specialist is no longer online.
   const [gone, setGone] = useState(start.gone);
   const presetStep = props.preset && start.step !== 'service' ? start.step : null;
-  const [slots, setSlots] = useState<Slot[] | null>(null);
-  const [day, setDay] = useState('');
+  const [selectedDay, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
   const [payNotice, setPayNotice] = useState<{
     holdId: string;
@@ -161,7 +160,6 @@ export function BookingScreen(props: {
     [t],
   );
   const [busy, setBusy] = useState(false);
-  const [, tick] = useState(0);
   const holdRef = useRef<Hold | null>(null);
   holdRef.current = hold;
   const doneRef = useRef(false);
@@ -200,52 +198,56 @@ export function BookingScreen(props: {
     service?.priceGrosze ??
     0;
 
-  const loadSlots = useCallback(async () => {
-    setSlots(null);
+  // The staff hints and "any specialist" use exactly the same availability query.
+  const from = step === 'staff' || step === 'time' ? todayIn(salon.timezone) : '';
+  const selectedStaff = step === 'time' ? staffId : undefined;
+  const selectedRow = step === 'time' && !staffId && rowStaff.length > 1 ? rowStaff : undefined;
+  const [revision, setRevision] = useState(0);
+  const reloadSlots = () => setRevision((n) => n + 1);
+  const query = useMemo(
+    () =>
+      from
+        ? {
+            serviceId,
+            staffId: selectedStaff,
+            staffIds: selectedRow,
+            from,
+            to: addDays(from, BOOKING_DAYS - 1),
+          }
+        : null,
+    [serviceId, selectedStaff, selectedRow, from],
+  );
+  const [availability, setAvailability] = useState<{
+    query: NonNullable<typeof query>;
+    revision: number;
+    slots: Slot[];
+    loadedAt: number;
+    error?: unknown;
+  } | null>(null);
+  const result =
+    availability?.query === query && availability.revision === revision ? availability : null;
+  const slots = result?.slots ?? null;
+  useEffect(() => {
+    if (!query) return;
     setFailure((current) => (current?.retry ? null : current));
-    const from = todayIn(salon.timezone);
-    try {
-      const res = await api.availability(salon.slug, {
-        serviceId,
-        staffId,
-        ...(!staffId && rowStaff.length > 1 ? { staffIds: rowStaff } : {}),
-        from,
-        to: addDays(from, BOOKING_DAYS - 1),
-      });
-      setSlots(res.slots);
-      setDay((current) =>
-        current && res.slots.some((s) => s.date === current) ? current : (res.slots[0]?.date ?? ''),
-      );
-    } catch (e) {
-      setSlots([]);
-      fail(e, () => void loadSlots());
-    }
-  }, [api, salon.slug, salon.timezone, serviceId, staffId, rowStaff, fail]);
-
-  useEffect(() => {
-    if (step === 'time') void loadSlots();
-  }, [step, loadSlots]);
-
-  // Task 12: each specialist's nearest free time on the "who" step ("Today from 14:30").
-  const [nearest, setNearest] = useState<Map<string, Slot> | null>(null);
-  useEffect(() => {
-    if (step !== 'staff' || !serviceId) return;
     let live = true;
-    setNearest(null);
-    const from = todayIn(salon.timezone);
-    api
-      .availability(salon.slug, { serviceId, from, to: addDays(from, BOOKING_DAYS - 1) })
-      .then((res) => {
-        if (live) setNearest(nearestByStaff(res.slots));
-      })
-      // Only a hint: the specialists are there to pick without it.
-      .catch(() => {
-        if (live) setNearest(new Map());
-      });
+    api.availability(salon.slug, query).then(
+      ({ slots }) => {
+        if (live) setAvailability({ query, revision, slots, loadedAt: Date.now() });
+      },
+      (error: unknown) => {
+        if (live) setAvailability({ query, revision, slots: [], loadedAt: Date.now(), error });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [api, step, serviceId, salon.slug, salon.timezone]);
+  }, [api, salon.slug, query, revision]);
+
+  const nearest = useMemo(
+    () => (step === 'staff' && slots ? nearestByStaff(slots) : null),
+    [step, slots],
+  );
 
   function nearestFree(id: string): string | undefined {
     if (nearest === null) return undefined;
@@ -253,21 +255,11 @@ export function BookingScreen(props: {
     return nearestText(nearest.get(id), { today, tomorrow: addDays(today, 1) }, b, locale);
   }
 
-  // The countdown of the held time; when it runs out, the client picks a time again.
-  useEffect(() => {
-    if (!hold || (step !== 'details' && step !== 'code')) return;
-    const timer = setInterval(() => {
-      if (Date.parse(hold.expiresAt) <= Date.now()) {
-        clearInterval(timer);
-        setHold(null);
-        setError(t.book.HOLD_EXPIRED);
-        setStep('time');
-      } else {
-        tick((n) => n + 1);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [hold, step, t]);
+  const expireHold = useCallback(() => {
+    setHold(null);
+    setError(b.HOLD_EXPIRED);
+    setStep('time');
+  }, [b.HOLD_EXPIRED, setError]);
 
   // Leaving the booking gives the held time back to the salon.
   useEffect(
@@ -355,7 +347,7 @@ export function BookingScreen(props: {
       setStep('details');
     } catch (e) {
       fail(e, () => void pickTime(slot, key));
-      if (afterBookingError(e) === 'reloadTimes') await loadSlots();
+      if (afterBookingError(e) === 'reloadTimes') reloadSlots();
     } finally {
       setBusy(false);
     }
@@ -507,8 +499,10 @@ export function BookingScreen(props: {
   );
   const stepNames = [b.stepService, b.stepStaff, b.stepTime, b.stepDetails];
   const stepIndex = { service: 0, staff: 1, time: 2, details: 3, code: 3, done: 4 }[step];
-  const days = slotsByDay(slots ?? []);
-  const daySlots = days.find((d) => d.date === day)?.slots ?? [];
+  const days = useMemo(() => slotsByDay(slots ?? []), [slots]);
+  const activeDay = days.find((d) => d.date === selectedDay) ?? days[0];
+  const day = activeDay?.date;
+  const daySlots = activeDay?.slots ?? [];
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -573,7 +567,15 @@ export function BookingScreen(props: {
         </Text>
       ) : null}
 
-      <FormFeedback failure={failure} retryLabel={t.retry} busy={busy} />
+      <FormFeedback
+        failure={
+          step === 'time' && result?.error
+            ? formFailure(result.error, t, reloadSlots, bookingErrorText(result.error, t))
+            : failure
+        }
+        retryLabel={t.retry}
+        busy={busy}
+      />
 
       {step === 'service' ? (
         <View style={{ gap: 12 }}>
@@ -589,9 +591,9 @@ export function BookingScreen(props: {
             </View>
           ) : null}
           {salon.services.length === 0 ? <Text style={styles.muted}>{b.salonClosed}</Text> : null}
-          {serviceGroups(salon).map((g) => (
+          {serviceGroups(salon).map((g, index, groups) => (
             <View key={g.id ?? 'other'} style={{ gap: 8 }}>
-              {g.name || serviceGroups(salon).length > 1 ? (
+              {g.name || groups.length > 1 ? (
                 <Text style={styles.group}>{g.name ?? b.otherServices}</Text>
               ) : null}
               {g.services.map((s) => {
@@ -687,6 +689,9 @@ export function BookingScreen(props: {
                   : undefined
               }
               onPress={() => {
+                // Refresh a failed or old hint before offering its times for booking.
+                if (result && (result.error || Date.now() - result.loadedAt > 30_000))
+                  reloadSlots();
                 setStaffId(undefined);
                 setStep('time');
               }}
@@ -845,9 +850,12 @@ export function BookingScreen(props: {
             {formatPrice(hold.priceGrosze, hold.currency, locale)}
             {hold.happyHourPercent ? ` −${hold.happyHourPercent}%` : ''}
           </Text>
-          <Text style={styles.muted} aria-live="polite">
-            {fill(b.heldFor, { time: countdown(hold.expiresAt) })}
-          </Text>
+          <HoldCountdown
+            key={hold.holdId}
+            expiresAt={hold.expiresAt}
+            label={b.heldFor}
+            onExpire={expireHold}
+          />
           <View style={{ flexDirection: 'row', marginLeft: -8 }}>
             <Button
               kind="link"
@@ -1142,6 +1150,34 @@ export function BookingScreen(props: {
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+function HoldCountdown({
+  expiresAt,
+  label,
+  onExpire,
+}: {
+  expiresAt: string;
+  label: string;
+  onExpire: () => void;
+}) {
+  const [time, setTime] = useState(() => countdown(expiresAt));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (Date.parse(expiresAt) <= Date.now()) {
+        clearInterval(timer);
+        onExpire();
+      } else {
+        setTime(countdown(expiresAt));
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt, onExpire]);
+  return (
+    <Text style={styles.muted} aria-live="polite">
+      {fill(label, { time })}
+    </Text>
   );
 }
 

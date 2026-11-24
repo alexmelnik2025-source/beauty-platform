@@ -1,19 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
-import type { BusinessApi } from '../api';
+import type { BusinessApi, SalonWaitlist } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
 import { waitlistOfDay, waitlistStatus, type WaitlistEntry } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task 94: "Lista oczekujących" under the day's visits — clients who want a time on this
- * (full) day, with their contacts, for owners and managers (the server checks it too).
- * "+ Nowa wizyta" opens the new-visit form filled in for the client; "Usuń z listy" removes
- * them without a message. Nothing is shown when nobody waits or for days already gone.
- */
-export function WaitlistSection(props: {
+interface Props {
   api: BusinessApi;
   t: Dictionary;
   salon: SalonChoice;
@@ -23,7 +17,25 @@ export function WaitlistSection(props: {
   /** Changes when the day is read again (pull to refresh, every 30 s, after a new visit). */
   reload: number;
   onBook: (entry: WaitlistEntry) => void;
-}) {
+}
+
+/**
+ * Task 94: "Lista oczekujących" under the day's visits — clients who want a time on this
+ * (full) day, with their contacts, for owners and managers (the server checks it too).
+ * "+ Nowa wizyta" opens the new-visit form filled in for the client; "Usuń z listy" removes
+ * them without a message. Nothing is shown when nobody waits or for days already gone.
+ */
+export function WaitlistSection(props: Props) {
+  const key = JSON.stringify([
+    props.salon.orgId,
+    props.salon.locationId,
+    props.date,
+    props.date < props.today,
+  ]);
+  return <DayWaitlist key={key} {...props} />;
+}
+
+function DayWaitlist(props: Props) {
   const { api, t, salon, date } = props;
   const w = t.waitlist;
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
@@ -33,41 +45,61 @@ export function WaitlistSection(props: {
   const [error, setError] = useState('');
   const past = date < props.today;
 
-  const latest = useRef(0);
-  const load = useCallback(async () => {
-    const request = ++latest.current;
-    if (past) return setEntries([]);
-    try {
-      const list = await api.waitlist(salon.orgId, salon.locationId, date);
-      if (request === latest.current) setEntries(waitlistOfDay(list, date));
-    } catch {
-      // Not allowed or offline: the calendar above shows its own error.
-      if (request === latest.current) setEntries([]);
-    }
-  }, [api, salon, date, past]);
+  const { orgId, locationId } = salon;
+  const scope = useRef<AbortController | null>(null);
+  const pending = useRef<Promise<SalonWaitlist> | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    scope.current = controller;
+    return () => {
+      controller.abort();
+      pending.current = null;
+    };
+  }, [api, orgId, locationId, date, past]);
 
   useEffect(() => {
-    setEntries([]);
-    setInfo('');
-    setConfirm(null);
-  }, [date]);
-
-  useEffect(() => {
-    void load();
-  }, [load, props.reload]);
+    if (past) return;
+    let active = true;
+    // Calendar refreshes may overlap on a slow connection. Share the current day's read.
+    const request = pending.current ?? api.waitlist(orgId, locationId, date);
+    pending.current = request;
+    request.then(
+      (list) => {
+        if (!active || pending.current !== request) return;
+        pending.current = null;
+        const next = waitlistOfDay(list, date);
+        setEntries((previous) => (!previous.length && !next.length ? previous : next));
+      },
+      () => {
+        if (!active || pending.current !== request) return;
+        pending.current = null;
+        setEntries((previous) => (previous.length ? [] : previous));
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [api, orgId, locationId, date, past, props.reload]);
 
   async function remove(entry: WaitlistEntry) {
+    const signal = scope.current?.signal;
+    if (!signal || signal.aborted || busy) return;
     setBusy(true);
     setError('');
     try {
       await api.removeFromWaitlist(salon.orgId, salon.locationId, entry.id);
+      if (signal.aborted) return;
+      // A refresh started before this removal may still contain the entry.
+      pending.current = null;
       setEntries((list) => list.filter((e) => e.id !== entry.id));
       setInfo(fill(w.removed, { name: entry.name }));
     } catch (e) {
-      setError(errorText(e, t));
+      if (!signal.aborted) setError(errorText(e, t));
     } finally {
-      setConfirm(null);
-      setBusy(false);
+      if (!signal.aborted) {
+        setConfirm(null);
+        setBusy(false);
+      }
     }
   }
 
@@ -83,28 +115,7 @@ export function WaitlistSection(props: {
       {info ? <Text style={styles.info}>{info}</Text> : null}
       {entries.map((e) => (
         <Card key={e.id}>
-          <View style={styles.row}>
-            <Text style={styles.name}>{e.name}</Text>
-            {e.autoBook ? <Text style={styles.autoBadge}>Auto</Text> : null}
-          </View>
-          <Text style={styles.muted}>
-            {e.serviceName} · {e.staffName ?? w.anyStaff}
-          </Text>
-          <View style={styles.row}>
-            {e.phone ? (
-              <Button
-                kind="link"
-                label={e.phone}
-                onPress={() => void Linking.openURL(`tel:${e.phone}`)}
-              />
-            ) : null}
-            <Button
-              kind="link"
-              label={e.email}
-              onPress={() => void Linking.openURL(`mailto:${e.email}`)}
-            />
-          </View>
-          <Text style={styles.small}>{waitlistStatus(e, props.timeZone, w)}</Text>
+          <WaitlistDetails entry={e} timeZone={props.timeZone} w={w} />
           {confirm === e.id ? (
             <View style={styles.row}>
               <Text style={styles.muted}>{fill(w.removeAsk, { name: e.name })}</Text>
@@ -135,6 +146,43 @@ export function WaitlistSection(props: {
     </View>
   );
 }
+
+const WaitlistDetails = memo(function WaitlistDetails({
+  entry,
+  timeZone,
+  w,
+}: {
+  entry: WaitlistEntry;
+  timeZone: string;
+  w: Dictionary['waitlist'];
+}) {
+  return (
+    <>
+      <View style={styles.row}>
+        <Text style={styles.name}>{entry.name}</Text>
+        {entry.autoBook ? <Text style={styles.autoBadge}>Auto</Text> : null}
+      </View>
+      <Text style={styles.muted}>
+        {entry.serviceName} · {entry.staffName ?? w.anyStaff}
+      </Text>
+      <View style={styles.row}>
+        {entry.phone ? (
+          <Button
+            kind="link"
+            label={entry.phone}
+            onPress={() => void Linking.openURL(`tel:${entry.phone}`)}
+          />
+        ) : null}
+        <Button
+          kind="link"
+          label={entry.email}
+          onPress={() => void Linking.openURL(`mailto:${entry.email}`)}
+        />
+      </View>
+      <Text style={styles.small}>{waitlistStatus(entry, timeZone, w)}</Text>
+    </>
+  );
+});
 
 const styles = StyleSheet.create({
   wrap: { gap: 10, marginTop: 8 },

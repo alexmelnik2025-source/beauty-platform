@@ -89,27 +89,30 @@ export function DeliveryCard(props: {
           </View>
         ) : null}
         {parsed.map(({ product: x, n }) => (
-          <View key={x.id} style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{x.name}</Text>
-              <Text style={styles.muted}>
-                {x.stockQuantity === null
-                  ? p.stocktakeWasNone
-                  : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
-              </Text>
+          <View key={x.id}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{x.name}</Text>
+                <Text style={styles.muted}>
+                  {x.stockQuantity === null
+                    ? p.stocktakeWasNone
+                    : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
+                </Text>
+              </View>
+              <TextInput
+                accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
+                aria-invalid={n === undefined}
+                placeholder="—"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="number-pad"
+                value={pieces[x.id] ?? ''}
+                onChangeText={(value) => setPieces({ ...pieces, [x.id]: value })}
+                style={[styles.input, n === undefined && { borderColor: colors.danger }]}
+              />
             </View>
-            <TextInput
-              accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
-              placeholder="—"
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-              value={pieces[x.id] ?? ''}
-              onChangeText={(value) => setPieces({ ...pieces, [x.id]: value })}
-              style={[styles.input, n === undefined && { borderColor: colors.danger }]}
-            />
+            {n === undefined ? <ErrorText>! {p.deliveryInvalid}</ErrorText> : null}
           </View>
         ))}
-        {wrong ? <Text style={styles.warn}>{p.deliveryInvalid}</Text> : null}
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={{ marginTop: 8 }}>
           <Button
@@ -130,7 +133,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 14 },
-  warn: { color: colors.danger, fontSize: 14, marginTop: 8 },
   input: {
     width: 80,
     backgroundColor: colors.card,

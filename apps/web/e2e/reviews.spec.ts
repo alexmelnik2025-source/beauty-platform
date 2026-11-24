@@ -225,6 +225,25 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(form.locator('.field-error')).toHaveCount(0);
   await form.getByLabel('Kilka słów (opcjonalnie)').fill('Szybko i dokładnie, miła atmosfera.');
   await shot(page, '165b-1-review-form');
+  // Task 772 (owner's rule: errors where the action is): a refusal that is not about the stars or
+  // the text is said under "Wyślij opinię"; what was written stays.
+  await page.route('**/review', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await send.click();
+  await expect(form.locator('#review-send-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(send).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(form.locator('.alert')).toHaveCount(0);
+  await expect(form.getByLabel('Kilka słów (opcjonalnie)')).toHaveValue(
+    'Szybko i dokładnie, miła atmosfera.',
+  );
+  await shot(page, '772-review-send-error');
+  await page.unrouteAll({ behavior: 'wait' });
   await send.click();
   await expect(form.getByRole('status')).toHaveText('Dziękujemy za opinię!');
   await expect(form).toContainText('Szybko i dokładnie, miła atmosfera.');

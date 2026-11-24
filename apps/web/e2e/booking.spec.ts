@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Locator,
   type Page,
+  type Route,
 } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -1477,6 +1478,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ola.getByText('Sprawdź numer telefonu.')).toHaveCount(0);
   await ola.getByLabel(/Zapamiętaj mnie/).check();
   await shot(ola, '24-client-remember-me');
+  // Task 771 (owner's rule: errors where the action is): a refusal that is not about one field is
+  // said under "Wyślij kod", not as a box above the form; what was typed stays.
+  const tooMany = (route: Route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } });
+  await ola.route('**/v1/public/holds/*/code', tooMany);
+  await ola.getByRole('button', { name: 'Wyślij kod' }).click();
+  await expect(ola.locator('#details-action-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(ola.getByRole('button', { name: 'Wyślij kod' })).toHaveAccessibleDescription(
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
+  );
+  await expect(ola.locator('.alert')).toHaveCount(0);
+  await expect(ola.getByLabel('Imię i nazwisko')).toHaveValue('Ola Wiśniewska');
+  await shot(ola, '771-booking-send-code-error');
+  await ola.unrouteAll({ behavior: 'wait' });
   await ola.getByRole('button', { name: 'Wyślij kod' }).click();
   const olaMail = await waitForEmail(CLIENT2, /Kod potwierdzenia/);
   const olaCode = /\b(\d{6})\b/.exec(olaMail.text)![1]!;
@@ -1493,6 +1510,16 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ola.getByText('Nieprawidłowy kod.')).toBeVisible();
   await shot(ola, 'q5-client-code-error');
   await ola.getByLabel('Kod z e-maila').fill(olaCode);
+  // Task 771: a refused "Potwierdź wizytę" (not about the code) is said under that button.
+  await ola.route('**/v1/public/holds/*/confirm', tooMany);
+  await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
+  await expect(ola.locator('#confirm-action-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(ola.locator('.alert')).toHaveCount(0);
+  await expect(ola.getByLabel('Kod z e-maila')).toHaveValue(olaCode);
+  await shot(ola, '771-booking-confirm-error');
+  await ola.unrouteAll({ behavior: 'wait' });
   await ola.getByRole('button', { name: 'Potwierdź wizytę' }).click();
   await expect(ola.getByText('Wizyta jest już w aplikacji')).toBeVisible();
   await shot(ola, '25-client-done-app');

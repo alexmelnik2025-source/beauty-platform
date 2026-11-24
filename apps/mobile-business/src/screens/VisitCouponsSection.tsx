@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { AppointmentDetail, BusinessApi, Locale, VisitCoupons } from '../api';
 import { formatPrice } from '../day';
@@ -8,29 +8,44 @@ import { couponCode, couponErrorText, hasCoupons } from '../visitCoupons';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task 343: "Kupony i rabat klienta" in the visit card — the client's tier discount, the coupons
- * used (with "Zdejmij") and the other unused ones with what each takes off or why it cannot be
- * used, plus a field for the code the client shows. Reloaded whenever the visit changes.
- */
-export function VisitCouponsSection(props: {
+interface Props {
   api: BusinessApi;
   t: Dictionary;
   locale: Locale;
   salon: SalonChoice;
   visit: AppointmentDetail;
   onVisit: (visit: AppointmentDetail) => void;
-}) {
+}
+
+/**
+ * Task 343: "Kupony i rabat klienta" in the visit card — the client's tier discount, the coupons
+ * used (with "Zdejmij") and the other unused ones with what each takes off or why it cannot be
+ * used, plus a field for the code the client shows. Reloaded whenever the visit changes.
+ */
+export function VisitCouponsSection(props: Props) {
+  const key = JSON.stringify([props.salon.orgId, props.salon.locationId, props.visit.id]);
+  return <VisitCouponsCard key={key} {...props} />;
+}
+
+function VisitCouponsCard(props: Props) {
   const { api, t, salon, visit } = props;
   const c = t.visit.coupons;
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
-  const [code, setCode] = useState('');
+  const [codeReset, setCodeReset] = useState(0);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
+  const { orgId, locationId } = salon;
+  const scope = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    scope.current = controller;
+    return () => controller.abort();
+  }, [api, orgId, locationId, visit.id]);
+
   useEffect(() => {
     let alive = true;
-    api.visitCoupons(salon.orgId, salon.locationId, visit.id).then(
+    api.visitCoupons(orgId, locationId, visit.id).then(
       (data) => alive && setCoupons(data),
       // Without the list the visit still works; coupons simply are not offered.
       () => undefined,
@@ -38,25 +53,28 @@ export function VisitCouponsSection(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, visit.id, visit.version]);
+  }, [api, orgId, locationId, visit.id, visit.version]);
 
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
   async function run(action: () => Promise<AppointmentDetail>, done: string) {
+    const signal = scope.current?.signal;
+    if (!signal || signal.aborted || busy) return;
     setBusy(true);
     setNote(null);
     try {
-      props.onVisit(await action());
+      const next = await action();
+      if (signal.aborted) return;
+      props.onVisit(next);
       setNote({ text: done, bad: false });
-      setCode('');
+      setCodeReset((n) => n + 1);
     } catch (e) {
-      setNote({ text: couponErrorText(e, t) ?? errorText(e, t), bad: true });
+      if (!signal.aborted) setNote({ text: couponErrorText(e, t) ?? errorText(e, t), bad: true });
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
-  const typed = couponCode(code);
   // Nothing to offer (no tier, no coupons): the card stays away from every visit.
   if (!coupons || (!hasCoupons(coupons) && !note)) return null;
   const tier = coupons.tier;
@@ -149,28 +167,12 @@ export function VisitCouponsSection(props: {
         </View>
       ))}
 
-      <View style={styles.row}>
-        <TextInput
-          accessibilityLabel={c.code}
-          placeholder={c.code}
-          placeholderTextColor={colors.placeholder}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          value={code}
-          onChangeText={setCode}
-          maxLength={24}
-          style={[styles.input, { flex: 1, minWidth: 160 }]}
-        />
-        <Button
-          kind="secondary"
-          label={c.useCode}
-          busy={busy}
-          disabled={typed === null}
-          onPress={() => {
-            if (typed) void run(() => api.applyVisitCoupon(...at, { code: typed }), c.applied);
-          }}
-        />
-      </View>
+      <CouponCodeForm
+        key={codeReset}
+        c={c}
+        busy={busy}
+        onApply={(code) => void run(() => api.applyVisitCoupon(...at, { code }), c.applied)}
+      />
 
       {note ? (
         note.bad ? (
@@ -188,6 +190,43 @@ export function VisitCouponsSection(props: {
         </Text>
       ) : null}
     </Card>
+  );
+}
+
+function CouponCodeForm({
+  c,
+  busy,
+  onApply,
+}: {
+  c: Dictionary['visit']['coupons'];
+  busy: boolean;
+  onApply: (code: string) => void;
+}) {
+  const [code, setCode] = useState('');
+  const typed = couponCode(code);
+  return (
+    <View style={styles.row}>
+      <TextInput
+        accessibilityLabel={c.code}
+        placeholder={c.code}
+        placeholderTextColor={colors.placeholder}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        value={code}
+        onChangeText={setCode}
+        maxLength={24}
+        style={[styles.input, { flex: 1, minWidth: 160 }]}
+      />
+      <Button
+        kind="secondary"
+        label={c.useCode}
+        busy={busy}
+        disabled={typed === null}
+        onPress={() => {
+          if (typed) onApply(typed);
+        }}
+      />
+    </View>
   );
 }
 
