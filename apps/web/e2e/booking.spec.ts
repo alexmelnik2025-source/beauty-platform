@@ -1139,6 +1139,33 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(ownerPage.getByText('Dodano usługę: Strzyżenie męskie').first()).toBeVisible();
   await expect(ownerPage.getByText(/Aleksander Owner · /).first()).toBeVisible();
   await shot(ownerPage, '79-owner-change-log');
+  // Task 802 (owner's rule: errors where the action is): a refused "Pokaż starsze" is said under
+  // that button at the bottom of the log, the entries shown stay. The log here is short, so the
+  // first page is told there are older entries.
+  const auditLog = (url: URL) => url.pathname.endsWith('/audit-log');
+  await ownerPage.route(auditLog, async (route) => {
+    if (new URL(route.request().url()).searchParams.has('before')) {
+      await route.fulfill({
+        status: 429,
+        json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+      });
+      return;
+    }
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...(await response.json()), next: 'e2e-older' } });
+  });
+  await ownerPage.reload();
+  const older = ownerPage.getByRole('button', { name: 'Pokaż starsze' });
+  await older.click();
+  await expect(ownerPage.locator('#history-more-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(older).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(ownerPage.locator('.page .alert')).toHaveCount(0);
+  await expect(ownerPage.getByText('Dodano usługę: Strzyżenie męskie').first()).toBeVisible();
+  await older.scrollIntoViewIfNeeded();
+  await shot(ownerPage, '802-history-more-error');
+  await ownerPage.unroute(auditLog);
   await ownerPage.goto('/pl/app/settings');
   await expect(ownerPage.getByLabel('Link dla klientów')).toHaveValue(
     new RegExp(`/pl/b/${location.slug}$`),
