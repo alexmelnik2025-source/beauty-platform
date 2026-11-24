@@ -97,6 +97,31 @@ test('the owner invites a specialist by email and phone; they join with a code (
   await expect(catName).toHaveAttribute('aria-invalid', 'true');
   await expect(catName).toBeFocused();
   await shot(page, '683-team-category-name-error');
+  // Task 818 (owner's rule: errors where the action is): a refused save that names no field is
+  // said under "Zapisz", not above the form; the typed name stays and editing takes it away.
+  const categoriesUrl = (url: URL) => url.pathname.endsWith('/staff-categories');
+  await page.route(categoriesUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await catName.fill('Starszy barber');
+  const saveCategory = catSheet.getByRole('button', { name: 'Zapisz', exact: true });
+  await saveCategory.click();
+  await expect(catSheet.locator('#category-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveCategory).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(catName).toHaveValue('Starszy barber');
+  await expect(catSheet.locator('.alert')).toHaveCount(0);
+  await saveCategory.scrollIntoViewIfNeeded();
+  await shot(page, '818-team-category-save-error');
+  await page.unroute(categoriesUrl);
+  await catName.fill('Starszy barber 2');
+  await expect(catSheet.locator('#category-save-error')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Specjaliści', exact: true }).click();
