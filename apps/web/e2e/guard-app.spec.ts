@@ -20,7 +20,8 @@ import { openBusinessMenu, serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `guard-app-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
+const CLIENT = 'Jan Aleksander Konstantynopolitańczykowicz-Wierzbowski';
 const FIVE_MINUTES = 5 * 60_000;
 
 const shot = (page: Page, name: string) =>
@@ -98,7 +99,7 @@ async function salonWithMissedVisits(
             ? { customerId }
             : {
                 customer: {
-                  name: 'Jan Nowak',
+                  name: CLIENT,
                   phone: '+48600700800',
                   email: `jan-${run}@example.com`,
                 },
@@ -156,6 +157,7 @@ test('the owner runs cancellation protection from the business app (task 207)', 
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     await openBusinessMenu(app, 'Ochrona przed odwołaniami');
+    await app.addStyleTag({ content: '* { -webkit-text-size-adjust: 130% !important; }' });
     await expect(app.getByRole('heading', { name: 'Ochrona przed odwołaniami' })).toBeVisible();
     await expect(app.getByText('Ochrona wyłączona', { exact: true })).toBeVisible();
     await expect(app.getByText('• Nieobecności: 2')).toBeVisible();
@@ -168,7 +170,19 @@ test('the owner runs cancellation protection from the business app (task 207)', 
     await app.getByRole('button', { name: 'Włącz ochronę' }).click();
     await expect(app.getByText('Ochrona jest włączona.')).toBeVisible();
     await expect(app.getByText('Ochrona włączona', { exact: true })).toBeVisible();
-    await expect(app.getByText('Jan Nowak')).toBeVisible();
+    const name = app.getByText(CLIENT, { exact: true });
+    await expect(name).toBeVisible();
+    // Measure the actual lines of text: a clipped surname can fit inside a 320 px card.
+    const lines = await name.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return Array.from(range.getClientRects(), (line) => ({
+        left: line.left,
+        right: line.right,
+      }));
+    });
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.every((line) => line.left >= 0 && line.right <= PHONE.width)).toBe(true);
     await expect(app.getByText(/^nieobecności: 2 · Nieodbyte wizyty: 180,00\s?zł$/)).toBeVisible();
     await shot(app, '207-business-app-guard');
     const on = await json<{ enabled: boolean; maxNoShows: number | null; action: string }>(
@@ -177,13 +191,20 @@ test('the owner runs cancellation protection from the business app (task 207)', 
     expect(on).toMatchObject({ enabled: true, maxNoShows: 2, action: 'prepay' });
 
     // ── Jan paid in the salon: the block is lifted with a note ─────────
-    await app.getByRole('button', { name: 'Zdejmij blokadę: Jan Nowak' }).click();
+    const release = app.getByRole('button', { name: `Zdejmij blokadę: ${CLIENT}`, exact: true });
+    const target = await release.boundingBox();
+    expect(target?.width).toBeGreaterThanOrEqual(44);
+    expect(target?.height).toBeGreaterThanOrEqual(44);
+    await release.click();
     await expect(app.getByText(/Zdjąć blokadę\?/)).toBeVisible();
     await app.getByLabel('Notatka (np. „zapłacił 150 zł”)').fill('Zapłacił 180 zł');
     await shot(app, '207a-business-app-guard-release');
     await app.getByRole('button', { name: 'Tak, zdejmij' }).click();
     await expect(app.getByText('Zdjęto blokadę.')).toBeVisible();
     await expect(app.getByText('Nikt nie jest teraz oznaczony.')).toBeVisible();
+    await expect(name).toHaveCount(0);
+    await expect(release).toHaveCount(0);
+    await expect(app.getByText('Ochrona jest wyłączona — nikt nie jest oznaczony.')).toHaveCount(0);
     const marked = await json<{ items: unknown[] }>(
       await request.get(`${base}/cancellation-guard/clients`, { headers: owner }),
     );
