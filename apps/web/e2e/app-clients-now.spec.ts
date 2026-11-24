@@ -170,8 +170,11 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await phone.getByRole('button', { name: 'Odśwież' }).click();
     const closed = card.getByLabel('Klienci widzą teraz: Zamknięte · otwarcie: jutro, 00:00');
     await expect(closed).toHaveCSS('font-size', '22.1px');
-    await closed.scrollIntoViewIfNeeded();
-    await expect(closed).toBeInViewport({ ratio: 1 });
+    // "Odśwież" may render the card again while it is scrolled to: retry on a fresh element.
+    await expect(async () => {
+      await closed.scrollIntoViewIfNeeded({ timeout: 2_000 });
+      await expect(closed).toBeInViewport({ ratio: 1, timeout: 2_000 });
+    }).toPass();
     expect(await closed.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await details.click();
     await expect(card).toContainText('Dziś dla klientów: nieczynne');
@@ -192,5 +195,15 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await context.close();
   } finally {
     businessApp.server.close();
+    // Even when a step above fails, leave the catalogue to booking.spec.ts (its salon alone).
+    const current = await json<{ version: number; onlineBookingEnabled: boolean }>(
+      await request.get(base, { headers: owner }),
+    );
+    if (current.onlineBookingEnabled) {
+      await request.patch(base, {
+        headers: owner,
+        data: { version: current.version, onlineBookingEnabled: false },
+      });
+    }
   }
 });
