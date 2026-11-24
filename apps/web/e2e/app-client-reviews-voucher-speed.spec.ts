@@ -282,12 +282,27 @@ test('leaving the salon aborts pending reviews and voucher balance', async ({ pa
   await expect(page.getByText('Opinia 1', { exact: true })).toBeVisible();
 });
 
-test('reopening a completed visit keeps the saved review', async ({ page }) => {
+test('reopening a visit waits for the save and then fetches the salon reply', async ({ page }) => {
   const detail = await mockVisit(page, 'completed');
-  await reply(page, detail + '/products', { available: [], reservations: [], totalGrosze: 0 });
+  await reply(page, detail + '/products', {
+    currency: 'PLN',
+    available: [],
+    reservations: [
+      {
+        id: 'pomade',
+        name: 'Pomada',
+        quantity: 1,
+        totalGrosze: 1500,
+        status: 'handed',
+      },
+    ],
+    totalGrosze: 1500,
+  });
   await reply(page, detail + '/products/used', { products: [] });
   const methods: string[] = [];
   const words = 'Dziękuję za strzyżenie!';
+  const answer = 'Do zobaczenia!';
+  let published = false;
   let hold!: (route: Route) => void;
   const saving = new Promise<Route>((resolve) => {
     hold = resolve;
@@ -296,7 +311,12 @@ test('reopening a completed visit keeps the saved review', async ({ page }) => {
     const method = route.request().method();
     methods.push(method);
     if (method === 'PUT') return hold(route);
-    return route.fulfill({ json: { canReview: true, review: null } });
+    return route.fulfill({
+      json: {
+        canReview: true,
+        review: published ? { rating: 4, text: words, reply: answer } : null,
+      },
+    });
   });
   await page.goto(app.url);
   const past = page.getByRole('tab', { name: t.visits.past, exact: true });
@@ -304,6 +324,10 @@ test('reopening a completed visit keeps the saved review', async ({ page }) => {
   await past.click();
   await open.click();
   const review = page.getByRole('region', { name: t.review.title });
+  await expect(review.getByRole('textbox')).toBeVisible();
+  await page.getByRole('button', { name: t.visit.back }).click();
+  await past.click();
+  await open.click();
   await review.getByRole('radio', { name: '4 z 5' }).click();
   await review.getByRole('textbox', { name: t.review.text }).fill(words);
   await review.getByRole('button', { name: t.review.send }).click();
@@ -311,14 +335,17 @@ test('reopening a completed visit keeps the saved review', async ({ page }) => {
   await page.getByRole('button', { name: t.visit.back }).click();
   await past.click();
   await open.click();
-  await expect(page.getByRole('button', { name: t.visit.back })).toBeVisible();
+  // A sibling loaded from the same visit detail confirms that ReviewCard has mounted.
+  await expect(page.getByRole('region', { name: t.visitProducts.title })).toBeVisible();
   await write.fulfill({ json: { canReview: true, review: { rating: 4, text: words } } });
   await expect(review.getByText(words)).toBeVisible();
+  published = true;
   await page.getByRole('button', { name: t.visit.back }).click();
   await past.click();
   await open.click();
   await expect(review.getByText(words)).toBeVisible();
-  expect(methods).toEqual(['GET', 'PUT']);
+  await expect(review.getByText(answer)).toBeVisible();
+  expect(methods).toEqual(['GET', 'PUT', 'GET']);
 });
 
 test('a late product list cannot replace the reopened visit', async ({ page }) => {

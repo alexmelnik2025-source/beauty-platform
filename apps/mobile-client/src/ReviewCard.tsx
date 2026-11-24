@@ -58,6 +58,8 @@ export const ReviewCard = memo(function ReviewCard(props: {
       .then((res) => {
         reading = false;
         if (!live) return;
+        // The salon can reply outside this app as soon as the review is published.
+        if (res.review) visitReviews.clear(api, visitId);
         setState(res);
         setEditing(res.canReview && !res.review);
         setRating(res.review?.rating ?? 0);
@@ -98,7 +100,6 @@ export const ReviewCard = memo(function ReviewCard(props: {
     writes.set(visitId, write);
     try {
       const res = await write;
-      void visitReviews.read(api, visitId, () => Promise.resolve(res));
       setState(res);
       setEditing(false);
       setThanks(true);
