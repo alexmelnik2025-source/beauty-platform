@@ -48,7 +48,9 @@ function BookingLinks(props: Props) {
   const [qrStaff, setQrStaff] = useState('');
   const [staffInfo, setStaffInfo] = useState('');
   const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
-  const error = failure ? errorText(failure.cause, t) : '';
+  const [staffFailure, setStaffFailure] = useState<{ cause: unknown } | null>(null);
+  const [locationAttempt, retryLocation] = useState(0);
+  const [staffAttempt, retryStaff] = useState(0);
   const [info, setInfo] = useState('');
   const [shortInfo, setShortInfo] = useState('');
   const [embedInfo, setEmbedInfo] = useState('');
@@ -56,15 +58,10 @@ function BookingLinks(props: Props) {
   const { orgId, locationId } = salon;
   useEffect(() => {
     let active = true;
-    Promise.all([
-      api.location(orgId, locationId),
-      api.staff(orgId, locationId).catch((): StaffList => []),
-    ]).then(
-      ([loc, team]) => {
-        if (!active) return;
-        setLocation(loc);
-        setStaff(team.filter((s) => s.active));
-        setFailure(null);
+    setFailure(null);
+    api.location(orgId, locationId).then(
+      (loc) => {
+        if (active) setLocation(loc);
       },
       (cause: unknown) => {
         if (active) setFailure({ cause });
@@ -73,7 +70,23 @@ function BookingLinks(props: Props) {
     return () => {
       active = false;
     };
-  }, [api, orgId, locationId]);
+  }, [api, orgId, locationId, locationAttempt]);
+
+  useEffect(() => {
+    let active = true;
+    setStaffFailure(null);
+    api.staff(orgId, locationId).then(
+      (team) => {
+        if (active) setStaff(team.filter((s) => s.active));
+      },
+      (cause: unknown) => {
+        if (active) setStaffFailure({ cause });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [api, orgId, locationId, staffAttempt]);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -83,6 +96,15 @@ function BookingLinks(props: Props) {
     });
     return () => sub.remove();
   }, [onBack]);
+
+  function readError(failed: { cause: unknown }, retry: () => void) {
+    return (
+      <View style={{ gap: 8 }}>
+        <ErrorText>{errorText(failed.cause, t)}</ErrorText>
+        <Button kind="secondary" label={t.day.refresh} onPress={retry} />
+      </View>
+    );
+  }
 
   const link = location ? bookingLink(WEB_URL, location) : null;
   const shortUrl = location ? shortLink(WEB_URL, location) : null;
@@ -138,9 +160,9 @@ function BookingLinks(props: Props) {
     <ScrollView contentContainerStyle={styles.screen}>
       <Button kind="link" label={b.back} onPress={onBack} />
       <Heading>{b.title}</Heading>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {failure ? readError(failure, () => retryLocation((n) => n + 1)) : null}
       {!location || !link ? (
-        error ? null : (
+        failure ? null : (
           <Text style={styles.muted}>{t.loading}</Text>
         )
       ) : (
@@ -187,6 +209,7 @@ function BookingLinks(props: Props) {
             ) : null}
           </Card>
           <SalonQr link={qrLink(WEB_URL, location)} name={location.name} t={t} />
+          {staffFailure ? readError(staffFailure, () => retryStaff((n) => n + 1)) : null}
           {staff.length > 0 ? (
             <Card>
               <Text role="heading" style={styles.qrTitle}>
