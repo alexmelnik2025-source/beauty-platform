@@ -12,6 +12,10 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **840 (ветка `agent/840-push-toggle-error`, от main): «Powiadomienia na tym urządzeniu» в кабинете — отказ «Włącz
+  powiadomienia» / «Wyłącz na tym urządzeniu» сразу под нажатой кнопкой со знаком «!»** (полировка по правилу
+  владельца «ошибки у поля», новых функций нет). Раньше — отдельной строкой внизу карточки. e2e `push-toggle`,
+  скриншоты `840-push-on-error`, `840-push-off-error`. Идёт CI.
 - **✅ Влито в main 24.11.2026 (~21:15 по Варшаве, стек `agent/835-837-stack`). 837 (ветка `agent/837-integrations-errors`, поверх 836): «Sklep» → «Integracje» — отказ
   каждого действия под нажатой кнопкой** (Połącz, Zapisz, Wybierz produkty, Synchronizuj teraz, Ustawienia, Odłącz,
   Importuj zaznaczone, «Zamówienia do Base» → Zapisz, файл CSV/XML; полировка по правилу владельца «ошибки у поля»,
