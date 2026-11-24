@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -13,6 +13,22 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { Button, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
+
+const catalogueCache = new SalonReadCache<ProductList['products']>();
+const salesCache = new SalonReadCache<VisitProductSales>();
+
+export function invalidateSaleStock(salon: SalonChoice, salesChanged: boolean) {
+  catalogueCache.clear(salon);
+  if (salesChanged) salesCache.clear(salon);
+}
+
+function readCatalogue(api: BusinessApi, salon: SalonChoice) {
+  return catalogueCache.read(salon, async () => {
+    const list = await withNetworkTimeout(api.products(salon.orgId, salon.locationId));
+    return list.products.filter((product) => product.active);
+  });
+}
 
 /**
  * Task 396: "Produkty" in the card of a visit that took place — the same as in the cabinet
@@ -21,7 +37,7 @@ import type { SalonChoice } from './SalonsScreen';
  * Task 524: "Kod kreskowy" — a code typed (or from a scanner) adds one piece of the product with
  * that code, as in the cabinet; shown when some product of the salon has a code.
  */
-export function ProductSalesSection(props: {
+export const ProductSalesSection = memo(function ProductSalesSection(props: {
   api: BusinessApi;
   t: Dictionary;
   locale: Locale;
@@ -31,38 +47,47 @@ export function ProductSalesSection(props: {
 }) {
   const { api, t, salon, appointmentId, canChange } = props;
   const p = t.products;
+  const [codeError, setCodeError] = useState('');
   const [products, setProducts] = useState<ProductList['products']>([]);
   const [sales, setSales] = useState<VisitProductSales | null>(null);
-  const [code, setCode] = useState('');
-  const [codeError, setCodeError] = useState('');
-  const wanted = parseBarcode(code);
-  const codeHint = wanted === undefined ? p.barcodeInvalid : codeError;
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
-  const load = useCallback(async () => {
-    try {
-      const [list, sold] = await Promise.all([
-        canChange
-          ? api.products(salon.orgId, salon.locationId)
-          : Promise.resolve<ProductList>({ products: [], sold30Days: [] }),
-        api.productSales(salon.orgId, salon.locationId, appointmentId),
-      ]);
-      setProducts(list.products.filter((x) => x.active));
-      setSales(sold);
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, appointmentId, canChange, t]);
+  const lifetime = useScreenLifetime(salon, appointmentId);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    Promise.all([
+      canChange ? readCatalogue(api, salon) : [],
+      salesCache.read(
+        salon,
+        () => withNetworkTimeout(api.productSales(salon.orgId, salon.locationId, appointmentId)),
+        appointmentId,
+      ),
+    ]).then(
+      ([list, sold]) => {
+        if (!active) return;
+        setProducts(list);
+        setSales(sold);
+      },
+      (e) => {
+        if (active) setError(errorText(e, t));
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [api, salon, appointmentId, canChange, t]);
 
-  const run = async (action: () => Promise<VisitProductSales>, byCode = false) => {
-    if (submitting.current) return;
+  const run = async (
+    action: () => Promise<VisitProductSales>,
+    onSold?: () => void,
+    onFailure: (message: string) => void = setError,
+  ) => {
+    const signal = lifetime.current?.signal;
+    if (!signal || signal.aborted || submitting.current) return;
     submitting.current = true;
     setBusy(true);
     setCodeError('');
@@ -74,38 +99,27 @@ export function ProductSalesSection(props: {
       } catch (e) {
         const message =
           e instanceof ApiError && e.code === 'OUT_OF_STOCK' ? p.outOfStock : errorText(e, t);
-        if (byCode) setCodeError(message);
-        else setError(message);
+        invalidateSaleStock(salon, true);
+        if (!signal.aborted) onFailure(message);
         return;
       }
+      catalogueCache.clear(salon);
+      salesCache.set(salon, sold, appointmentId);
+      if (signal.aborted) return;
       setSales(sold);
-      if (byCode) setCode('');
+      onSold?.();
       if (canChange) {
-        const list = await api.products(salon.orgId, salon.locationId);
-        setProducts(list.products.filter((x) => x.active));
+        const list = await readCatalogue(api, salon);
+        if (!signal.aborted) setProducts(list);
       }
     } catch (e) {
-      setError(errorText(e, t));
+      if (!signal.aborted) setError(errorText(e, t));
     } finally {
       submitting.current = false;
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   };
 
-  /** Task 524: one piece of the product with this code, or "no such product". */
-  const sellByCode = () => {
-    if (busy || !wanted) return;
-    const found = products.find((x) => x.barcode === wanted);
-    if (!found) {
-      setError('');
-      setCodeError(fill(p.codeUnknown, { code: wanted }));
-      return;
-    }
-    void run(
-      () => api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id),
-      true,
-    );
-  };
   const withCodes = products.some((x) => x.barcode !== null);
 
   if (!sales) return error ? <ErrorText>{error}</ErrorText> : null;
@@ -138,39 +152,21 @@ export function ProductSalesSection(props: {
         </View>
       ))}
       {canChange && withCodes ? (
-        <View style={styles.codeRow}>
-          <View style={styles.codeField}>
-            <Text style={styles.muted}>{p.saleByCode}</Text>
-            <TextInput
-              accessibilityLabel={p.saleByCode}
-              value={code}
-              maxLength={40}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!busy}
-              aria-invalid={Boolean(codeHint)}
-              aria-describedby={codeHint ? 'visit-barcode-error' : undefined}
-              onChangeText={(value) => {
-                setCode(value);
-                setCodeError('');
-              }}
-              onSubmitEditing={sellByCode}
-              style={[styles.input, !!codeHint && { borderColor: colors.danger }]}
-              testID="visit-products-code"
-            />
-            {codeHint ? (
-              <Text role="alert" nativeID="visit-barcode-error" style={styles.fieldError}>
-                ! {codeHint}
-              </Text>
-            ) : null}
-          </View>
-          <Button
-            kind="secondary"
-            label={p.addByCode}
-            disabled={busy || !wanted}
-            onPress={sellByCode}
-          />
-        </View>
+        <BarcodeForm
+          products={products}
+          p={p}
+          busy={busy}
+          codeError={codeError}
+          setCodeError={setCodeError}
+          clearError={() => setError('')}
+          onSell={(id, onSold) =>
+            void run(
+              () => api.addProductSale(salon.orgId, salon.locationId, appointmentId, id),
+              onSold,
+              setCodeError,
+            )
+          }
+        />
       ) : null}
       {canChange && products.length > 0 ? (
         <View style={styles.chips}>
@@ -200,6 +196,74 @@ export function ProductSalesSection(props: {
       ) : null}
       <Text style={styles.muted}>{p.soldHint}</Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
+    </View>
+  );
+});
+
+function BarcodeForm({
+  products,
+  p,
+  busy,
+  codeError,
+  setCodeError,
+  clearError,
+  onSell,
+}: {
+  products: ProductList['products'];
+  p: Dictionary['products'];
+  busy: boolean;
+  codeError: string;
+  setCodeError: (error: string) => void;
+  clearError: () => void;
+  onSell: (id: string, onSold: () => void) => void;
+}) {
+  const [code, setCode] = useState('');
+  const wanted = parseBarcode(code);
+  const codeHint = wanted === undefined ? p.barcodeInvalid : codeError;
+  /** Task 524: one piece of the product with this code, or "no such product". */
+  const sellByCode = () => {
+    if (busy || !wanted) return;
+    const found = products.find((x) => x.barcode === wanted);
+    if (!found) {
+      clearError();
+      setCodeError(fill(p.codeUnknown, { code: wanted }));
+      return;
+    }
+    onSell(found.id, () => setCode(''));
+  };
+  return (
+    <View style={styles.codeRow}>
+      <View style={styles.codeField}>
+        <Text style={styles.muted}>{p.saleByCode}</Text>
+        <TextInput
+          accessibilityLabel={p.saleByCode}
+          value={code}
+          maxLength={40}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          editable={!busy}
+          aria-invalid={Boolean(codeHint)}
+          aria-describedby={codeHint ? 'visit-barcode-error' : undefined}
+          onChangeText={(value) => {
+            setCode(value);
+            setCodeError('');
+          }}
+          onSubmitEditing={sellByCode}
+          style={[styles.input, !!codeHint && { borderColor: colors.danger }]}
+          testID="visit-products-code"
+        />
+        {codeHint ? (
+          <Text role="alert" nativeID="visit-barcode-error" style={styles.fieldError}>
+            ! {codeHint}
+          </Text>
+        ) : null}
+      </View>
+      <Button
+        kind="secondary"
+        label={p.addByCode}
+        disabled={busy || !wanted}
+        onPress={sellByCode}
+      />
     </View>
   );
 }

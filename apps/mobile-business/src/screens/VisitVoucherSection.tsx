@@ -7,6 +7,9 @@ import { parseTip as parseAmount } from '../tip';
 import { Button, colors, ErrorText } from '../ui';
 import { printedCode, visitVoucherAmount, visitVoucherLeft, voucherErrorText } from '../vouchers';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
+
+const voucherCache = new SalonReadCache<VisitVoucherPayments>();
 
 interface Props {
   api: BusinessApi;
@@ -48,7 +51,11 @@ function VoucherPayments(props: Props) {
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
-        const data = await api.visitVoucherPayments(orgId, locationId, appointmentId);
+        const data = await voucherCache.read(
+          salon,
+          () => withNetworkTimeout(api.visitVoucherPayments(orgId, locationId, appointmentId)),
+          appointmentId,
+        );
         if (signal.aborted) return;
         setPayments(data);
         setLoadFailure(null);
@@ -56,7 +63,7 @@ function VoucherPayments(props: Props) {
         if (!signal.aborted) setLoadFailure({ cause });
       }
     },
-    [api, orgId, locationId, appointmentId],
+    [api, salon, orgId, locationId, appointmentId],
   );
 
   useEffect(() => {
@@ -98,6 +105,7 @@ function VoucherPayments(props: Props) {
         props.serviceName,
         appointmentId,
       );
+      voucherCache.clear(salon);
       if (signal.aborted) return;
       setInfo(fill(v.paid, { amount: money(grosze), left: money(next.voucher.balanceGrosze) }));
       setCode('');

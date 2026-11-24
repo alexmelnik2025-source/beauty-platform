@@ -7,6 +7,9 @@ import { fill, type Dictionary } from '../i18n';
 import { couponCode, couponErrorText, hasCoupons } from '../visitCoupons';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
+
+const couponCache = new SalonReadCache<VisitCoupons>();
 
 interface Props {
   api: BusinessApi;
@@ -20,7 +23,7 @@ interface Props {
 /**
  * Task 343: "Kupony i rabat klienta" in the visit card — the client's tier discount, the coupons
  * used (with "Zdejmij") and the other unused ones with what each takes off or why it cannot be
- * used, plus a field for the code the client shows. Reloaded whenever the visit changes.
+ * used, plus a field for the code the client shows. Price, service and applied discounts determine the available offers.
  */
 export function VisitCouponsSection(props: Props) {
   const key = JSON.stringify([props.salon.orgId, props.salon.locationId, props.visit.id]);
@@ -44,17 +47,33 @@ function VisitCouponsCard(props: Props) {
     return () => controller.abort();
   }, [api, orgId, locationId, visit.id]);
 
+  // Attendance and tips change the visit version without changing these offers.
+  const offersKey = JSON.stringify([
+    visit.id,
+    visit.customer?.id,
+    visit.service?.id,
+    visit.priceGrosze,
+    visit.discountGrosze,
+    visit.tierDiscount,
+    visit.coupons,
+  ]);
   useEffect(() => {
     let alive = true;
-    api.visitCoupons(orgId, locationId, visit.id).then(
-      (data) => alive && setCoupons(data),
-      // Without the list the visit still works; coupons simply are not offered.
-      () => undefined,
-    );
+    couponCache
+      .read(
+        salon,
+        () => withNetworkTimeout(api.visitCoupons(orgId, locationId, visit.id)),
+        offersKey,
+      )
+      .then(
+        (data) => alive && setCoupons(data),
+        // Without the list the visit still works; coupons simply are not offered.
+        () => undefined,
+      );
     return () => {
       alive = false;
     };
-  }, [api, orgId, locationId, visit.id, visit.version]);
+  }, [api, salon, orgId, locationId, visit.id, offersKey, codeReset]);
 
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
@@ -70,6 +89,7 @@ function VisitCouponsCard(props: Props) {
     setNote(null);
     try {
       const next = await action();
+      couponCache.clear(salon);
       if (signal.aborted) return;
       props.onVisit(next);
       setNote({ text: done, bad: false });

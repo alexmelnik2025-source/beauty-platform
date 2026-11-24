@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, StockDelivery } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { orderQuantity, parseDelivery } from '../stock';
 import { Button, Card, colors, ErrorText, Pressable } from '../ui';
+import { invalidateSaleStock } from './ProductSalesSection';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -40,6 +41,11 @@ export function DeliveryCard(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const changeQuantity = useCallback((id: string, value: string) => {
+    setPieces((current) => ({ ...current, [id]: value }));
+    setError('');
+  }, []);
+
   const suppliers = [
     ...new Map(
       active
@@ -64,7 +70,9 @@ export function DeliveryCard(props: {
     setBusy(true);
     setError('');
     try {
-      props.onSaved(await api.delivery(salon.orgId, salon.locationId, items));
+      const result = await api.delivery(salon.orgId, salon.locationId, items);
+      invalidateSaleStock(salon, false);
+      props.onSaved(result);
     } catch (e) {
       setError(errorText(e, t));
     } finally {
@@ -108,47 +116,16 @@ export function DeliveryCard(props: {
           </View>
         ) : null}
         {parsed.map(({ product: x, n }) => (
-          <View key={x.id} style={styles.row}>
-            <View style={styles.details}>
-              <Text style={styles.name}>{x.name}</Text>
-              <Text style={styles.muted}>
-                {x.stockQuantity === null
-                  ? p.stocktakeWasNone
-                  : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
-              </Text>
-            </View>
-            <View style={styles.quantity}>
-              <TextInput
-                accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
-                editable={!busy}
-                aria-invalid={n === undefined || failedItem === x.id}
-                aria-describedby={
-                  n === undefined || failedItem === x.id
-                    ? `delivery-error-${x.id}`
-                    : error && n !== null
-                      ? 'delivery-save-error'
-                      : undefined
-                }
-                placeholder="—"
-                placeholderTextColor={colors.placeholder}
-                keyboardType="number-pad"
-                value={pieces[x.id] ?? ''}
-                onChangeText={(value) => {
-                  setPieces((current) => ({ ...current, [x.id]: value }));
-                  setError('');
-                }}
-                style={[
-                  styles.input,
-                  (n === undefined || failedItem === x.id) && { borderColor: colors.danger },
-                ]}
-              />
-              {n === undefined || failedItem === x.id ? (
-                <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
-                  ! {n === undefined ? p.deliveryInvalid : error}
-                </Text>
-              ) : null}
-            </View>
-          </View>
+          <DeliveryRow
+            key={x.id}
+            product={x}
+            p={p}
+            busy={busy}
+            value={pieces[x.id] ?? ''}
+            fieldError={n === undefined ? p.deliveryInvalid : failedItem === x.id ? error : ''}
+            hasSaveError={Boolean(error) && n !== null}
+            onChange={changeQuantity}
+          />
         ))}
         {error && !failedItem ? (
           <View nativeID="delivery-save-error">
@@ -167,6 +144,58 @@ export function DeliveryCard(props: {
     </View>
   );
 }
+
+const DeliveryRow = memo(function DeliveryRow({
+  product: x,
+  p,
+  busy,
+  value,
+  fieldError,
+  hasSaveError,
+  onChange,
+}: {
+  product: Product;
+  p: Dictionary['products'];
+  busy: boolean;
+  value: string;
+  fieldError: string;
+  hasSaveError: boolean;
+  onChange: (id: string, value: string) => void;
+}) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.details}>
+        <Text style={styles.name}>{x.name}</Text>
+        <Text style={styles.muted}>
+          {x.stockQuantity === null
+            ? p.stocktakeWasNone
+            : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
+        </Text>
+      </View>
+      <View style={styles.quantity}>
+        <TextInput
+          accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
+          editable={!busy}
+          aria-invalid={Boolean(fieldError)}
+          aria-describedby={
+            fieldError ? `delivery-error-${x.id}` : hasSaveError ? 'delivery-save-error' : undefined
+          }
+          placeholder="—"
+          placeholderTextColor={colors.placeholder}
+          keyboardType="number-pad"
+          value={value}
+          onChangeText={(text) => onChange(x.id, text)}
+          style={[styles.input, Boolean(fieldError) && { borderColor: colors.danger }]}
+        />
+        {fieldError ? (
+          <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
+            ! {fieldError}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.ink },

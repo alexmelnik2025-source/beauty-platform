@@ -6,6 +6,9 @@ import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
 import { waitlistOfDay, waitlistStatus, type WaitlistEntry } from '../waitlist';
 import type { SalonChoice } from './SalonsScreen';
+import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
+
+const waitlistCache = new SalonReadCache<SalonWaitlist>();
 
 interface Props {
   api: BusinessApi;
@@ -62,7 +65,13 @@ function DayWaitlist(props: Props) {
     if (past) return;
     let active = true;
     // Calendar refreshes may overlap on a slow connection. Share the current day's read.
-    const request = pending.current ?? api.waitlist(orgId, locationId, date);
+    const request =
+      pending.current ??
+      waitlistCache.read(
+        salon,
+        () => withNetworkTimeout(api.waitlist(orgId, locationId, date)),
+        JSON.stringify([date, props.reload]),
+      );
     pending.current = request;
     request.then(
       (list) => {
@@ -80,7 +89,7 @@ function DayWaitlist(props: Props) {
     return () => {
       active = false;
     };
-  }, [api, orgId, locationId, date, past, props.reload]);
+  }, [api, salon, orgId, locationId, date, past, props.reload]);
 
   async function remove(entry: WaitlistEntry) {
     const signal = scope.current?.signal;
@@ -90,6 +99,7 @@ function DayWaitlist(props: Props) {
     setError('');
     try {
       await api.removeFromWaitlist(salon.orgId, salon.locationId, entry.id);
+      waitlistCache.clear(salon);
       if (signal.aborted) return;
       // A refresh started before this removal may still contain the entry.
       pending.current = null;
