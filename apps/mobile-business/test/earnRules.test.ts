@@ -55,6 +55,18 @@ describe('stamps and points per service (task 347)', () => {
     expect(earnToSave({ s1: String(MAX_EARN) }, active)).toMatchObject({ ok: true });
   });
 
+  it('keeps a saved zero override and blocks an invalid saved amount', () => {
+    const rule = program.earnRules[0]!;
+    for (const points of [0, -1, 1_000_000_000]) {
+      const rows = earnRows({ earnRules: [{ ...rule, points }] }, 'l1');
+      expect(earnToSave(rows, active)).toEqual(
+        points === 0
+          ? { ok: true, save: { rules: [{ serviceId: rule.serviceId, points: 0 }] } }
+          : { ok: false, service: rule.serviceName },
+      );
+    }
+  });
+
   it('replaces the rules of one salon', async () => {
     const calls: { key: string; body: unknown }[] = [];
     const fetchFn = async (url: string, init?: RequestInit) => {

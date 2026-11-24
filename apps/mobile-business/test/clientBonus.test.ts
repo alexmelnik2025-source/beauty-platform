@@ -71,6 +71,33 @@ describe('a manual change of the balance', () => {
 });
 
 describe('rewards to exchange', () => {
+  it('offers no exchange for an empty or malformed catalogue', () => {
+    expect(rewardChoices({ balance: 5 }, [])).toEqual([]);
+    // @ts-expect-error A successful response can still contain a malformed JSON payload.
+    expect(rewardChoices({ balance: 5 }, {})).toEqual([]);
+  });
+
+  it('keeps valid offers when a catalogue contains damaged entries', () => {
+    const valid = reward('valid', { cost: 1 });
+    const list = [
+      null,
+      reward('zero', { cost: 0 }),
+      reward('negative', { cost: -1 }),
+      reward('over', { cost: 100_001 }),
+      valid,
+    ];
+    // @ts-expect-error The API response can include a null entry at runtime.
+    expect(rewardChoices({ balance: 0 }, list)).toEqual([{ reward: valid, enough: false }]);
+  });
+
+  it('requires the full balance even for the most expensive reward', () => {
+    const max = reward('max', { cost: 100_000 });
+    // @ts-expect-error A malformed numeric string must not enable redemption.
+    expect(rewardChoices({ balance: '100000' }, [max])).toEqual([{ reward: max, enough: false }]);
+    expect(rewardChoices({ balance: 99_999 }, [max])).toEqual([{ reward: max, enough: false }]);
+    expect(rewardChoices({ balance: 100_000 }, [max])).toEqual([{ reward: max, enough: true }]);
+  });
+
   it('cheaper first, removed ones left out, "enough" from the balance', () => {
     const list = rewardChoices({ balance: 6 }, [
       reward('big', { cost: 10 }),
