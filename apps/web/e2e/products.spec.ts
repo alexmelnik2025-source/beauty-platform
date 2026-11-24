@@ -217,6 +217,40 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   await expect(products.getByLabel('Cena zakupu — Szampon')).toHaveValue('');
   await shot(page, '395-owner-products');
   await shot(page, '448-owner-purchase-price');
+  // Task 790 (owner's rule: errors where the action is): a refused "Zapisz" or "Historia" of a
+  // product row is said under that row, not at the top of the list; the typed price stays.
+  const refused = { error: { code: 'RATE_LIMITED', message: 'slow down' } };
+  const productUrl = (url: URL) => /\/products\/[^/]+(\/stock-history)?$/.test(url.pathname);
+  await page.route(productUrl, (route) =>
+    route.request().method() === 'PATCH' || route.request().url().includes('/stock-history')
+      ? route.fulfill({ status: 429, json: refused })
+      : route.fallback(),
+  );
+  await products.getByLabel('Cena — Pomada matowa').fill('51');
+  const pomadeSave = pomadeEditRow.getByRole('button', { name: 'Zapisz' });
+  await pomadeSave.click();
+  const rowRefusal = pomadeEditRow.locator('.field-error');
+  await expect(rowRefusal).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(pomadeSave).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(products.locator('.alert')).toHaveCount(0);
+  await expect(products.getByLabel('Cena — Pomada matowa')).toHaveValue('51');
+  await pomadeEditRow.scrollIntoViewIfNeeded();
+  await shot(page, '790-product-row-save-error');
+  // Typing in the row takes the refusal back; "Historia" refused is said under the row too.
+  await products.getByLabel('Cena — Pomada matowa').fill('49');
+  await expect(rowRefusal).toHaveCount(0);
+  const pomadeHistory = products.getByRole('button', { name: 'Historia magazynu — Pomada matowa' });
+  await pomadeHistory.click();
+  await expect(rowRefusal).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(pomadeHistory).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(products.getByTestId('stock-history')).toHaveCount(0);
+  await expect(products.locator('.alert')).toHaveCount(0);
+  await page.unroute(productUrl);
+  await pomadeHistory.click();
+  await expect(rowRefusal).toHaveCount(0);
+  await expect(products.getByTestId('stock-history')).toBeVisible();
+  await pomadeHistory.click();
+  await expect(products.getByTestId('stock-history')).toHaveCount(0);
 
   // Task Q6: the explanations wait under "?" — the list comes first; one tap opens them, another closes.
   await expect(products.getByText(/Cena zakupu: ile salon płaci/)).toBeHidden();
@@ -304,6 +338,19 @@ test('the owner sells a product at a visit; the report counts it apart', async (
   expect(stockFile).toContain('Pomada matowa;49,00;tak;0;;tak;20,00;;2;\r\n');
   expect(stockFile).toContain('Szampon;30,50;tak;3;3;tak;;;0;\r\n');
   await shot(page, '437-owner-stock-csv');
+  // Task 791: a refused "CSV stanu magazynowego" is said under that button, not at the top.
+  const stockCsvUrl = (url: URL) => url.pathname.endsWith('/products/export.csv');
+  await page.route(stockCsvUrl, (route) => route.fulfill({ status: 429, json: refused }));
+  const stockCsvButton = products.getByRole('button', { name: 'CSV stanu magazynowego' });
+  await stockCsvButton.click();
+  await expect(products.locator('#products-stock-csv-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(stockCsvButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(products.locator('.alert')).toHaveCount(0);
+  await stockCsvButton.scrollIntoViewIfNeeded();
+  await shot(page, '791-stock-csv-error');
+  await page.unroute(stockCsvUrl);
   // Task 463: "Dostawca" — the pomade comes from Hairgum; the CSV for that supplier only.
   await expect(products.getByLabel('Dostawca w pliku CSV')).toHaveCount(0);
   const pomadeRow = products
