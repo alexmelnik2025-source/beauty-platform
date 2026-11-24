@@ -34,6 +34,9 @@ export function ProductSalesSection(props: {
   const [products, setProducts] = useState<ProductList['products']>([]);
   const [sales, setSales] = useState<VisitProductSales | null>(null);
   const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+  const wanted = parseBarcode(code);
+  const codeHint = wanted === undefined ? p.barcodeInvalid : codeError;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
@@ -60,6 +63,7 @@ export function ProductSalesSection(props: {
   const run = async (action: () => Promise<VisitProductSales>) => {
     if (busy) return;
     setBusy(true);
+    setCodeError('');
     setError('');
     try {
       setSales(await action());
@@ -77,16 +81,18 @@ export function ProductSalesSection(props: {
 
   /** Task 524: one piece of the product with this code, or "no such product". */
   const sellByCode = () => {
-    const wanted = parseBarcode(code);
-    if (!wanted) return;
+    if (busy || !wanted) return;
     const found = products.find((x) => x.barcode === wanted);
     if (!found) {
-      setError(fill(p.codeUnknown, { code: wanted }));
+      setError('');
+      setCodeError(fill(p.codeUnknown, { code: wanted }));
       return;
     }
-    void run(() => api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id)).then(
-      () => setCode(''),
-    );
+    void run(async () => {
+      const sold = await api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id);
+      setCode('');
+      return sold;
+    });
   };
   const withCodes = products.some((x) => x.barcode !== null);
 
@@ -120,24 +126,32 @@ export function ProductSalesSection(props: {
         </View>
       ))}
       {canChange && withCodes ? (
-        <View style={styles.row}>
-          <TextInput
-            accessibilityLabel={p.saleByCode}
-            placeholder={p.saleByCode}
-            placeholderTextColor={colors.placeholder}
-            value={code}
-            maxLength={40}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            onChangeText={setCode}
-            onSubmitEditing={sellByCode}
-            style={styles.input}
-            testID="visit-products-code"
-          />
+        <View style={styles.codeRow}>
+          <View style={styles.codeField}>
+            <TextInput
+              accessibilityLabel={p.saleByCode}
+              placeholder={p.saleByCode}
+              placeholderTextColor={colors.placeholder}
+              value={code}
+              maxLength={40}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!busy}
+              aria-invalid={Boolean(codeHint)}
+              onChangeText={(value) => {
+                setCode(value);
+                setCodeError('');
+              }}
+              onSubmitEditing={sellByCode}
+              style={[styles.input, !!codeHint && { borderColor: colors.danger }]}
+              testID="visit-products-code"
+            />
+            {codeHint ? <ErrorText>! {codeHint}</ErrorText> : null}
+          </View>
           <Button
             kind="secondary"
             label={p.addByCode}
-            disabled={busy || !parseBarcode(code)}
+            disabled={busy || !wanted}
             onPress={sellByCode}
           />
         </View>
@@ -180,10 +194,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, color: colors.ink, flexShrink: 1, flexGrow: 1 },
   muted: { color: colors.muted, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  codeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  codeField: { flexGrow: 1, flexBasis: 180, gap: 4 },
   input: {
-    flexGrow: 1,
-    flexShrink: 1,
-    minWidth: 160,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
