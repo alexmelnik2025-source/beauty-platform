@@ -143,17 +143,22 @@ function VoucherPayments(props: Props) {
           <Text style={styles.label}>{v.code}</Text>
           <TextInput
             accessibilityLabel={v.code}
+            accessibilityHint={error?.field === 'code' ? error.text : undefined}
             placeholder="ABCD-EFGH"
             placeholderTextColor={colors.placeholder}
             value={code}
             maxLength={20}
+            multiline
+            numberOfLines={2}
+            blurOnSubmit
+            returnKeyType="done"
             autoCapitalize="characters"
             autoCorrect={false}
             editable={!busy}
             aria-invalid={error?.field === 'code'}
             aria-describedby={error?.field === 'code' ? 'visit-voucher-code-error' : undefined}
             onChangeText={(value) => {
-              setCode(value);
+              setCode(value.replace(/[\r\n]/g, ''));
               if (error?.field === 'code') setError(null);
             }}
             style={[styles.input, error?.field === 'code' && styles.invalid]}
@@ -167,6 +172,7 @@ function VoucherPayments(props: Props) {
           <Text style={styles.label}>{v.payAmount}</Text>
           <TextInput
             accessibilityLabel={v.payAmount}
+            accessibilityHint={error?.field === 'amount' ? error.text : undefined}
             value={amount}
             keyboardType="decimal-pad"
             editable={!busy}
@@ -201,6 +207,7 @@ function VoucherPayments(props: Props) {
         <Button
           kind="link"
           label={v.visitOpen}
+          expanded={false}
           disabled={busy}
           onPress={() => {
             setOpen(true);
@@ -247,7 +254,7 @@ const PaymentHistory = memo(function PaymentHistory({
               {p.undoneDate ? ` · ${fill(v.undoneMark, { date: p.undoneDate })}` : ''}
             </Text>
           </Text>
-          <Text style={[styles.muted, p.undoneDate ? styles.undone : null]}>
+          <Text style={[styles.muted, styles.amount, p.undoneDate ? styles.undone : null]}>
             {money(p.amountGrosze)}
           </Text>
         </View>
@@ -267,6 +274,7 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 16, color: colors.ink, maxWidth: '100%', flexShrink: 1, flexGrow: 1 },
   muted: { color: colors.muted, fontSize: 14 },
+  amount: { maxWidth: '100%' },
   undone: { textDecorationLine: 'line-through', opacity: 0.6 },
   info: { color: colors.ink, fontSize: 14 },
   invalid: { borderColor: colors.danger },
