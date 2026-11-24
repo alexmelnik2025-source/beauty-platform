@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    overflow: 'hidden',
+    maxWidth: '100%',
   },
   chipBad: { backgroundColor: '#f6dcd9', color: colors.danger },
   chipStrong: { backgroundColor: colors.ink, color: '#ffffff' },

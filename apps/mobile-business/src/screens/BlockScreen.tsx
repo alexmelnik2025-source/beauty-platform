@@ -97,7 +97,12 @@ export function BlockScreen(props: {
   ) => (
     <View style={styles.stepper}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.row, invalid && styles.invalidRange]}>
+      <View
+        role="group"
+        accessibilityLabel={label}
+        aria-describedby={invalid ? 'block-range-error' : undefined}
+        style={[styles.row, invalid && styles.invalidRange]}
+      >
         <Button
           kind="secondary"
           label="‹"
@@ -116,7 +121,11 @@ export function BlockScreen(props: {
           onPress={() => set(shiftTime(value, STEP))}
         />
       </View>
-      {invalid ? <ErrorText>! {b.badRange}</ErrorText> : null}
+      {invalid ? (
+        <View nativeID="block-range-error">
+          <ErrorText>! {b.badRange}</ErrorText>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -183,16 +192,25 @@ export function BlockScreen(props: {
         </View>
       ) : null}
 
-      <TextInput
-        accessibilityLabel={b.reason}
-        placeholder={b.reason}
-        placeholderTextColor={colors.placeholder}
-        value={reason}
-        onChangeText={setReason}
-        maxLength={200}
-        style={[styles.input, missingReason && styles.invalidInput]}
-      />
-      {missingReason ? <ErrorText>! {b.reason}</ErrorText> : null}
+      <View style={styles.stepper}>
+        <TextInput
+          accessibilityLabel={b.reason}
+          accessibilityHint={missingReason ? b.reason : undefined}
+          aria-invalid={missingReason}
+          aria-describedby={missingReason ? 'block-reason-error' : undefined}
+          placeholder={b.reason}
+          placeholderTextColor={colors.placeholder}
+          value={reason}
+          onChangeText={setReason}
+          maxLength={200}
+          style={[styles.input, missingReason && styles.invalidInput]}
+        />
+        {missingReason ? (
+          <View nativeID="block-reason-error">
+            <ErrorText>! {b.reason}</ErrorText>
+          </View>
+        ) : null}
+      </View>
       {error ? <ErrorText>{error}</ErrorText> : null}
       <View style={styles.row}>
         <Button label={b.save} busy={busy} onPress={() => void save()} />
