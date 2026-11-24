@@ -27,6 +27,24 @@ describe('salon QR code in the client app (task 357)', () => {
     }
   });
 
+  it('encodes an empty payload as a version 1 symbol', () => {
+    const qr = encodeQr('');
+    expect(qr.version).toBe(1);
+    expect(qr.size).toBe(21);
+    expect(rows(qr)).toEqual(rows(cabinetQr('')));
+  });
+
+  it('fits exactly 2331 UTF-8 bytes into a version 40 symbol', () => {
+    const full = 'ł'.repeat(1165) + 'a';
+    expect(encodeQr(full)).toMatchObject({ version: 40, size: 177 });
+    expect(() => encodeQr(full + 'a')).toThrow(RangeError);
+  });
+
+  it.each(['x\ud83dy', 'x\udc88y'])('replaces an unpaired surrogate in the payload', (text) => {
+    expect(utf8(text)).toEqual(Array.from(new TextEncoder().encode(text)));
+    expect(rows(encodeQr(text))).toEqual(rows(encodeQr('x�y')));
+  });
+
   it('writes letters as UTF-8 without TextEncoder', () => {
     for (const text of ['Łódź', 'Київ', '💈']) {
       expect(utf8(text)).toEqual(Array.from(new TextEncoder().encode(text)));
