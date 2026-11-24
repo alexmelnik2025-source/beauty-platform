@@ -154,9 +154,9 @@ for (const locale of ['pl', 'en', 'uk', 'ru'] as const) {
       await expect(choice).toBeVisible();
       await expect(
         page.getByRole('button', {
-          name: new RegExp('^.*' + specialist + '.*90.*' + service + '$'),
+          name: new RegExp(specialist + '.*90'),
         }),
-      ).toBeVisible();
+      ).toHaveAccessibleDescription(service);
       await checkLayout(page);
       await choice.click();
       const person = page.getByRole('button', {

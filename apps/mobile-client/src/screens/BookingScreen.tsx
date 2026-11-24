@@ -603,6 +603,7 @@ export function BookingScreen(props: {
                 <Text style={styles.group}>{g.name ?? b.otherServices}</Text>
               ) : null}
               {g.services.map((s) => {
+                const titleID = `booking-service-${s.id}`;
                 const rows = priceRows(salon, s.id);
                 const doing = staffFor(salon, s.id);
                 // Everyone at one price and length: one "All specialists" line.
@@ -611,6 +612,7 @@ export function BookingScreen(props: {
                   <View key={s.id} style={{ gap: 2 }}>
                     <Choice
                       title={s.name}
+                      titleID={titleID}
                       meta={durationText(s.durationMinutes, t.units)}
                       right={servicePriceText(s, salon.currency, locale, b.priceFrom)}
                       onPress={() => pickService(s.id)}
@@ -624,7 +626,9 @@ export function BookingScreen(props: {
                         <Pressable
                           key={`${r.priceGrosze}|${r.durationMinutes}`}
                           accessibilityRole="button"
-                          accessibilityLabel={`${fill(b.bookRow, { names })}, ${offer}, ${s.name}`}
+                          accessibilityLabel={`${fill(b.bookRow, { names })}, ${offer}`}
+                          accessibilityHint={s.name}
+                          aria-describedby={titleID}
                           onPress={() =>
                             pickRow(
                               s.id,
@@ -1204,6 +1208,7 @@ function HoldCountdown({
 
 function Choice(props: {
   title: string;
+  titleID?: string;
   meta?: string;
   /** The specialist's nearest free time (task 12). */
   free?: string;
@@ -1220,7 +1225,9 @@ function Choice(props: {
       style={({ pressed }) => [styles.choice, pressed && { opacity: 0.7 }]}
     >
       <View style={styles.choiceDetails}>
-        <Text style={styles.strong}>{props.title}</Text>
+        <Text nativeID={props.titleID} style={styles.strong}>
+          {props.title}
+        </Text>
         {props.meta ? <Text style={styles.muted}>{props.meta}</Text> : null}
         {props.free ? <Text style={styles.free}>{props.free}</Text> : null}
       </View>
