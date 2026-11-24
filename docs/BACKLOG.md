@@ -12,14 +12,14 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **841 (ветка `agent/841-outbox-retry-error`, поверх 840): страница очереди писем администратора платформы — отказ
+- **✅ Влито в main 24.11.2026 (стек `agent/840-841-stack`). 841 (поверх 840): страница очереди писем администратора платформы — отказ
   «Wyślij wszystkie ponownie» / «Wyślij ponownie» сразу под нажатой кнопкой; повторное нажатие во время отправки
   не уходит дважды** (полировка, новых функций нет). Раньше — рамкой над счётчиками. e2e `outbox-retry`, скриншоты
-  `841-outbox-retry-all-error`, `841-outbox-retry-one-error`. Идёт CI.
-- **840 (ветка `agent/840-push-toggle-error`, от main): «Powiadomienia na tym urządzeniu» в кабинете — отказ «Włącz
+  `841-outbox-retry-all-error`, `841-outbox-retry-one-error`.
+- **✅ Влито в main 24.11.2026 (стек `agent/840-841-stack`). 840: «Powiadomienia na tym urządzeniu» в кабинете — отказ «Włącz
   powiadomienia» / «Wyłącz na tym urządzeniu» сразу под нажатой кнопкой со знаком «!»** (полировка по правилу
   владельца «ошибки у поля», новых функций нет). Раньше — отдельной строкой внизу карточки. e2e `push-toggle`,
-  скриншоты `840-push-on-error`, `840-push-off-error`. Идёт CI.
+  скриншоты `840-push-on-error`, `840-push-off-error`.
 - **✅ Влито в main 24.11.2026 (~21:15 по Варшаве, стек `agent/835-837-stack`). 837 (ветка `agent/837-integrations-errors`, поверх 836): «Sklep» → «Integracje» — отказ
   каждого действия под нажатой кнопкой** (Połącz, Zapisz, Wybierz produkty, Synchronizuj teraz, Ustawienia, Odłącz,
   Importuj zaznaczone, «Zamówienia do Base» → Zapisz, файл CSV/XML; полировка по правилу владельца «ошибки у поля»,
