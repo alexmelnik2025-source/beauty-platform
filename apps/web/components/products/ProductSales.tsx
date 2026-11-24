@@ -46,6 +46,15 @@ export function ProductSales({
    * chosen, is said under that field.
    */
   const [problem, setProblem] = useState<{ field: SaleField; text: string } | null>(null);
+  /**
+   * Task 835 (owner's rule: errors where the action is): any other refusal is said under the pressed
+   * button — "+ Dodaj" of the code or of the chosen product, or "Usuń" of a sold row — not as a box
+   * at the bottom of the section.
+   */
+  const [actionError, setActionError] = useState<{ at: string; text: string } | null>(null);
+  const errorAt = (at: string) => (actionError?.at === at ? actionError.text : '');
+  const actionErrorId = (at: string) =>
+    `visit-products-${at.replace(':', '-')}-error-${appointmentId}`;
   const boxRef = useRef<HTMLDivElement>(null);
   const url = `${base}/appointments/${appointmentId}/products`;
   const money = (hundredths: number) => formatPrice(hundredths, currency, tag);
@@ -74,10 +83,11 @@ export function ProductSales({
     boxRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [problem]);
 
-  async function run(action: () => Promise<VisitProductSales>, field?: SaleField) {
+  async function run(action: () => Promise<VisitProductSales>, at: string, field?: SaleField) {
     setBusy(true);
     setError('');
     setProblem(null);
+    setActionError(null);
     try {
       setSales(await action());
       // Task 430: the pieces left in stock changed with the sale.
@@ -88,7 +98,7 @@ export function ProductSales({
     } catch (err) {
       if (field && err instanceof ApiError && err.code === 'OUT_OF_STOCK') {
         setProblem({ field, text: errorText(t, err) });
-      } else setError(errorText(t, err));
+      } else setActionError({ at, text: errorText(t, err) });
       throw err;
     } finally {
       setBusy(false);
@@ -115,6 +125,7 @@ export function ProductSales({
     run(
       () =>
         api<VisitProductSales>(url, { method: 'POST', body: { productId: found.id, quantity: 1 } }),
+      'code-add',
       'code',
     ).then(
       () => setCode(''),
@@ -126,7 +137,12 @@ export function ProductSales({
   /** Editing a field takes its error away. */
   const clear = (field: SaleField) => {
     if (problem?.field === field) setProblem(null);
+    setActionError(null);
   };
+  const describedBy = (at: string) => (errorAt(at) ? actionErrorId(at) : undefined);
+  const actionFieldError = (at: string) => (
+    <FieldError id={actionErrorId(at)} text={errorAt(at) || undefined} />
+  );
   const errorId = (field: SaleField) => `visit-products-${field}-error-${appointmentId}`;
   const invalid = (field: SaleField) => ({
     'aria-invalid': problem?.field === field || undefined,
@@ -166,15 +182,18 @@ export function ProductSales({
                   className="link-btn small"
                   aria-label={`${p.removeSale} — ${s.name}`}
                   disabled={busy}
+                  aria-describedby={describedBy(`remove:${s.id}`)}
                   onClick={() =>
-                    void run(() =>
-                      api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }),
+                    void run(
+                      () => api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }),
+                      `remove:${s.id}`,
                     ).catch(() => undefined)
                   }
                 >
                   {p.removeSale}
                 </button>
               ) : null}
+              {actionFieldError(`remove:${s.id}`)}
             </li>
           ))}
         </ul>
@@ -202,13 +221,19 @@ export function ProductSales({
             style={{ flex: '1 1 12rem' }}
             data-testid="visit-products-code"
           />
-          <button type="submit" className="btn btn--quiet btn--small" disabled={busy}>
+          <button
+            type="submit"
+            className="btn btn--quiet btn--small"
+            disabled={busy}
+            aria-describedby={describedBy('code-add')}
+          >
             + {p.addSale}
           </button>
         </form>
       ) : null}
       {/* Under the row, so "+ Dodaj" stays level with the field. */}
       {fieldError('code')}
+      {actionFieldError('code-add')}
       {canChange && products.length > 0 ? (
         <form
           noValidate
@@ -223,6 +248,7 @@ export function ProductSales({
             }
             run(
               () => api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
+              'add',
               'quantity',
             ).then(
               () => {
@@ -280,13 +306,19 @@ export function ProductSales({
             }}
             style={{ maxWidth: 70 }}
           />
-          <button type="submit" className="btn btn--quiet btn--small" disabled={busy}>
+          <button
+            type="submit"
+            className="btn btn--quiet btn--small"
+            disabled={busy}
+            aria-describedby={describedBy('add')}
+          >
             + {p.addSale}
           </button>
         </form>
       ) : null}
       {fieldError('product')}
       {fieldError('quantity')}
+      {actionFieldError('add')}
       <span className="small muted">{p.soldHint}</span>
       <ErrorBox>{error}</ErrorBox>
     </div>

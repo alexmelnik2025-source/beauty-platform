@@ -170,6 +170,20 @@ test('the client pays a part of the visit with a gift voucher in the visit card'
   );
   await expect(card.getByTestId('visit-voucher-code')).not.toHaveAttribute('aria-invalid', 'true');
   await shot(page, '673-visit-voucher-amount-error');
+  // Task 835 (owner's rule: errors where the action is): any other refusal is said under
+  // "Zapłać bonem", not as a box under the section; the code and the amount stay.
+  await card.getByTestId('visit-voucher-amount').fill('50');
+  await page.route('**/redeem', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const payButton = card.getByRole('button', { name: 'Zapłać bonem' });
+  await payButton.click();
+  await expect(payButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await expect(card.getByTestId('visit-voucher-code')).toHaveValue(printed.toLowerCase());
+  await expect(card.getByTestId('visit-voucher-amount')).toHaveValue('50');
+  await shot(page, '835-visit-voucher-pay-error');
+  await page.unroute('**/redeem');
   await card.getByTestId('visit-voucher-amount').fill('50');
   await card.getByRole('button', { name: 'Zapłać bonem' }).click();
   await expect(card.getByRole('status')).toHaveText(
