@@ -25,6 +25,7 @@ import type {
   VisitReservations,
   components,
 } from '@beauty/api-client';
+import { pickLocale } from './i18n';
 import type { MessagesChanges } from './messages';
 import type { SalonChanges } from './salon';
 import type { NewLocationBody } from './newSalon';
@@ -287,6 +288,13 @@ type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 export class BusinessApi {
   private accessToken: string | null = null;
+  private locale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
+
+  private get requestLocale(): Locale {
+    // The web app updates the document language when the user switches languages.
+    const language = typeof document !== 'undefined' && document.documentElement.lang;
+    return language ? pickLocale(language) : this.locale;
+  }
 
   constructor(
     private readonly baseUrl: string,
@@ -301,18 +309,26 @@ export class BusinessApi {
 
   /** Sends a 6-digit code to the email, or for a phone number by SMS (or to the invitation's email). */
   requestCode(contact: Contact, locale: Locale): Promise<LoginCodeSent> {
-    return this.call<LoginCodeSent>('POST', '/v1/auth/code', { ...contact, locale });
+    this.locale = locale;
+    return this.call<LoginCodeSent>('POST', '/v1/auth/code', { ...contact, locale }, false, locale);
   }
 
   /** Signs in; an invited person gets their account and salon role on the first sign-in. */
   async verifyCode(contact: Contact, code: string, locale: Locale): Promise<Tokens> {
-    const tokens = await this.call<Tokens>('POST', '/v1/auth/code/verify', {
-      ...contact,
-      code,
+    this.locale = locale;
+    const tokens = await this.call<Tokens>(
+      'POST',
+      '/v1/auth/code/verify',
+      {
+        ...contact,
+        code,
+        locale,
+        clientType: 'mobile',
+        deviceName: this.deviceName,
+      },
+      false,
       locale,
-      clientType: 'mobile',
-      deviceName: this.deviceName,
-    });
+    );
     await this.keep(tokens);
     return tokens;
   }
@@ -702,6 +718,7 @@ export class BusinessApi {
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/export.csv?${query}`,
       'stock.csv',
+      locale,
     );
   }
 
@@ -967,6 +984,7 @@ export class BusinessApi {
     return this.csvFile(
       `${voucherPath(orgId, locationId)}/export.csv?${new URLSearchParams({ locale }).toString()}`,
       'vouchers.csv',
+      locale,
     );
   }
 
@@ -975,6 +993,7 @@ export class BusinessApi {
     return this.csvFile(
       `${voucherPath(orgId, locationId)}/uses.csv?${new URLSearchParams({ locale }).toString()}`,
       'voucher-payments.csv',
+      locale,
     );
   }
 
@@ -1004,7 +1023,10 @@ export class BusinessApi {
 
   /** Task 503: one voucher from the list, with its payments ("Pokaż"). */
   giftVoucher(orgId: string, locationId: string, voucherId: string): Promise<GiftVoucherDetails> {
-    return this.authed<GiftVoucherDetails>('GET', `${voucherPath(orgId, locationId)}/${voucherId}`);
+    return this.authed<GiftVoucherDetails>(
+      'GET',
+      `${voucherPath(orgId, locationId)}/${enc(voucherId)}`,
+    );
   }
 
   /** Task 492: "Zapłać bonem" — part or all of what is left (409 VOUCHER_… otherwise). */
@@ -1019,7 +1041,7 @@ export class BusinessApi {
   ): Promise<GiftVoucherDetails> {
     return this.authed<GiftVoucherDetails>(
       'POST',
-      `${voucherPath(orgId, locationId)}/${voucherId}/redeem`,
+      `${voucherPath(orgId, locationId)}/${enc(voucherId)}/redeem`,
       {
         amountGrosze,
         ...(note.trim() ? { note: note.trim().slice(0, 120) } : {}),
@@ -1052,7 +1074,7 @@ export class BusinessApi {
   ): Promise<GiftVoucherDetails> {
     return this.authed<GiftVoucherDetails>(
       'POST',
-      `${voucherPath(orgId, locationId)}/${voucherId}/uses/${useId}/undo`,
+      `${voucherPath(orgId, locationId)}/${enc(voucherId)}/uses/${enc(useId)}/undo`,
     );
   }
 
@@ -1074,7 +1096,7 @@ export class BusinessApi {
   ): Promise<GiftVoucher> {
     return this.authed<GiftVoucher>(
       'PATCH',
-      `${voucherPath(orgId, locationId)}/${voucherId}`,
+      `${voucherPath(orgId, locationId)}/${enc(voucherId)}`,
       body,
     );
   }
@@ -1083,7 +1105,7 @@ export class BusinessApi {
   cancelGiftVoucher(orgId: string, locationId: string, voucherId: string): Promise<GiftVoucher> {
     return this.authed<GiftVoucher>(
       'POST',
-      `${voucherPath(orgId, locationId)}/${voucherId}/cancel`,
+      `${voucherPath(orgId, locationId)}/${enc(voucherId)}/cancel`,
     );
   }
 
@@ -2100,6 +2122,7 @@ export class BusinessApi {
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/customers/export.csv?${query}`,
       'klienci.csv',
+      locale,
     );
   }
 
@@ -2115,6 +2138,7 @@ export class BusinessApi {
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reports/${file}-csv?${query}`,
       `${file}-${from}-${to}.csv`,
+      locale,
     );
   }
 
@@ -2142,22 +2166,16 @@ export class BusinessApi {
     return this.csvFile(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews/export.csv?${params.toString()}`,
       'opinie.csv',
+      locale,
     );
   }
 
-  private async csvFile(path: string, fallbackName: string): Promise<CsvFile> {
+  private async csvFile(path: string, fallbackName: string, locale: Locale): Promise<CsvFile> {
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
-    let res = await this.fetchCsv(path);
-    if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path);
+    let res = await this.fetchCsv(path, locale);
+    if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path, locale);
     if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as {
-        error?: { code?: unknown; message?: unknown };
-      } | null;
-      throw new ApiError(
-        res.status,
-        typeof data?.error?.message === 'string' ? data.error.message : `HTTP ${res.status}`,
-        typeof data?.error?.code === 'string' ? data.error.code : undefined,
-      );
+      throw apiError(res.status, await res.json().catch(() => null));
     }
     const disposition = res.headers.get('content-disposition') ?? '';
     const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
@@ -2166,11 +2184,12 @@ export class BusinessApi {
     return { fileName, csv: csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}` };
   }
 
-  private fetchCsv(path: string): Promise<Response> {
+  private fetchCsv(path: string, locale: Locale): Promise<Response> {
     return this.fetchFn(`${this.baseUrl}${path}`, {
       method: 'GET',
       headers: {
         accept: 'text/csv',
+        'accept-language': locale,
         ...(this.accessToken ? { authorization: `Bearer ${this.accessToken}` } : {}),
       },
     });
@@ -2227,8 +2246,17 @@ export class BusinessApi {
     }
   }
 
-  private async call<T>(method: string, path: string, body?: unknown, auth = false): Promise<T> {
-    const headers: Record<string, string> = { accept: 'application/json' };
+  private async call<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    auth = false,
+    locale = this.requestLocale,
+  ): Promise<T> {
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+      'accept-language': locale,
+    };
     const upload = isUpload(body) ? body : null;
     if (upload) headers['content-type'] = upload.contentType;
     else if (body !== undefined) headers['content-type'] = 'application/json';
@@ -2239,28 +2267,28 @@ export class BusinessApi {
       body: upload ? upload.file : body === undefined ? undefined : JSON.stringify(body),
     });
     if (res.status === 204) return undefined as T;
-    const data: unknown = await res.json().catch(() => null);
-    if (!res.ok) {
-      // The API answers errors as { error: { code, message, requestId } }.
-      const error = (
-        data as { error?: { code?: unknown; message?: unknown; details?: unknown } } | null
-      )?.error;
-      const details = Array.isArray(error?.details)
-        ? (error.details as unknown[]).filter(
-            (d): d is { path: string; message: string } =>
-              typeof (d as { path?: unknown })?.path === 'string' &&
-              typeof (d as { message?: unknown })?.message === 'string',
-          )
-        : [];
-      throw new ApiError(
-        res.status,
-        typeof error?.message === 'string' ? error.message : `HTTP ${res.status}`,
-        typeof error?.code === 'string' ? error.code : undefined,
-        details,
-      );
-    }
-    return data as T;
+    if (!res.ok) throw apiError(res.status, await res.json().catch(() => null));
+    return res.json() as Promise<T>;
   }
+}
+
+function apiError(status: number, data: unknown): ApiError {
+  const error = (
+    data as { error?: { code?: unknown; message?: unknown; details?: unknown } } | null
+  )?.error;
+  const details = Array.isArray(error?.details)
+    ? (error.details as unknown[]).filter(
+        (d): d is { path: string; message: string } =>
+          typeof (d as { path?: unknown })?.path === 'string' &&
+          typeof (d as { message?: unknown })?.message === 'string',
+      )
+    : [];
+  return new ApiError(
+    status,
+    typeof error?.message === 'string' ? error.message : `HTTP ${status}`,
+    typeof error?.code === 'string' ? error.code : undefined,
+    details,
+  );
 }
 
 const enc = encodeURIComponent;
