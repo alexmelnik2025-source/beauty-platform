@@ -1,5 +1,6 @@
 import { ApiError, type CustomerDetail, type Locale } from './api';
 import { checkNewClient, type ClientProblem } from './newVisit';
+import { normalizePhone } from './phone';
 
 /**
  * Task 332: "+ Dodaj klienta" in "Klienci"; task 333: "Zmień dane" in the client card — the name,
@@ -66,7 +67,7 @@ export function contactsChange(
   const { name, phone, email } = checked.customer;
   const change: ContactsChange = {};
   if (name !== client.name) change.name = name;
-  if (phone !== client.phone) change.phone = phone;
+  if (phone !== normalizePhone(client.phone ?? '', dial)) change.phone = phone;
   if ((email ?? null) !== client.email) change.email = email ?? null;
   if (form.locale !== client.locale) change.locale = form.locale;
   return { ok: true, change: Object.keys(change).length > 0 ? change : null };
