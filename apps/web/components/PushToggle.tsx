@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/pwa';
+import { FieldError } from './ui';
 
 /** "Notifications on this phone": push about new, moved and cancelled appointments. */
 export function PushToggle() {
@@ -25,6 +26,7 @@ export function PushToggle() {
   if (state === null || state === 'server-off') return null;
 
   async function toggle(on: boolean) {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
@@ -35,6 +37,13 @@ export function PushToggle() {
       setBusy(false);
     }
   }
+
+  /**
+   * Task 840 (owner's rule: errors where the action is): a refused "Włącz powiadomienia" /
+   * "Wyłącz na tym urządzeniu" is said right under that button with the "!" mark and read out
+   * with it — not as a separate line at the bottom of the card.
+   */
+  const describedBy = error ? 'push-toggle-error' : undefined;
 
   const hint: Partial<Record<PushState, string>> = {
     unsupported: t.push.unsupported,
@@ -51,6 +60,7 @@ export function PushToggle() {
           type="button"
           className="btn btn--quiet btn--block"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => void toggle(false)}
         >
           {t.push.turnOff}
@@ -60,6 +70,7 @@ export function PushToggle() {
           type="button"
           className="btn btn--block"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => void toggle(true)}
         >
           {t.push.turnOn}
@@ -67,7 +78,9 @@ export function PushToggle() {
       ) : (
         <p className="small">{hint[state]}</p>
       )}
-      {error ? <p className="small alert">{error}</p> : null}
+      {state === 'on' || state === 'off' ? (
+        <FieldError id="push-toggle-error" text={error || undefined} />
+      ) : null}
     </section>
   );
 }
