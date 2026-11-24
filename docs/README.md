@@ -746,6 +746,12 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## «Zwolnił się termin»: отказ под нажатой кнопкой (задача 761, 24.11.2026)
+
+- Отказ сервера на «Biorę ten termin» или «Nie, dziękuję» — сразу под этой кнопкой (с «!»), телефон остаётся; раньше —
+  рамкой вверху страницы. Если предложение после обновления уже закрыто — под строкой статуса. e2e `waitlist-offer`,
+  скриншот `761-waitlist-offer-take-error`.
+
 ## Ссылка на визит: товары — отказ под строкой товара (задачи 759–760, 24.11.2026)
 
 - «Produkty do tej wizyty» (и «Do zobaczenia!»): отказ сервера на «Zrezygnuj» или «Odbiorę przy wizycie» — под строкой

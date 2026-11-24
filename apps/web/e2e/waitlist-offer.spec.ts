@@ -182,6 +182,18 @@ test('a freed time is held for the first client on the list, who takes it from t
   await page.getByLabel('Telefon').fill('+48 600 111 222');
   await expect(page.locator('#offer-phone-error')).toBeHidden();
   await shot(page, '164-waitlist-offer');
+  // Task 761 (owner's rule: errors where the action is): a refused "Biorę ten termin" is said
+  // right under the button, not at the top of the page; the phone stays.
+  await page.route('**/v1/public/waitlist-offers/*/accept', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await take.click();
+  await expect(page.locator('#offer-accept-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(take).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(page.locator('.alert')).toHaveCount(0);
+  await expect(page.getByLabel('Telefon')).toHaveValue('+48 600 111 222');
+  await shot(page, '761-waitlist-offer-take-error');
+  await page.unrouteAll({ behavior: 'wait' });
   await take.click();
   await expect(page.getByText('Gotowe! Wizyta zarezerwowana.')).toBeVisible();
   await shot(page, '164a-waitlist-offer-booked');

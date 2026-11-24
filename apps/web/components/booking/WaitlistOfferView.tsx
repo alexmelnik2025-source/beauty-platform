@@ -5,7 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { WaitlistOffer } from '@/lib/types';
-import { ErrorBox, FieldError, LanguageSwitch, Spinner } from '../ui';
+import { FieldError, LanguageSwitch, Spinner } from '../ui';
 
 /**
  * Task 164: a freed time is held for the first client on the waiting list for 15 minutes.
@@ -17,7 +17,12 @@ export function WaitlistOfferView({ token }: { token: string }) {
   const [offer, setOffer] = useState<WaitlistOffer | null>(null);
   const [missing, setMissing] = useState(false);
   const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
+  /**
+   * Task 761 (owner's rule: errors where the action is): a refused "Biorę ten termin" or "Nie,
+   * dziękuję" is said under the button that was pressed, not at the top of the page. When the
+   * offer is no longer open after the refresh, under its status line.
+   */
+  const [error, setError] = useState<{ kind: 'accept' | 'decline'; text: string } | null>(null);
   /** Task 705 (owner's rule: errors at the field): what is wrong with the phone, under it. */
   const [phoneProblem, setPhoneProblem] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,13 +36,13 @@ export function WaitlistOfferView({ token }: { token: string }) {
   async function answer(kind: 'accept' | 'decline') {
     // Task 705: an empty phone is said under the field (the button was silently switched off).
     if (kind === 'accept' && offer?.needsPhone && !phone.trim()) {
-      setError('');
+      setError(null);
       setPhoneProblem(t.onboarding.fieldRequired);
       document.getElementById('offer-phone')?.focus();
       return;
     }
     setBusy(true);
-    setError('');
+    setError(null);
     setPhoneProblem('');
     try {
       setOffer(
@@ -59,7 +64,7 @@ export function WaitlistOfferView({ token }: { token: string }) {
         document.getElementById('offer-phone')?.focus();
         return;
       }
-      setError(errorText(t, err));
+      setError({ kind, text: errorText(t, err) });
       // The time may be gone meanwhile: show what it is now.
       api<WaitlistOffer>(`/v1/public/waitlist-offers/${token}`, { auth: false })
         .then(setOffer)
@@ -101,7 +106,6 @@ export function WaitlistOfferView({ token }: { token: string }) {
         </div>
       </header>
       <main className="narrow stack">
-        <ErrorBox>{error}</ErrorBox>
         <section className="stack" aria-label={t.waitlist.offerTitle}>
           <h2>{t.waitlist.offerTitle}</h2>
           <p>
@@ -147,23 +151,38 @@ export function WaitlistOfferView({ token }: { token: string }) {
                   <FieldError id="offer-phone-error" text={phoneProblem} />
                 </label>
               ) : null}
-              <button type="submit" className="btn" disabled={busy}>
+              <button
+                type="submit"
+                className="btn"
+                disabled={busy}
+                aria-describedby={error?.kind === 'accept' ? 'offer-accept-error' : undefined}
+              >
                 {t.waitlist.offerTake}
               </button>
+              <FieldError
+                id="offer-accept-error"
+                text={error?.kind === 'accept' ? error.text : undefined}
+              />
               <button
                 type="button"
                 className="btn btn--quiet"
                 disabled={busy}
+                aria-describedby={error?.kind === 'decline' ? 'offer-decline-error' : undefined}
                 onClick={() => void answer('decline')}
               >
                 {t.waitlist.offerDecline}
               </button>
+              <FieldError
+                id="offer-decline-error"
+                text={error?.kind === 'decline' ? error.text : undefined}
+              />
             </form>
           ) : (
             <>
               <p className="note" role="status">
                 {statusText[offer.status] ?? t.waitlist.cancelled}
               </p>
+              <FieldError id="offer-error" text={error?.text} />
               {offer.status !== 'booked' ? (
                 <a
                   className="btn"
