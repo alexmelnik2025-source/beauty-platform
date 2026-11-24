@@ -6,7 +6,7 @@ import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, toLocal } from '@/lib/time';
 import type { Staff, TimeBlock } from '@/lib/types';
 import { useSession } from '../Session';
-import { ErrorBox, Sheet } from '../ui';
+import { FieldError, Sheet } from '../ui';
 
 export function BlockSheet({
   block,
@@ -24,7 +24,13 @@ export function BlockSheet({
   const { t, locale } = useI18n();
   const session = useSession();
   const tz = session.location.timezone;
-  const [error, setError] = useState('');
+  /**
+   * Task 836 (owner's rule: errors where the action is): a refused removal is said under the
+   * buttons and tied to the pressed one ("Usuń blokadę" or "Usuń całą serię"), not as a box.
+   */
+  const [error, setError] = useState<{ series: boolean; text: string } | null>(null);
+  const errorId = 'block-remove-error';
+  const describedBy = (series: boolean) => (error && error.series === series ? errorId : undefined);
   const [busy, setBusy] = useState(false);
   const start = toLocal(block.start, tz);
   const end = toLocal(block.end, tz);
@@ -32,7 +38,7 @@ export function BlockSheet({
 
   async function remove(series = false) {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       await api(
         series && block.seriesId
@@ -50,7 +56,7 @@ export function BlockSheet({
         onClose();
         return;
       }
-      setError(errorText(t, err));
+      setError({ series, text: errorText(t, err) });
       setBusy(false);
     }
   }
@@ -61,17 +67,11 @@ export function BlockSheet({
       onClose={onClose}
       footer={
         <>
-          {/* Task 727 (owner's rule: errors where the action is): the answer to "Usuń blokadę"
-              stands right above the buttons, not at the top of the sheet. */}
-          {error ? (
-            <div style={{ flexBasis: '100%' }}>
-              <ErrorBox>{error}</ErrorBox>
-            </div>
-          ) : null}
           <button
             type="button"
             className="btn btn--danger"
             disabled={busy}
+            aria-describedby={describedBy(false)}
             onClick={() => void remove()}
           >
             {t.appointment.removeBlock}
@@ -81,11 +81,15 @@ export function BlockSheet({
               type="button"
               className="btn btn--quiet"
               disabled={busy}
+              aria-describedby={describedBy(true)}
               onClick={() => void remove(true)}
             >
               {t.appointment.removeSeries}
             </button>
           ) : null}
+          {/* Task 727: in the footer, not at the top of the sheet; task 836: on its own line under
+              the buttons. */}
+          <FieldError id={errorId} text={error?.text} />
         </>
       }
     >
