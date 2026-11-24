@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   BackHandler,
   Image,
@@ -12,7 +12,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { BusinessApi, Locale, SalonPhoto } from '../api';
+import {
+  ApiError,
+  parseContact,
+  type BusinessApi,
+  type Locale,
+  type Location,
+  type SalonPhoto,
+} from '../api';
 import { photosLeft, photoType, uploadErrorText } from '../salonPhotos';
 import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
@@ -41,6 +48,12 @@ type SettingsSection =
 
 const photoCache = new SalonReadCache<SalonPhoto[]>();
 
+type FieldProblem = SalonProblem | 'email';
+
+function settingsForm(location: Location) {
+  return { ...salonForm(location), email: location.email ?? '' };
+}
+
 /**
  * "Salon" (task 131): the owner or a manager changes the salon's name, address, phone and
  * description and switches online booking on or off. Opening hours, prices and the booking
@@ -66,7 +79,8 @@ export function SalonScreen(props: {
   const { api, t, locale, salon, onBack, onRenamed } = props;
   const s = t.salon;
   const [section, setSection] = useState<SettingsSection | null>(null);
-  const [fieldProblem, setFieldProblem] = useState<SalonProblem | null>(null);
+  const [fieldProblem, setFieldProblem] = useState<FieldProblem | null>(null);
+  const invalidInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -82,7 +96,7 @@ export function SalonScreen(props: {
   const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
     api,
     salon,
-    salonForm,
+    settingsForm,
     t,
     setError,
   );
@@ -163,8 +177,10 @@ export function SalonScreen(props: {
     }
   }
 
-  const savedFields = useMemo(() => location && JSON.stringify(salonForm(location)), [location]);
+  const savedFields = useMemo(() => location && JSON.stringify(settingsForm(location)), [location]);
   const dirty = location !== null && form !== null && savedFields !== JSON.stringify(form);
+
+  const showErrorBySave = dirty && section === 'details';
 
   const goBack = useCallback(() => {
     if (busy || uploading) return;
@@ -185,9 +201,13 @@ export function SalonScreen(props: {
     return () => sub.remove();
   }, [goBack]);
 
+  useEffect(() => {
+    if (fieldProblem) invalidInput.current?.focus();
+  }, [fieldProblem, section]);
+
   function discard() {
     if (!location) return;
-    setForm(salonForm(location));
+    setForm(settingsForm(location));
     setError('');
     setInfo('');
     setFieldProblem(null);
@@ -195,12 +215,13 @@ export function SalonScreen(props: {
     setTemplated(false);
   }
 
-  const problems: Record<SalonProblem, string> = {
+  const problems: Record<FieldProblem, string> = {
     name: s.badName,
     address: s.badAddress,
     city: s.badCity,
     postalCode: s.badPostalCode,
     phone: s.badPhone,
+    email: t.clientCard.badEmail,
     lead: s.badLead,
     horizon: s.badHorizon,
     deadline: s.badDeadline,
@@ -243,8 +264,16 @@ export function SalonScreen(props: {
       else setFieldProblem(checked.problem);
       return;
     }
-    if (Object.keys(checked.changes).length === 0) {
-      setForm(salonForm(location));
+    const email = form.email.trim().toLowerCase() || null;
+    const contact = email ? parseContact(email) : null;
+    if (email && (!contact || !('email' in contact))) {
+      setSection('details');
+      setFieldProblem('email');
+      return;
+    }
+    const changes = email === location.email ? checked.changes : { ...checked.changes, email };
+    if (Object.keys(changes).length === 0) {
+      setForm(settingsForm(location));
       setTemplated(false);
       setInfo(s.nothing);
       return;
@@ -256,12 +285,12 @@ export function SalonScreen(props: {
         salon.orgId,
         salon.locationId,
         location.version,
-        checked.changes,
+        changes,
       );
       locationCache.set(salon, saved);
       if (signal.aborted) return;
       setLocation(saved);
-      setForm((current) => (current === form ? salonForm(saved) : current));
+      setForm((current) => (current === form ? settingsForm(saved) : current));
       setTemplated(false);
       setInfo(s.saved);
       if (saved.name !== location.name) onRenamed(saved.name);
@@ -275,6 +304,9 @@ export function SalonScreen(props: {
       } else if (problem === 'changedMeanwhile') {
         setError(s.changedMeanwhile);
         await load();
+      } else if (e instanceof ApiError && e.details.some((issue) => issue.path === 'email')) {
+        setSection('details');
+        setFieldProblem('email');
       } else setError(errorText(e, t));
     } finally {
       if (!signal.aborted) setBusy(false);
@@ -288,14 +320,15 @@ export function SalonScreen(props: {
       | 'city'
       | 'postalCode'
       | 'phone'
+      | 'email'
       | 'minLeadMinutes'
       | 'bookingHorizonDays'
       | 'clientCancelDeadlineMinutes'
       | 'coordinates',
     label: string,
     options: {
-      maxLength: number;
-      keyboardType?: 'phone-pad' | 'number-pad' | 'numbers-and-punctuation';
+      maxLength?: number;
+      keyboardType?: 'email-address' | 'phone-pad' | 'number-pad' | 'numbers-and-punctuation';
       hint?: string;
       placeholder?: string;
     },
@@ -306,6 +339,7 @@ export function SalonScreen(props: {
       city: 'city',
       postalCode: 'postalCode',
       phone: 'phone',
+      email: 'email',
       minLeadMinutes: 'lead',
       bookingHorizonDays: 'horizon',
       clientCancelDeadlineMinutes: 'deadline',
@@ -316,7 +350,13 @@ export function SalonScreen(props: {
       <View style={styles.field}>
         <Text style={styles.label}>{label}</Text>
         <TextInput
+          ref={problem ? invalidInput : undefined}
           accessibilityLabel={label}
+          accessibilityHint={problem ?? options.hint}
+          aria-invalid={Boolean(problem)}
+          aria-describedby={problem ? `salon-error-${key}` : undefined}
+          autoCapitalize={key === 'email' ? 'none' : undefined}
+          autoCorrect={key === 'email' ? false : undefined}
           value={form[key]}
           maxLength={options.maxLength}
           keyboardType={options.keyboardType}
@@ -328,7 +368,11 @@ export function SalonScreen(props: {
           }}
           style={[styles.input, problem && styles.invalid]}
         />
-        {problem ? <ErrorText>{`! ${problem}`}</ErrorText> : null}
+        {problem ? (
+          <View nativeID={`salon-error-${key}`}>
+            <ErrorText>{`! ${problem}`}</ErrorText>
+          </View>
+        ) : null}
         {options.hint ? <Text style={styles.small}>{options.hint}</Text> : null}
       </View>
     ) : null;
@@ -404,7 +448,7 @@ export function SalonScreen(props: {
           />
         </View>
         <Heading>{selected?.title ?? t.navigation.settings}</Heading>
-        {error ? <ErrorText>{error}</ErrorText> : null}
+        {error && !showErrorBySave ? <ErrorText>{error}</ErrorText> : null}
         {info ? (
           <Text style={styles.info} role="status">
             {info}
@@ -445,6 +489,7 @@ export function SalonScreen(props: {
                     keyboardType: 'phone-pad',
                     hint: s.phoneHint,
                   })}
+                  {field('email', t.clientCard.email, { keyboardType: 'email-address' })}
                   <View style={styles.field}>
                     <Text style={styles.label}>{s.description}</Text>
                     <TextInput
@@ -740,17 +785,21 @@ export function SalonScreen(props: {
       </ScrollView>
       {dirty ? (
         <View style={styles.saveBar}>
-          <Text accessibilityLiveRegion="polite" style={styles.value}>
-            {t.navigation.unsaved}
-          </Text>
-          <View style={styles.row}>
-            <Button
-              kind="secondary"
-              label={t.navigation.discard}
-              disabled={busy}
-              onPress={discard}
-            />
-            <Button label={s.save} busy={busy} onPress={() => void save()} />
+          {error && showErrorBySave ? <ErrorText>{error}</ErrorText> : null}
+          <View style={styles.saveActions}>
+            <Text accessibilityLiveRegion="polite" style={styles.value}>
+              {t.navigation.unsaved}
+            </Text>
+            <View style={styles.row}>
+              <Button
+                compact
+                kind="secondary"
+                label={t.navigation.discard}
+                disabled={busy}
+                onPress={discard}
+              />
+              <Button compact label={s.save} busy={busy} onPress={() => void save()} />
+            </View>
           </View>
         </View>
       ) : null}
@@ -885,8 +934,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 8,
+    gap: 6,
+  },
+  saveActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 6,
   },
   screen: { padding: 20, gap: 12 },
@@ -899,6 +954,8 @@ const styles = StyleSheet.create({
   small: { color: colors.muted, fontSize: 13 },
   info: { color: colors.ink, fontSize: 15 },
   input: {
+    minHeight: 44,
+    minWidth: 44,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
