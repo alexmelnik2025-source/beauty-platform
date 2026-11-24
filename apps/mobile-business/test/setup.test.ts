@@ -48,6 +48,28 @@ describe('"Pierwsze kroki" (task 352)', () => {
     expect(setupFinished(steps)).toBe(true);
   });
 
+  it('keeps the checklist open when no steps were supplied', () => {
+    expect(setupFinished([])).toBe(false);
+  });
+
+  it('still accepts completion flags without step names', () => {
+    expect(setupFinished([{ done: true }, { done: true }])).toBe(true);
+    expect(setupFinished([{ done: true }, { done: false }])).toBe(false);
+  });
+
+  it('an unknown step cannot replace a required step', () => {
+    const steps = setupState({
+      location: ready,
+      services: [service('s1')],
+      staff: [person('a', ['s1'])],
+      hoursSet: true,
+    });
+    const extra = { step: 'future-step', done: true };
+    expect(setupFinished([...steps.filter(({ step }) => step !== 'legal'), extra])).toBe(false);
+    expect(setupFinished([...steps, extra])).toBe(true);
+    expect(setupFinished([...steps, { ...extra, done: false }])).toBe(false);
+  });
+
   it('counts only active specialists with an active service', () => {
     const services = [service('s1'), service('s2', false)];
     expect(
