@@ -44,7 +44,11 @@ export function MoveProductsCard(props: {
   }, [onShown, shown]);
   if (!data) return null;
   if (!shown) {
-    return <Text style={styles.muted}>{`${s.title}: 0`}</Text>;
+    return (
+      <Text role="status" aria-live="polite" style={styles.muted}>
+        {`${s.title}: 0`}
+      </Text>
+    );
   }
   const productIds = Array.from(new Set(waiting.map((r) => r.productId as string)));
 
