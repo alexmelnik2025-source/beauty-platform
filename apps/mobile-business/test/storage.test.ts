@@ -36,6 +36,26 @@ describe('business token storage', () => {
     expect(secure.setItemAsync).not.toHaveBeenCalled();
   });
 
+  it('can retry a failed write over an existing plain-text token', async () => {
+    platform.OS = 'web';
+    const values = new Map([[key, 'existing-token']]);
+    const setItem = vi.fn((name: string, value: string) => values.set(name, value));
+    setItem.mockImplementationOnce(() => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    });
+    vi.stubGlobal('localStorage', {
+      getItem: (name: string) => values.get(name) ?? null,
+      setItem,
+    });
+    const { tokenStore } = await import('../src/storage');
+
+    await tokenStore.set('replacement-token');
+    expect(setItem).toHaveBeenCalledWith(key, 'replacement-token');
+    expect(await tokenStore.get()).toBe('existing-token');
+    await tokenStore.set('replacement-token');
+    expect(await tokenStore.get()).toBe('replacement-token');
+  });
+
   it.each(['unavailable', 'blocked'])('tolerates %s browser storage', async (mode) => {
     platform.OS = 'web';
     const blocked = () => {

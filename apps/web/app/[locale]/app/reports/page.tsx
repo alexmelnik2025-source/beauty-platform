@@ -11,6 +11,8 @@ import type { SalonReport } from '@/lib/types';
 import { Commissions } from './Commissions';
 
 type Period = 'thisMonth' | 'lastMonth' | 'last30' | 'custom';
+/** The CSV files of "Raporty" (tasks 30, 238, 392, 422, 455). */
+type CsvFile = 'visits' | 'till' | 'payout' | 'products' | 'stock-history';
 
 /** The first and last day of a period, in the salon's own dates. */
 function rangeOf(period: Period, today: string): { from: string; to: string } {
@@ -144,11 +146,18 @@ export default function ReportsPage() {
    * Task 422: "products" — every product sold at the visits of the period (same access as visits).
    * Task 455: "stock-history" — every change of the stock in the period (owners and managers).
    */
-  async function downloadCsv(
-    file: 'visits' | 'till' | 'payout' | 'products' | 'stock-history' = 'visits',
-  ) {
+  /**
+   * Task 793 (owner's rule: errors where the action is): a refused CSV file is said right under the
+   * buttons at the top, with the pressed one described by it — not in the report below.
+   */
+  const [csvError, setCsvError] = useState<{ file: CsvFile; text: string } | null>(null);
+  const csvDescribed = (file: CsvFile) =>
+    csvError?.file === file ? { 'aria-describedby': 'report-csv-error' } : {};
+
+  async function downloadCsv(file: CsvFile = 'visits') {
     setDownloading(true);
     setError('');
+    setCsvError(null);
     try {
       const res = await apiResponse(
         `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/${file}-csv`,
@@ -165,7 +174,7 @@ export default function ReportsPage() {
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (err) {
-      setError(errorText(t, err));
+      setCsvError({ file, text: errorText(t, err) });
     } finally {
       setDownloading(false);
     }
@@ -235,6 +244,7 @@ export default function ReportsPage() {
             type="button"
             className="btn btn--small"
             disabled={invalid || downloading}
+            {...csvDescribed('visits')}
             onClick={() => void downloadCsv()}
           >
             {downloading ? t.reports.downloading : t.reports.csv}
@@ -246,6 +256,7 @@ export default function ReportsPage() {
               className="btn btn--quiet btn--small"
               title={t.reports.tillCsvHint}
               disabled={invalid || downloading}
+              {...csvDescribed('till')}
               onClick={() => void downloadCsv('till')}
             >
               {t.reports.tillCsv}
@@ -257,6 +268,7 @@ export default function ReportsPage() {
               className="btn btn--quiet btn--small"
               title={t.reports.payoutCsvHint}
               disabled={invalid || downloading}
+              {...csvDescribed('payout')}
               onClick={() => void downloadCsv('payout')}
             >
               {t.reports.payoutCsv}
@@ -269,6 +281,7 @@ export default function ReportsPage() {
               className="btn btn--quiet btn--small"
               title={t.reports.stockHistoryCsvHint}
               disabled={invalid || downloading}
+              {...csvDescribed('stock-history')}
               onClick={() => void downloadCsv('stock-history')}
             >
               {t.reports.stockHistoryCsv}
@@ -281,10 +294,16 @@ export default function ReportsPage() {
               className="btn btn--quiet btn--small"
               title={t.reports.productsCsvHint}
               disabled={invalid || downloading}
+              {...csvDescribed('products')}
               onClick={() => void downloadCsv('products')}
             >
               {t.reports.productsCsv}
             </button>
+          ) : null}
+          {csvError ? (
+            <span style={{ flexBasis: '100%' }}>
+              <FieldError id="report-csv-error" text={csvError.text} />
+            </span>
           ) : null}
         </div>
       </div>

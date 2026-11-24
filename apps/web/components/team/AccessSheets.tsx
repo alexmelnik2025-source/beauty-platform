@@ -59,12 +59,19 @@ export function MemberSheet({
   const labels = t.team.permissions as Record<string, string>;
   const [categoryId, setCategoryId] = useState(member.staffCategoryId ?? '');
   const [overrides, setOverrides] = useState<PermissionMap>(member.overrides);
-  const [error, setError] = useState('');
+  /**
+   * Task 796 (owner's rule: errors where the action is): a refused "Zapisz" or "Usuń z zespołu" is
+   * said in the sheet's footer under the pressed button, not at the top of a long list of rights.
+   */
+  const [error, setError] = useState<{ action: 'save' | 'remove'; text: string } | null>(null);
+  const described = (action: 'save' | 'remove') =>
+    error?.action === action ? { 'aria-describedby': 'member-action-error' } : {};
   const [busy, setBusy] = useState(false);
   const isStaff = member.role === 'staff';
 
   async function save() {
     setBusy(true);
+    setError(null);
     try {
       await api(`/v1/organizations/${orgId}/members/${member.membershipId}/permissions`, {
         method: 'PUT',
@@ -72,18 +79,19 @@ export function MemberSheet({
       });
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ action: 'save', text: errorText(t, err) });
       setBusy(false);
     }
   }
 
   async function remove() {
     setBusy(true);
+    setError(null);
     try {
       await api(`/v1/organizations/${orgId}/members/${member.membershipId}`, { method: 'DELETE' });
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ action: 'remove', text: errorText(t, err) });
       setBusy(false);
     }
   }
@@ -96,7 +104,13 @@ export function MemberSheet({
         canEdit && member.role !== 'owner' ? (
           <>
             {isStaff ? (
-              <button type="button" className="btn" disabled={busy} onClick={() => void save()}>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                {...described('save')}
+                onClick={() => void save()}
+              >
                 {t.common.save}
               </button>
             ) : null}
@@ -104,15 +118,20 @@ export function MemberSheet({
               type="button"
               className="btn btn--danger"
               disabled={busy}
+              {...described('remove')}
               onClick={() => void remove()}
             >
               {t.team.remove}
             </button>
+            {error ? (
+              <span style={{ flexBasis: '100%' }}>
+                <FieldError id="member-action-error" text={error.text} />
+              </span>
+            ) : null}
           </>
         ) : undefined
       }
     >
-      <ErrorBox>{error}</ErrorBox>
       <p className="small muted">
         {member.user.email} · {t.team.roles[member.role]}
       </p>

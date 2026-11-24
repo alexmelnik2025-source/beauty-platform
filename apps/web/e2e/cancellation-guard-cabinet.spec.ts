@@ -162,7 +162,23 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   const sheet = owner.getByRole('dialog');
   await sheet.getByLabel(/Notatka/).fill('Zapłacił 180 zł');
   await shot(owner, '161f-owner-guard-release');
-  await sheet.getByRole('button', { name: 'Tak, zdejmij' }).click();
+  // Task 794 (owner's rule: errors where the action is): a refused release is said in the sheet,
+  // under "Tak, zdejmij" — the page behind it is not seen; the note stays.
+  const releaseUrl = (url: URL) => url.pathname.endsWith('/release');
+  await owner.route(releaseUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const releaseYes = sheet.getByRole('button', { name: 'Tak, zdejmij' });
+  await releaseYes.click();
+  await expect(sheet.locator('#guard-release-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(releaseYes).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(sheet.getByLabel(/Notatka/)).toHaveValue('Zapłacił 180 zł');
+  await expect(owner.locator('.alert', { hasText: 'Zbyt wiele prób' })).toHaveCount(0);
+  await shot(owner, '794-guard-release-error');
+  await owner.unroute(releaseUrl);
+  await releaseYes.click();
   await expect(owner.getByText('Zdjęto blokadę.')).toBeVisible();
   await expect(owner.getByText('Nikt nie jest teraz oznaczony.')).toBeVisible();
 

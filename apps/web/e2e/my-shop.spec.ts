@@ -187,6 +187,25 @@ test('"Mój sklep": a product shown to clients, its catalogue card and the "Skle
   await marketplace.check();
   await expect(marketplace).toBeChecked();
   await expect(row.getByText('W Sklepie', { exact: true })).toBeVisible();
+  // Task 792 (owner's rule: errors where the action is): a refused switch is said at the bottom of
+  // this product's row, not at the top of the list; the switch goes back to what the server has.
+  const productPatch = (url: URL) => /\/products\/[^/]+$/.test(url.pathname);
+  await page.route(productPatch, (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await marketplace.click();
+  const rowRefusal = row.locator('.field-error');
+  await expect(rowRefusal).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(marketplace).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(marketplace).toBeChecked();
+  await expect(page.locator('.alert', { hasText: 'Zbyt wiele prób' })).toHaveCount(0);
+  await shot(page, '792-my-shop-row-error');
+  await page.unroute(productPatch);
 
   // Part 2b: the shared card has no picture yet — ours is the first.
   await row

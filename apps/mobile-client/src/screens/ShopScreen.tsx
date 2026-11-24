@@ -295,7 +295,7 @@ function ProductView(props: {
         return (
           <Card key={o.productId}>
             <View style={styles.offerTop}>
-              <Text style={[styles.name, { flexGrow: 1, flexShrink: 1 }]}>{o.salon.name}</Text>
+              <Text style={[styles.name, styles.offerSalon]}>{o.salon.name}</Text>
               <Text style={styles.price}>{formatPrice(o.priceGrosze, o.currency, locale)}</Text>
             </View>
             <Text style={styles.small}>
@@ -377,6 +377,7 @@ const styles = StyleSheet.create({
   photo: { width: '100%', aspectRatio: 1, borderRadius: 14, backgroundColor: colors.soft },
   empty: { gap: 8 },
   skeletonLine: { height: 12, borderRadius: 6, backgroundColor: colors.soft },
+  offerSalon: { flexBasis: 140, flexGrow: 1, minWidth: 0 },
   offerTop: { flexWrap: 'wrap', flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   done: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: '600', marginTop: 8 },
 });

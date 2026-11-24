@@ -36,6 +36,26 @@ describe('client token storage', () => {
     expect(secure.setItemAsync).not.toHaveBeenCalled();
   });
 
+  it('can retry a failed write over an existing plain-text token', async () => {
+    platform.OS = 'web';
+    const values = new Map([[key, 'existing-token']]);
+    const setItem = vi.fn((name: string, value: string) => values.set(name, value));
+    setItem.mockImplementationOnce(() => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    });
+    vi.stubGlobal('localStorage', {
+      getItem: (name: string) => values.get(name) ?? null,
+      setItem,
+    });
+    const { tokenStore } = await import('../src/storage');
+
+    await tokenStore.set('replacement-token');
+    expect(setItem).toHaveBeenCalledWith(key, 'replacement-token');
+    expect(await tokenStore.get()).toBe('existing-token');
+    await tokenStore.set('replacement-token');
+    expect(await tokenStore.get()).toBe('replacement-token');
+  });
+
   it.each(['unavailable', 'blocked'])('tolerates %s browser storage', async (mode) => {
     platform.OS = 'web';
     const blocked = () => {
@@ -117,6 +137,22 @@ describe.each(['web', 'android'])('catalog storage on %s', (os) => {
       expect(await recentSalonsStore.get()).toEqual([]);
     },
   );
+
+  it('recovers from single values in place of catalog lists on the next save', async () => {
+    const { catalogLanguagesStore, recentSalonsStore } = await setup(
+      new Map([
+        [languagesKey, JSON.stringify('pl')],
+        [recentKey, JSON.stringify(salon)],
+      ]),
+    );
+
+    expect(await catalogLanguagesStore.get()).toEqual([]);
+    expect(await recentSalonsStore.get()).toEqual([]);
+    await catalogLanguagesStore.set(['uk']);
+    await recentSalonsStore.set([salon]);
+    expect(await catalogLanguagesStore.get()).toEqual(['uk']);
+    expect(await recentSalonsStore.get()).toEqual([salon]);
+  });
 
   it('keeps valid entries from partially invalid arrays', async () => {
     const { catalogLanguagesStore, recentSalonsStore } = await setup(
