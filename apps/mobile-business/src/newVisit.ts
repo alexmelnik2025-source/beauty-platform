@@ -67,8 +67,18 @@ export function freeTimes(
   staffId: string,
   date: string,
 ): { time: string; start: string }[] {
+  if (!Array.isArray(availability?.slots)) return [];
   return availability.slots
-    .filter((s) => s.date === date && s.staffIds.includes(staffId))
+    .filter(
+      (s) =>
+        s?.date === date &&
+        Array.isArray(s.staffIds) &&
+        s.staffIds.includes(staffId) &&
+        typeof s.time === 'string' &&
+        /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s.time) &&
+        typeof s.start === 'string' &&
+        Number.isFinite(Date.parse(s.start)),
+    )
     .map((s) => ({ time: s.time, start: s.start }))
     .sort((a, b) => a.time.localeCompare(b.time));
 }
