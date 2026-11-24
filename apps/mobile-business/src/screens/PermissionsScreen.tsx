@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, MemberList, PermissionCatalog, StaffCategoryList } from '../api';
 import { errorText } from '../errors';
@@ -22,18 +22,25 @@ import type { SalonChoice } from './SalonsScreen';
 type Category = StaffCategoryList[number];
 type Member = MemberList[number];
 
+interface Props {
+  api: BusinessApi;
+  t: Dictionary;
+  salon: SalonChoice;
+  onBack: () => void;
+}
+
 /**
  * Tasks 330–331: "Uprawnienia" from "Zespół" — like "Dostęp i uprawnienia" in the cabinet.
  * The owner gives each specialist with an account a category of rights and personal exceptions
  * (as in the category / yes / no), and keeps the categories ("Starszy barber"): name, ticks,
  * delete. A manager sees the same and changes nothing (the server allows the owner only).
  */
-export function PermissionsScreen(props: {
-  api: BusinessApi;
-  t: Dictionary;
-  salon: SalonChoice;
-  onBack: () => void;
-}) {
+export function PermissionsScreen(props: Props) {
+  const key = JSON.stringify([props.salon.orgId, props.salon.locationId]);
+  return <SalonPermissions key={key} {...props} />;
+}
+
+function SalonPermissions(props: Props) {
   const { api, t, salon, onBack } = props;
   const r = t.rights;
   const isOwner = salon.role === 'owner';
@@ -53,23 +60,34 @@ export function PermissionsScreen(props: {
   const [catForm, setCatForm] = useState<{ id: string | 'new'; form: CategoryForm } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [perms, cats, members] = await Promise.all([
-        api.permissions(salon.orgId),
-        api.staffCategories(salon.orgId),
-        api.members(salon.orgId),
-      ]);
-      setCatalog(perms.permissions);
-      setCategories(cats);
-      setPeople(specialistsWithAccess(members, salon.locationId));
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, t]);
+  const { orgId, locationId } = salon;
+  const active = useRef<AbortController | null>(null);
+  const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
+  const load = useCallback(
+    async (signal: AbortSignal, includeCatalog: boolean) => {
+      try {
+        const [perms, cats, members] = await Promise.all([
+          includeCatalog ? api.permissions(orgId) : null,
+          api.staffCategories(orgId),
+          api.members(orgId),
+        ]);
+        if (signal.aborted) return;
+        if (perms) setCatalog(perms.permissions);
+        setCategories(cats);
+        setPeople(specialistsWithAccess(members, locationId));
+        setLoadFailure(null);
+      } catch (cause) {
+        if (!signal.aborted) setLoadFailure({ cause });
+      }
+    },
+    [api, orgId, locationId],
+  );
 
   useEffect(() => {
-    void load();
+    const scope = new AbortController();
+    active.current = scope;
+    void load(scope.signal, true);
+    return () => scope.abort();
   }, [load]);
 
   useEffect(() => {
@@ -81,24 +99,29 @@ export function PermissionsScreen(props: {
   }, [onBack]);
 
   async function run(action: () => Promise<unknown>, done: string): Promise<boolean> {
+    const signal = active.current?.signal;
+    if (!signal || signal.aborted || busy) return false;
     setBusy(true);
+    setLoadFailure(null);
     setError('');
     setInfo('');
     try {
       await action();
+      if (signal.aborted) return false;
       setInfo(done);
-      await load();
-      return true;
+      await load(signal, false);
+      return !signal.aborted;
     } catch (e) {
+      if (signal.aborted) return false;
       if (changedMeanwhile(e)) {
         setError(r.changedMeanwhile);
         setEditing(null);
         setCatForm(null);
-        await load();
+        await load(signal, false);
       } else setError(errorText(e, t));
       return false;
     } finally {
-      setBusy(false);
+      if (!signal.aborted) setBusy(false);
     }
   }
 
@@ -128,7 +151,7 @@ export function PermissionsScreen(props: {
       setError(r.noName);
       return;
     }
-    const existing = categories.find((c) => c.id === catForm.id);
+    const existing = categoriesById.get(catForm.id);
     const ok = await run(
       () =>
         existing
@@ -145,48 +168,36 @@ export function PermissionsScreen(props: {
     if (ok) setCatForm(null);
   }
 
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? r.defaultPerms;
+    (id === null ? undefined : categoriesById.get(id)?.name) ?? r.defaultPerms;
   const label = (key: string) => (r.names as Record<string, string>)[key] ?? key;
+
+  const editMember = useCallback((member: Member) => {
+    setInfo('');
+    setError('');
+    setCatForm(null);
+    setEditing({
+      id: member.membershipId,
+      categoryId: member.staffCategoryId,
+      overrides: { ...member.overrides },
+    });
+  }, []);
 
   function memberCard(member: Member) {
     const open = editing?.id === member.membershipId ? editing : null;
     if (!open || !catalog) {
       return (
-        <Card key={member.membershipId}>
-          <Text style={styles.name}>{member.user.name}</Text>
-          <Text style={styles.muted}>{categoryName(member.staffCategoryId)}</Text>
-          {Object.keys(member.overrides).length > 0 ? (
-            <Text style={styles.small}>
-              {r.exceptions}:{' '}
-              {Object.entries(member.overrides)
-                .map(([k, v]) => `${label(k)} — ${v ? r.allow : r.deny}`)
-                .join('; ')}
-            </Text>
-          ) : null}
-          {isOwner ? (
-            <View style={styles.row}>
-              <Button
-                kind="secondary"
-                label={r.change}
-                a11yLabel={`${r.change}: ${member.user.name}`}
-                onPress={() => {
-                  setInfo('');
-                  setError('');
-                  setCatForm(null);
-                  setEditing({
-                    id: member.membershipId,
-                    categoryId: member.staffCategoryId,
-                    overrides: { ...member.overrides },
-                  });
-                }}
-              />
-            </View>
-          ) : null}
-        </Card>
+        <MemberSummary
+          key={member.membershipId}
+          member={member}
+          category={categoryName(member.staffCategoryId)}
+          r={r}
+          onEdit={isOwner ? editMember : undefined}
+        />
       );
     }
-    const chosen = categories.find((c) => c.id === open.categoryId) ?? null;
+    const chosen = (open.categoryId && categoriesById.get(open.categoryId)) || null;
     const now = effective(catalog, chosen, open.overrides);
     return (
       <Card key={member.membershipId}>
@@ -316,7 +327,9 @@ export function PermissionsScreen(props: {
                 busy={busy}
                 onPress={() =>
                   void run(() => api.deleteStaffCategory(salon.orgId, category.id), r.removed).then(
-                    () => setRemoving(null),
+                    (ok) => {
+                      if (ok) setRemoving(null);
+                    },
                   )
                 }
               />
@@ -361,10 +374,12 @@ export function PermissionsScreen(props: {
           {info}
         </Text>
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error || loadFailure ? (
+        <ErrorText>{error || errorText(loadFailure?.cause, t)}</ErrorText>
+      ) : null}
 
       {!catalog ? (
-        !error ? (
+        !error && !loadFailure ? (
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : (
@@ -399,6 +414,44 @@ export function PermissionsScreen(props: {
     </ScrollView>
   );
 }
+
+const MemberSummary = memo(function MemberSummary({
+  member,
+  category,
+  r,
+  onEdit,
+}: {
+  member: Member;
+  category: string;
+  r: Dictionary['rights'];
+  onEdit?: (member: Member) => void;
+}) {
+  const label = (key: string) => (r.names as Record<string, string>)[key] ?? key;
+  return (
+    <Card>
+      <Text style={styles.name}>{member.user.name}</Text>
+      <Text style={styles.muted}>{category}</Text>
+      {Object.keys(member.overrides).length > 0 ? (
+        <Text style={styles.small}>
+          {r.exceptions}:{' '}
+          {Object.entries(member.overrides)
+            .map(([k, v]) => `${label(k)} — ${v ? r.allow : r.deny}`)
+            .join('; ')}
+        </Text>
+      ) : null}
+      {onEdit ? (
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            label={r.change}
+            a11yLabel={`${r.change}: ${member.user.name}`}
+            onPress={() => onEdit(member)}
+          />
+        </View>
+      ) : null}
+    </Card>
+  );
+});
 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 10 },

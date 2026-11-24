@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Location, StaffList } from '../api';
 import { WEB_URL } from '../config';
@@ -19,6 +19,13 @@ import {
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
+interface Props {
+  api: BusinessApi;
+  t: Dictionary;
+  salon: SalonChoice;
+  onBack: () => void;
+}
+
 /**
  * Task 152: "Link do rezerwacji" — the owner or a manager sees the salon's booking link and
  * sends it on (Instagram bio, WhatsApp…). When online booking is off, a hint says so.
@@ -28,40 +35,45 @@ import type { SalonChoice } from './SalonsScreen';
  * Task Q2: the QR code of each specialist (their mirror, their business card) — the client books
  * with that person, and "Skąd przyszli" in the reports counts the visits from each code.
  */
-export function BookingLinkScreen(props: {
-  api: BusinessApi;
-  t: Dictionary;
-  salon: SalonChoice;
-  onBack: () => void;
-}) {
+export function BookingLinkScreen(props: Props) {
+  const key = JSON.stringify([props.salon.orgId, props.salon.locationId]);
+  return <BookingLinks key={key} {...props} />;
+}
+
+function BookingLinks(props: Props) {
   const { api, t, salon, onBack } = props;
   const b = t.bookingLink;
   const [location, setLocation] = useState<Location | null>(null);
   const [staff, setStaff] = useState<StaffList>([]);
   const [qrStaff, setQrStaff] = useState('');
   const [staffInfo, setStaffInfo] = useState('');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
+  const error = failure ? errorText(failure.cause, t) : '';
   const [info, setInfo] = useState('');
   const [shortInfo, setShortInfo] = useState('');
   const [embedInfo, setEmbedInfo] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      const [loc, team] = await Promise.all([
-        api.location(salon.orgId, salon.locationId),
-        api.staff(salon.orgId, salon.locationId).catch(() => [] as StaffList),
-      ]);
-      setLocation(loc);
-      setStaff(team.filter((s) => s.active));
-      setError('');
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, t]);
-
+  const { orgId, locationId } = salon;
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    Promise.all([
+      api.location(orgId, locationId),
+      api.staff(orgId, locationId).catch((): StaffList => []),
+    ]).then(
+      ([loc, team]) => {
+        if (!active) return;
+        setLocation(loc);
+        setStaff(team.filter((s) => s.active));
+        setFailure(null);
+      },
+      (cause: unknown) => {
+        if (active) setFailure({ cause });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [api, orgId, locationId]);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -242,7 +254,12 @@ const MODULE = 7;
 const QUIET = 4;
 
 /** The QR code drawn with plain Views — one per horizontal run of dark modules. */
-function SalonQr(props: { link: string; name: string; staffName?: string; t: Dictionary }) {
+const SalonQr = memo(function SalonQr(props: {
+  link: string;
+  name: string;
+  staffName?: string;
+  t: Dictionary;
+}) {
   const { link, name, staffName, t } = props;
   const b = t.bookingLink;
   const qr = useMemo(() => encodeQr(link), [link]);
@@ -288,7 +305,7 @@ function SalonQr(props: { link: string; name: string; staffName?: string; t: Dic
       <Text style={styles.muted}>{b.qrHint}</Text>
     </Card>
   );
-}
+});
 
 /** What this platform can share with: the share sheet on phones, the browser's tools on the web. */
 function shareTools(): ShareTools {
