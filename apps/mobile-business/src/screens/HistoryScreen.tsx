@@ -7,6 +7,22 @@ import type { Dictionary } from '../i18n';
 import { Button, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
+// A stalled connection must release the screen and let the user retry. Late responses
+// settle only the original promise and never update the UI or its cache.
+export async function withNetworkTimeout<T>(request: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Request timed out')), 30_000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // App creates fresh SalonChoice objects on sign-in, even for the same location.
 // A weak key therefore keeps short-lived reads inside the selected account.
 export class SalonReadCache<T> {
@@ -111,39 +127,42 @@ export function HistoryScreen(props: {
   const pending = useRef(false);
   const lifetime = useScreenLifetime(salon);
 
-  useEffect(() => {
-    const signal = lifetime.current!.signal;
-    historyCache
-      .read(salon, () => api.auditLog(salon.orgId))
-      .then(
-        (result) => {
-          if (!signal.aborted) setPage(result);
-        },
-        (e) => {
-          if (!signal.aborted) setFailure(e);
-        },
-      );
-  }, [api, salon, lifetime]);
-
-  async function more() {
-    if (!page?.next || pending.current) return;
-    const signal = lifetime.current!.signal;
-    pending.current = true;
-    setBusy(true);
-    try {
-      const result = await api.auditLog(salon.orgId, page.next);
-      if (signal.aborted) return;
-      const merged = { ...result, items: appendPage(page.items, result.items) };
-      historyCache.set(salon, merged);
-      setPage(merged);
+  const load = useCallback(
+    async (previous?: AuditLog) => {
+      const signal = lifetime.current!.signal;
+      if (pending.current || signal.aborted) return;
+      pending.current = true;
+      setBusy(true);
       setFailure(null);
-    } catch (e) {
-      if (!signal.aborted) setFailure(e);
-    } finally {
-      pending.current = false;
-      if (!signal.aborted) setBusy(false);
-    }
-  }
+      try {
+        let result: AuditLog;
+        if (previous?.next) {
+          const older = await withNetworkTimeout(api.auditLog(salon.orgId, previous.next));
+          if (signal.aborted) return;
+          result = { ...older, items: appendPage(previous.items, older.items) };
+          historyCache.set(salon, result);
+        } else {
+          result = await historyCache.read(salon, () =>
+            withNetworkTimeout(api.auditLog(salon.orgId)),
+          );
+        }
+        if (!signal.aborted) setPage(result);
+      } catch (e) {
+        if (!signal.aborted) setFailure(e);
+      } finally {
+        if (!signal.aborted) {
+          pending.current = false;
+          setBusy(false);
+        }
+      }
+    },
+    [api, salon, lifetime],
+  );
+
+  useEffect(() => {
+    pending.current = false;
+    void load();
+  }, [load]);
 
   const { locale, timeZone } = props;
   const renderItem = useCallback(
@@ -174,7 +193,16 @@ export function HistoryScreen(props: {
           <Button kind="link" label={h.back} onPress={onBack} />
           <Heading>{h.title}</Heading>
           {page?.items.length ? <Text style={styles.muted}>{h.hint}</Text> : null}
-          {failure ? <ErrorText>{errorText(failure, t)}</ErrorText> : null}
+          {failure ? (
+            <>
+              <ErrorText>{errorText(failure, t)}</ErrorText>
+              <Button
+                kind="secondary"
+                label={t.day.refresh}
+                onPress={() => void load(page ?? undefined)}
+              />
+            </>
+          ) : null}
         </View>
       }
       ListEmptyComponent={
@@ -185,10 +213,10 @@ export function HistoryScreen(props: {
         ) : undefined
       }
       ListFooterComponent={
-        busy ? (
+        busy && page ? (
           <LoadingSkeleton label={t.loading} />
-        ) : page?.next ? (
-          <Button kind="secondary" label={h.more} onPress={more} />
+        ) : page?.next && !failure ? (
+          <Button kind="secondary" label={h.more} onPress={() => void load(page)} />
         ) : undefined
       }
     />
