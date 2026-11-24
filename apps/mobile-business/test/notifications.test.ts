@@ -28,6 +28,11 @@ const notice = (
 });
 
 describe('the bell', () => {
+  it('returns an empty list for an empty inbox or one with only another salon’s notices', () => {
+    expect(noticesOfSalon([], 'o1', 'l1')).toEqual([]);
+    expect(noticesOfSalon([notice('n', 'appointment.booked', 'o1', 'l2')], 'o1', 'l1')).toEqual([]);
+  });
+
   it("shows only this salon's notifications, in the order they came", () => {
     const list = [
       notice('n1', 'appointment.booked'),

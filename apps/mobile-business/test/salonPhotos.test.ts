@@ -16,7 +16,9 @@ describe('salon photos from the phone (task 337)', () => {
   it('counts how many still fit (10 per salon)', () => {
     expect(photosLeft(0)).toBe(10);
     expect(photosLeft(7)).toBe(3);
+    expect(photosLeft(9)).toBe(1);
     expect(photosLeft(10)).toBe(0);
+    expect(photosLeft(11)).toBe(0);
     expect(photosLeft(12)).toBe(0);
   });
 

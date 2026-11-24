@@ -68,7 +68,14 @@ export function UsedProductsCard(props: {
       {data.products.map((p) => (
         <View key={p.id} style={styles.item}>
           <View style={styles.row}>
-            {p.photoId ? <Image source={photo(p.photoId)} style={styles.photo} /> : null}
+            {p.photoId ? (
+              <Image
+                accessible
+                accessibilityLabel={p.name}
+                source={photo(p.photoId)}
+                style={styles.photo}
+              />
+            ) : null}
             <View style={styles.grow}>
               <Text style={styles.name}>
                 {p.name}
@@ -131,7 +138,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', color: colors.ink },
   item: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  grow: { flexGrow: 1, flexShrink: 1, gap: 2 },
+  grow: { flex: 1, minWidth: 0, gap: 2 },
   photo: { width: 56, height: 56, borderRadius: 10 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },

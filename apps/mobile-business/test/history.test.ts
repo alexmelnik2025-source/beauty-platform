@@ -49,6 +49,13 @@ describe('change log (task 150)', () => {
     );
   });
 
+  it('handles an empty log and keeps existing entries when the last page is empty', () => {
+    expect(appendPage([], [])).toEqual([]);
+    const entries = [entry('2'), entry('1')];
+    expect(appendPage([], entries)).toEqual(entries);
+    expect(appendPage(entries, [])).toEqual(entries);
+  });
+
   it('adds an older page below without repeating entries', () => {
     const shown = [entry('3'), entry('2')];
     expect(appendPage(shown, [entry('2'), entry('1')]).map((e) => e.id)).toEqual(['3', '2', '1']);

@@ -28,12 +28,12 @@ export function WishesPicker(props: {
   const w = t.wishStep;
   const drinks = drinkChoices(questions);
   return (
-    <View style={styles.box} accessibilityLabel={w.title}>
+    <View role="region" style={styles.box} accessibilityLabel={w.title}>
       <Text role="heading" aria-level={3} style={styles.title}>
         {w.title}
       </Text>
       {questions.mood ? (
-        <View style={styles.group} accessibilityLabel={w.moodQ}>
+        <View role="group" style={styles.group} accessibilityLabel={w.moodQ}>
           <Text style={styles.question}>{w.moodQ}</Text>
           <FieldGroup error={invalid === 'mood' ? w.badChoice : undefined}>
             <View style={styles.chips}>
@@ -50,7 +50,7 @@ export function WishesPicker(props: {
         </View>
       ) : null}
       {drinks.length > 0 ? (
-        <View style={styles.group} accessibilityLabel={w.drinkQ}>
+        <View role="group" style={styles.group} accessibilityLabel={w.drinkQ}>
           <Text style={styles.question}>{w.drinkQ}</Text>
           <FieldGroup error={invalid === 'drink' ? w.badChoice : undefined}>
             <View style={styles.chips}>

@@ -114,7 +114,7 @@ export function ReviewCard(props: {
                   key={n}
                   role="radio"
                   aria-checked={rating === n}
-                  aria-label={fill(r.outOf, { n: String(n) })}
+                  accessibilityLabel={fill(r.outOf, { n: String(n) })}
                   disabled={busy}
                   onPress={() => {
                     setRating(n);
@@ -123,7 +123,9 @@ export function ReviewCard(props: {
                   }}
                   style={styles.starButton}
                 >
-                  <Text style={[styles.star, n <= rating && styles.starOn]}>★</Text>
+                  <Text style={[styles.star, n <= rating && styles.starOn]}>
+                    {n <= rating ? '★' : '☆'}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -190,9 +192,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', color: colors.ink },
   ask: { fontSize: 15, color: colors.ink },
   thanks: { color: '#1e6b3a', fontSize: 15, fontWeight: '600' },
-  stars: { flexDirection: 'row', gap: 4 },
+  stars: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   starButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  star: { fontSize: 32, color: colors.line },
+  star: { fontSize: 32, color: colors.muted },
   starOn: { color: colors.accent },
   given: { fontSize: 22, color: colors.accent, letterSpacing: 2 },
   off: { color: colors.line },

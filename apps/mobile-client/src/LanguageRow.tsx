@@ -35,7 +35,7 @@ export function LanguageRow(props: {
 
   const code = (locale: Locale) => (locale === 'uk' ? 'UA' : locale.toUpperCase());
   return (
-    <View style={{ alignSelf: 'flex-start', marginTop: 12 }}>
+    <View style={{ alignSelf: 'flex-start', maxWidth: '100%', marginTop: 12 }}>
       <FieldGroup error={invalid ? DICTIONARIES[props.locale].badLanguage : undefined}>
         <Button
           kind="link"
@@ -46,7 +46,7 @@ export function LanguageRow(props: {
           onPress={() => setOpen(!open)}
         />
         {open ? (
-          <View style={styles.languages} accessibilityLabel={props.label}>
+          <View role="group" style={styles.languages} accessibilityLabel={props.label}>
             {LOCALES.map((l) => {
               const label = l === 'uk' ? `UA · ${LANGUAGE_NAMES[l]}` : LANGUAGE_NAMES[l];
               const selected = l === props.locale;
@@ -75,6 +75,6 @@ export function LanguageRow(props: {
 const styles = StyleSheet.create({
   languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   languageButton: { justifyContent: 'center', paddingHorizontal: 4, maxWidth: '100%' },
-  language: { color: colors.muted, fontSize: 14 },
+  language: { flexShrink: 1, color: colors.muted, fontSize: 14 },
   languageActive: { color: colors.ink, fontWeight: '700', textDecorationLine: 'underline' },
 });
