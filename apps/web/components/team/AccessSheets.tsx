@@ -6,7 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { DASHBOARD_LOCALES, errorText, localeCode, useI18n } from '@/lib/i18n';
 import type { Member, PermissionCatalog, PermissionMap, StaffCategory } from '@/lib/types';
-import { ErrorBox, FieldError, Sheet } from '../ui';
+import { FieldError, Sheet } from '../ui';
 
 export type { Member, PermissionMap };
 export type Category = StaffCategory;
@@ -453,9 +453,10 @@ export function InviteSheet({
     }
   }
 
-  /** Editing a field takes its error away. */
+  /** Editing a field takes its error away (and the refused-send line under "Zaproś"). */
   const edit = (field: InviteField, change: Partial<typeof form>) => {
     setForm({ ...form, ...change });
+    setError('');
     if (problem?.field === field) setProblem(null);
   };
   const invalid = (field: InviteField) => ({
@@ -473,7 +474,6 @@ export function InviteSheet({
   return (
     <Sheet title={t.team.inviteTitle} onClose={onClose}>
       <form noValidate className="form" onSubmit={send}>
-        <ErrorBox>{error}</ErrorBox>
         <label className="field">
           <span>{t.team.inviteEmail}</span>
           <input
@@ -575,9 +575,16 @@ export function InviteSheet({
             ))}
           </select>
         </label>
-        <button className="btn btn--block" disabled={busy}>
+        {/* Task 819 (owner's rule: errors where the action is): a refused "Zaproś" that names no
+            field is said under this button, not above the form; the typed data stays. */}
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error ? 'invite-send-error' : undefined}
+        >
           {t.team.invite}
         </button>
+        <FieldError id="invite-send-error" text={error} />
       </form>
     </Sheet>
   );

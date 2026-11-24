@@ -155,7 +155,27 @@ test('the owner invites a specialist by email and phone; they join with a code (
   if ((await english.getAttribute('aria-pressed')) !== 'true') await english.click();
   await expect(english).toHaveAttribute('aria-pressed', 'true');
   await shot(page, '54-owner-invite-email-phone');
-  await form.getByRole('button', { name: 'Zaproś', exact: true }).click();
+  // Task 819 (owner's rule: errors where the action is): a refused "Zaproś" that names no field
+  // is said under that button, not above the form; the typed data stays.
+  const invitationsUrl = (url: URL) => url.pathname.endsWith('/invitations');
+  await page.route(invitationsUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const sendInvite = form.getByRole('button', { name: 'Zaproś', exact: true });
+  await sendInvite.click();
+  await expect(form.locator('#invite-send-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(sendInvite).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(inviteEmail).toHaveValue(KASIA);
+  await expect(form.locator('.alert')).toHaveCount(0);
+  await sendInvite.scrollIntoViewIfNeeded();
+  await shot(page, '819-invite-send-error');
+  await page.unroute(invitationsUrl);
+  await sendInvite.click();
   await expect(page.getByText(`Zaproszenie wysłane na ${KASIA}.`, { exact: true })).toBeVisible();
   await expect(page.getByText(`${KASIA} · +48600100200 · Specjalista`)).toBeVisible();
   // Task 728 (owner's rule: errors where the action is): a refused "Anuluj" is said under that
