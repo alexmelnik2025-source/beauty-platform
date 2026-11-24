@@ -193,7 +193,22 @@ test('"Do wydania klientowi": the owner hands over a product put aside for the v
   await shot(page, 'Q3-D-to-hand');
 
   // The client didn't want the wax after all.
-  await toHand.getByRole('button', { name: 'Anuluj rezerwację — Wosk matowy' }).click();
+  // Task 756 (owner's rule: errors where the action is): a refused "Anuluj rezerwację" is said
+  // under the wax's row, not above the list.
+  await page.route('**/reservations/*/cancel', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const cancelWax = toHand.getByRole('button', { name: 'Anuluj rezerwację — Wosk matowy' });
+  await cancelWax.click();
+  const waxRow = toHand.getByRole('listitem').filter({ hasText: 'Wosk matowy' });
+  await expect(waxRow.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(cancelWax).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(toHand.locator('.field-error')).toHaveCount(1);
+  await expect(toHand.locator('.alert')).toHaveCount(0);
+  await shot(page, '756-to-hand-cancel-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await cancelWax.click();
+  await expect(toHand.locator('.field-error')).toHaveCount(0);
   await expect(toHand.getByText('Wosk matowy')).toHaveCount(0);
   await expect(toHand.getByText(/Razem: 98,00\s*zł/)).toBeVisible();
 

@@ -229,13 +229,60 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
     .getAttribute('href');
   const secondToken = manageHref!.split('/m/')[1]!;
   // The client changes their mind about the wax…
-  await booked.getByRole('button', { name: 'Zrezygnuj: Wosk matowy' }).click();
+  // Task 759 (owner's rule: errors where the action is): a refused "Zrezygnuj" is said under the
+  // wax's row, not above the list.
+  await page.route('**/products/*', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const giveBackWax = booked.getByRole('button', { name: 'Zrezygnuj: Wosk matowy' });
+  await giveBackWax.click();
+  const waxRow = booked
+    .getByRole('listitem')
+    .filter({ has: page.getByRole('button', { name: 'Zrezygnuj: Wosk matowy' }) });
+  await expect(waxRow.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(giveBackWax).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(booked.locator('.field-error')).toHaveCount(1);
+  await expect(booked.locator('.alert')).toHaveCount(0);
+  await waxRow.scrollIntoViewIfNeeded();
+  await shot(page, '759-booked-product-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await giveBackWax.click();
+  await expect(booked.locator('.field-error')).toHaveCount(0);
   await expect(booked.getByText('Czeka w salonie — zapłacisz przy wizycie')).toHaveCount(1);
 
   // …and back on the first visit's page puts it aside again with one tap.
   await page.goto(`/pl/m/${first.manageToken}`);
   await expect(used.getByText(/^✓ Odłożone na wizytę/)).toHaveCount(1);
-  await used.getByRole('button', { name: 'Odłóż na następną wizytę: Wosk matowy' }).click();
+  // Task 760 (owner's rule: errors where the action is): a refused "Odłóż na następną wizytę" is
+  // said under that button, not above the list.
+  await page.route('**/products/next', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveWax = used.getByRole('button', { name: 'Odłóż na następną wizytę: Wosk matowy' });
+  await saveWax.click();
+  await expect(
+    used
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('button', { name: 'Odłóż na następną wizytę: Wosk matowy' }) })
+      .locator('.field-error'),
+  ).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveWax).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(used.locator('.field-error')).toHaveCount(1);
+  await expect(used.locator('.alert')).toHaveCount(0);
+  await saveWax.scrollIntoViewIfNeeded();
+  await shot(page, '760-used-product-save-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await saveWax.click();
   await expect(used.getByText(/^✓ Odłożone na wizytę/)).toHaveCount(2);
   await expect(used.getByRole('link', { name: 'Umów kolejną wizytę' })).toHaveCount(0);
   await used.scrollIntoViewIfNeeded();

@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay, formatPrice } from '@/lib/time';
 import type { UsedProducts } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 
 /**
  * Task Q3 (screen C): under "Jak było?" on the visit link page, once the visit took place —
@@ -22,7 +22,11 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
   const s = t.visitProducts;
   const [data, setData] = useState<UsedProducts | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 760 (owner's rule: errors where the action is): a refused "Odłóż na następną wizytę" is
+   * said under that product's button, not as a box above the list.
+   */
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
 
   const load = useCallback(
     () =>
@@ -49,7 +53,7 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
 
   async function save(productId: string) {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       setData(
         await api<UsedProducts>(`${endpoint}/products/next`, {
@@ -59,7 +63,7 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
         }),
       );
     } catch (e) {
-      setError(errorText(t, e));
+      setError({ id: productId, text: errorText(t, e) });
       await load();
     } finally {
       setBusy(false);
@@ -75,7 +79,6 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
       <h2 id="used-products-title" className="h3">
         {s.usedTitle}
       </h2>
-      <ErrorBox>{error}</ErrorBox>
       <ul className="list" aria-label={s.usedTitle}>
         {data.products.map((p) => (
           <li key={p.id} className="stack" style={{ gap: 8 }}>
@@ -111,11 +114,16 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
                 className="btn btn--quiet btn--block"
                 disabled={busy || !p.available}
                 aria-label={`${s.saveForNext}: ${p.name}`}
+                aria-describedby={error?.id === p.id ? `used-product-${p.id}-error` : undefined}
                 onClick={() => void save(p.id)}
               >
                 {s.saveForNext}
               </button>
             ) : null}
+            <FieldError
+              id={`used-product-${p.id}-error`}
+              text={error?.id === p.id ? error.text : undefined}
+            />
           </li>
         ))}
       </ul>

@@ -7,7 +7,7 @@ import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { ClientAppointment, VisitCoupons } from '@/lib/types';
 import { AppointmentManager } from '../booking/ManageAppointment';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 import { bookAgainHref } from './ClientVisits';
 
 /** One visit in the "My visits" app: move, cancel, coupons, book again. */
@@ -57,7 +57,11 @@ function VisitCouponsPicker({
   const open = a.status === 'confirmed' && a.canChange;
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 758 (owner's rule: errors where the action is): a refused "Użyj" or "Nie używaj" is said
+   * under that coupon, not as a box above the coupons.
+   */
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -73,13 +77,13 @@ function VisitCouponsPicker({
     };
   }, [url, open, a.discountGrosze]);
 
-  async function change(path: string, body?: object) {
+  async function change(couponId: string, path: string, body?: object) {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       onChanged(await api<ClientAppointment>(path, { method: 'POST', auth: false, body }));
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ id: couponId, text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -87,27 +91,36 @@ function VisitCouponsPicker({
 
   const offered = open ? (coupons?.available ?? []) : [];
   if (a.coupons.length === 0 && offered.length === 0) return null;
+  const errorId = (couponId: string) => `visit-coupon-${couponId}-error`;
+  const errorFor = (couponId: string) => (error?.id === couponId ? error.text : undefined);
+  // The coupon may have moved (used ↔ offered) or gone after the answer: then under the heading.
+  const lostError =
+    error && ![...a.coupons, ...offered].some((c) => c.id === error.id) ? error.text : undefined;
   return (
     <section className="stack" style={{ gap: 8 }} aria-label={t.visits.coupons}>
       <h2 className="small">{t.visits.coupons}</h2>
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id="visit-coupons-error" text={lostError} />
       {a.coupons.length > 0 ? (
         <div className="summary">
           {a.coupons.map((c) => (
-            <span key={c.id} className="row" style={{ justifyContent: 'space-between' }}>
-              <span>
-                {t.visits.couponUsed}: {c.name} · −{money(c.discountGrosze)}
+            <span key={c.id} className="stack" style={{ gap: 2 }}>
+              <span className="row" style={{ justifyContent: 'space-between' }}>
+                <span>
+                  {t.visits.couponUsed}: {c.name} · −{money(c.discountGrosze)}
+                </span>
+                {open ? (
+                  <button
+                    type="button"
+                    className="link-btn small"
+                    disabled={busy}
+                    aria-describedby={errorFor(c.id) ? errorId(c.id) : undefined}
+                    onClick={() => void change(c.id, `${url}/${c.id}/remove`)}
+                  >
+                    {t.visits.couponRemove}
+                  </button>
+                ) : null}
               </span>
-              {open ? (
-                <button
-                  type="button"
-                  className="link-btn small"
-                  disabled={busy}
-                  onClick={() => void change(`${url}/${c.id}/remove`)}
-                >
-                  {t.visits.couponRemove}
-                </button>
-              ) : null}
+              <FieldError id={errorId(c.id)} text={errorFor(c.id)} />
             </span>
           ))}
           <span className="big">
@@ -120,7 +133,7 @@ function VisitCouponsPicker({
           <p className="small muted">{t.visits.couponsHint}</p>
           <ul className="history">
             {offered.map((c) => (
-              <li key={c.id}>
+              <li key={c.id} className={errorFor(c.id) ? 'history__row--error' : undefined}>
                 <span>
                   {c.name}
                   {c.problem ? (
@@ -132,12 +145,14 @@ function VisitCouponsPicker({
                     type="button"
                     className="btn btn--small"
                     disabled={busy}
-                    onClick={() => void change(url, { couponId: c.id })}
+                    aria-describedby={errorFor(c.id) ? errorId(c.id) : undefined}
+                    onClick={() => void change(c.id, url, { couponId: c.id })}
                   >
                     {t.visits.couponUse}
                     {c.discountGrosze !== null ? ` −${money(c.discountGrosze)}` : ''}
                   </button>
                 )}
+                <FieldError id={errorId(c.id)} text={errorFor(c.id)} />
               </li>
             ))}
           </ul>
