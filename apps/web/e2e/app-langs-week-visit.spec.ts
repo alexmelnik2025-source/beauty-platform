@@ -244,7 +244,12 @@ for (const [lang, locale] of [
           ['Jan', visit.status.completed],
           ['Adam', visit.status.no_show],
         ] as const) {
+          // The till controls load above yesterday's visits, also when returning from a card.
+          // Wait for the last section to render before clicking a row that it moves down.
+          await expect(button(day.tillClose)).toBeVisible();
           await page.getByRole('button', { name: new RegExp(` ${name} · Strzyżenie$`) }).click();
+          await expect(button(visit.back)).toBeVisible();
+          await expect(text(name)).toBeVisible();
           await fits(text(status));
           await button(visit.back).click();
         }
