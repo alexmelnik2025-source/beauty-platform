@@ -171,7 +171,7 @@ export function WeekScreen(props: {
             const parts = [
               d.visits > 0 ? fill(w.visits, { n: String(d.visits) }) : w.free,
               d.span,
-              d.waiting > 0 ? `⏳ ${fill(w.waiting, { n: String(d.waiting) })}` : null,
+              d.waiting > 0 ? fill(w.waiting, { n: String(d.waiting) }) : null,
               d.working > 0 ? fill(w.working, { n: String(d.working) }) : w.closed,
             ].filter(Boolean);
             const title = `${dayTitle(d.date, props.locale)}${d.date === today ? ` · ${w.today}` : ''}`;
@@ -179,7 +179,7 @@ export function WeekScreen(props: {
               <Pressable
                 key={d.date}
                 accessibilityRole="button"
-                accessibilityLabel={`${title}: ${parts.join(' · ').replace('⏳ ', '')}`}
+                accessibilityLabel={`${title}: ${parts.join(' · ')}`}
                 onPress={() => props.onOpenDay(d.date)}
                 style={({ pressed }) => pressed && { opacity: 0.7 }}
               >
