@@ -5,6 +5,7 @@ import {
   type APIResponse,
   type Page,
 } from '@playwright/test';
+import { addDays, todayIn } from '../../mobile-business/src/day';
 import { waitForEmail } from './mailpit';
 import { serveApp } from './mobile-app';
 
@@ -65,6 +66,10 @@ test('business app: the owner sees the salon as clients see it now', async ({
   const org = await json<{ id: string }>(
     await request.post('/v1/organizations', { headers: owner, data: { name: NAME } }),
   );
+  // The API uses its real clock. If Warsaw will cross midnight during the test, London is still on the same day.
+  const warsaw = 'Europe/Warsaw';
+  const deadline = new Date(Date.now() + test.info().timeout);
+  const timezone = todayIn(warsaw) === todayIn(warsaw, deadline) ? warsaw : 'Europe/London';
   const location = await json<{ id: string; slug: string }>(
     await request.post(`/v1/organizations/${org.id}/locations`, {
       headers: owner,
@@ -72,6 +77,7 @@ test('business app: the owner sees the salon as clients see it now', async ({
         name: NAME,
         addressLine: 'ul. Józefa Bema 91',
         city: 'Warszawa',
+        timezone,
         postalCode: '01-233',
         onlineBookingEnabled: true,
         bookingTerms: '# Regulamin\n\nWizyta jest bezpłatna do odwołania.',
@@ -109,11 +115,17 @@ test('business app: the owner sees the salon as clients see it now', async ({
     const context = await browser.newContext({
       viewport: PHONE,
       locale: 'pl-PL',
-      timezoneId: 'Europe/Warsaw',
+      timezoneId: warsaw,
       isMobile: true,
       extraHTTPHeaders: ADDRESS,
     });
     const phone = await context.newPage();
+    const { todayHours } = await json<{ todayHours: { date: string } }>(
+      await request.get(`/v1/public/locations/${location.slug}`),
+    );
+    const today = todayHours.date;
+    // The API calculates today's hours on the salon's local date. Keep the phone on that date.
+    await phone.clock.setFixedTime(new Date(`${today}T12:00:00Z`));
     await phone.goto(businessApp.url);
     await phone.getByLabel('E-mail lub telefon').fill(OWNER);
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
@@ -123,8 +135,9 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     const card = phone.getByTestId('clients-now');
+    const open = card.getByLabel('Klienci widzą teraz: Otwarte · do północy', { exact: true });
     await expect(phone.getByRole('button', { name: 'Udostępnij plan dnia' })).toBeVisible();
-    await expect(card.getByLabel('Klienci widzą teraz: Otwarte · do północy')).toBeVisible();
+    await expect(open).toBeVisible();
     const loading = phone.getByRole('progressbar', { name: 'Klienci widzą teraz: Ładowanie…' });
     await phone.route(
       `**/v1/public/locations/${location.slug}`,
@@ -139,7 +152,7 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await phone.getByRole('button', { name: 'Odśwież: Klienci widzą teraz', exact: true }).click();
     // React Native Web emits fixed pixel sizes. Enlarge the card text to at least 130%.
     await phone.addStyleTag({ content: '[dir="auto"] { font-size: 22.1px !important }' });
-    await expect(card.getByLabel('Klienci widzą teraz: Otwarte · do północy')).toBeVisible();
+    await expect(open).toBeVisible();
     const details = card.getByRole('button', { name: 'Więcej: Klienci widzą teraz' });
     await expect(details).toHaveAttribute('aria-expanded', 'false');
     await expect(card.getByText(/Dziś dla klientów/)).toHaveCount(0);
@@ -152,30 +165,23 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await phone.getByRole('button', { name: 'Następny dzień' }).click();
     await expect(card).toHaveCount(0);
     await phone.getByRole('button', { name: 'Dziś' }).click();
-    await expect(card).toBeVisible();
+    await expect(open).toBeVisible();
 
     // A vacation for the whole of today: after "Odśwież", closed until tomorrow.
-    const page = await json<{ todayHours: { date: string } }>(
-      await request.get(`/v1/public/locations/${location.slug}`),
-    );
-    const today = page.todayHours.date;
-    const [y, m, d] = today.split('-').map(Number) as [number, number, number];
-    const tomorrow = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+    const tomorrow = addDays(today, 1);
     await json(
       await request.post(`${base}/staff/${kasia.id}/time-off`, {
         headers: owner,
         data: { start: `${today}T00:00`, end: `${tomorrow}T00:00`, note: 'Urlop' },
       }),
     );
-    await phone.getByRole('button', { name: 'Odśwież' }).click();
+    await phone.getByRole('button', { name: 'Odśwież', exact: true }).click();
     const closed = card.getByLabel('Klienci widzą teraz: Zamknięte · otwarcie: jutro, 00:00');
     await expect(closed).toHaveCSS('font-size', '22.1px');
-    // "Odśwież" may render the card again while it is scrolled to: retry on a fresh element.
-    await expect(async () => {
-      await closed.scrollIntoViewIfNeeded({ timeout: 2_000 });
-      await expect(closed).toBeInViewport({ ratio: 1, timeout: 2_000 });
-    }).toPass();
-    expect(await closed.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    // Refresh replaces the status line with a spinner inside the same card.
+    await card.scrollIntoViewIfNeeded();
+    await expect(closed).toBeInViewport({ ratio: 1 });
+    await expect.poll(() => closed.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await details.click();
     await expect(card).toContainText('Dziś dla klientów: nieczynne');
     await card.scrollIntoViewIfNeeded();
