@@ -745,6 +745,11 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Program lojalnościowy»: отказ «Zapisz zasady usług» под кнопкой (задача 795, 24.11.2026)
+
+- Отказ сервера при сохранении баллов за услуги — под кнопкой «Zapisz zasady usług» (с «!»), введённое остаётся,
+  ввод убирает ошибку. Раньше — рамкой вверху страницы. e2e `loyalty`, скриншот `795-loyalty-rules-error`.
+
 ## «Ochrona przed odwołaniami»: отказ «Tak, zdejmij» в самом окне (задача 794, 24.11.2026)
 
 - Отказ сервера при снятии блокады клиента — в открытом окне под «Tak, zdejmij» (с «!»), заметка остаётся. Раньше
