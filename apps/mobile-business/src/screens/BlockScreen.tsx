@@ -9,6 +9,16 @@ import { Button, colors, ErrorText, Heading } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 const STEP = 15;
+type BlockField = 'staffId' | 'start' | 'end' | 'weeks' | 'reason';
+type FieldErrors = Partial<Record<BlockField, string>>;
+
+function fieldError(field: BlockField, message?: string) {
+  return message ? (
+    <View nativeID={`block-${field}-error`}>
+      <ErrorText>! {message}</ErrorText>
+    </View>
+  ) : null;
+}
 
 /**
  * Block time on one day: whose time (a specialist, or the whole salon for an owner or manager),
@@ -44,8 +54,9 @@ export function BlockScreen(props: {
   const [weeks, setWeeks] = useState<number>(SERIES_WEEKS.start);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const badRange = submitted && to <= from;
-  const missingReason = submitted && !reason.trim();
+  const [fields, setFields] = useState<FieldErrors>({});
+  const endError = submitted && to <= from ? b.badRange : fields.end;
+  const reasonError = submitted && !reason.trim() ? b.reason : fields.reason;
   const [busy, setBusy] = useState(false);
 
   const saving = useRef(false);
@@ -53,16 +64,28 @@ export function BlockScreen(props: {
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
+      if (!saving.current) onBack();
       return true;
     });
     return () => sub.remove();
   }, [onBack]);
 
+  function clearField(field: BlockField) {
+    setFields((previous) => {
+      const next = { ...previous };
+      delete next[field];
+      if (field === 'start' && previous.end === b.badRange) delete next.end;
+      if ((field === 'start' || field === 'staffId') && previous.end === b.inTheWay)
+        delete next.end;
+      return next;
+    });
+  }
+
   async function save() {
     if (saving.current) return;
     setSubmitted(true);
     setError('');
+    setFields({});
     if (to <= from || !reason.trim()) return;
     saving.current = true;
     setBusy(true);
@@ -84,11 +107,27 @@ export function BlockScreen(props: {
         props.onSaved(b.added);
       }
     } catch (e) {
-      setError(
-        e instanceof ApiError && e.code === 'APPOINTMENTS_IN_THE_WAY'
-          ? b.inTheWay
-          : errorText(e, t),
-      );
+      if (e instanceof ApiError && e.code === 'APPOINTMENTS_IN_THE_WAY') {
+        setFields({ end: b.inTheWay });
+      } else if (e instanceof ApiError && e.code === 'VALIDATION_ERROR') {
+        const issues: FieldErrors = {};
+        for (const { path } of e.details) {
+          if (path === '') issues.end = b.badRange;
+          if (
+            path === 'start' ||
+            path === 'end' ||
+            path === 'reason' ||
+            (path === 'weeks' && weekly) ||
+            (path === 'staffId' && props.targets.length > 1)
+          ) {
+            issues[path] = t.error.generic;
+          }
+        }
+        setFields(issues);
+        if (!Object.keys(issues).length) setError(errorText(e, t));
+      } else {
+        setError(errorText(e, t));
+      }
     } finally {
       saving.current = false;
       setBusy(false);
@@ -101,22 +140,27 @@ export function BlockScreen(props: {
     set: (v: string) => void,
     min: string,
     max: string,
-    invalid = false,
+    field: 'start' | 'end',
+    message?: string,
   ) => (
     <View style={styles.stepper}>
       <Text style={styles.label}>{label}</Text>
       <View
         role="group"
         accessibilityLabel={label}
-        aria-describedby={invalid ? 'block-range-error' : undefined}
-        style={[styles.row, invalid && styles.invalidRange]}
+        aria-invalid={!!message}
+        aria-describedby={message ? `block-${field}-error` : undefined}
+        style={[styles.row, message && styles.invalidRange]}
       >
         <Button
           kind="secondary"
           label="‹"
           a11yLabel={`${label}: ${b.earlier}`}
-          disabled={value <= min}
-          onPress={() => set(shiftTime(value, -STEP))}
+          disabled={busy || value <= min}
+          onPress={() => {
+            set(shiftTime(value, -STEP));
+            clearField(field);
+          }}
         />
         <Text style={styles.time} accessibilityLabel={`${label} ${value}`}>
           {value}
@@ -125,22 +169,21 @@ export function BlockScreen(props: {
           kind="secondary"
           label="›"
           a11yLabel={`${label}: ${b.later}`}
-          disabled={value >= max}
-          onPress={() => set(shiftTime(value, STEP))}
+          disabled={busy || value >= max}
+          onPress={() => {
+            set(shiftTime(value, STEP));
+            clearField(field);
+          }}
         />
       </View>
-      {invalid ? (
-        <View nativeID="block-range-error">
-          <ErrorText>! {b.badRange}</ErrorText>
-        </View>
-      ) : null}
+      {fieldError(field, message)}
     </View>
   );
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>
-        <Button kind="link" label={t.schedule.back} onPress={onBack} />
+        <Button kind="link" label={t.schedule.back} disabled={busy} onPress={onBack} />
       </View>
       <Heading>{b.add}</Heading>
       <Text style={styles.muted}>{title}</Text>
@@ -148,54 +191,83 @@ export function BlockScreen(props: {
       {props.targets.length > 1 ? (
         <>
           <Text style={styles.label}>{b.who}</Text>
-          <View style={styles.row}>
+          <View
+            role="group"
+            accessibilityLabel={b.who}
+            aria-invalid={!!fields.staffId}
+            aria-describedby={fields.staffId ? 'block-staffId-error' : undefined}
+            style={[styles.row, fields.staffId && styles.invalidRange]}
+          >
             {props.targets.map((target) => (
               <Button
                 key={target.staffId ?? 'salon'}
                 kind={target.staffId === staffId ? 'primary' : 'secondary'}
                 label={target.name ?? b.wholeSalon}
-                onPress={() => setStaffId(target.staffId)}
+                disabled={busy}
+                onPress={() => {
+                  setStaffId(target.staffId);
+                  clearField('staffId');
+                }}
               />
             ))}
           </View>
+          {fieldError('staffId', fields.staffId)}
         </>
       ) : null}
 
-      {stepper(b.from, from, setFrom, '00:00', '23:45')}
-      {stepper(b.to, to, setTo, '00:15', '24:00', badRange)}
+      {stepper(b.from, from, setFrom, '00:00', '23:45', 'start', fields.start)}
+      {stepper(b.to, to, setTo, '00:15', '24:00', 'end', endError)}
 
       <View style={styles.row}>
         <Button
           kind={weekly ? 'secondary' : 'primary'}
           label={b.once}
-          onPress={() => setWeekly(false)}
+          disabled={busy}
+          onPress={() => {
+            setWeekly(false);
+            clearField('weeks');
+          }}
         />
         <Button
           kind={weekly ? 'primary' : 'secondary'}
           label={b.repeat}
+          disabled={busy}
           onPress={() => setWeekly(true)}
         />
       </View>
       {weekly ? (
         <View style={styles.stepper}>
           <Text style={styles.label}>{b.weeks}</Text>
-          <View style={styles.row}>
+          <View
+            role="group"
+            accessibilityLabel={b.weeks}
+            aria-invalid={!!fields.weeks}
+            aria-describedby={fields.weeks ? 'block-weeks-error' : undefined}
+            style={[styles.row, fields.weeks && styles.invalidRange]}
+          >
             <Button
               kind="secondary"
               label="‹"
               a11yLabel={b.fewerWeeks}
-              disabled={weeks <= SERIES_WEEKS.min}
-              onPress={() => setWeeks(weeks - 1)}
+              disabled={busy || weeks <= SERIES_WEEKS.min}
+              onPress={() => {
+                setWeeks(weeks - 1);
+                clearField('weeks');
+              }}
             />
             <Text style={styles.time}>{fill(b.weeksCount, { count: String(weeks) })}</Text>
             <Button
               kind="secondary"
               label="›"
               a11yLabel={b.moreWeeks}
-              disabled={weeks >= SERIES_WEEKS.max}
-              onPress={() => setWeeks(weeks + 1)}
+              disabled={busy || weeks >= SERIES_WEEKS.max}
+              onPress={() => {
+                setWeeks(weeks + 1);
+                clearField('weeks');
+              }}
             />
           </View>
+          {fieldError('weeks', fields.weeks)}
           <Text style={styles.muted}>{b.repeatHint}</Text>
         </View>
       ) : null}
@@ -203,21 +275,21 @@ export function BlockScreen(props: {
       <View style={styles.stepper}>
         <TextInput
           accessibilityLabel={b.reason}
-          accessibilityHint={missingReason ? b.reason : undefined}
-          aria-invalid={missingReason}
-          aria-describedby={missingReason ? 'block-reason-error' : undefined}
+          accessibilityHint={reasonError}
+          aria-invalid={!!reasonError}
+          aria-describedby={reasonError ? 'block-reason-error' : undefined}
           placeholder={b.reason}
           placeholderTextColor={colors.placeholder}
           value={reason}
-          onChangeText={setReason}
+          editable={!busy}
+          onChangeText={(value) => {
+            setReason(value);
+            clearField('reason');
+          }}
           maxLength={200}
-          style={[styles.input, missingReason && styles.invalidInput]}
+          style={[styles.input, reasonError && styles.invalidInput]}
         />
-        {missingReason ? (
-          <View nativeID="block-reason-error">
-            <ErrorText>! {b.reason}</ErrorText>
-          </View>
-        ) : null}
+        {fieldError('reason', reasonError)}
       </View>
       {error ? <ErrorText>{error}</ErrorText> : null}
       <View style={styles.row}>
