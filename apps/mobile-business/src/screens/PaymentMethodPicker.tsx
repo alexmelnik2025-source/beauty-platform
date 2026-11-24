@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  chipText: { color: colors.ink, fontSize: 14 },
+  chipText: { color: colors.ink, fontSize: 14, maxWidth: '100%', textAlign: 'center' },
   chipTextOn: { color: '#fff', fontWeight: '600' },
 });

@@ -60,7 +60,7 @@ export function ProductSalesSection(props: {
     void load();
   }, [load]);
 
-  const run = async (action: () => Promise<VisitProductSales>) => {
+  const run = async (action: () => Promise<VisitProductSales>, byCode = false) => {
     if (busy) return;
     setBusy(true);
     setCodeError('');
@@ -73,7 +73,12 @@ export function ProductSalesSection(props: {
         setProducts(list.products.filter((x) => x.active));
       }
     } catch (e) {
-      setError(e instanceof ApiError && e.code === 'OUT_OF_STOCK' ? p.outOfStock : errorText(e, t));
+      if (e instanceof ApiError && e.code === 'OUT_OF_STOCK') {
+        if (byCode) setCodeError(p.outOfStock);
+        else setError(p.outOfStock);
+      } else {
+        setError(errorText(e, t));
+      }
     } finally {
       setBusy(false);
     }
@@ -92,7 +97,7 @@ export function ProductSalesSection(props: {
       const sold = await api.addProductSale(salon.orgId, salon.locationId, appointmentId, found.id);
       setCode('');
       return sold;
-    });
+    }, true);
   };
   const withCodes = products.some((x) => x.barcode !== null);
 
@@ -128,10 +133,9 @@ export function ProductSalesSection(props: {
       {canChange && withCodes ? (
         <View style={styles.codeRow}>
           <View style={styles.codeField}>
+            <Text style={styles.muted}>{p.saleByCode}</Text>
             <TextInput
               accessibilityLabel={p.saleByCode}
-              placeholder={p.saleByCode}
-              placeholderTextColor={colors.placeholder}
               value={code}
               maxLength={40}
               autoCapitalize="characters"
@@ -213,7 +217,7 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   codeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  codeField: { flexGrow: 1, flexBasis: 180, gap: 4 },
+  codeField: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, maxWidth: '100%', gap: 4 },
   fieldError: { color: colors.danger, fontSize: 15 },
   input: {
     minHeight: 44,

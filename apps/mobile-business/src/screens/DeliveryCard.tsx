@@ -100,16 +100,16 @@ export function DeliveryCard(props: {
           </View>
         ) : null}
         {parsed.map(({ product: x, n }) => (
-          <View key={x.id}>
-            <View style={styles.row}>
-              <View style={styles.details}>
-                <Text style={styles.name}>{x.name}</Text>
-                <Text style={styles.muted}>
-                  {x.stockQuantity === null
-                    ? p.stocktakeWasNone
-                    : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
-                </Text>
-              </View>
+          <View key={x.id} style={styles.row}>
+            <View style={styles.details}>
+              <Text style={styles.name}>{x.name}</Text>
+              <Text style={styles.muted}>
+                {x.stockQuantity === null
+                  ? p.stocktakeWasNone
+                  : fill(p.stocktakeWas, { n: String(x.stockQuantity) })}
+              </Text>
+            </View>
+            <View style={styles.quantity}>
               <TextInput
                 accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
                 aria-invalid={n === undefined}
@@ -121,12 +121,12 @@ export function DeliveryCard(props: {
                 onChangeText={(value) => setPieces({ ...pieces, [x.id]: value })}
                 style={[styles.input, n === undefined && { borderColor: colors.danger }]}
               />
+              {n === undefined ? (
+                <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
+                  ! {p.deliveryInvalid}
+                </Text>
+              ) : null}
             </View>
-            {n === undefined ? (
-              <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
-                ! {p.deliveryInvalid}
-              </Text>
-            ) : null}
           </View>
         ))}
         {error ? <ErrorText>{error}</ErrorText> : null}
@@ -155,17 +155,24 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   activeFilter: { backgroundColor: colors.ink, borderColor: colors.ink },
-  filterText: { color: colors.ink, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  filterText: {
+    maxWidth: '100%',
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   activeText: { color: colors.card },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 },
   details: { flexGrow: 1, flexShrink: 1, flexBasis: 160, minWidth: 0 },
+  quantity: { flexBasis: 100, flexGrow: 1, gap: 4 },
   fieldError: { color: colors.danger, fontSize: 15 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 14 },
   input: {
     minHeight: 44,
-    width: 100,
+    minWidth: 0,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
