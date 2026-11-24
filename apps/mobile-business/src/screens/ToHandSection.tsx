@@ -131,7 +131,7 @@ export function ToHandSection(props: {
       </Text>
       {[...waiting, ...handed].map((r) => (
         <View key={r.id} style={styles.item} testID="to-hand-product">
-          <View style={styles.row}>
+          <View accessible={validAmount(r.totalGrosze)} style={styles.row}>
             <Text style={styles.name}>{r.quantity > 1 ? `${r.name} × ${r.quantity}` : r.name}</Text>
             {validAmount(r.totalGrosze) ? (
               <Text style={styles.muted}>{money(r.totalGrosze)}</Text>
