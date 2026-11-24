@@ -28,7 +28,13 @@ import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
 const reviewsCache = new SalonReadCache<SalonReviews>();
 const settingsCache = new SalonReadCache<ReviewSettings>();
-type ReplyEditor = { text: string; editing: boolean; busy?: boolean; error?: string };
+type ReplyEditor = {
+  text: string;
+  editing: boolean;
+  busy?: boolean;
+  missingText?: boolean;
+  error?: string;
+};
 
 /**
  * Task 201: "Opinie" in the business app — the average, then each review: stars, the client's
@@ -99,6 +105,7 @@ export function ReviewsScreen(props: {
       const id = Symbol();
       request.current = id;
       setBusy(true);
+      setError('');
       try {
         const fetchPage = () =>
           api.reviews(salon.orgId, salon.locationId, {
@@ -239,7 +246,7 @@ export function ReviewsScreen(props: {
           ) : summary && !summary.enabled ? (
             <Text style={styles.note}>{r.off}</Text>
           ) : null}
-          {summary ? (
+          {summary && summary.count > 0 ? (
             <Text style={styles.summary} accessibilityRole="header">
               {reviewSummary(summary, t, props.locale)}
             </Text>
@@ -349,7 +356,23 @@ export function ReviewsScreen(props: {
         </View>
       }
       ListEmptyComponent={
-        !page && !error ? <Text style={styles.muted}>{t.loading}</Text> : undefined
+        error ? undefined : !page || busy ? (
+          <View
+            style={styles.row}
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={t.loading}
+            accessibilityState={{ busy: true }}
+          >
+            <Text style={styles.muted}>{t.loading}</Text>
+            <View aria-hidden style={[styles.skeletonLine, { width: '40%' }]} />
+            <View aria-hidden style={styles.skeletonLine} />
+          </View>
+        ) : (
+          <Text role="status" style={styles.muted}>
+            {r.none}
+          </Text>
+        )
       }
       ListFooterComponent={
         page?.nextBefore ? (
@@ -375,15 +398,28 @@ const ReviewRow = memo(function ReviewRow(props: {
   const { editing, text, busy, error } = editor;
   const r = t.reviews;
   const line = reviewLine(review, t, props.locale, props.timeZone);
-  const send = (value: string | null) => props.reply(review, value, editor);
+  const missingText = Boolean(editor.missingText);
+  const fieldError = missingText ? r.reply : error;
+  const errorId = `reply-error-${review.id}`;
+  function publish() {
+    const value = text.trim();
+    if (!value) {
+      props.edit(review.id, { ...editor, missingText: true, error: undefined });
+      return;
+    }
+    void props.reply(review, value, editor);
+  }
   return (
     <View style={styles.row}>
-      <View
-        accessible
-        accessibilityLabel={`${review.rating}/5. ${review.text ?? ''} ${line}`}
-        style={styles.gap}
-      >
-        <Text style={styles.stars}>{stars(review.rating)}</Text>
+      <View style={styles.gap}>
+        <Text
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={fill(t.reports.ratings, { stars: `${review.rating}/5` })}
+          style={styles.stars}
+        >
+          {stars(review.rating)}
+        </Text>
         {review.text ? <Text style={styles.text}>{review.text}</Text> : null}
         <Text style={styles.muted}>{line}</Text>
       </View>
@@ -401,21 +437,32 @@ const ReviewRow = memo(function ReviewRow(props: {
         <View style={styles.gap}>
           <TextInput
             accessibilityLabel={r.replyLabel}
+            aria-required
+            aria-invalid={missingText}
+            aria-describedby={fieldError ? errorId : undefined}
+            accessibilityHint={fieldError}
             placeholder={r.replyLabel}
             placeholderTextColor={colors.placeholder}
             value={text}
-            onChangeText={(text) => props.edit(review.id, { ...editor, text })}
+            onChangeText={(text) =>
+              props.edit(review.id, {
+                ...editor,
+                text,
+                missingText: missingText && !text.trim(),
+                error: undefined,
+              })
+            }
             maxLength={1000}
             multiline
-            style={[styles.input, styles.multiline]}
+            style={[styles.input, styles.multiline, missingText && { borderColor: colors.danger }]}
           />
+          {fieldError ? (
+            <View nativeID={errorId}>
+              <ErrorText>! {fieldError}</ErrorText>
+            </View>
+          ) : null}
           <Text style={styles.muted}>{r.replyHint}</Text>
-          <Button
-            label={r.replySave}
-            busy={busy}
-            disabled={!text.trim()}
-            onPress={() => void send(text.trim())}
-          />
+          <Button label={r.replySave} busy={busy} onPress={publish} />
           <Button
             kind="link"
             label={r.replyCancel}
@@ -432,11 +479,16 @@ const ReviewRow = memo(function ReviewRow(props: {
             onPress={() => props.edit(review.id, { ...editor, editing: true })}
           />
           {review.reply ? (
-            <Button kind="link" label={r.replyRemove} busy={busy} onPress={() => void send(null)} />
+            <Button
+              kind="link"
+              label={r.replyRemove}
+              busy={busy}
+              onPress={() => void props.reply(review, null, editor)}
+            />
           ) : null}
         </View>
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {!editing && error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 });
@@ -575,7 +627,8 @@ function Chip(props: { label: string; a11yLabel?: string; on: boolean; onPress: 
 }
 
 const styles = StyleSheet.create({
-  gap: { gap: 4 },
+  gap: { gap: 4, minWidth: 0 },
+  skeletonLine: { height: 12, borderRadius: 6, backgroundColor: colors.soft },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   reply: {
     marginTop: 4,
@@ -613,6 +666,7 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 14 },
   info: { color: '#2e7d32', fontSize: 15 },
   chip: {
+    maxWidth: '100%',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
