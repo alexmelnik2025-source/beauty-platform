@@ -15,7 +15,12 @@ import {
   withNetworkTimeout,
 } from './HistoryScreen';
 
-let noticeCache = new SalonReadCache<Notice[]>();
+interface Inbox {
+  notices: Notice[];
+  newestId?: string;
+}
+
+let noticeCache = new SalonReadCache<Inbox>();
 
 /**
  * The bell: new online bookings, visits added, moved or cancelled — in this salon, newest first.
@@ -32,7 +37,7 @@ export function NotificationsScreen(props: {
 }) {
   const { api, t, salon, onBack } = props;
   const n = t.notifications;
-  const [list, setList] = useState<Notice[] | null>(() => noticeCache.peek(salon) ?? null);
+  const [list, setList] = useState<Notice[] | null>(() => noticeCache.peek(salon)?.notices ?? null);
   const shown = useRef<Notice[]>(list ?? []);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,31 +53,35 @@ export function NotificationsScreen(props: {
       const request = ++latest.current;
       if (refresh) noticeCache.clear(salon);
       const cached = noticeCache.peek(salon);
-      if (cached?.length) {
-        shown.current = cached;
-        setList(cached);
+      if (cached?.notices.length) {
+        shown.current = cached.notices;
+        setList(cached.notices);
         return;
       }
       refreshing.current = true;
       setError('');
       setLoading(true);
       try {
-        // On return to an empty inbox, check the bell before downloading up to 100 items.
+        // An empty salon inbox can gain a read or unread notice while it is closed.
         if (cached) {
-          const count = await withNetworkTimeout(api.unreadNotifications(), signal).catch(
-            () => null,
-          );
+          const newest = await withNetworkTimeout(api.notifications(1), signal).catch(() => null);
           if (signal.aborted || request !== latest.current) return;
-          if (count?.unread === 0) {
-            shown.current = cached;
-            setList(cached);
+          if (newest && newest[0]?.id === cached.newestId) {
+            shown.current = cached.notices;
+            setList(cached.notices);
             return;
           }
           noticeCache.clear(salon);
         }
-        const notices = await noticeCache.read(
+        const { notices } = await noticeCache.read(
           salon,
-          async () => noticesOfSalon(await api.notifications(100), salon.orgId, salon.locationId),
+          async () => {
+            const all = await api.notifications(100);
+            return {
+              notices: noticesOfSalon(all, salon.orgId, salon.locationId),
+              newestId: all[0]?.id,
+            };
+          },
           undefined,
           signal,
         );
@@ -115,7 +124,7 @@ export function NotificationsScreen(props: {
       try {
         await withNetworkTimeout(api.markNotificationsRead(id ? { ids: [id] } : { all: true }));
         // The all endpoint also marks notifications of the user's other salons.
-        if (!id) noticeCache = new SalonReadCache<Notice[]>();
+        if (!id) noticeCache = new SalonReadCache<Inbox>();
         if (signal.aborted) {
           noticeCache.clear(salon);
           return;
@@ -127,7 +136,7 @@ export function NotificationsScreen(props: {
           !item.read && (!id || item.id === id) ? { ...item, read: true } : item,
         );
         shown.current = updated;
-        noticeCache.set(salon, updated);
+        noticeCache.set(salon, { notices: updated });
         setList(updated);
         setError('');
       } catch (e) {
