@@ -97,6 +97,16 @@ describe('"Dzień po dniu" (task 356)', () => {
     expect(unpaid[0]).toMatchObject({ share: 0, best: false });
   });
 
+  it('keeps a paid grosz visible beside a zero-revenue day', () => {
+    const zero = { date: '2026-11-02', completed: 1, revenueGrosze: 0 };
+    const paid = { date: '2026-11-03', completed: 1, revenueGrosze: 1 };
+    expect(dayBars([zero, paid])).toEqual([
+      { ...zero, share: 0, best: false },
+      { ...paid, share: 1, best: true },
+    ]);
+    expect(change(0, 1)).toBe('−100%');
+  });
+
   it('names the day short in every language', () => {
     expect(shortDay('2026-11-02', 'en')).toMatch(/Mon/);
     expect(shortDay('2026-11-02', 'pl')).toMatch(/pon/);

@@ -118,6 +118,17 @@ describe('time off for a part of a day (task 338)', () => {
     });
   });
 
+  it.each([
+    ['2026-03-29', '2026-03-30'],
+    ['2026-10-25', '2026-10-26'],
+    ['2026-04-30', '2026-05-01'],
+  ])('uses the next local midnight for the whole day off on %s', (date, next) => {
+    expect(hoursOff(date, '00:00–24:00')).toEqual({
+      start: `${date}T00:00`,
+      end: `${next}T00:00`,
+    });
+  });
+
   it('nothing, two intervals or a wrong time cannot be read', () => {
     expect(hoursOff('2026-12-24', '')).toBeNull();
     expect(hoursOff('2026-12-24', '9-10, 12-13')).toBeNull();

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { ApiError, type BaseIntegration, type BusinessApi } from '../api';
 import { baseCardState, baseErrorText, lastSyncLine, runResultText } from '../baseStatus';
 import { errorText } from '../errors';
@@ -7,12 +7,6 @@ import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task Q4: Base on the phone — a card at the top of "Mój sklep" for owners and managers. Not
- * connected: one quiet line (connecting is done in the cabinet, "Integracje"). Connected: how many
- * products came from Base, when prices and stock were renewed and whether it went well, and
- * "Synchronizuj teraz" with what it did. `onSynced` reloads the products above.
- */
 export function BaseStatusCard(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -22,17 +16,28 @@ export function BaseStatusCard(props: {
   const { api, t, salon, onSynced } = props;
   const s = t.shop.base;
   const [status, setStatus] = useState<BaseIntegration | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
-    setStatus(await api.baseStatus(salon.orgId, salon.locationId));
-  }, [api, salon]);
-
   useEffect(() => {
-    load().catch((e: unknown) => setError(errorText(e, t)));
-  }, [load, t]);
+    let alive = true;
+    setStatus(null);
+    setError('');
+    api.baseStatus(salon.orgId, salon.locationId).then(
+      (next) => {
+        if (alive) setStatus(next);
+      },
+      (e: unknown) => {
+        if (alive) setError(errorText(e, t));
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, t, attempt]);
 
   const sync = async () => {
     setBusy(true);
@@ -41,7 +46,7 @@ export function BaseStatusCard(props: {
     try {
       const run = await api.syncBase(salon.orgId, salon.locationId);
       setResult(runResultText(run, t));
-      await load();
+      setAttempt((n) => n + 1);
       onSynced();
     } catch (e) {
       setError(e instanceof ApiError && e.code ? baseErrorText(e.code, t) : errorText(e, t));
@@ -50,30 +55,86 @@ export function BaseStatusCard(props: {
     }
   };
 
-  if (!status) return error ? <ErrorText>{error}</ErrorText> : null;
+  const title = (
+    <Text style={styles.name} role="heading" aria-level={2}>
+      {s.title}
+    </Text>
+  );
+  if (!status) {
+    return (
+      <Card>
+        {title}
+        {error ? (
+          <>
+            <ErrorText>{error}</ErrorText>
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              a11yLabel={`${t.day.refresh}: ${s.title}`}
+              onPress={() => setAttempt((n) => n + 1)}
+            />
+          </>
+        ) : (
+          <View
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel={`${s.title}: ${t.loading}`}
+            style={styles.skeleton}
+          />
+        )}
+      </Card>
+    );
+  }
   const state = baseCardState(status);
-  if (state.kind === 'off') return <Text style={styles.small}>{s.off}</Text>;
+  if (state.kind === 'off')
+    return (
+      <Card>
+        {title}
+        <Text style={styles.small}>{s.off}</Text>
+      </Card>
+    );
 
+  const connected = fill(s.connected, {
+    hint: status.tokenHint ?? '',
+    n: String(status.importedProducts),
+  });
+  const lastSync = lastSyncLine(status, t);
+  const warning =
+    state.kind === 'fix'
+      ? state.reason === 'reconnect'
+        ? s.reconnect
+        : s.configure
+      : status.lastErrorCode
+        ? lastSync
+        : '';
   return (
     <Card>
-      <Text style={styles.name}>{s.title}</Text>
-      <Text style={styles.text}>
-        {fill(s.connected, {
-          hint: status.tokenHint ?? '',
-          n: String(status.importedProducts),
-        })}
-      </Text>
-      {state.kind === 'fix' ? (
-        <Text style={styles.warn}>{state.reason === 'reconnect' ? s.reconnect : s.configure}</Text>
-      ) : (
+      {title}
+      {warning ? <ErrorText>{warning}</ErrorText> : <Text style={styles.text}>{connected}</Text>}
+      <Button
+        kind="secondary"
+        label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
+        a11yLabel={`${t.navigation.more}: ${s.title}`}
+        expanded={expanded}
+        onPress={() => setExpanded(!expanded)}
+      />
+      {expanded && (
         <>
-          <Text style={status.lastErrorCode ? styles.warn : styles.small}>
-            {lastSyncLine(status, t)}
-          </Text>
-          <Text style={styles.small}>{fill(s.every, { n: String(status.syncEveryMinutes) })}</Text>
-          {result ? <Text style={styles.text}>{result}</Text> : null}
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <Button kind="secondary" label={s.syncNow} busy={busy} onPress={() => void sync()} />
+          <Text style={styles.small}>{warning ? connected : lastSync}</Text>
+          {state.kind === 'on' && (
+            <>
+              <Text style={styles.small}>
+                {fill(s.every, { n: String(status.syncEveryMinutes) })}
+              </Text>
+              {result ? (
+                <Text accessibilityLiveRegion="polite" style={styles.text}>
+                  {result}
+                </Text>
+              ) : null}
+              {error ? <ErrorText>{error}</ErrorText> : null}
+              <Button label={s.syncNow} busy={busy} onPress={() => void sync()} />
+            </>
+          )}
         </>
       )}
     </Card>
@@ -84,5 +145,5 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: '700', color: colors.ink },
   text: { fontSize: 15, color: colors.ink },
   small: { color: colors.muted, fontSize: 14 },
-  warn: { color: colors.danger, fontSize: 14 },
+  skeleton: { height: 16, width: '75%', borderRadius: 4, backgroundColor: colors.soft },
 });

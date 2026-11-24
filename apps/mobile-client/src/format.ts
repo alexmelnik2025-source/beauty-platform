@@ -96,6 +96,25 @@ export function dayChip(date: string, locale: Locale): { weekday: string; day: s
   return { weekday, day: String(d) };
 }
 
+function bookableSlots(slots: Slot[]): Slot[] {
+  if (!Array.isArray(slots)) return [];
+  return slots.filter((slot) => {
+    if (!slot || !/^\d{4}-\d{2}-\d{2}$/.test(slot.date)) return false;
+    const date = new Date(`${slot.date}T00:00:00Z`);
+    return (
+      Number.isFinite(date.getTime()) &&
+      date.toISOString().slice(0, 10) === slot.date &&
+      typeof slot.time === 'string' &&
+      /^([01]\d|2[0-3]):[0-5]\d$/.test(slot.time) &&
+      typeof slot.start === 'string' &&
+      Number.isFinite(Date.parse(slot.start)) &&
+      Array.isArray(slot.staffIds) &&
+      slot.staffIds.length > 0 &&
+      slot.staffIds.every((id) => typeof id === 'string' && id.trim().length > 0)
+    );
+  });
+}
+
 /**
  * Free times grouped by the salon's local day, in order; the visit's own time is left out
  * (moving to the same time changes nothing).
@@ -105,7 +124,7 @@ export function slotsByDay(
   current?: { start: string },
 ): { date: string; slots: Slot[] }[] {
   const days: { date: string; slots: Slot[] }[] = [];
-  for (const slot of slots) {
+  for (const slot of bookableSlots(slots)) {
     if (current && Date.parse(slot.start) === Date.parse(current.start)) continue;
     const last = days.at(-1);
     if (last && last.date === slot.date) last.slots.push(slot);
@@ -123,9 +142,9 @@ export const ANY_STAFF = '';
  */
 export function nearestByStaff(slots: Slot[]): Map<string, Slot> {
   const first = new Map<string, Slot>();
-  const sorted = [...slots].sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const sorted = bookableSlots(slots).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   for (const slot of sorted) {
-    if (slot.staffIds.length > 0 && !first.has(ANY_STAFF)) first.set(ANY_STAFF, slot);
+    if (!first.has(ANY_STAFF)) first.set(ANY_STAFF, slot);
     for (const id of slot.staffIds) if (!first.has(id)) first.set(id, slot);
   }
   return first;

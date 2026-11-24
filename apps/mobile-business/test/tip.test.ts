@@ -19,6 +19,15 @@ describe('tip field (task 229)', () => {
     expect(parseTip('100000')).toBe(10_000_000);
   });
 
+  it('round-trips grosze without losing a cent at either end of the range', () => {
+    for (const amount of [0, 1, 29, 9_999_999, 10_000_000]) {
+      expect(parseTip(tipInput(amount))).toBe(amount);
+    }
+    expect(parseTip('0.29')).toBe(29);
+    expect(parseTip('0,005')).toBeNull();
+    expect(parseTip('100000,01')).toBeNull();
+  });
+
   it('shows the saved tip back in the field', () => {
     expect(tipInput(0)).toBe('');
     expect(tipInput(1500)).toBe('15');

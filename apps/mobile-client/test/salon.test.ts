@@ -260,6 +260,15 @@ describe('"Otwarte teraz" (task 362)', () => {
     expect(openStatusText(s, pl.salon, 'pl')).toBe('Zamknięte');
   });
 
+  it.each([
+    ['2026-03-29T00:59Z', '2026-03-29', 119],
+    ['2026-03-29T01:00Z', '2026-03-29', 180],
+    ['2026-10-25T00:59Z', '2026-10-25', 179],
+    ['2026-10-25T01:00Z', '2026-10-25', 120],
+  ] as const)('uses the salon clock at %s for opening hours', (instant, date, minute) => {
+    expect(salonNow(Date.parse(instant), 'Europe/Warsaw')).toEqual({ date, weekday: 7, minute });
+  });
+
   it('reads the date and time in the salon’s time zone', () => {
     // 23:30 UTC on Tuesday is already Wednesday 00:30 in Warsaw (UTC+1 until 28 March).
     expect(salonNow(Date.UTC(2027, 2, 9, 23, 30), 'Europe/Warsaw')).toEqual({
@@ -271,6 +280,13 @@ describe('"Otwarte teraz" (task 362)', () => {
 });
 
 describe('nearbyOnly (task 401)', () => {
+  it('drops malformed distances but keeps a salon at zero kilometres', () => {
+    const distances = [null, -1, '2', 0, 30, 31].map((distanceKm) => ({ distanceKm })) as {
+      distanceKm: number | null;
+    }[];
+    expect(nearbyOnly(distances)).toEqual([{ distanceKm: 0 }, { distanceKm: 30 }]);
+  });
+
   it('keeps the neighbours with a place on the map within 30 km, in their order', () => {
     const salons = [
       { slug: 'a', distanceKm: 2.3 },

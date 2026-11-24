@@ -18,7 +18,7 @@ import { serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-new-salon-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // An address of its own for sign-up and sign-in (reserved for tests, RFC 2544).
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
@@ -78,6 +78,7 @@ test('business app: a person without a salon sets one up', async ({ browser, req
     await expect(phone.getByText('Masz własny salon?')).toBeVisible();
     await shot(phone, '350-business-app-no-salon');
     await phone.getByRole('button', { name: 'Załóż salon' }).click();
+    await phone.addStyleTag({ content: '* { -webkit-text-size-adjust: 130% !important }' });
     await expect(phone.getByLabel('Kraj i strefa czasowa: Polska (Warsaw)')).toBeVisible();
     await expect(phone.getByLabel(/^Waluta cen: PLN/)).toBeVisible();
 
@@ -91,17 +92,43 @@ test('business app: a person without a salon sets one up', async ({ browser, req
     await phone.getByRole('radio', { name: 'Polska (Warsaw)' }).click();
     await expect(phone.getByLabel(/^Waluta cen: PLN/)).toBeVisible();
 
-    await phone.getByLabel('Nazwa firmy').fill('GESTALT');
-    await phone.getByLabel('Nazwa salonu').fill('Gestalt Barbershop');
-    await phone.getByLabel('Ulica i numer').fill('ul. Józefa Bema 91');
-    await phone.getByLabel('Miasto').fill('Warszawa');
+    const create = phone.getByRole('button', { name: 'Załóż salon' });
+    const fields = [
+      ['Nazwa firmy', 'Wpisz nazwę firmy.', 'G'.repeat(101)],
+      ['Nazwa salonu', 'Nazwa salonu może mieć najwyżej 100 znaków.', 'Gestalt Barbershop'],
+      ['Ulica i numer', 'Wpisz ulicę i numer.', 'ul. Józefa Bema 91'],
+      ['Miasto', 'Wpisz miasto.', 'Warszawa'],
+      ['Kod pocztowy', 'Wpisz kod pocztowy, np. 01-233.', '01233'],
+    ] as const;
     await phone.getByLabel('Kod pocztowy').fill('1233');
-    await phone.getByRole('button', { name: 'Załóż salon' }).click();
-    await expect(phone.getByText('Wpisz kod pocztowy, np. 01-233.')).toBeVisible();
-    await phone.getByLabel('Kod pocztowy').fill('01233');
-    await phone.getByLabel('Nazwa firmy').scrollIntoViewIfNeeded();
+    for (const [label, message, value] of fields) {
+      await create.click();
+      const input = phone.getByRole('textbox', { name: label, exact: true });
+      await expect(input).toBeFocused();
+      await expect(input).toHaveAttribute('aria-invalid', 'true');
+      await expect(input).toHaveCSS('border-top-color', 'rgb(179, 38, 30)');
+      await expect(input).toHaveAccessibleDescription(`! ${message}`);
+      await expect(phone.getByRole('alert')).toHaveText(`! ${message}`);
+      await input.fill(value);
+      await expect(phone.getByRole('alert')).toHaveCount(0);
+    }
+    const company = phone.getByLabel('Nazwa firmy');
+    await company.fill('GESTALT');
     await shot(phone, '350a-business-app-new-salon');
-    await phone.getByRole('button', { name: 'Załóż salon' }).click();
+
+    await phone.route('**/v1/organizations/*/locations', (route) => route.abort(), { times: 1 });
+    await create.click();
+    await expect(phone.getByRole('alert')).toHaveText(
+      'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
+    );
+    await expect(company).toHaveValue('GESTALT');
+    for (const [label, , value] of fields.slice(1)) {
+      await expect(phone.getByLabel(label)).toHaveValue(value);
+    }
+    await expect(phone.getByLabel('Kraj i strefa czasowa: Polska (Warsaw)')).toBeVisible();
+    await expect(phone.getByLabel(/^Waluta cen: PLN/)).toBeVisible();
+    expect(await phone.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+    await create.click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
     await context.close();
   } finally {

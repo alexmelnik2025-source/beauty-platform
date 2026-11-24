@@ -101,6 +101,29 @@ describe('day calendar', () => {
     expect(timeIn('2026-07-01T13:45:00Z', 'Europe/Warsaw')).toBe('15:45');
   });
 
+  it.each([
+    ['2026-03-29T00:59:00Z', '01:59'],
+    ['2026-03-29T01:00:00Z', '03:00'],
+    ['2026-10-25T00:59:00Z', '02:59'],
+    ['2026-10-25T01:00:00Z', '02:00'],
+  ])('shows %s on the Warsaw clock as %s', (instant, expected) => {
+    expect(timeIn(instant, 'Europe/Warsaw')).toBe(expected);
+  });
+
+  it('keeps a New Year visit on its start date with the local end time', () => {
+    const night = {
+      ...calendar.appointments[0]!,
+      date: '2026-12-31',
+      time: '23:45',
+      start: '2026-12-31T22:45:00Z',
+      end: '2026-12-31T23:15:00Z',
+    };
+    const data = { ...calendar, appointments: [night] };
+    expect(todayIn('Europe/Warsaw', new Date('2026-12-31T23:00:00Z'))).toBe('2027-01-01');
+    expect(visitsOfDay(data, '2026-12-31')).toMatchObject([{ start: '23:45', end: '00:15' }]);
+    expect(visitsOfDay(data, '2027-01-01')).toEqual([]);
+  });
+
   it('lists what will happen, in time order, without cancelled visits and held slots', () => {
     expect(visitsOfDay(calendar, '2026-11-03')).toEqual([
       {

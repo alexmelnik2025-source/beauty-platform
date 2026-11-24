@@ -18,7 +18,7 @@ import { serveApp } from './mobile-app';
 const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-first-steps-owner-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // An address of its own for sign-up and sign-in (reserved for tests, RFC 2544).
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
@@ -106,6 +106,15 @@ test('business app: the owner sees what the salon still needs for online booking
       extraHTTPHeaders: ADDRESS,
     });
     const phone = await context.newPage();
+    const loading = phone.getByRole('progressbar', { name: 'Pierwsze kroki: Ładowanie…' });
+    await phone.route(
+      `**${base}/staff/${kasia.id}/working-hours`,
+      async (route) => {
+        await expect(loading).toBeVisible();
+        await route.fulfill({ status: 503, json: {} });
+      },
+      { times: 1 },
+    );
     await phone.goto(businessApp.url);
     await phone.getByLabel('E-mail lub telefon').fill(OWNER);
     await phone.getByRole('button', { name: 'Wyślij kod' }).click();
@@ -114,20 +123,33 @@ test('business app: the owner sees what the salon still needs for online booking
     await phone.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
-    await expect(phone.getByText('Pierwsze kroki')).toBeVisible();
+    await expect(phone.getByRole('alert').filter({ hasText: 'Coś poszło nie tak' })).toBeVisible();
+    await phone.getByRole('button', { name: 'Odśwież: Pierwsze kroki', exact: true }).click();
+    // React Native Web emits fixed pixel sizes. Enlarge the card text to at least 130%.
+    await phone.addStyleTag({ content: '[dir="auto"] { font-size: 22.1px !important }' });
+    const heading = phone.getByRole('heading', { name: 'Pierwsze kroki' });
+    await expect(heading).toBeVisible();
+    const details = phone.getByRole('button', { name: 'Więcej: Pierwsze kroki' });
+    await expect(details).toHaveAttribute('aria-expanded', 'false');
+    await expect(phone.getByRole('button', { name: /^Zrób to:/ })).toHaveCount(0);
+    await details.click();
+    await expect(details).toHaveAttribute('aria-expanded', 'true');
     await expect(phone.getByText('Do rezerwacji online zostało kroków: 2.')).toBeVisible();
     await expect(phone.getByLabel('1. Dodaj usługę z ceną i czasem — zrobione')).toBeVisible();
     await expect(phone.getByLabel('3. Ustaw specjaliście godziny pracy — zrobione')).toBeVisible();
-    await expect(
-      phone.getByLabel('4. Dodaj regulamin i politykę prywatności — do zrobienia'),
-    ).toBeVisible();
+    const legal = phone.getByRole('button', {
+      name: 'Zrób to: Dodaj regulamin i politykę prywatności',
+    });
+    const label = legal.getByText('Dodaj regulamin i politykę prywatności');
+    await expect(label).toHaveCSS('font-size', '22.1px');
+    await legal.scrollIntoViewIfNeeded();
+    await expect(legal).toBeInViewport({ ratio: 1 });
+    expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(phone.getByRole('button', { name: /^Zrób to:/ })).toHaveCount(2);
     await phone.getByText('Pierwsze kroki').scrollIntoViewIfNeeded();
     await shot(phone, '352-business-app-first-steps');
 
-    await phone
-      .getByRole('button', { name: 'Zrób to: Dodaj regulamin i politykę prywatności' })
-      .click();
+    await legal.click();
     await expect(phone.getByRole('heading', { name: 'Ustawienia', exact: true })).toBeVisible();
     await phone.getByRole('button', { name: /^Regulamin i prywatność/ }).click();
     await expect(phone.getByRole('heading', { name: 'Regulamin i prywatność' })).toBeVisible();

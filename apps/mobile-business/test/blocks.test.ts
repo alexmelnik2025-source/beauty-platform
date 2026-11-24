@@ -50,6 +50,28 @@ describe('blocked time', () => {
     expect(localToIso('2026-11-04', '10:00', 'Europe/Istanbul')).toBe('2026-11-04T10:00:00+03:00');
   });
 
+  it.each([
+    ['2026-03-29', '01:59', '2026-03-29T01:59:00+01:00'],
+    ['2026-03-29', '02:30', '2026-03-29T03:30:00+02:00'],
+    ['2026-03-29', '03:00', '2026-03-29T03:00:00+02:00'],
+    ['2026-03-29', '24:00', '2026-03-30T00:00:00+02:00'],
+    ['2026-10-25', '02:30', '2026-10-25T02:30:00+02:00'],
+    ['2026-10-25', '03:00', '2026-10-25T03:00:00+01:00'],
+    ['2026-10-25', '24:00', '2026-10-26T00:00:00+01:00'],
+  ])('resolves Warsaw block time %s %s like the salon schedule', (date, time, iso) => {
+    expect(localToIso(date, time, 'Europe/Warsaw')).toBe(iso);
+  });
+
+  it('starts a new block at 03:00 when Warsaw skips 02:00', () => {
+    expect(nextFullHour('Europe/Warsaw', new Date('2026-03-29T00:45:00Z'))).toBe('03:00');
+  });
+
+  it('offers the next distinct full hour during either occurrence of 02:45', () => {
+    for (const now of ['2026-10-25T00:45:00Z', '2026-10-25T01:45:00Z']) {
+      expect(nextFullHour('Europe/Warsaw', new Date(now))).toBe('03:00');
+    }
+  });
+
   it('steps 15 minutes within the day; a new block starts at the next full hour', () => {
     expect(shiftTime('10:00', 15)).toBe('10:15');
     expect(shiftTime('00:00', -15)).toBe('00:00');
@@ -114,6 +136,20 @@ describe('blocked time', () => {
       ['ends', '24:00'],
       ['night', '24:00'],
     ]);
+  });
+
+  it('clips a block at local New Year midnight, excluding only an exact midnight end', () => {
+    const start = '2026-12-31T22:45:00Z';
+    const list = [
+      block('to-midnight', start, '2026-12-31T23:00:00Z', null, '2026-12-31'),
+      block('past-midnight', start, '2026-12-31T23:00:30Z', null, '2026-12-31'),
+    ];
+    const on = (date: string) => blocksOfDay(list, staff, date, 'Europe/Warsaw');
+    expect(on('2026-12-31').map((b) => [b.start, b.end])).toEqual([
+      ['23:45', '24:00'],
+      ['23:45', '24:00'],
+    ]);
+    expect(on('2027-01-01').map((b) => b.id)).toEqual(['past-midnight']);
   });
 
   it('owners and managers block anyone or the whole salon; a specialist only themselves, with the permission', () => {

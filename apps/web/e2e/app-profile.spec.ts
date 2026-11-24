@@ -18,7 +18,7 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-profile-owner-${run}@example.com`;
 const KASIA = `app-profile-kasia-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // An address of this test only (sign-ups and codes are limited per address).
 const OWNER_IP = { 'x-forwarded-for': '198.51.100.97' };
 
@@ -107,6 +107,7 @@ test('business app: a specialist chooses the languages she speaks with clients',
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     await openBusinessMenu(phone, 'Mój profil');
+    await phone.addStyleTag({ content: '* { -webkit-text-size-adjust: 130% !important }' });
     await expect(phone.getByRole('heading', { name: 'Mój profil' })).toBeVisible();
     await expect(phone.getByText('Kasia Nowak')).toBeVisible();
     const polish = phone.getByRole('checkbox', { name: 'Polski' });
@@ -116,7 +117,24 @@ test('business app: a specialist chooses the languages she speaks with clients',
     await phone.getByRole('checkbox', { name: 'English' }).click();
     await phone.getByRole('checkbox', { name: 'Українська' }).click();
     await shot(phone, '91-business-app-profile-languages');
+    await phone.route(`**${base}/staff/${kasia.id}/languages`, (route) => route.abort(), {
+      times: 1,
+    });
     await save.click();
+    const languages = phone.getByRole('group', {
+      name: 'Języki, w których rozmawiasz z klientami',
+    });
+    const failure = '! Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.';
+    await expect(languages).toHaveAccessibleDescription(failure);
+    await expect(phone.getByRole('alert')).toHaveText(failure);
+    await expect(languages).toHaveCSS('border-top-color', 'rgb(179, 38, 30)');
+    for (const name of ['Polski', 'English', 'Українська']) {
+      await expect(languages.getByRole('checkbox', { name })).toBeChecked();
+    }
+    expect(await languages.evaluate((group) => group.scrollWidth <= group.clientWidth)).toBe(true);
+    expect(await phone.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+    await save.click();
+    await expect(phone.getByRole('alert')).toHaveCount(0);
     await expect(phone.getByText('Języki zapisane.', { exact: false })).toBeVisible();
     await expect(phone.getByText('Gestalt Barbershop · 🇵🇱 🇺🇦 🇬🇧')).toBeVisible();
     await shot(phone, '91a-business-app-profile-saved');
