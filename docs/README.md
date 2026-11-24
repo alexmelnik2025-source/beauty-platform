@@ -745,6 +745,12 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Dostęp i uprawnienia» → человек: отказ внизу окна под кнопками (задача 796, 24.11.2026)
+
+- Отказ сервера при «Zapisz» (права) или «Usuń z zespołu» — внизу окна под кнопками (с «!»), нажатая кнопка им
+  описана. Раньше — рамкой вверху окна над длинным списком прав. e2e `booking`, скриншот
+  `796-member-rights-save-error`.
+
 ## «Program lojalnościowy»: отказ «Zapisz zasady usług» под кнопкой (задача 795, 24.11.2026)
 
 - Отказ сервера при сохранении баллов за услуги — под кнопкой «Zapisz zasady usług» (с «!»), введённое остаётся,
