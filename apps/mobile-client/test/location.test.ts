@@ -1,8 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { formatKm, ratingText } from '../src/format';
 import { locate } from '../src/location';
 
 describe('near me (task 180b)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('allows manual city entry when the browser blocks access to geolocation', async () => {
+    vi.stubGlobal('navigator', {
+      get geolocation() {
+        throw new Error('Access denied');
+      },
+    });
+    await expect(locate()).resolves.toBeNull();
+  });
+
   it('gives the place, or null without geolocation, on refusal or an error', async () => {
     const ok = {
       getCurrentPosition: (

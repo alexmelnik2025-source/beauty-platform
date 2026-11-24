@@ -50,6 +50,12 @@ describe('translations', () => {
     expect(pickLocale(undefined)).toBe('pl');
   });
 
+  it('keeps supported profile languages and falls back to Polish for an unknown or empty code', () => {
+    for (const locale of LOCALES) expect(appLocale(locale)).toBe(locale);
+    expect(appLocale('de')).toBe('pl');
+    expect(appLocale('')).toBe('pl');
+  });
+
   it('Turkish and Albanian are translated, not English copies (L5, part 4)', () => {
     const english = DICTIONARIES.en;
     for (const locale of ['tr', 'sq'] as const) {
@@ -60,7 +66,5 @@ describe('translations', () => {
       expect(t.bonuses.tab).not.toBe(english.bonuses.tab);
       expect(fill(t.visit.moveAsk, { day: 'X', time: '10:00' })).toContain('10:00');
     }
-    expect(appLocale('tr')).toBe('tr');
-    expect(appLocale('de')).toBe('en');
   });
 });
