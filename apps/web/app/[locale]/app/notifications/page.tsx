@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { PushToggle } from '@/components/PushToggle';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay } from '@/lib/time';
@@ -14,6 +14,13 @@ export default function NotificationsPage() {
   const tag = LOCALE_TAGS[locale];
   const [items, setItems] = useState<Notice[] | null>(null);
   const [error, setError] = useState('');
+  /**
+   * Task 797 (owner's rule: errors where the action is): a refused "Oznacz wszystkie jako
+   * przeczytane" is said right under that button. Before, the refusal was not caught at all —
+   * nothing happened on the screen and the button could be pressed again and again.
+   */
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -28,9 +35,18 @@ export default function NotificationsPage() {
   }, [load]);
 
   async function markAll() {
-    await api('/v1/me/notifications/read', { method: 'POST', body: { all: true } });
-    window.dispatchEvent(new Event('notifications-read'));
-    await load();
+    if (marking) return;
+    setMarking(true);
+    setMarkError('');
+    try {
+      await api('/v1/me/notifications/read', { method: 'POST', body: { all: true } });
+      window.dispatchEvent(new Event('notifications-read'));
+      await load();
+    } catch (err) {
+      setMarkError(errorText(t, err));
+    } finally {
+      setMarking(false);
+    }
   }
 
   const types = t.notifications.types as Record<string, string>;
@@ -40,13 +56,22 @@ export default function NotificationsPage() {
       <div className="page-head">
         <h1>{t.notifications.title}</h1>
         {items?.some((n) => !n.read) ? (
-          <button
-            type="button"
-            className="btn btn--quiet btn--small"
-            onClick={() => void markAll()}
-          >
-            {t.notifications.markAll}
-          </button>
+          <div className="page-head__actions">
+            <button
+              type="button"
+              className="btn btn--quiet btn--small"
+              disabled={marking}
+              aria-describedby={markError ? 'notifications-mark-error' : undefined}
+              onClick={() => void markAll()}
+            >
+              {t.notifications.markAll}
+            </button>
+            {markError ? (
+              <span style={{ flexBasis: '100%' }}>
+                <FieldError id="notifications-mark-error" text={markError} />
+              </span>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <div className="page">

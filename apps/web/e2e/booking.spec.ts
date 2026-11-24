@@ -1117,6 +1117,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.goto('/pl/app/notifications');
   await expect(ownerPage.getByText('Nowa rezerwacja online').first()).toBeVisible();
   await shot(ownerPage, '20-owner-notifications');
+  // Task 797 (owner's rule: errors where the action is): a refused "Oznacz wszystkie jako
+  // przeczytane" is said under that button (before, nothing was shown at all).
+  const readAllUrl = '**/v1/me/notifications/read';
+  await ownerPage.route(readAllUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const markAll = ownerPage.getByRole('button', { name: 'Oznacz wszystkie jako przeczytane' });
+  await markAll.click();
+  await expect(ownerPage.locator('#notifications-mark-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(markAll).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(markAll).toBeEnabled();
+  await expect(ownerPage.locator('.alert')).toHaveCount(0);
+  await shot(ownerPage, '797-notifications-mark-all-error');
+  await ownerPage.unroute(readAllUrl);
   // "Dziennik zmian" (task 23): who changed what, newest first — owner only.
   await ownerPage.goto('/pl/app/history');
   await expect(ownerPage.getByRole('heading', { name: 'Dziennik zmian' })).toBeVisible();
