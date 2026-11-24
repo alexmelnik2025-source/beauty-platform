@@ -1,12 +1,141 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, VisitProducts } from '../api';
 import { API_URL } from '../config';
 import { errorText } from '../errors';
 import { formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
-import { visitProductLists, invalidateProductLists } from '../shop';
+import { visitProductLists, invalidateProductLists, type recentReads } from '../shop';
 import { Button, colors, ErrorText } from '../ui';
+
+// Keep the last successful list on screen if a refresh fails.
+export function useVisitProductList<T>(
+  api: ClientApi,
+  visitId: string,
+  t: Dictionary,
+  cache: ReturnType<typeof recentReads<T>>,
+  read: (this: ClientApi, id: string) => Promise<T>,
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let live = true;
+    setError('');
+    cache
+      .read(api, visitId, () => read.call(api, visitId))
+      .then(
+        (items) => {
+          if (live) setData(items);
+        },
+        (e) => {
+          if (live) setError(errorText(e, t));
+        },
+      );
+    return () => {
+      live = false;
+    };
+  }, [api, visitId, cache, read, t, attempt]);
+  const feedback = error ? (
+    <View>
+      <ErrorText>{error}</ErrorText>
+      <Button kind="secondary" label={t.retry} onPress={() => setAttempt((n) => n + 1)} />
+    </View>
+  ) : null;
+  const refresh = async () => setData(await read.call(api, visitId));
+  return { data, setData, feedback, refresh };
+}
+
+// Visit mutations return the whole list. Serialize them so an older response cannot undo
+// another row's update, including taps delivered before React renders the disabled state.
+export function useProductLock() {
+  const active = useRef(false);
+  const [busy, setBusy] = useState(false);
+  return {
+    busy,
+    acquire() {
+      if (active.current) return false;
+      active.current = true;
+      setBusy(true);
+      return true;
+    },
+    release() {
+      active.current = false;
+      setBusy(false);
+    },
+  };
+}
+
+type ProductAction = (retry: boolean) => Promise<void>;
+
+export function ProductActionButton(props: {
+  lock: ReturnType<typeof useProductLock>;
+  api: ClientApi;
+  t: Dictionary;
+  label: string;
+  a11yLabel: string;
+  kind?: 'link' | 'secondary';
+  disabled?: boolean;
+  action: ProductAction;
+  refresh?: () => Promise<void>;
+}) {
+  const { lock, t } = props;
+  const [failure, setFailure] = useState<{ message: string; action: ProductAction } | null>(null);
+  async function press() {
+    if (!lock.acquire()) return;
+    // Keep the original reservation snapshot even if a different row has since changed.
+    const action = failure?.action ?? props.action;
+    try {
+      await action(Boolean(failure));
+      setFailure(null);
+    } catch (e) {
+      setFailure({ message: errorText(e, t), action });
+      await props.refresh?.().catch(() => undefined);
+    } finally {
+      invalidateProductLists(props.api);
+      lock.release();
+    }
+  }
+  return (
+    <>
+      {failure ? <ErrorText>{failure.message}</ErrorText> : null}
+      <Button
+        kind={props.kind}
+        label={failure ? t.retry : props.label}
+        a11yLabel={failure ? `${t.retry}: ${props.a11yLabel}` : props.a11yLabel}
+        disabled={lock.busy || props.disabled}
+        onPress={() => void press()}
+      />
+    </>
+  );
+}
+
+// A POST creates a new reservation even when a previous response was lost. Compare IDs
+// before replaying it, since the client may already have reserved this product earlier.
+export function reserveOne(
+  api: ClientApi,
+  visitId: string,
+  productId: string,
+  before?: VisitProducts,
+) {
+  return async (retry: boolean) => {
+    if (!before) before = await api.visitProducts(visitId);
+    else if (retry) {
+      const previous = before.reservations;
+      const current = await api.visitProducts(visitId);
+      if (
+        current.reservations.some(
+          (r) =>
+            r.productId === productId &&
+            r.status === 'reserved' &&
+            !previous.some((old) => old.id === r.id),
+        )
+      )
+        return current;
+    }
+    return api.reserveProduct(visitId, productId);
+  };
+}
 
 /**
  * Task Q3 (screen B in the app): "Produkty do odbioru" in the visit card of "Moje wizyty" — what
@@ -27,44 +156,26 @@ export function VisitProductsCard(props: Props) {
 function VisitProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;
   const s = t.visitProducts;
-  const [data, setData] = useState<VisitProducts | null>(null);
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let live = true;
-    visitProductLists
-      .read(api, visitId, () => api.visitProducts(visitId))
-      .then(
-        (items) => {
-          if (live) setData(items);
-        },
-        () => {
-          if (live) setData(null);
-        },
-      );
-    return () => {
-      live = false;
-    };
-  }, [api, visitId]);
-
-  const run = async (action: () => Promise<VisitProducts>) => {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      setData(await action());
-    } catch (e) {
-      setError(errorText(e, t));
-      await api.visitProducts(visitId).then(setData, () => setData(null));
-    } finally {
-      invalidateProductLists(api);
-      setBusy(false);
-    }
-  };
-
-  if (!data) return null;
+  const lock = useProductLock();
+  const { data, setData, feedback, refresh } = useVisitProductList(
+    api,
+    visitId,
+    t,
+    visitProductLists,
+    api.visitProducts,
+  );
+  if (!data)
+    return (
+      feedback && (
+        <View role="region" aria-label={s.title} style={styles.card}>
+          <Text role="heading" aria-level={2} style={styles.title}>
+            {s.title}
+          </Text>
+          {feedback}
+        </View>
+      )
+    );
   const reserved = data.reservations.filter((r) => r.status !== 'cancelled');
   if (reserved.length === 0 && (!data.canChange || data.available.length === 0)) return null;
   const money = (n: number) => formatPrice(n, data.currency, locale);
@@ -74,6 +185,7 @@ function VisitProductsContent(props: Props) {
       <Text role="heading" aria-level={2} style={styles.title}>
         {s.title}
       </Text>
+      {feedback}
       {reserved.map((r) => (
         <View key={r.id} style={styles.row}>
           <ProductDetails
@@ -92,12 +204,28 @@ function VisitProductsContent(props: Props) {
             }
           />
           {data.canChange && r.status === 'reserved' ? (
-            <Button
+            <ProductActionButton
+              api={api}
+              t={t}
+              lock={lock}
+              refresh={refresh}
               kind="link"
               label={s.giveBack}
               a11yLabel={`${s.giveBack}: ${r.name}`}
-              disabled={busy}
-              onPress={() => void run(() => api.unreserveProduct(visitId, r.id))}
+              action={async (retry) => {
+                if (retry) {
+                  const current = await api.visitProducts(visitId);
+                  if (
+                    !current.reservations.some(
+                      (item) => item.id === r.id && item.status === 'reserved',
+                    )
+                  ) {
+                    setData(current);
+                    return;
+                  }
+                }
+                setData(await api.unreserveProduct(visitId, r.id));
+              }}
             />
           ) : null}
         </View>
@@ -121,12 +249,18 @@ function VisitProductsContent(props: Props) {
                     available={p.available}
                     status={s.unavailable}
                   />
-                  <Button
+                  <ProductActionButton
+                    api={api}
+                    t={t}
+                    lock={lock}
+                    refresh={refresh}
                     kind="secondary"
                     label={s.reserve}
                     a11yLabel={`${s.reserve}: ${p.name}`}
-                    disabled={busy || !p.available}
-                    onPress={() => void run(() => api.reserveProduct(visitId, p.id))}
+                    disabled={!p.available}
+                    action={async (retry) =>
+                      setData(await reserveOne(api, visitId, p.id, data)(retry))
+                    }
                   />
                 </View>
               ))
@@ -134,7 +268,6 @@ function VisitProductsContent(props: Props) {
           <Text style={styles.muted}>{s.pickup}</Text>
         </>
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 }
