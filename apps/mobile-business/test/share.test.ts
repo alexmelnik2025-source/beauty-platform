@@ -32,6 +32,29 @@ describe('booking link (task 152)', () => {
     for (const d of Object.values(DICTIONARIES)) expect(d.bookingLink.message).toContain('{url}');
   });
 
+  it('encodes the salon path and the specialist query value in Polish links', () => {
+    const base = 'https://app.example.com/';
+    const salon = { slug: 'łódź-śródmieście', defaultLocale: 'pl' as const };
+    const encoded = '%C5%82%C3%B3d%C5%BA-%C5%9Br%C3%B3dmie%C5%9Bcie';
+    expect(bookingLink(base, salon)).toBe(`${base}pl/b/${encoded}`);
+    expect(shortLink(base, salon)).toBe(`${base}s/${encoded}`);
+    expect(staffQrLink(base, salon, 'Jaś & Łukasz')).toBe(
+      `${base}s/${encoded}?utm_source=qr&staff=Ja%C5%9B%20%26%20%C5%81ukasz`,
+    );
+  });
+
+  it('keeps the URL available when the share template is empty or lacks a value', async () => {
+    const webShare = vi.fn().mockResolvedValue(undefined);
+    for (const [template, expected] of [
+      ['', ''],
+      [DICTIONARIES.pl.bookingLink.message, `{name} — umów się online: ${url}`],
+    ] as const) {
+      const message = fill(template, { url });
+      expect(await shareLink({ ...content, message }, { webShare })).toBe('shared');
+      expect(webShare).toHaveBeenLastCalledWith({ title: content.title, text: expected, url });
+    }
+  });
+
   it('uses the phone’s share sheet when there is one', async () => {
     const native = vi.fn().mockResolvedValue({ action: 'sharedAction' });
     expect(await shareLink(content, { native, copy: vi.fn() })).toBe('shared');

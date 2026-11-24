@@ -42,6 +42,12 @@ describe('reviews in the business app (task 201)', () => {
     expect(stars(9)).toBe('★★★★★');
   });
 
+  it('keeps five star positions for negative, excessive and missing numeric ratings', () => {
+    expect(stars(-3)).toBe('☆☆☆☆☆');
+    expect(stars(5.8)).toBe('★★★★★');
+    expect(stars(NaN)).toBe('☆☆☆☆☆');
+  });
+
   it('sums up the average with one decimal, or says there are none', () => {
     expect(reviewSummary({ count: 3, average: 4.666 }, pl, 'pl')).toBe('★ 4,7 · opinie: 3');
     expect(reviewSummary({ count: 2, average: 5 }, DICTIONARIES.en, 'en')).toBe(

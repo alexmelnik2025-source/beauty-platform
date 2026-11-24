@@ -22,6 +22,9 @@ export type TiersProblem = 'period' | 'name' | 'threshold' | 'discount' | 'same'
 /** At most 8 tiers (the server's limit). */
 export const MAX_TIERS = 8;
 
+/** Server limit in visits or hundredths of the currency. */
+const MAX_THRESHOLD = 100_000_000;
+
 const amount = (grosze: number) =>
   grosze % 100 === 0 ? String(grosze / 100) : (grosze / 100).toFixed(2).replace('.', ',');
 
@@ -49,12 +52,13 @@ export function tiersToSave(
     const raw = r.threshold.replace(/\s/g, '').replace(',', '.');
     let threshold: number;
     if (basis === 'spend') {
-      if (!/^\d{1,6}(\.\d{1,2})?$/.test(raw)) return { ok: false, problem: 'threshold', row };
+      if (!/^\d+(\.\d{1,2})?$/.test(raw)) return { ok: false, problem: 'threshold', row };
       threshold = Math.round(Number(raw) * 100);
     } else {
-      if (!/^\d{1,6}$/.test(raw)) return { ok: false, problem: 'threshold', row };
+      if (!/^\d+$/.test(raw)) return { ok: false, problem: 'threshold', row };
       threshold = Number(raw);
     }
+    if (threshold > MAX_THRESHOLD) return { ok: false, problem: 'threshold', row };
     const d = r.discountPercent.trim() === '' ? '0' : r.discountPercent.trim();
     if (!/^\d{1,3}$/.test(d) || Number(d) > 100) return { ok: false, problem: 'discount', row };
     if (tiers.some((t) => t.threshold === threshold)) return { ok: false, problem: 'same', row };

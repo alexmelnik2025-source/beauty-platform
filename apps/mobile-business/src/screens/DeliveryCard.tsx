@@ -4,7 +4,7 @@ import type { BusinessApi, Product, StockDelivery } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { orderQuantity, parseDelivery } from '../stock';
-import { Button, Card, colors, ErrorText } from '../ui';
+import { Button, Card, colors, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -77,21 +77,32 @@ export function DeliveryCard(props: {
         </Text>
         <Text style={styles.muted}>{p.deliveryHint}</Text>
         {suppliers.length > 0 ? (
-          <View style={styles.choices} testID="delivery-suppliers">
+          <View
+            role="group"
+            accessibilityLabel={p.supplier}
+            style={styles.choices}
+            testID="delivery-suppliers"
+          >
             {['', ...suppliers].map((name) => (
-              <Button
-                key={name || '-'}
-                kind={supplier === name ? 'primary' : 'secondary'}
-                label={name || p.supplierAll}
+              <Pressable
+                key={name}
+                accessibilityRole="button"
+                accessibilityState={{ selected: supplier === name }}
+                aria-pressed={supplier === name}
+                style={[styles.filter, supplier === name && styles.activeFilter]}
                 onPress={() => setSupplier(name)}
-              />
+              >
+                <Text style={[styles.filterText, supplier === name && styles.activeText]}>
+                  {name || p.supplierAll}
+                </Text>
+              </Pressable>
             ))}
           </View>
         ) : null}
         {parsed.map(({ product: x, n }) => (
           <View key={x.id}>
             <View style={styles.row}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.details}>
                 <Text style={styles.name}>{x.name}</Text>
                 <Text style={styles.muted}>
                   {x.stockQuantity === null
@@ -102,6 +113,7 @@ export function DeliveryCard(props: {
               <TextInput
                 accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
                 aria-invalid={n === undefined}
+                aria-describedby={n === undefined ? `delivery-error-${x.id}` : undefined}
                 placeholder="—"
                 placeholderTextColor={colors.placeholder}
                 keyboardType="number-pad"
@@ -110,7 +122,11 @@ export function DeliveryCard(props: {
                 style={[styles.input, n === undefined && { borderColor: colors.danger }]}
               />
             </View>
-            {n === undefined ? <ErrorText>! {p.deliveryInvalid}</ErrorText> : null}
+            {n === undefined ? (
+              <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
+                ! {p.deliveryInvalid}
+              </Text>
+            ) : null}
           </View>
         ))}
         {error ? <ErrorText>{error}</ErrorText> : null}
@@ -129,12 +145,27 @@ export function DeliveryCard(props: {
 
 const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  filter: {
+    maxWidth: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderColor: colors.line,
+  },
+  activeFilter: { backgroundColor: colors.ink, borderColor: colors.ink },
+  filterText: { color: colors.ink, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  activeText: { color: colors.card },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  row: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 },
+  details: { flexGrow: 1, flexShrink: 1, flexBasis: 160, minWidth: 0 },
+  fieldError: { color: colors.danger, fontSize: 15 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   muted: { color: colors.muted, fontSize: 14 },
   input: {
-    width: 80,
+    minHeight: 44,
+    width: 100,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
