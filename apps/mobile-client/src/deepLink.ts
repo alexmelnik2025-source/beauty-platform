@@ -1,5 +1,6 @@
 import type { BookingPreset } from './booking';
 import { WEB_URL } from './config';
+import { LOCALES } from './i18n';
 
 /**
  * Task Q2 (part 5): a link that opens the app at a salon — from the "Install the app" row on the
@@ -24,7 +25,6 @@ export interface DeepLink {
 
 const SLUG = /^[a-z0-9-]{1,80}$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LANGUAGE = /^[a-z]{2}$/;
 
 function split(url: string): { path: string[]; query: URLSearchParams } | null {
   const match = /^([a-z][a-z0-9+.-]*):\/\/([^?#]*)(\?[^#]*)?/i.exec(url.trim());
@@ -66,7 +66,8 @@ export function parseDeepLink(url: string | null | undefined): DeepLink | null {
   const { path, query } = parts;
   let slug: string | undefined;
   if ((path[0] === 'b' || path[0] === 's') && path.length === 2) slug = path[1];
-  else if (path.length === 3 && LANGUAGE.test(path[0] ?? '') && path[1] === 'b') slug = path[2];
+  else if (path.length === 3 && path[1] === 'b' && LOCALES.some((locale) => locale === path[0]))
+    slug = path[2];
   if (!slug) return null;
   slug = slug.toLowerCase();
   if (!SLUG.test(slug)) return null;

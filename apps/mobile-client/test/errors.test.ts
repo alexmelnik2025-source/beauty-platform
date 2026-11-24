@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../src/api';
+import { ApiError, ClientApi } from '../src/api';
 import { errorText, formFailure, isCodeError, validationField } from '../src/errors';
 import { DICTIONARIES } from '../src/i18n';
 
@@ -28,6 +28,35 @@ describe('client form errors', () => {
     const error = new ApiError(status, 'Internal server detail', 'UNRECOGNIZED_CODE');
     expect(isCodeError(error)).toBe(false);
     expect(formFailure(error, t, vi.fn())).toEqual({ message });
+  });
+
+  it.each([
+    [404, t.error.notFound, false],
+    [503, t.error.network, true],
+  ] as const)('handles HTTP %i with an empty response body', async (status, message, retryable) => {
+    const api = new ClientApi(
+      'https://app.example.com',
+      { get: vi.fn(), set: vi.fn() },
+      async () => new Response(null, { status }),
+    );
+    const retry = vi.fn();
+    const feedback = api
+      .requestCode('anna@example.com', 'pl')
+      .catch((error: unknown) => formFailure(error, t, retry));
+    await expect(feedback).resolves.toEqual(retryable ? { message, retry } : { message });
+  });
+
+  it.each([
+    { details: undefined },
+    {
+      details: [
+        { path: 'amountGrosze', message: '5500' },
+        { path: 'currency', message: 'PLN' },
+      ],
+    },
+  ])('shows payment instructions with or without disclosed amount details', ({ details }) => {
+    const error = new ApiError(403, 'Payment required', 'BOOKING_PAY_FIRST', details);
+    expect(formFailure(error, t, vi.fn())).toEqual({ message: t.error.payFirst });
   });
 
   it('matches supported field paths and ignores malformed details', () => {

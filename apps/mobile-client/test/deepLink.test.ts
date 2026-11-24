@@ -44,6 +44,27 @@ describe('links that open the app at a salon (task Q2)', () => {
     });
   });
 
+  it('decodes the slug and preset once and ignores unrelated query parameters and the fragment', () => {
+    expect(
+      parseDeepLink(
+        `https://app.example.com/pl/b/%4C%6Fdz%2Dbarber?from=qr&service=${SERVICE.replaceAll('-', '%2D')}&campaign=salon#visits`,
+      ),
+    ).toEqual({
+      slug: 'lodz-barber',
+      preset: { serviceId: SERVICE },
+    });
+  });
+
+  it.each([
+    'https://app.example.com/pl/b/Łódź',
+    'https://app.example.com/pl/b/%C5%81%C3%B3d%C5%BA',
+    'https://app.example.com/pl/b/lodz%2Fbarber',
+    'https://app.example.com/pl/b/lodz%252Dbarber',
+    'https://app.example.com/zz/b/lodz',
+  ])('ignores a link outside the supported booking routes: %s', (url) => {
+    expect(parseDeepLink(url)).toBeNull();
+  });
+
   it('reads Expo Go links while developing', () => {
     expect(
       parseDeepLink(`exp://192.168.0.5:8081/--/b/gestalt-barbershop?service=${SERVICE}`),
