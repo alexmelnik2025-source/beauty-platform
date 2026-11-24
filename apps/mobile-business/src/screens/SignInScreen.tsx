@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -40,12 +40,14 @@ export function SignInScreen(props: {
   const [code, setCode] = useState('');
   const [error, setError] = useState<SignInError | null>(null);
   const [pending, setPending] = useState<'send' | 'confirm' | null>(null);
+  const inFlight = useRef(false);
   const busy = pending !== null;
 
   async function send() {
-    if (busy) return;
+    if (inFlight.current) return;
     const parsed = challenge?.contact ?? parseContact(input);
     if (!parsed) return setError({ field: 'badContact' });
+    inFlight.current = true;
     setPending('send');
     setError(null);
     try {
@@ -55,12 +57,14 @@ export function SignInScreen(props: {
     } catch (e) {
       setError({ request: e });
     } finally {
+      inFlight.current = false;
       setPending(null);
     }
   }
 
   async function confirm() {
-    if (busy || !challenge || code.length !== 6) return;
+    if (inFlight.current || !challenge || code.length !== 6) return;
+    inFlight.current = true;
     setPending('confirm');
     setError(null);
     try {
@@ -73,6 +77,7 @@ export function SignInScreen(props: {
           : { request: e },
       );
     } finally {
+      inFlight.current = false;
       setPending(null);
     }
   }
@@ -94,6 +99,7 @@ export function SignInScreen(props: {
           <View style={styles.field}>
             <TextInput
               accessibilityLabel={t.signIn.contact}
+              editable={!busy}
               aria-invalid={invalid}
               aria-describedby={error ? 'signin-error' : undefined}
               placeholder={t.signIn.contact}
@@ -122,6 +128,7 @@ export function SignInScreen(props: {
           <View style={styles.field}>
             <TextInput
               accessibilityLabel={t.signIn.code}
+              editable={!busy}
               aria-invalid={invalid}
               aria-describedby={error ? 'signin-error' : 'signin-delivery'}
               placeholder="000000"
@@ -164,7 +171,7 @@ export function SignInScreen(props: {
           />
         </>
       )}
-      <LanguagePicker t={t} locale={locale} onLocale={props.onLocale} />
+      <LanguagePicker t={t} locale={locale} onLocale={props.onLocale} disabled={busy} />
     </ScrollView>
   );
 }

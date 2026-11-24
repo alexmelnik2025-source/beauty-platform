@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useId, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { BackHandler, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -18,12 +18,19 @@ import {
   hasRule,
   ruleLines,
   type GuardForm,
+  type GuardProblem,
   type MarkedClient,
 } from '../guard';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+const ruleFields = new Map<string, GuardProblem>([
+  ['maxChanges', 'changes'],
+  ['windowHours', 'windowDays'],
+  ['lateCancelMinutes', 'lateMinutes'],
+  ['maxNoShows', 'noShows'],
+]);
 const settingsCache = new SalonReadCache<CancellationGuard>();
 const clientsCache = new SalonReadCache<GuardedClients>();
 
@@ -49,12 +56,15 @@ export function GuardScreen(props: {
   const [askOff, setAskOff] = useState(false);
   const [releaseId, setReleaseId] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<GuardForm | null>(null);
 
   const [attemptedSave, setAttemptedSave] = useState(false);
   const checked = settings && form ? guardRulesToSave(settings, form) : null;
-  const problem = attemptedSave && checked && !checked.ok ? checked.problem : null;
+  const [serverProblem, setServerProblem] = useState<GuardProblem | null>(null);
+  const dirty = settings && form && JSON.stringify(guardForm(settings)) !== JSON.stringify(form);
+  const problem = attemptedSave && checked && !checked.ok ? checked.problem : serverProblem;
 
   const lifetime = useScreenLifetime(salon);
   const load = useCallback(async () => {
@@ -68,7 +78,6 @@ export function GuardScreen(props: {
       if (signal.aborted) return;
       setSettings(s);
       setMarked(list);
-      setError('');
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, t));
     }
@@ -86,12 +95,16 @@ export function GuardScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  async function run(action: () => Promise<void>, done: string) {
-    if (busy) return;
+  async function run(action: (signal: AbortSignal) => Promise<void>, done: string, rules = false) {
+    if (pending.current) return;
+    pending.current = true;
+    setError('');
+    setInfo('');
+    setServerProblem(null);
     const signal = lifetime.current!.signal;
     setBusy(true);
     try {
-      await action();
+      await action(signal);
       clientsCache.clear(salon);
       if (signal.aborted) return;
       await load();
@@ -105,51 +118,63 @@ export function GuardScreen(props: {
         setError(g.conflict);
         await load();
       } else {
-        setError(errorText(e, t));
+        const field =
+          rules &&
+          e instanceof ApiError &&
+          e.details.map(({ path }) => ruleFields.get(path)).find(Boolean);
+        if (field) setServerProblem(field);
+        else setError(errorText(e, t));
       }
     } finally {
+      pending.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }
 
+  async function saveSettings(next: CancellationGuard, signal: AbortSignal) {
+    const saved = await api.saveGuardSettings(salon.orgId, salon.locationId, next);
+    settingsCache.set(salon, saved);
+    if (!signal.aborted) setSettings(saved);
+  }
+
   function switchTo(enabled: boolean) {
     if (!settings) return;
-    setAskOff(false);
     if (enabled && !hasRule(settings)) return setError(g.needRule);
     void run(
-      async () => {
-        settingsCache.set(
-          salon,
-          await api.saveGuardSettings(
-            salon.orgId,
-            salon.locationId,
-            guardToSave(settings, enabled),
-          ),
-        );
+      async (signal) => {
+        await saveSettings(guardToSave(settings, enabled), signal);
+        if (!signal.aborted) setAskOff(false);
       },
       enabled ? g.turnedOn : g.turnedOff,
     );
+  }
+
+  function changeRule(key: 'changes' | 'windowDays' | 'lateMinutes' | 'noShows', value: string) {
+    if (serverProblem === key) setServerProblem(null);
+    setForm((current) => current && { ...current, [key]: value });
   }
 
   function saveRules() {
     if (!checked) return;
     setAttemptedSave(true);
     if (!checked.ok) return;
-    void run(async () => {
-      settingsCache.set(
-        salon,
-        await api.saveGuardSettings(salon.orgId, salon.locationId, checked.save),
-      );
-      if (!lifetime.current!.signal.aborted) setForm(null);
-    }, g.rulesSaved);
+    void run(
+      async (signal) => {
+        await saveSettings(checked.save, signal);
+        if (!signal.aborted) setForm(null);
+      },
+      g.rulesSaved,
+      true,
+    );
   }
 
   function release(customerId: string) {
     const text = note;
-    setReleaseId(null);
-    setNote('');
-    void run(async () => {
+    void run(async (signal) => {
       await api.releaseGuard(salon.orgId, salon.locationId, customerId, text);
+      if (signal.aborted) return;
+      setReleaseId(null);
+      setNote('');
     }, g.released);
   }
 
@@ -180,7 +205,15 @@ export function GuardScreen(props: {
               <Text role="status" style={styles.muted}>
                 {t.loading}
               </Text>
-            ) : null
+            ) : (
+              <Button
+                label={t.day.refresh}
+                onPress={() => {
+                  setError('');
+                  void load();
+                }}
+              />
+            )
           ) : (
             <>
               <Card>
@@ -203,19 +236,31 @@ export function GuardScreen(props: {
                     <Text style={styles.text}>{g.offAsk}</Text>
                     <View style={styles.row}>
                       <Button label={g.offYes} busy={busy} onPress={() => switchTo(false)} />
-                      <Button kind="secondary" label={g.no} onPress={() => setAskOff(false)} />
+                      <Button
+                        kind="secondary"
+                        disabled={busy}
+                        label={g.no}
+                        onPress={() => setAskOff(false)}
+                      />
                     </View>
                   </View>
                 ) : settings.enabled ? (
-                  <Button kind="secondary" label={g.turnOff} onPress={() => setAskOff(true)} />
+                  <Button
+                    kind="secondary"
+                    disabled={busy}
+                    label={g.turnOff}
+                    onPress={() => setAskOff(true)}
+                  />
                 ) : (
                   <Button label={g.turnOn} busy={busy} onPress={() => switchTo(true)} />
                 )}
                 {!form ? (
                   <Button
                     kind="secondary"
+                    disabled={busy}
                     label={g.rulesChange}
                     onPress={() => {
+                      setServerProblem(null);
                       setAttemptedSave(false);
                       setForm(guardForm(settings));
                       setInfo('');
@@ -229,6 +274,7 @@ export function GuardScreen(props: {
                 <Card>
                   <Text style={styles.label}>{g.rules}</Text>
                   <Toggle
+                    disabled={busy}
                     label={g.changesOn}
                     on={form.changesOn}
                     onPress={() => setForm({ ...form, changesOn: !form.changesOn })}
@@ -236,45 +282,51 @@ export function GuardScreen(props: {
                   {form.changesOn ? (
                     <View style={styles.pair}>
                       <Field
+                        disabled={busy}
                         paired
                         label={g.changes}
                         value={form.changes}
                         error={problem === 'changes' ? g.problem.changes : undefined}
-                        onChange={(changes) => setForm({ ...form, changes })}
+                        onChange={(value) => changeRule('changes', value)}
                       />
                       <Field
+                        disabled={busy}
                         paired
                         label={g.windowDays}
                         value={form.windowDays}
                         error={problem === 'windowDays' ? g.problem.windowDays : undefined}
-                        onChange={(windowDays) => setForm({ ...form, windowDays })}
+                        onChange={(value) => changeRule('windowDays', value)}
                       />
                     </View>
                   ) : null}
                   <Toggle
+                    disabled={busy}
                     label={g.lateOn}
                     on={form.lateOn}
                     onPress={() => setForm({ ...form, lateOn: !form.lateOn })}
                   />
                   {form.lateOn ? (
                     <Field
+                      disabled={busy}
                       label={g.lateMinutes}
                       value={form.lateMinutes}
                       error={problem === 'lateMinutes' ? g.problem.lateMinutes : undefined}
-                      onChange={(lateMinutes) => setForm({ ...form, lateMinutes })}
+                      onChange={(value) => changeRule('lateMinutes', value)}
                     />
                   ) : null}
                   <Toggle
+                    disabled={busy}
                     label={g.noShowsOn}
                     on={form.noShowsOn}
                     onPress={() => setForm({ ...form, noShowsOn: !form.noShowsOn })}
                   />
                   {form.noShowsOn ? (
                     <Field
+                      disabled={busy}
                       label={g.noShows}
                       value={form.noShows}
                       error={problem === 'noShows' ? g.problem.noShows : undefined}
-                      onChange={(noShows) => setForm({ ...form, noShows })}
+                      onChange={(value) => changeRule('noShows', value)}
                     />
                   ) : null}
                   {problem === 'needRule' ? <ErrorText>! {g.problem.needRule}</ErrorText> : null}
@@ -283,10 +335,11 @@ export function GuardScreen(props: {
                     {GUARD_ACTIONS.map((action) => (
                       <Pressable
                         accessibilityLabel={g.actions[action]}
+                        disabled={busy}
                         key={action}
                         role="radio"
                         aria-checked={form.action === action}
-                        accessibilityState={{ checked: form.action === action }}
+                        accessibilityState={{ checked: form.action === action, disabled: busy }}
                         onPress={() => setForm({ ...form, action })}
                         style={[styles.choice, form.action === action && styles.choiceOn]}
                       >
@@ -296,9 +349,19 @@ export function GuardScreen(props: {
                       </Pressable>
                     ))}
                   </View>
+                  {dirty ? (
+                    <Text role="status" style={styles.label}>
+                      {t.navigation.unsaved}
+                    </Text>
+                  ) : null}
                   <View style={styles.row}>
                     <Button label={g.rulesSave} busy={busy} onPress={saveRules} />
-                    <Button kind="secondary" label={g.cancel} onPress={() => setForm(null)} />
+                    <Button
+                      kind="secondary"
+                      disabled={busy}
+                      label={g.cancel}
+                      onPress={() => setForm(null)}
+                    />
                   </View>
                 </Card>
               ) : null}
@@ -327,6 +390,7 @@ export function GuardScreen(props: {
               <Text style={styles.text}>{g.releaseAsk}</Text>
               <TextInput
                 accessibilityLabel={g.note}
+                editable={!busy}
                 placeholder={g.note}
                 placeholderTextColor={colors.placeholder}
                 value={note}
@@ -339,12 +403,18 @@ export function GuardScreen(props: {
                   busy={busy}
                   onPress={() => release(client.customerId)}
                 />
-                <Button kind="secondary" label={g.no} onPress={() => setReleaseId(null)} />
+                <Button
+                  kind="secondary"
+                  disabled={busy}
+                  label={g.no}
+                  onPress={() => setReleaseId(null)}
+                />
               </View>
             </View>
           ) : (
             <Button
               kind="link"
+              disabled={busy}
               label={g.release}
               a11yLabel={fill(g.releaseOne, { name: client.name })}
               onPress={() => {
@@ -378,13 +448,14 @@ const ClientDetails = memo(function ClientDetails({
   );
 });
 
-function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
+function Toggle(props: { disabled: boolean; label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityLabel={props.label}
+      disabled={props.disabled}
       role="checkbox"
       aria-checked={props.on}
-      accessibilityState={{ checked: props.on }}
+      accessibilityState={{ checked: props.on, disabled: props.disabled }}
       onPress={props.onPress}
       style={styles.toggle}
     >
@@ -397,6 +468,7 @@ function Toggle(props: { label: string; on: boolean; onPress: () => void }) {
 }
 
 function Field(props: {
+  disabled: boolean;
   label: string;
   value: string;
   paired?: boolean;
@@ -409,6 +481,7 @@ function Field(props: {
       <Text style={styles.label}>{props.label}</Text>
       <TextInput
         accessibilityLabel={props.label}
+        editable={!props.disabled}
         accessibilityHint={props.error}
         aria-invalid={Boolean(props.error)}
         aria-describedby={props.error ? errorId : undefined}

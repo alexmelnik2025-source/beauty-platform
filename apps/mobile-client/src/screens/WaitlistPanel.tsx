@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
@@ -44,6 +44,7 @@ export function WaitlistPanel(props: {
   const [autoBook, setAutoBook] = useState(false);
   const [phone, setPhone] = useState('');
   const [invalidPhone, setInvalidPhone] = useState(false);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [nameError, setNameError] = useState('');
   const [joined, setJoined] = useState<{ date: string; auto: boolean } | null>(null);
@@ -67,7 +68,7 @@ export function WaitlistPanel(props: {
   if (!props.signedIn) return <Text style={styles.muted}>{w.signInFirst}</Text>;
 
   const join = async (date: string) => {
-    if (busy) return;
+    if (submitting.current) return;
     setFailure(null);
     setDateError('');
     setNameError('');
@@ -81,6 +82,7 @@ export function WaitlistPanel(props: {
       setInvalidPhone(true);
       return;
     }
+    submitting.current = true;
     setBusy(date);
     try {
       const result = await api.joinWaitlist(salon.slug, {
@@ -117,6 +119,7 @@ export function WaitlistPanel(props: {
         setDateError(field === 'date' ? w.badDay : waitlistErrorText(e, t));
       } else setFailure(formFailure(e, t, () => void join(date), waitlistErrorText(e, t)));
     } finally {
+      submitting.current = false;
       setBusy(null);
     }
   };
@@ -192,6 +195,7 @@ export function WaitlistPanel(props: {
                     accessibilityRole="button"
                     accessibilityLabel={`${w.wait}: ${label}`}
                     aria-pressed={on}
+                    accessibilityState={{ disabled: busy !== null }}
                     disabled={busy !== null}
                     onPress={() => void join(date)}
                     style={[styles.day, on && styles.dayOn, busy === date && { opacity: 0.6 }]}

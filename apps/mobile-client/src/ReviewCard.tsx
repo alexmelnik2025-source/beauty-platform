@@ -26,6 +26,7 @@ export const ReviewCard = memo(function ReviewCard(props: {
   const [editing, setEditing] = useState(false);
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const [field, setField] = useState<'rating' | 'text'>();
@@ -64,8 +65,9 @@ export const ReviewCard = memo(function ReviewCard(props: {
   if (!state.canReview && !state.review) return null;
 
   async function send() {
-    if (busy) return;
+    if (submitting.current) return;
     if (rating === 0) return setField('rating');
+    submitting.current = true;
     setBusy(true);
     setFailure(null);
     setField(undefined);
@@ -81,6 +83,7 @@ export const ReviewCard = memo(function ReviewCard(props: {
         setFailure({ message: r.notPossible });
       } else setFailure(formFailure(e, tRef.current, () => void send()));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

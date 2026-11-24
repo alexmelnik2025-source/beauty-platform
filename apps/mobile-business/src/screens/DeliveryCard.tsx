@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, StockDelivery } from '../api';
 import { errorText } from '../errors';
@@ -36,6 +36,7 @@ export function DeliveryCard(props: {
   );
   /** "" = all suppliers. */
   const [supplier, setSupplier] = useState('');
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,10 +55,12 @@ export function DeliveryCard(props: {
   const items = parsed.flatMap(({ product, n }) =>
     typeof n === 'number' ? [{ productId: product.id, quantity: n }] : [],
   );
+  const failedItem = error && items.length === 1 ? items[0]?.productId : undefined;
   const total = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const save = async () => {
-    if (busy) return;
+    if (submitting.current || wrong || !items.length) return;
+    submitting.current = true;
     setBusy(true);
     setError('');
     try {
@@ -65,6 +68,7 @@ export function DeliveryCard(props: {
     } catch (e) {
       setError(errorText(e, t));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
@@ -87,10 +91,14 @@ export function DeliveryCard(props: {
               <Pressable
                 key={name}
                 accessibilityRole="button"
-                accessibilityState={{ selected: supplier === name }}
+                accessibilityState={{ selected: supplier === name, disabled: busy }}
+                disabled={busy}
                 aria-pressed={supplier === name}
                 style={[styles.filter, supplier === name && styles.activeFilter]}
-                onPress={() => setSupplier(name)}
+                onPress={() => {
+                  setSupplier(name);
+                  setError('');
+                }}
               >
                 <Text style={[styles.filterText, supplier === name && styles.activeText]}>
                   {name || p.supplierAll}
@@ -112,24 +120,41 @@ export function DeliveryCard(props: {
             <View style={styles.quantity}>
               <TextInput
                 accessibilityLabel={fill(p.deliveryCame, { name: x.name })}
-                aria-invalid={n === undefined}
-                aria-describedby={n === undefined ? `delivery-error-${x.id}` : undefined}
+                editable={!busy}
+                aria-invalid={n === undefined || failedItem === x.id}
+                aria-describedby={
+                  n === undefined || failedItem === x.id
+                    ? `delivery-error-${x.id}`
+                    : error && n !== null
+                      ? 'delivery-save-error'
+                      : undefined
+                }
                 placeholder="—"
                 placeholderTextColor={colors.placeholder}
                 keyboardType="number-pad"
                 value={pieces[x.id] ?? ''}
-                onChangeText={(value) => setPieces({ ...pieces, [x.id]: value })}
-                style={[styles.input, n === undefined && { borderColor: colors.danger }]}
+                onChangeText={(value) => {
+                  setPieces((current) => ({ ...current, [x.id]: value }));
+                  setError('');
+                }}
+                style={[
+                  styles.input,
+                  (n === undefined || failedItem === x.id) && { borderColor: colors.danger },
+                ]}
               />
-              {n === undefined ? (
+              {n === undefined || failedItem === x.id ? (
                 <Text role="alert" nativeID={`delivery-error-${x.id}`} style={styles.fieldError}>
-                  ! {p.deliveryInvalid}
+                  ! {n === undefined ? p.deliveryInvalid : error}
                 </Text>
               ) : null}
             </View>
           </View>
         ))}
-        {error ? <ErrorText>{error}</ErrorText> : null}
+        {error && !failedItem ? (
+          <View nativeID="delivery-save-error">
+            <ErrorText>! {error}</ErrorText>
+          </View>
+        ) : null}
         <View style={{ marginTop: 8 }}>
           <Button
             label={fill(p.deliverySave, { n: String(total) })}

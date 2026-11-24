@@ -36,10 +36,9 @@ function VoucherPayments(props: Props) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [amount, setAmount] = useState('');
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ field: 'code' | 'amount' | 'form'; text: string } | null>(
-    null,
-  );
+  const [error, setError] = useState<{ field: 'code' | 'amount'; text: string } | null>(null);
   const [info, setInfo] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
@@ -69,7 +68,7 @@ function VoucherPayments(props: Props) {
 
   const pay = async () => {
     const signal = scope.current?.signal;
-    if (!signal || signal.aborted || busy) return;
+    if (!signal || signal.aborted || submitting.current) return;
     setLoadFailure(null);
     setError(null);
     setInfo('');
@@ -84,10 +83,13 @@ function VoucherPayments(props: Props) {
         return setError({ field: 'amount', text: fill(v.visitLeft, { amount: money(remaining) }) });
       }
     }
+    let field: 'code' | 'amount' = 'code';
+    submitting.current = true;
     setBusy(true);
     try {
       const found = await api.giftVoucherByCode(salon.orgId, salon.locationId, wanted);
       if (signal.aborted) return;
+      field = 'amount';
       const next = await api.redeemGiftVoucher(
         salon.orgId,
         salon.locationId,
@@ -112,14 +114,14 @@ function VoucherPayments(props: Props) {
         ['VOUCHER_EXPIRED', 'VOUCHER_CANCELLED', 'VALIDATION_ERROR'].includes(e.code ?? '')
       )
         setError({ field: 'code', text });
-      else setError({ field: 'form', text });
+      else setError({ field, text });
     } finally {
+      submitting.current = false;
       if (!signal.aborted) setBusy(false);
     }
   };
 
-  const message =
-    error?.field === 'form' ? error.text : loadFailure && voucherErrorText(loadFailure.cause, t);
+  const message = loadFailure && voucherErrorText(loadFailure.cause, t);
   if (!payments) return message ? <ErrorText>{message}</ErrorText> : null;
   const left = visitVoucherLeft(props.toPayGrosze, payments.totalGrosze);
 

@@ -275,8 +275,45 @@ test('a client reviews the visit; the salon page shows the reviews', async ({
   await expect(reviews.locator('.review-list > li')).toHaveCount(1);
   await expect(reviews.locator('.review-list')).toContainText('Nazar');
   await shot(page, '380-salon-reviews-stars');
+  // Task 803: a refused "Pokaż więcej" is said under the button, the reviews shown stay; the
+  // next answer adds the older ones. Three reviews fit one page, so the page is told there are more.
+  let olderAnswer: 'refuse' | 'empty' = 'refuse';
+  const reviewsUrl = (url: URL) => url.pathname.endsWith(`/locations/${location.slug}/reviews`);
+  await page.route(reviewsUrl, async (route) => {
+    if (new URL(route.request().url()).searchParams.has('before')) {
+      if (olderAnswer === 'refuse') {
+        await route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        });
+      } else {
+        await route.fulfill({ json: { items: [], nextBefore: null } });
+      }
+      return;
+    }
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: { ...(await response.json()), nextBefore: '2020-01-01T00:00:00.000Z' },
+    });
+  });
   await reviews.getByRole('button', { name: 'Wszystkie oceny' }).click();
   await expect(reviews.locator('.review-list > li')).toHaveCount(3);
+  const moreReviews = reviews.getByRole('button', { name: 'Pokaż więcej' });
+  await moreReviews.click();
+  await expect(page.locator('#salon-reviews-more-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(moreReviews).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(reviews.locator('.review-list > li')).toHaveCount(3);
+  await moreReviews.scrollIntoViewIfNeeded();
+  await shot(page, '803-salon-reviews-more-error');
+  olderAnswer = 'empty';
+  await moreReviews.click();
+  await expect(moreReviews).toHaveCount(0);
+  await expect(page.locator('#salon-reviews-more-error')).toHaveCount(0);
+  await expect(reviews.locator('.review-list > li')).toHaveCount(3);
+  await page.unroute(reviewsUrl);
   await reviews.getByRole('button', { name: /Nazar/ }).click();
   await expect(reviews.locator('.review-list > li')).toHaveCount(1);
   // Task 384: the stars of each specialist when the client chooses one.

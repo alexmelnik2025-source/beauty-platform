@@ -22,6 +22,22 @@ describe('visit wishes', () => {
     expect(drinkChoices({ ...all, drinks: [] })).toEqual([]);
   });
 
+  it('offers repeated drinks once, in salon order', () => {
+    expect(drinkChoices({ ...all, drinks: ['tea', 'coffee', 'tea'] })).toEqual([
+      'tea',
+      'coffee',
+      'none',
+    ]);
+  });
+
+  it('sends empty wishes and keeps a complete emoji at the note limit', () => {
+    expect(wishesToSend(NO_WISHES, all)).toEqual(NO_WISHES);
+    const prefix = 'a'.repeat(198);
+    const save = (note: string) => wishesToSend({ ...NO_WISHES, note }, all).note;
+    expect(save('  ' + prefix + '🙂'.repeat(5000))).toBe(prefix + '🙂');
+    expect(save(prefix + 'a🙂')).toBe(prefix + 'a');
+  });
+
   it('sends only the questions asked, with the note trimmed', () => {
     const wishes = { mood: 'quiet' as const, drink: 'water' as const, note: '  Wrażliwa skóra  ' };
     expect(wishesToSend(wishes, all)).toEqual({

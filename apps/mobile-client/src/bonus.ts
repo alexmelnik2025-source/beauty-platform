@@ -19,7 +19,9 @@ export function rewardText(
   r: Pick<Reward | Coupon, 'kind' | 'discountPercent' | 'freeServiceName'>,
 ): string {
   return r.kind === 'discount_percent'
-    ? fill(t.bonuses.discountLabel, { percent: String(r.discountPercent ?? 0) })
+    ? fill(t.bonuses.discountLabel, {
+        percent: String(Math.min(100, Math.max(0, r.discountPercent ?? 0))),
+      })
     : fill(t.bonuses.freeLabel, { service: r.freeServiceName ?? '' });
 }
 
@@ -79,8 +81,9 @@ export type Progress =
 export function progress(t: Dictionary, card: ClientLoyaltyCard): Progress {
   const top = card.rewards.at(-1)?.cost ?? 0;
   if (top === 0) return null;
+  const collected = Math.max(0, Math.min(card.balance, top));
   const label = fill(t.bonuses.progressLabel, {
-    count: String(Math.min(card.balance, top)),
+    count: String(collected),
     total: String(top),
   });
   if (card.mode === 'stamps' && top <= MAX_STAMPS_DRAWN) {
@@ -89,7 +92,7 @@ export function progress(t: Dictionary, card: ClientLoyaltyCard): Progress {
       kind: 'stamps',
       label,
       stamps: Array.from({ length: top }, (_, i) => ({
-        on: i < card.balance,
+        on: i < collected,
         reward: marks.has(i + 1),
       })),
     };
@@ -97,7 +100,7 @@ export function progress(t: Dictionary, card: ClientLoyaltyCard): Progress {
   const goal = card.next
     ? (card.rewards.find((r) => r.id === card.next?.rewardId)?.cost ?? top)
     : top;
-  return { kind: 'bar', label, value: Math.min(card.balance, goal), max: goal };
+  return { kind: 'bar', label, value: Math.min(collected, goal), max: goal };
 }
 
 /** "4 lis 2026" — dates of coupons and history. */
@@ -140,7 +143,7 @@ type Extra = ClientLoyaltyCard['bonuses'][number];
 
 /** "×2 +1" — what a salon's bonus rule adds to a paid visit (task 19). */
 export function extraBadge(b: Extra): string {
-  return [b.multiplier > 1 ? `×${b.multiplier}` : '', b.extraPoints ? `+${b.extraPoints}` : '']
+  return [b.multiplier > 1 ? `×${b.multiplier}` : '', b.extraPoints > 0 ? `+${b.extraPoints}` : '']
     .filter(Boolean)
     .join(' ');
 }

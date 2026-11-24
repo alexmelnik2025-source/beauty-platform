@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AuditLog } from '@beauty/api-client';
 import { useSession } from '@/components/Session';
-import { ErrorBox, Spinner } from '@/components/ui';
+import { ErrorBox, FieldError, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatDay } from '@/lib/time';
@@ -22,18 +22,27 @@ export default function HistoryPage() {
   const [next, setNext] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /**
+   * Task 802 (owner's rule: errors where the action is): a refused "Pokaż starsze" is said under
+   * that button at the bottom of the log, not at the top of the page where nobody looking at the
+   * button sees it; the entries already shown stay.
+   */
+  const [moreError, setMoreError] = useState('');
 
   const load = useCallback(
     async (before?: string) => {
       setBusy(true);
+      setMoreError('');
       try {
         const page = await api<AuditLog>(`/v1/organizations/${orgId}/audit-log`, {
           query: { limit: 50, ...(before ? { before } : {}) },
         });
         setItems((prev) => (before && prev ? [...prev, ...page.items] : page.items));
         setNext(page.next);
+        if (!before) setError('');
       } catch (err) {
-        setError(errorText(t, err));
+        if (before) setMoreError(errorText(t, err));
+        else setError(errorText(t, err));
       } finally {
         setBusy(false);
       }
@@ -90,14 +99,18 @@ export default function HistoryPage() {
           </ul>
         )}
         {next ? (
-          <button
-            type="button"
-            className="btn btn--quiet btn--block"
-            disabled={busy}
-            onClick={() => void load(next)}
-          >
-            {t.history.more}
-          </button>
+          <div>
+            <button
+              type="button"
+              className="btn btn--quiet btn--block"
+              disabled={busy}
+              aria-describedby={moreError ? 'history-more-error' : undefined}
+              onClick={() => void load(next)}
+            >
+              {t.history.more}
+            </button>
+            <FieldError id="history-more-error" text={moreError} />
+          </div>
         ) : null}
       </div>
     </>

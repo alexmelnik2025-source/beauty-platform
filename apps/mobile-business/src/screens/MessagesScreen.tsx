@@ -22,7 +22,12 @@ import {
 import { saveProblem } from '../salon';
 import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
-import { LoadingSkeleton, SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import {
+  LoadingSkeleton,
+  SalonReadCache,
+  useScreenLifetime,
+  withNetworkTimeout,
+} from './HistoryScreen';
 
 export const locationCache = new SalonReadCache<Location>();
 
@@ -43,7 +48,7 @@ export function useLocationForm<T>(
     if (signal.aborted) return;
     try {
       const saved = await locationCache.read(salon, () =>
-        api.location(salon.orgId, salon.locationId),
+        withNetworkTimeout(api.location(salon.orgId, salon.locationId)),
       );
       if (signal.aborted) return;
       setLocation(saved);
@@ -78,6 +83,7 @@ export function MessagesScreen(props: {
   const [fieldError, setFieldError] = useState<MessagesProblem | 'emptyText' | null>(null);
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
 
   const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
     api,
@@ -102,7 +108,7 @@ export function MessagesScreen(props: {
     fieldError === 'emptyText' ? fill(t.salon.missing, { list: m.rebook }) : m.badText;
 
   async function save() {
-    if (!location || !form || busy) return;
+    if (!location || !form || saving.current) return;
     setError('');
     setInfo('');
     setFieldError(null);
@@ -123,13 +129,11 @@ export function MessagesScreen(props: {
       return;
     }
     const signal = lifetime.current!.signal;
+    saving.current = true;
     setBusy(true);
     try {
-      const saved = await api.updateLocation(
-        salon.orgId,
-        salon.locationId,
-        location.version,
-        checked.changes,
+      const saved = await withNetworkTimeout(
+        api.updateLocation(salon.orgId, salon.locationId, location.version, checked.changes),
       );
       locationCache.set(salon, saved);
       if (signal.aborted) return;
@@ -146,6 +150,7 @@ export function MessagesScreen(props: {
         await load();
       } else setError(errorText(e, t));
     } finally {
+      saving.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }
@@ -157,7 +162,21 @@ export function MessagesScreen(props: {
       </View>
       <Heading>{m.title}</Heading>
       <Text style={styles.muted}>{m.hint}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error ? (
+        <>
+          <ErrorText>{error}</ErrorText>
+          {!form && (
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              onPress={() => {
+                setError('');
+                void load();
+              }}
+            />
+          )}
+        </>
+      ) : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
