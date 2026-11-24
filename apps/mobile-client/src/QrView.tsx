@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from 'react';
+import { memo, useMemo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { encodeQr, qrRuns } from './qr';
 
@@ -9,7 +9,11 @@ const QUIET = 4;
  * Task 357: a QR code drawn with plain Views — one per horizontal run of dark modules, so no
  * react-native-svg is needed. `module` is the preferred size of one square in pixels.
  */
-export function QrView(props: { text: string; label: string; module?: number }) {
+export const QrView = memo(function QrView(props: {
+  text: string;
+  label: string;
+  module?: number;
+}) {
   const { text, label } = props;
   const module = props.module ?? 6;
   const qr = useMemo(() => encodeQr(text), [text]);
@@ -41,7 +45,7 @@ export function QrView(props: { text: string; label: string; module?: number }) 
       {squares}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   qr: { backgroundColor: '#fff', position: 'relative', alignSelf: 'center' },

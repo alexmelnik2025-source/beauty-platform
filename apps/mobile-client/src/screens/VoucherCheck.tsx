@@ -5,6 +5,7 @@ import { errorText } from '../errors';
 import { formatPrice, LOCALE_TAGS } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
+import { withNetworkTimeout } from '../withNetworkTimeout';
 
 /** "17 lutego 2027": a voucher may be valid into the next year, so the year is shown. */
 function dayWithYear(date: string, tag: string): string {
@@ -34,7 +35,7 @@ export function VoucherCheck(props: VoucherProps) {
 }
 
 function VoucherForm({ api, t, locale, slug }: VoucherProps) {
-  const requestId = useRef(0);
+  const pending = useRef<symbol | null>(null);
   const labelId = useId();
   const errorId = useId();
   const [open, setOpen] = useState(false);
@@ -45,21 +46,26 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
   const [voucher, setVoucher] = useState<PublicGiftVoucher | null>(null);
 
   async function check() {
-    if (code.trim().length < 4 || busy) return;
-    const current = ++requestId.current;
+    if (code.trim().length < 4 || pending.current) return;
+    const current = Symbol();
+    pending.current = current;
     setBusy(true);
     setError('');
     setInvalidCode(false);
-    setVoucher(null);
     try {
-      const result = await api.voucherBalance(slug, code);
-      if (current === requestId.current) setVoucher(result);
+      const result = await withNetworkTimeout(api.voucherBalance(slug, code));
+      if (current === pending.current) setVoucher(result);
     } catch (err) {
-      if (current !== requestId.current) return;
-      if (err instanceof ApiError && err.status === 404) setInvalidCode(true);
-      else setError(errorText(err, t));
+      if (current !== pending.current) return;
+      if (err instanceof ApiError && err.status === 404) {
+        setInvalidCode(true);
+        setVoucher(null);
+      } else setError(errorText(err, t));
     } finally {
-      if (current === requestId.current) setBusy(false);
+      if (current === pending.current) {
+        pending.current = null;
+        setBusy(false);
+      }
     }
   }
 
@@ -97,7 +103,7 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
         placeholderTextColor={colors.placeholder}
         value={code}
         onChangeText={(value) => {
-          requestId.current++;
+          pending.current = null;
           setCode(value);
           setBusy(false);
           setVoucher(null);
@@ -116,7 +122,7 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
         </View>
       ) : null}
       <Button
-        label={t.voucherCheck.check}
+        label={error ? t.retry : t.voucherCheck.check}
         onPress={() => void check()}
         busy={busy}
         disabled={code.trim().length < 4}

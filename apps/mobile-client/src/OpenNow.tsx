@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import type { DirectorySalon, Locale } from './api';
 import type { Dictionary } from './i18n';
@@ -13,11 +14,15 @@ export function OpenNow(props: {
   t: Dictionary;
   locale: Locale;
 }) {
-  const now = salonNow(Date.now(), props.salon.timezone);
-  const status = openStatus(
-    { openingHours: [], todayHours: { date: now.date, intervals: props.salon.todayHours } },
-    now,
-  );
+  const { timezone, todayHours } = props.salon;
+  const minute = Math.floor(Date.now() / 60_000);
+  const status = useMemo(() => {
+    const now = salonNow(minute * 60_000, timezone);
+    return openStatus(
+      { openingHours: [], todayHours: { date: now.date, intervals: todayHours } },
+      now,
+    );
+  }, [minute, timezone, todayHours]);
   const text = openStatusText(status, props.t.salon, props.locale);
   return (
     <Text
