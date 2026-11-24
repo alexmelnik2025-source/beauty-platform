@@ -804,6 +804,12 @@ export default function VouchersPage() {
   const [found, setFound] = useState<GiftVoucherDetails | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [error, setError] = useState('');
+  /**
+   * Task 825 (owner's rule: errors where the action is): a refused CSV is said under the CSV
+   * buttons, a refused "Pokaż" / "Anuluj" under that voucher's row — not at the top of the list.
+   */
+  const [actionError, setActionError] = useState<{ at: string; text: string } | null>(null);
+  const errorAt = (at: string) => (actionError?.at === at ? actionError.text : '');
   const [info, setInfo] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
@@ -831,7 +837,7 @@ export default function VouchersPage() {
   async function exportCsv(file: 'export.csv' | 'uses.csv' = 'export.csv'): Promise<void> {
     if (exporting) return;
     setExporting(true);
-    setError('');
+    setActionError(null);
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
       const res = await apiResponse(`${base}/${file}`, { query: { locale: lang } });
@@ -843,7 +849,7 @@ export default function VouchersPage() {
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (err) {
-      setError(errorText(t, err));
+      setActionError({ at: 'csv', text: errorText(t, err) });
     } finally {
       setExporting(false);
     }
@@ -856,18 +862,18 @@ export default function VouchersPage() {
   }
 
   async function show(voucher: GiftVoucher) {
-    setError('');
+    setActionError(null);
     try {
       setFound(await api<GiftVoucherDetails>(`${base}/${voucher.id}`));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      setError(errorText(t, err));
+      setActionError({ at: voucher.id, text: errorText(t, err) });
     }
   }
 
   async function cancel(voucher: GiftVoucher) {
     if (!lock()) return;
-    setError('');
+    setActionError(null);
     setInfo('');
     try {
       await api<GiftVoucher>(`${base}/${voucher.id}/cancel`, { method: 'POST' });
@@ -877,7 +883,7 @@ export default function VouchersPage() {
       }
       await load();
     } catch (err) {
-      setError(errorText(t, err));
+      setActionError({ at: voucher.id, text: errorText(t, err) });
     } finally {
       setConfirm(null);
       unlock();
@@ -921,6 +927,7 @@ export default function VouchersPage() {
                       type="button"
                       className="btn btn--quiet btn--small"
                       disabled={exporting}
+                      aria-describedby={errorAt('csv') ? 'vouchers-csv-error' : undefined}
                       onClick={() => void exportCsv()}
                     >
                       {t.vouchers.csv}
@@ -929,11 +936,13 @@ export default function VouchersPage() {
                       type="button"
                       className="btn btn--quiet btn--small"
                       disabled={exporting}
+                      aria-describedby={errorAt('csv') ? 'vouchers-csv-error' : undefined}
                       onClick={() => void exportCsv('uses.csv')}
                     >
                       {t.vouchers.usesCsv}
                     </button>
                   </div>
+                  <FieldError id="vouchers-csv-error" text={errorAt('csv')} />
                   {list.expiringSoon.count > 0 ? (
                     <p className="small" data-testid="vouchers-expiring">
                       {fill(t.vouchers.expiringTotal, {
@@ -971,7 +980,10 @@ export default function VouchersPage() {
                   {shown.length === 0 ? <p className="note">{t.vouchers.noMatch}</p> : null}
                   <ul className="list">
                     {shown.map((v) => (
-                      <li key={v.id} className="list-row">
+                      <li
+                        key={v.id}
+                        className={errorAt(v.id) ? 'list-row list-row--error' : 'list-row'}
+                      >
                         <span className="grow">
                           <VoucherSummary voucher={v} />
                           {endsSoon(v, list.expiringSoon.until) ? (
@@ -1022,6 +1034,9 @@ export default function VouchersPage() {
                               type="button"
                               className="link-btn small"
                               aria-label={`${t.vouchers.show} ${v.code}`}
+                              aria-describedby={
+                                errorAt(v.id) ? `voucher-row-error-${v.id}` : undefined
+                              }
                               onClick={() => void show(v)}
                             >
                               {t.vouchers.show}
@@ -1033,6 +1048,7 @@ export default function VouchersPage() {
                                 aria-label={`${t.vouchers.cancel} ${v.code}`}
                                 onClick={() => {
                                   setInfo('');
+                                  setActionError(null);
                                   setConfirm(v.id);
                                 }}
                               >
@@ -1041,6 +1057,7 @@ export default function VouchersPage() {
                             ) : null}
                           </span>
                         )}
+                        <FieldError id={`voucher-row-error-${v.id}`} text={errorAt(v.id)} />
                       </li>
                     ))}
                   </ul>

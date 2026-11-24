@@ -4975,3 +4975,9 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 - **«Sprawdź bon podarunkowy» на странице салона — пустой или короткий код** (задача 706): кнопка «Sprawdź» молча была
   выключена до 4 знаков; теперь под полем «Uzupełnij to pole.» (пусто) или «Ten salon nie ma bonu z takim kodem…»
   (меньше 4 знаков), курсор туда. e2e `voucher-check`, скриншот `706-voucher-check-empty`.
+
+## «Bony podarunkowe»: отказ «Anuluj bon» под строкой, CSV под кнопками (задача 825, 24.11.2026)
+
+- В списке «Sprzedane bony» отказ сервера при «Anuluj bon» или «Pokaż» — под строкой этого бона (с «!»); отказ при
+  «Pobierz CSV…» — под кнопками CSV. Раньше — рамкой вверху списка. e2e `gift-vouchers`, скриншоты
+  `825-voucher-cancel-error`, `825-voucher-csv-error`.

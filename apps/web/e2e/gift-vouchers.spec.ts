@@ -288,8 +288,31 @@ test('the owner sells a gift voucher, takes a payment with it and cancels anothe
   await expect(list.getByText('Dla: Jan i Ola Kowalscy')).toBeVisible();
   await shot(page, '499a');
 
+  // Task 825 (owner's rule: errors where the action is): a refused cancel is said under that
+  // voucher's row, a refused CSV under the CSV buttons — not at the top of the list.
+  const refuse = { status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } };
+  await page.route('**/gift-vouchers/*/cancel', (route) => route.fulfill(refuse));
+  await list.getByRole('button', { name: `Anuluj bon ${mistake.code}` }).click();
+  await list.getByRole('button', { name: 'Tak, anuluj' }).click();
+  const mistakeRow = list.locator('li.list-row', { hasText: mistake.code });
+  await expect(mistakeRow.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(list.locator('.alert')).toHaveCount(0);
+  await mistakeRow.scrollIntoViewIfNeeded();
+  await shot(page, '825-voucher-cancel-error');
+  await page.unroute('**/gift-vouchers/*/cancel');
+  await page.route('**/gift-vouchers/export.csv*', (route) => route.fulfill(refuse));
+  await list.getByRole('button', { name: 'Pobierz CSV bonów' }).click();
+  await expect(list.locator('#vouchers-csv-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(list.getByRole('button', { name: 'Pobierz CSV bonów' })).toHaveAccessibleDescription(
+    /Zbyt wiele prób\. Odczekaj chwilę\.$/,
+  );
+  await expect(mistakeRow.locator('.field-error')).toHaveCount(0);
+  await shot(page, '825-voucher-csv-error');
+  await page.unroute('**/gift-vouchers/export.csv*');
+
   // The voucher sold by mistake is cancelled.
   await list.getByRole('button', { name: `Anuluj bon ${mistake.code}` }).click();
+  await expect(list.locator('#vouchers-csv-error')).toHaveCount(0);
   await list.getByRole('button', { name: 'Tak, anuluj' }).click();
   await expect(list.getByRole('status')).toHaveText(`Bon ${mistake.code} anulowany.`);
   await expect(list.getByText(/Do wykorzystania na ważnych bonach: 80,00\s?zł/)).toBeVisible();
