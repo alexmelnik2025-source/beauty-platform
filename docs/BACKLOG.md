@@ -30,6 +30,8 @@
   (кнопки внизу «Zatwierdź», «Przyszedł», «Nie przyszedł», «Opłacono»; способ оплаты; чаевые; купоны; «Zapisz termin»;
   «Odwołaj»). Раньше — рамкой под временем вверху карточки. Полировка, новых функций нет. e2e `booking`, скриншот
   `831-visit-cancel-error`.
+- **832 (ветка `agent/832-move-sheet-error`, поверх 831): перенос визита перетаскиванием — отказ под кнопкой «Przenieś wizytę»**
+  (полировка, новых функций нет). Раньше — рамкой посреди окна. e2e `calendar-drag`, скриншот `832-move-save-error`.
 
 - **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 823 (ветка `agent/823-staff-day-errors`, от main): «Zespół» → карточка специалиста — отказ «Zapisz dzień specjalny»,
   «Dodaj nieobecność» под этими кнопками, отказ «Usuń» — под своей строкой** (полировка по правилу владельца «ошибки

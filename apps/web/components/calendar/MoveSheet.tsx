@@ -5,7 +5,7 @@ import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { calendarErrorText, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { clockToMinutes, formatDay, minutesToClock, zonedToInstant } from '@/lib/time';
 import type { Appointment, Staff } from '@/lib/types';
-import { ErrorBox, FieldError, Sheet } from '../ui';
+import { FieldError, Sheet } from '../ui';
 
 /** Where a visit was dropped in the calendar (task 221). */
 export interface MoveTarget {
@@ -105,9 +105,18 @@ export function MoveSheet({
           <button type="button" className="btn btn--quiet" onClick={onClose}>
             {t.common.cancel}
           </button>
-          <button type="button" className="btn" disabled={busy} onClick={() => void save()}>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            aria-describedby={error ? 'move-save-error' : undefined}
+            onClick={() => void save()}
+          >
             {t.appointment.saveMove}
           </button>
+          {/* Task 832 (owner's rule: errors where the action is): a refused move is said under
+              "Przenieś wizytę", not in the middle of the sheet. */}
+          <FieldError id="move-save-error" text={error} />
         </>
       }
     >
@@ -124,7 +133,6 @@ export function MoveSheet({
           <strong>{will}</strong>
         </dd>
       </dl>
-      <ErrorBox>{error}</ErrorBox>
       {askOutside ? (
         <div>
           <label className="check">

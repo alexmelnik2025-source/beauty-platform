@@ -179,6 +179,22 @@ test('the owner drags a visit to another specialist and time, and before working
   await expect(summary).toContainText(`${clock(start + 120)}–${clock(start + 165)} · Marek`);
   await expect(sheet).toContainText('Jan Kowalski');
   await shot(page, '221-calendar-drag');
+  // Task 832 (owner's rule: errors where the action is): a refused move is said under
+  // "Przenieś wizytę" at the bottom of the sheet, not in its middle.
+  const reschedule = (url: URL) => url.pathname.endsWith('/reschedule');
+  await page.route(reschedule, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
+  await expect(sheet.locator('.sheet-foot #move-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(sheet.getByRole('button', { name: 'Przenieś wizytę' })).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(sheet.locator('.alert')).toHaveCount(0);
+  await shot(page, '832-move-save-error');
+  await page.unroute(reschedule);
   await sheet.getByRole('button', { name: 'Przenieś wizytę' }).click();
   await expect(sheet).toBeHidden();
   await expect(marek.getByRole('button', { name: /Jan Kowalski/ })).toContainText(
