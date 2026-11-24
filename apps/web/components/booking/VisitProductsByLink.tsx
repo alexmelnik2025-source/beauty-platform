@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { errorText, fill, LOCALE_TAGS, useI18n } from '@/lib/i18n';
 import { formatPrice } from '@/lib/time';
 import type { VisitProducts } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 
 /**
  * Task Q3 (part 4b, screen B): "Produkty do odbioru" on the visit's "manage" page — what the
@@ -37,7 +37,11 @@ export function VisitProductsByLink({
   const [data, setData] = useState<VisitProducts | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  /**
+   * Task 759 (owner's rule: errors where the action is): a refused "Zrezygnuj" or "Odbiorę przy
+   * wizycie" is said under that product's row (keyed by the row's id), not as a box above the list.
+   */
+  const [error, setError] = useState<{ id: string; text: string } | null>(null);
 
   const load = useCallback(
     () =>
@@ -80,13 +84,13 @@ export function VisitProductsByLink({
     })();
   }, [data, bring, endpoint]);
 
-  const run = async (action: () => Promise<VisitProducts>) => {
+  const run = async (rowId: string, action: () => Promise<VisitProducts>) => {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       setData(await action());
     } catch (e) {
-      setError(errorText(t, e));
+      setError({ id: rowId, text: errorText(t, e) });
       await load();
     } finally {
       setBusy(false);
@@ -97,6 +101,16 @@ export function VisitProductsByLink({
   const reserved = data.reservations.filter((r) => r.status !== 'cancelled');
   if (reserved.length === 0 && (!data.canChange || data.available.length === 0)) return null;
   const money = (n: number) => formatPrice(n, data.currency, tag);
+  const errorId = (rowId: string) => `visit-product-${rowId}-error`;
+  const errorFor = (rowId: string) => (error?.id === rowId ? error.text : undefined);
+  const shown = offer ? data.available.slice(0, OFFER_LIMIT) : data.available;
+  // The row may be gone after the refresh (or the list folded): then under the heading.
+  const lostError =
+    error &&
+    !reserved.some((r) => `r:${r.id}` === error.id) &&
+    !(open && shown.some((p) => `p:${p.id}` === error.id))
+      ? error.text
+      : undefined;
 
   return (
     <section
@@ -111,7 +125,7 @@ export function VisitProductsByLink({
       ) : (
         <h2 id="visit-products-title">{s.title}</h2>
       )}
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id="visit-products-error" text={lostError} />
       {reserved.length > 0 ? (
         <ul className="list" aria-label={s.title}>
           {reserved.map((r) => (
@@ -144,8 +158,9 @@ export function VisitProductsByLink({
                   className="link-btn small"
                   disabled={busy}
                   aria-label={`${s.giveBack}: ${r.name}`}
+                  aria-describedby={errorFor(`r:${r.id}`) ? errorId(`r:${r.id}`) : undefined}
                   onClick={() =>
-                    void run(() =>
+                    void run(`r:${r.id}`, () =>
                       api<VisitProducts>(`${endpoint}/products/${r.id}`, {
                         method: 'DELETE',
                         auth: false,
@@ -156,6 +171,7 @@ export function VisitProductsByLink({
                   {s.giveBack}
                 </button>
               ) : null}
+              <FieldError id={errorId(`r:${r.id}`)} text={errorFor(`r:${r.id}`)} />
             </li>
           ))}
         </ul>
@@ -175,7 +191,7 @@ export function VisitProductsByLink({
           </button>
           {open ? (
             <ul className="list" aria-label={s.addTitle}>
-              {(offer ? data.available.slice(0, OFFER_LIMIT) : data.available).map((p) => (
+              {shown.map((p) => (
                 <li key={p.id} className="row" style={{ alignItems: 'center', gap: 12 }}>
                   {p.photoId ? (
                     <img
@@ -202,8 +218,9 @@ export function VisitProductsByLink({
                     className="btn btn--small"
                     disabled={busy || !p.available}
                     aria-label={`${s.reserve}: ${p.name}`}
+                    aria-describedby={errorFor(`p:${p.id}`) ? errorId(`p:${p.id}`) : undefined}
                     onClick={() =>
-                      void run(() =>
+                      void run(`p:${p.id}`, () =>
                         api<VisitProducts>(`${endpoint}/products`, {
                           method: 'POST',
                           auth: false,
@@ -214,6 +231,7 @@ export function VisitProductsByLink({
                   >
                     {s.reserve}
                   </button>
+                  <FieldError id={errorId(`p:${p.id}`)} text={errorFor(`p:${p.id}`)} />
                 </li>
               ))}
             </ul>

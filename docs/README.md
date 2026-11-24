@@ -746,6 +746,14 @@ pnpm --filter @beauty/api-client generate
   — под строкой этой промоакции. Строка сверху осталась только для страницы, которая не загрузилась. e2e
   `happy-hours`, скриншоты `744-promotion-save-error`, `744-promotion-remove-error`.
 
+## Ссылка на визит: товары — отказ под строкой товара (задачи 759–760, 24.11.2026)
+
+- «Produkty do tej wizyty» (и «Do zobaczenia!»): отказ сервера на «Zrezygnuj» или «Odbiorę przy wizycie» — под строкой
+  этого товара (с «!»), а не рамкой над списком; если строки уже нет — под заголовком. e2e `shop-after-visit`, скриншот
+  `759-booked-product-error`.
+- «Na wizycie użyto»: отказ «Odłóż na następną wizytę» — под этой кнопкой. e2e `shop-after-visit`, скриншот
+  `760-used-product-save-error`.
+
 ## «Moje wizyty» → «Moje kupony»: отказ под купоном (задача 758, 24.11.2026)
 
 - Отказ сервера на «Użyj» или «Nie używaj» — под строкой этого купона (с «!»), а не рамкой над купонами. Если купона
