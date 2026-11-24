@@ -10,7 +10,7 @@ import { dialForTimeZone, normalizePhone } from '@/lib/phone';
 import { EMAIL_SHAPE, PHONE_SHAPE } from '@/lib/contact-check';
 import { PhoneField } from '../PhoneField';
 import { useSession } from '../Session';
-import { ErrorBox, FieldError, Sheet } from '../ui';
+import { FieldError, Sheet } from '../ui';
 import { PaymentMethodPicker } from './PaymentMethodPicker';
 
 /**
@@ -251,6 +251,7 @@ export function NewItemSheet({
 
   /** Editing a field takes its error away. */
   const clear = (field: ItemField) => {
+    setError('');
     if (problem?.field === field) setProblem(null);
   };
   const invalid = (field: ItemField) => ({
@@ -285,8 +286,6 @@ export function NewItemSheet({
       ) : null}
 
       <form noValidate className="form" ref={formRef} onSubmit={submit}>
-        <ErrorBox>{error}</ErrorBox>
-
         {kind === 'appointment' ? (
           <label className="field">
             <span>{t.appointment.service}</span>
@@ -563,9 +562,16 @@ export function NewItemSheet({
           </>
         )}
 
-        <button className="btn btn--block" disabled={busy}>
+        {/* Task 830 (owner's rule: errors where the action is): a refusal that names no field is
+            said under this button, not as a box at the top of the form. */}
+        <button
+          className="btn btn--block"
+          disabled={busy}
+          aria-describedby={error ? 'new-item-save-error' : undefined}
+        >
           {kind === 'block' ? t.appointment.createBlock : t.appointment.create}
         </button>
+        <FieldError id="new-item-save-error" text={error} />
       </form>
     </Sheet>
   );

@@ -756,6 +756,29 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await dialog.getByLabel('Telefon').fill('+48 600 200 300');
   await expect(dialog.locator('.field-error')).toHaveCount(0);
   await shot(ownerPage, '10-owner-new-appointment');
+  // Task 830 (owner's rule: errors where the action is): a refusal that names no field is said
+  // under "Zapisz wizytę", not as a box at the top of the form; what was typed stays.
+  const newVisitPost = (url: URL) => url.pathname.endsWith('/appointments');
+  await ownerPage.route(newVisitPost, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
+  await expect(dialog.locator('#new-item-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(dialog.getByRole('button', { name: 'Zapisz wizytę' })).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(dialog.locator('.alert')).toHaveCount(0);
+  await expect(dialog.getByLabel('Imię i nazwisko')).toHaveValue('Jan Kowalski');
+  await dialog.getByRole('button', { name: 'Zapisz wizytę' }).scrollIntoViewIfNeeded();
+  await shot(ownerPage, '830-new-visit-save-error');
+  await ownerPage.unroute(newVisitPost);
   await dialog.getByRole('button', { name: 'Zapisz wizytę' }).click();
   await expect(ownerPage.getByRole('button', { name: /Jan Kowalski/ })).toBeVisible();
   await shot(ownerPage, '11-owner-calendar-after');
