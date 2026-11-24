@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Location, StaffList } from '../api';
 import { WEB_URL } from '../config';
@@ -17,7 +17,30 @@ import {
   type TextShareTools,
 } from '../share';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
+import { locationCache } from './MessagesScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const staffCache = new SalonReadCache<StaffList>();
+
+// A completed read can be reused on return. An unfinished read belongs to the
+// visit that started it: a new visit can fetch immediately, even on a slow connection.
+export function readWhileOpen<T>(
+  cache: SalonReadCache<T>,
+  salon: SalonChoice,
+  signal: AbortSignal,
+  fetchValue: () => Promise<T>,
+): Promise<T> {
+  return cache.read(salon, async () => {
+    const forget = () => cache.clear(salon);
+    signal.addEventListener('abort', forget);
+    try {
+      return await withNetworkTimeout(fetchValue());
+    } finally {
+      signal.removeEventListener('abort', forget);
+    }
+  });
+}
 
 interface Props {
   api: BusinessApi;
@@ -57,36 +80,32 @@ function BookingLinks(props: Props) {
 
   const { orgId, locationId } = salon;
   useEffect(() => {
-    let active = true;
+    const scope = new AbortController();
     setFailure(null);
-    api.location(orgId, locationId).then(
+    readWhileOpen(locationCache, salon, scope.signal, () => api.location(orgId, locationId)).then(
       (loc) => {
-        if (active) setLocation(loc);
+        if (!scope.signal.aborted) setLocation(loc);
       },
       (cause: unknown) => {
-        if (active) setFailure({ cause });
+        if (!scope.signal.aborted) setFailure({ cause });
       },
     );
-    return () => {
-      active = false;
-    };
-  }, [api, orgId, locationId, locationAttempt]);
+    return () => scope.abort();
+  }, [api, salon, orgId, locationId, locationAttempt]);
 
   useEffect(() => {
-    let active = true;
+    const scope = new AbortController();
     setStaffFailure(null);
-    api.staff(orgId, locationId).then(
+    readWhileOpen(staffCache, salon, scope.signal, () => api.staff(orgId, locationId)).then(
       (team) => {
-        if (active) setStaff(team.filter((s) => s.active));
+        if (!scope.signal.aborted) setStaff(team.filter((s) => s.active));
       },
       (cause: unknown) => {
-        if (active) setStaffFailure({ cause });
+        if (!scope.signal.aborted) setStaffFailure({ cause });
       },
     );
-    return () => {
-      active = false;
-    };
-  }, [api, orgId, locationId, staffAttempt]);
+    return () => scope.abort();
+  }, [api, salon, orgId, locationId, staffAttempt]);
 
   // Android's back button closes the screen instead of the app.
   useEffect(() => {
@@ -106,14 +125,31 @@ function BookingLinks(props: Props) {
     );
   }
 
-  const link = location ? bookingLink(WEB_URL, location) : null;
-  const shortUrl = location ? shortLink(WEB_URL, location) : null;
+  const links = useMemo(
+    () =>
+      location && {
+        booking: bookingLink(WEB_URL, location),
+        short: shortLink(WEB_URL, location),
+        qr: qrLink(WEB_URL, location),
+        embed: embedCode(WEB_URL, location),
+      },
+    [location],
+  );
+  const specialist = staff.find((s) => s.id === qrStaff);
+  const specialistLink = useMemo(
+    () => (location && qrStaff ? staffQrLink(WEB_URL, location, qrStaff) : null),
+    [location, qrStaff],
+  );
+  const selectStaff = useCallback((id: string) => {
+    setQrStaff((current) => (current === id ? '' : id));
+    setStaffInfo('');
+  }, []);
 
   const share = async () => {
-    if (!location || !link) return;
+    if (!location || !links) return;
     const content = {
-      message: fill(b.message, { name: location.name, url: link }),
-      url: link,
+      message: fill(b.message, { name: location.name, url: links.booking }),
+      url: links.booking,
       title: location.name,
     };
     const result = await shareLink(content, shareTools());
@@ -121,10 +157,10 @@ function BookingLinks(props: Props) {
   };
 
   const shareShort = async () => {
-    if (!location || !shortUrl) return;
+    if (!location || !links) return;
     const content = {
-      message: fill(b.message, { name: location.name, url: shortUrl }),
-      url: shortUrl,
+      message: fill(b.message, { name: location.name, url: links.short }),
+      url: links.short,
       title: location.name,
     };
     const result = await shareLink(content, shareTools());
@@ -135,24 +171,21 @@ function BookingLinks(props: Props) {
    * Task Q2: "Udostępnij link specjalisty" — the chosen specialist's link (the same one their QR
    * code opens) goes to a message, the Instagram bio or the clipboard.
    */
-  const shareStaff = async (s: StaffList[number]) => {
-    if (!location) return;
-    const url = staffQrLink(WEB_URL, location, s.id);
+  const shareStaff = async () => {
+    if (!location || !specialist || !specialistLink) return;
+    const url = specialistLink;
     const content = {
-      message: fill(b.staffQrMessage, { name: s.displayName, salon: location.name, url }),
+      message: fill(b.staffQrMessage, { name: specialist.displayName, salon: location.name, url }),
       url,
-      title: s.displayName,
+      title: specialist.displayName,
     };
     const result = await shareLink(content, shareTools());
     setStaffInfo(result === 'copied' ? b.copied : result === 'failed' ? b.failed : '');
   };
 
   const shareEmbed = async () => {
-    if (!location) return;
-    const result = await shareText(
-      { title: b.embedTitle, message: embedCode(WEB_URL, location) },
-      codeShareTools(),
-    );
+    if (!links) return;
+    const result = await shareText({ title: b.embedTitle, message: links.embed }, codeShareTools());
     setEmbedInfo(result === 'copied' ? b.codeCopied : result === 'failed' ? b.failed : '');
   };
 
@@ -161,15 +194,19 @@ function BookingLinks(props: Props) {
       <Button kind="link" label={b.back} onPress={onBack} />
       <Heading>{b.title}</Heading>
       {failure ? readError(failure, () => retryLocation((n) => n + 1)) : null}
-      {!location || !link ? (
+      {!location || !links ? (
         failure ? null : (
           <Text style={styles.muted}>{t.loading}</Text>
         )
       ) : (
         <>
           <Card>
-            <Text selectable style={styles.link} accessibilityLabel={`${b.title}: ${link}`}>
-              {link}
+            <Text
+              selectable
+              style={styles.link}
+              accessibilityLabel={`${b.title}: ${links.booking}`}
+            >
+              {links.booking}
             </Text>
           </Card>
           {!location.onlineBookingEnabled ? <Text style={styles.warn}>{b.offline}</Text> : null}
@@ -191,9 +228,9 @@ function BookingLinks(props: Props) {
             <Text
               selectable
               style={styles.link}
-              accessibilityLabel={`${b.shortTitle}: ${shortUrl}`}
+              accessibilityLabel={`${b.shortTitle}: ${links.short}`}
             >
-              {shortUrl}
+              {links.short}
             </Text>
             <Text style={styles.muted}>{b.shortHint}</Text>
             <Button
@@ -208,7 +245,7 @@ function BookingLinks(props: Props) {
               </Text>
             ) : null}
           </Card>
-          <SalonQr link={qrLink(WEB_URL, location)} name={location.name} t={t} />
+          <SalonQr link={links.qr} name={location.name} t={t} />
           {staffFailure ? readError(staffFailure, () => retryStaff((n) => n + 1)) : null}
           {staff.length > 0 ? (
             <Card>
@@ -216,55 +253,41 @@ function BookingLinks(props: Props) {
                 {b.staffQrTitle}
               </Text>
               <View style={styles.chips} role="group" accessibilityLabel={b.staffQrTitle}>
-                {staff.map((s) => {
-                  const on = s.id === qrStaff;
-                  return (
-                    <Pressable
-                      accessibilityLabel={s.displayName}
-                      key={s.id}
-                      accessibilityRole="button"
-                      aria-pressed={on}
-                      accessibilityState={{ selected: on }}
-                      onPress={() => {
-                        setQrStaff(on ? '' : s.id);
-                        setStaffInfo('');
-                      }}
-                      style={[styles.chip, on && styles.chipOn]}
-                    >
-                      <Text style={[styles.chipText, on && { color: '#fff' }]}>
-                        {s.displayName}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {staff
-                .filter((s) => s.id === qrStaff)
-                .map((s) => (
-                  <View
+                {staff.map((s) => (
+                  <StaffChip
                     key={s.id}
-                    style={styles.staffBlock}
-                    role="group"
-                    accessibilityLabel={s.displayName}
-                  >
-                    <SalonQr
-                      link={staffQrLink(WEB_URL, location, s.id)}
-                      name={location.name}
-                      staffName={s.displayName}
-                      t={t}
-                    />
-                    <Button
-                      kind="secondary"
-                      label={b.staffQrShare}
-                      onPress={() => void shareStaff(s)}
-                    />
-                    {staffInfo ? (
-                      <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
-                        {staffInfo}
-                      </Text>
-                    ) : null}
-                  </View>
+                    id={s.id}
+                    name={s.displayName}
+                    selected={s.id === qrStaff}
+                    onSelect={selectStaff}
+                  />
                 ))}
+              </View>
+              {specialist && specialistLink ? (
+                <View
+                  key={specialist.id}
+                  style={styles.staffBlock}
+                  role="group"
+                  accessibilityLabel={specialist.displayName}
+                >
+                  <SalonQr
+                    link={specialistLink}
+                    name={location.name}
+                    staffName={specialist.displayName}
+                    t={t}
+                  />
+                  <Button
+                    kind="secondary"
+                    label={b.staffQrShare}
+                    onPress={() => void shareStaff()}
+                  />
+                  {staffInfo ? (
+                    <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
+                      {staffInfo}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
               <Text style={styles.muted}>{b.staffQrHint}</Text>
             </Card>
           ) : null}
@@ -273,7 +296,7 @@ function BookingLinks(props: Props) {
               {b.embedTitle}
             </Text>
             <Text selectable style={styles.code} accessibilityLabel={b.embedTitle}>
-              {embedCode(WEB_URL, location)}
+              {links.embed}
             </Text>
             <Text style={styles.muted}>{b.embedHint}</Text>
             <Button
@@ -293,6 +316,31 @@ function BookingLinks(props: Props) {
     </ScrollView>
   );
 }
+
+const StaffChip = memo(function StaffChip({
+  id,
+  name,
+  selected,
+  onSelect,
+}: {
+  id: string;
+  name: string;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={name}
+      accessibilityRole="button"
+      aria-pressed={selected}
+      accessibilityState={{ selected }}
+      onPress={() => onSelect(id)}
+      style={[styles.chip, selected && styles.chipOn]}
+    >
+      <Text style={[styles.chipText, selected && { color: '#fff' }]}>{name}</Text>
+    </Pressable>
+  );
+});
 
 /** Pixels per module: a typical salon link (version 3–5, 29–37 modules) is ~240–300 px wide. */
 const MODULE = 7;

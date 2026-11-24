@@ -21,12 +21,23 @@ import {
   type CategoryForm,
   type Exception,
   type PermissionMap,
+  type PermissionKey,
 } from '../rights';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import { readWhileOpen } from './BookingLinkScreen';
+import { SalonReadCache } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
 
 type Category = StaffCategoryList[number];
 type Member = MemberList[number];
+
+interface Directory {
+  categories: StaffCategoryList;
+  people: MemberList;
+}
+
+const catalogCache = new SalonReadCache<PermissionCatalog>();
+let directoryCache = new SalonReadCache<Directory>();
 
 interface Props {
   api: BusinessApi;
@@ -51,8 +62,10 @@ function SalonPermissions(props: Props) {
   const r = t.rights;
   const isOwner = salon.role === 'owner';
   const [catalog, setCatalog] = useState<PermissionCatalog['permissions'] | null>(null);
-  const [categories, setCategories] = useState<StaffCategoryList>([]);
-  const [people, setPeople] = useState<MemberList>([]);
+  const [{ categories, people }, setDirectory] = useState<Directory>({
+    categories: [],
+    people: [],
+  });
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const pending = useRef(false);
@@ -78,21 +91,27 @@ function SalonPermissions(props: Props) {
   const load = useCallback(
     async (signal: AbortSignal, includeCatalog: boolean) => {
       try {
-        const [perms, cats, members] = await Promise.all([
-          includeCatalog ? api.permissions(orgId) : null,
-          api.staffCategories(orgId),
-          api.members(orgId),
+        const [perms, directory] = await Promise.all([
+          includeCatalog
+            ? readWhileOpen(catalogCache, salon, signal, () => api.permissions(orgId))
+            : null,
+          readWhileOpen(directoryCache, salon, signal, async () => {
+            const [categories, members] = await Promise.all([
+              api.staffCategories(orgId),
+              api.members(orgId),
+            ]);
+            return { categories, people: specialistsWithAccess(members, locationId) };
+          }),
         ]);
         if (signal.aborted) return;
         if (perms) setCatalog(perms.permissions);
-        setCategories(cats);
-        setPeople(specialistsWithAccess(members, locationId));
+        setDirectory(directory);
         setLoadFailure(null);
       } catch (cause) {
         if (!signal.aborted) setLoadFailure({ cause });
       }
     },
-    [api, orgId, locationId],
+    [api, salon, orgId, locationId],
   );
 
   useEffect(() => {
@@ -111,7 +130,7 @@ function SalonPermissions(props: Props) {
   }, [onBack]);
 
   async function run(
-    action: () => Promise<unknown>,
+    action: () => Promise<Directory>,
     done: string,
     onFieldError?: (err: unknown) => boolean,
   ): Promise<boolean> {
@@ -123,11 +142,14 @@ function SalonPermissions(props: Props) {
     setError('');
     setInfo('');
     try {
-      await action();
+      // Rights belong to the organization. Drop other salons' snapshots too. A return
+      // to this salon during the save waits for the same authoritative result.
+      directoryCache = new SalonReadCache<Directory>();
+      const updated = await directoryCache.read(salon, action);
       if (signal.aborted) return false;
       setInfo(done);
-      await load(signal, false);
-      return !signal.aborted;
+      setDirectory(updated);
+      return true;
     } catch (e) {
       if (signal.aborted) return false;
       if (changedMeanwhile(e)) {
@@ -150,15 +172,28 @@ function SalonPermissions(props: Props) {
       setInfo(r.nothing);
       return;
     }
-    const ok = await run(
-      () =>
-        api.setMemberPermissions(salon.orgId, member.membershipId, {
-          version: member.version,
-          staffCategoryId: editing.categoryId,
-          overrides: editing.overrides,
-        }),
-      r.saved,
-    );
+    const ok = await run(async () => {
+      const saved = await api.setMemberPermissions(salon.orgId, member.membershipId, {
+        version: member.version,
+        staffCategoryId: editing.categoryId,
+        overrides: editing.overrides,
+      });
+      return {
+        people: people.map((person) =>
+          person.membershipId === saved.membershipId ? saved : person,
+        ),
+        categories:
+          member.staffCategoryId === saved.staffCategoryId
+            ? categories
+            : categories.map((category) => {
+                if (category.id === member.staffCategoryId)
+                  return { ...category, memberCount: category.memberCount - 1 };
+                if (category.id === saved.staffCategoryId)
+                  return { ...category, memberCount: category.memberCount + 1 };
+                return category;
+              }),
+      };
+    }, r.saved);
     if (ok) setEditing(null);
   }
 
@@ -173,16 +208,20 @@ function SalonPermissions(props: Props) {
     }
     const existing = categoriesById.get(catForm.id);
     const ok = await run(
-      () =>
-        existing
-          ? api.updateStaffCategory(salon.orgId, existing.id, existing.version, {
+      async () => {
+        const saved = existing
+          ? await api.updateStaffCategory(salon.orgId, existing.id, existing.version, {
               name: body.name,
               permissions: body.permissions,
             })
-          : api.createStaffCategory(salon.orgId, {
+          : await api.createStaffCategory(salon.orgId, {
               name: body.name,
               permissions: body.permissions,
-            }),
+            });
+        const next = categories.filter((category) => category.id !== saved.id);
+        next.push(saved);
+        return { people, categories: next.sort((a, b) => a.name.localeCompare(b.name)) };
+      },
       r.categorySaved,
       (err) => {
         if (
@@ -210,6 +249,24 @@ function SalonPermissions(props: Props) {
       id: member.membershipId,
       categoryId: member.staffCategoryId,
       overrides: { ...member.overrides },
+    });
+  }, []);
+
+  const changeException = useCallback((permission: PermissionKey, value: Exception) => {
+    setEditing(
+      (current) =>
+        current && { ...current, overrides: withException(current.overrides, permission, value) },
+    );
+  }, []);
+
+  const toggleCategoryPermission = useCallback((key: PermissionKey) => {
+    setCatForm((current) => {
+      if (!current) return current;
+      const { form } = current;
+      return {
+        ...current,
+        form: { ...form, permissions: { ...form.permissions, [key]: !form.permissions[key] } },
+      };
     });
   }, []);
 
@@ -253,46 +310,18 @@ function SalonPermissions(props: Props) {
           })}
         </View>
         <Text style={[styles.label, { marginTop: 12 }]}>{r.exceptions}</Text>
-        {catalog.map((p) => {
-          const value = exceptionOf(open.overrides, p.key);
-          const options: [Exception, string][] = [
-            ['category', r.asCategory],
-            ['yes', r.allow],
-            ['no', r.deny],
-          ];
-          return (
-            <View key={p.key} style={styles.perm}>
-              <Text style={styles.text}>
-                {label(p.key)}
-                <Text style={styles.small}> · {now[p.key] ? r.allow : r.deny}</Text>
-              </Text>
-              <View style={styles.row} accessibilityRole="radiogroup" aria-label={label(p.key)}>
-                {options.map(([key, text]) => {
-                  const on = value === key;
-                  return (
-                    <Pressable
-                      key={key}
-                      accessibilityRole="radio"
-                      accessibilityLabel={`${label(p.key)}: ${text}`}
-                      disabled={busy}
-                      accessibilityState={{ checked: on, disabled: busy }}
-                      aria-checked={on}
-                      onPress={() =>
-                        setEditing({
-                          ...open,
-                          overrides: withException(open.overrides, p.key, key),
-                        })
-                      }
-                      style={[styles.seg, on && styles.chipOn]}
-                    >
-                      <Text style={[styles.segText, on && { color: '#fff' }]}>{text}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          );
-        })}
+        {catalog.map(({ key }) => (
+          <MemberPermission
+            key={key}
+            permission={key}
+            label={label(key)}
+            r={r}
+            allowed={now[key]}
+            value={exceptionOf(open.overrides, key)}
+            busy={busy}
+            onChange={changeException}
+          />
+        ))}
         {!memberUnchanged(member, open.categoryId, open.overrides) ? (
           <Text role="status" style={styles.label}>
             {t.navigation.unsaved}
@@ -344,31 +373,16 @@ function SalonPermissions(props: Props) {
             ! {catForm.nameError}
           </Text>
         ) : null}
-        {catalog.map((p) => {
-          const on = form.permissions[p.key];
-          return (
-            <Pressable
-              key={p.key}
-              accessibilityRole="checkbox"
-              accessibilityLabel={label(p.key)}
-              disabled={busy}
-              accessibilityState={{ checked: on, disabled: busy }}
-              aria-checked={on}
-              onPress={() =>
-                setCatForm({
-                  ...catForm,
-                  form: { ...form, permissions: { ...form.permissions, [p.key]: !on } },
-                })
-              }
-              style={styles.check}
-            >
-              <View style={[styles.box, on && styles.boxOn]}>
-                {on ? <Text style={styles.tick}>✓</Text> : null}
-              </View>
-              <Text style={[styles.text, { flexShrink: 1 }]}>{label(p.key)}</Text>
-            </Pressable>
-          );
-        })}
+        {catalog.map(({ key }) => (
+          <CategoryPermission
+            key={key}
+            permission={key}
+            label={label(key)}
+            on={form.permissions[key]}
+            busy={busy}
+            onChange={toggleCategoryPermission}
+          />
+        ))}
         {dirty ? (
           <Text role="status" style={styles.label}>
             {t.navigation.unsaved}
@@ -383,59 +397,43 @@ function SalonPermissions(props: Props) {
     );
   }
 
+  const editCategory = useCallback(
+    (category: Category) => {
+      if (!catalog) return;
+      setInfo('');
+      setError('');
+      setEditing(null);
+      setCatForm({ id: category.id, form: categoryForm(category, catalog) });
+    },
+    [catalog],
+  );
+
+  function removeCategory(category: Category) {
+    void run(async () => {
+      await api.deleteStaffCategory(salon.orgId, category.id);
+      return {
+        categories: categories.filter((c) => c.id !== category.id),
+        people: people.map((person) =>
+          person.staffCategoryId === category.id ? { ...person, staffCategoryId: null } : person,
+        ),
+      };
+    }, r.removed).then((ok) => {
+      if (ok) setRemoving(null);
+    });
+  }
+
   function categoryCard(category: Category) {
     if (catForm?.id === category.id) return <View key={category.id}>{categoryEditor()}</View>;
     return (
-      <Card key={category.id}>
-        <Text style={styles.name}>{category.name}</Text>
-        <Text style={styles.muted}>{fill(r.members, { count: String(category.memberCount) })}</Text>
-        {isOwner && removing === category.id ? (
-          <View style={{ gap: 8 }}>
-            <Text style={styles.text}>{fill(r.removeAsk, { name: category.name })}</Text>
-            <View style={styles.row}>
-              <Button
-                label={r.yes}
-                busy={busy}
-                onPress={() =>
-                  void run(() => api.deleteStaffCategory(salon.orgId, category.id), r.removed).then(
-                    (ok) => {
-                      if (ok) setRemoving(null);
-                    },
-                  )
-                }
-              />
-              <Button
-                kind="secondary"
-                disabled={busy}
-                label={r.no}
-                onPress={() => setRemoving(null)}
-              />
-            </View>
-          </View>
-        ) : isOwner && catalog ? (
-          <View style={styles.row}>
-            <Button
-              kind="secondary"
-              disabled={busy}
-              label={r.change}
-              a11yLabel={`${r.change}: ${category.name}`}
-              onPress={() => {
-                setInfo('');
-                setError('');
-                setEditing(null);
-                setCatForm({ id: category.id, form: categoryForm(category, catalog) });
-              }}
-            />
-            <Button
-              kind="link"
-              disabled={busy}
-              label={r.remove}
-              a11yLabel={`${r.remove}: ${category.name}`}
-              onPress={() => setRemoving(category.id)}
-            />
-          </View>
-        ) : null}
-      </Card>
+      <CategorySummary
+        key={category.id}
+        category={category}
+        r={r}
+        busy={busy}
+        onEdit={isOwner && catalog ? editCategory : undefined}
+        onRemove={setRemoving}
+        confirm={isOwner && removing === category.id ? removeCategory : undefined}
+      />
     );
   }
 
@@ -507,6 +505,137 @@ function SalonPermissions(props: Props) {
     </ScrollView>
   );
 }
+
+const CategorySummary = memo(function CategorySummary({
+  category,
+  r,
+  busy,
+  onEdit,
+  onRemove,
+  confirm,
+}: {
+  category: Category;
+  r: Dictionary['rights'];
+  busy: boolean;
+  onEdit?: (category: Category) => void;
+  onRemove: (id: string | null) => void;
+  confirm?: (category: Category) => void;
+}) {
+  return (
+    <Card>
+      <Text style={styles.name}>{category.name}</Text>
+      <Text style={styles.muted}>{fill(r.members, { count: String(category.memberCount) })}</Text>
+      {confirm ? (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.text}>{fill(r.removeAsk, { name: category.name })}</Text>
+          <View style={styles.row}>
+            <Button label={r.yes} busy={busy} onPress={() => confirm(category)} />
+            <Button kind="secondary" disabled={busy} label={r.no} onPress={() => onRemove(null)} />
+          </View>
+        </View>
+      ) : onEdit ? (
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            disabled={busy}
+            label={r.change}
+            a11yLabel={`${r.change}: ${category.name}`}
+            onPress={() => onEdit(category)}
+          />
+          <Button
+            kind="link"
+            disabled={busy}
+            label={r.remove}
+            a11yLabel={`${r.remove}: ${category.name}`}
+            onPress={() => onRemove(category.id)}
+          />
+        </View>
+      ) : null}
+    </Card>
+  );
+});
+
+const MemberPermission = memo(function MemberPermission({
+  permission,
+  label,
+  r,
+  allowed,
+  value,
+  busy,
+  onChange,
+}: {
+  permission: PermissionKey;
+  label: string;
+  r: Dictionary['rights'];
+  allowed: boolean;
+  value: Exception;
+  busy: boolean;
+  onChange: (key: PermissionKey, value: Exception) => void;
+}) {
+  const options: [Exception, string][] = [
+    ['category', r.asCategory],
+    ['yes', r.allow],
+    ['no', r.deny],
+  ];
+  return (
+    <View style={styles.perm}>
+      <Text style={styles.text}>
+        {label}
+        <Text style={styles.small}> · {allowed ? r.allow : r.deny}</Text>
+      </Text>
+      <View style={styles.row} accessibilityRole="radiogroup" aria-label={label}>
+        {options.map(([key, text]) => {
+          const on = value === key;
+          return (
+            <Pressable
+              key={key}
+              accessibilityRole="radio"
+              accessibilityLabel={`${label}: ${text}`}
+              disabled={busy}
+              accessibilityState={{ checked: on, disabled: busy }}
+              aria-checked={on}
+              onPress={() => onChange(permission, key)}
+              style={[styles.seg, on && styles.chipOn]}
+            >
+              <Text style={[styles.segText, on && { color: '#fff' }]}>{text}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+});
+
+const CategoryPermission = memo(function CategoryPermission({
+  permission,
+  label,
+  on,
+  busy,
+  onChange,
+}: {
+  permission: PermissionKey;
+  label: string;
+  on: boolean;
+  busy: boolean;
+  onChange: (key: PermissionKey) => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      disabled={busy}
+      accessibilityState={{ checked: on, disabled: busy }}
+      aria-checked={on}
+      onPress={() => onChange(permission)}
+      style={styles.check}
+    >
+      <View style={[styles.box, on && styles.boxOn]}>
+        {on ? <Text style={styles.tick}>✓</Text> : null}
+      </View>
+      <Text style={[styles.text, { flexShrink: 1 }]}>{label}</Text>
+    </Pressable>
+  );
+});
 
 const MemberSummary = memo(function MemberSummary({
   member,
