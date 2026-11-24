@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { createElement, useState, type ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { DICTIONARIES } from '../src/i18n';
+import { WaitlistSection } from '../src/screens/WaitlistSection';
 import {
   BusinessApi,
   type SalonWaitlist,
@@ -13,6 +16,16 @@ import {
   waitlistStatus,
   type WaitlistEntry,
 } from '../src/waitlist';
+
+vi.mock('react', async (importOriginal) => {
+  const react = await importOriginal<typeof import('react')>();
+  return { ...react, useState: vi.fn(react.useState) };
+});
+vi.mock('react-native', () => vi.importActual('react-native-web'));
+
+const { renderToStaticMarkup } = await vi.importActual<{
+  renderToStaticMarkup(node: ReactNode): string;
+}>('react-dom/server');
 
 const entry = (over: Partial<WaitlistEntry>): WaitlistEntry => ({
   id: 'w1',
@@ -67,6 +80,59 @@ describe('waiting list of a day', () => {
         automatic.date,
       ),
     ).toEqual([manual]);
+  });
+
+  it('orders by the instant requested and keeps server order for simultaneous entries', () => {
+    const items = [
+      entry({ id: 'z', createdAt: '2026-11-05T09:00:00+01:00' }),
+      entry({ id: 'later', createdAt: '2026-11-05T08:15:00Z' }),
+      entry({ id: 'a', createdAt: '2026-11-05T08:00:00Z' }),
+    ];
+    expect(waitlistOfDay({ from: '2026-11-06', items }, '2026-11-06').map((e) => e.id)).toEqual([
+      'z',
+      'a',
+      'later',
+    ]);
+  });
+
+  it('shows Auto only for automatic entries, including when an older response omits the flag', () => {
+    const legacy = entry({ id: 'old', name: 'Legacy' });
+    Reflect.deleteProperty(legacy, 'autoBook');
+    const items = [
+      entry({ id: 'manual', name: 'Manual', autoBook: false }),
+      entry({ id: 'auto', name: 'Automatic', autoBook: true }),
+      legacy,
+      entry({ id: 'booked', name: 'Already booked', autoBook: true, status: 'booked' }),
+    ];
+    const date = legacy.date;
+    const entries = waitlistOfDay({ from: date, items }, date);
+    // Server rendering skips the fetch effect. Start the section with its loaded rows.
+    vi.mocked(useState).mockReturnValueOnce([entries, vi.fn()]);
+    const html = renderToStaticMarkup(
+      createElement(WaitlistSection, {
+        api: new BusinessApi('', { get: vi.fn(), set: vi.fn() }),
+        t: DICTIONARIES.pl,
+        date,
+        today: date,
+        timeZone: 'Europe/Warsaw',
+        reload: 0,
+        onBook: vi.fn(),
+        salon: {
+          orgId: 'o',
+          orgName: 'Org',
+          role: 'owner',
+          locationId: 'l',
+          locationName: 'Salon',
+          city: 'Warsaw',
+          currency: 'PLN',
+        },
+      }),
+    );
+    const rows = html.replace(/<[^>]+>/g, '');
+    expect(rows).toContain('ManualStrzyżenie');
+    expect(rows).toContain('AutomaticAutoStrzyżenie');
+    expect(rows).toContain('LegacyStrzyżenie');
+    expect(rows).not.toContain('Already booked');
   });
 
   it('says when the client joined and was told, in the salon time zone', () => {

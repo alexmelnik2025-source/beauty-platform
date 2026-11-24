@@ -27,7 +27,7 @@ const byOrder = (a: Service, b: Service) => a.sortOrder - b.sortOrder;
 
 /** Categories in the salon's order (as the server sorts them: place, then name). */
 const byCategoryOrder = (a: ServiceCategoryList[number], b: ServiceCategoryList[number]) =>
-  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'pl');
 
 /** Categories in the salon's order; empty categories are left out. */
 export function priceList(services: ServiceList, categories: ServiceCategoryList): ServiceGroup[] {

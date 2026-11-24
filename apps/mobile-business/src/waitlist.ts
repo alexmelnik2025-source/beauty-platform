@@ -26,7 +26,7 @@ export interface NewVisitPreset {
 export function waitlistOfDay(list: SalonWaitlist, date: string): WaitlistEntry[] {
   return list.items
     .filter((e) => e.date === date && (e.status === 'waiting' || e.status === 'notified'))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
 }
 
 /** "Czeka" or "Powiadomiony(-a) 14:05" (salon time) and "Zapisał(a) się 09:12". */
