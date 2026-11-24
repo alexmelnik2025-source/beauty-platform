@@ -23,7 +23,8 @@ export function ProfileScreen(props: {
   const p = t.profile;
   const [me, setMe] = useState<StaffList[number] | null>(null);
   const [chosen, setChosen] = useState<SpokenLanguage[]>([]);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -34,14 +35,15 @@ export function ProfileScreen(props: {
       .then((list) => {
         if (!alive) return;
         const mine = list.find((s) => s.id === staffId) ?? null;
+        setLoadError('');
         setMe(mine);
         setChosen(mine?.languages ?? []);
       })
-      .catch((e: unknown) => alive && setError(errorText(e, t)));
+      .catch((e: unknown) => alive && setLoadError(errorText(e, t)));
     return () => {
       alive = false;
     };
-  }, [api, salon, staffId, t]);
+  }, [api, salon.orgId, salon.locationId, staffId, t]);
 
   // Android "back" goes to the day.
   useEffect(() => {
@@ -54,7 +56,7 @@ export function ProfileScreen(props: {
 
   async function save() {
     setBusy(true);
-    setError('');
+    setSaveError('');
     setInfo('');
     try {
       const saved = await api.setStaffLanguages(salon.orgId, salon.locationId, staffId, chosen);
@@ -62,7 +64,7 @@ export function ProfileScreen(props: {
       setChosen(saved.languages);
       setInfo(p.saved);
     } catch (e) {
-      setError(errorText(e, t));
+      setSaveError(errorText(e, t));
     } finally {
       setBusy(false);
     }
@@ -74,7 +76,7 @@ export function ProfileScreen(props: {
         <Button kind="link" label={p.back} onPress={onBack} />
       </View>
       <Heading>{p.title}</Heading>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {loadError ? <ErrorText>{loadError}</ErrorText> : null}
       {me ? (
         <>
           <Card>
@@ -86,28 +88,43 @@ export function ProfileScreen(props: {
           </Card>
           <Text style={styles.section}>{p.languages}</Text>
           <Text style={styles.muted}>{p.languagesHint}</Text>
-          {SPOKEN.map((l) => {
-            const on = chosen.includes(l.code);
-            return (
-              <Pressable
-                key={l.code}
-                accessibilityRole="checkbox"
-                accessibilityLabel={l.name}
-                accessibilityState={{ checked: on }}
-                aria-checked={on}
-                onPress={() => {
-                  setInfo('');
-                  setChosen(toggleLanguage(chosen, l.code));
-                }}
-                style={[styles.option, on && styles.optionOn]}
-              >
-                <Text style={styles.flag}>{l.flag}</Text>
-                <Text style={styles.optionText}>{l.name}</Text>
-                <Text style={styles.tick}>{on ? '✓' : ''}</Text>
-              </Pressable>
-            );
-          })}
-          {chosen.length === 0 ? <Text style={styles.muted}>{p.none}</Text> : null}
+          <View
+            role="group"
+            accessibilityLabel={p.languages}
+            aria-invalid={!!saveError}
+            aria-describedby={saveError ? 'profile-languages-error' : undefined}
+            style={[styles.choices, !!saveError && styles.invalid]}
+          >
+            {SPOKEN.map((l) => {
+              const on = chosen.includes(l.code);
+              return (
+                <Pressable
+                  key={l.code}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={l.name}
+                  disabled={busy}
+                  accessibilityState={{ checked: on, disabled: busy }}
+                  aria-checked={on}
+                  onPress={() => {
+                    setInfo('');
+                    setSaveError('');
+                    setChosen(toggleLanguage(chosen, l.code));
+                  }}
+                  style={[styles.option, on && styles.optionOn]}
+                >
+                  <Text style={styles.flag}>{l.flag}</Text>
+                  <Text style={styles.optionText}>{l.name}</Text>
+                  <Text style={styles.tick}>{on ? '✓' : ''}</Text>
+                </Pressable>
+              );
+            })}
+            {chosen.length === 0 ? <Text style={styles.muted}>{p.none}</Text> : null}
+          </View>
+          {saveError ? (
+            <Text nativeID="profile-languages-error" role="alert" style={styles.fieldError}>
+              ! {saveError}
+            </Text>
+          ) : null}
           {info ? <Text style={styles.info}>{info}</Text> : null}
           <Button
             label={p.save}
@@ -116,7 +133,7 @@ export function ProfileScreen(props: {
             onPress={() => void save()}
           />
         </>
-      ) : !error ? (
+      ) : !loadError ? (
         <Text style={styles.muted}>{t.loading}</Text>
       ) : null}
     </ScrollView>
@@ -136,6 +153,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   info: { color: '#2e7d32', fontSize: 15 },
+  choices: { gap: 8 },
+  invalid: { borderColor: colors.danger, borderWidth: 1, borderRadius: 12, padding: 4 },
+  fieldError: { color: colors.danger, fontSize: 15 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -150,5 +170,5 @@ const styles = StyleSheet.create({
   optionOn: { borderColor: colors.accent, borderWidth: 2 },
   flag: { fontSize: 20 },
   optionText: { fontSize: 16, fontWeight: '600', color: colors.ink, flex: 1 },
-  tick: { fontSize: 18, fontWeight: '700', color: colors.ink, width: 20, textAlign: 'center' },
+  tick: { fontSize: 18, fontWeight: '700', color: colors.ink, minWidth: 20, textAlign: 'center' },
 });

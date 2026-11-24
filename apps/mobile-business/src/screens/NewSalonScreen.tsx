@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { BusinessApi, Locale } from '../api';
+import { ApiError, type BusinessApi, type Locale } from '../api';
 import {
   CURRENCIES,
   currencyName,
@@ -33,6 +33,9 @@ export function NewSalonScreen(props: {
   const [form, setForm] = useState(() =>
     emptyNewSalon(salonZoneOf(Intl.DateTimeFormat().resolvedOptions().timeZone)),
   );
+  const inputs = useRef<Partial<Record<TextKey, ComponentRef<typeof TextInput> | null>>>({});
+  const [problem, setProblem] = useState<NewSalonProblem | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const poland = regionForTimeZone(form.timezone) === 'PL';
@@ -45,21 +48,36 @@ export function NewSalonScreen(props: {
     postalCode: poland ? n.badPostalCodePl : t.salon.badPostalCode,
   };
 
+  function showProblem(next: NewSalonProblem) {
+    setProblem(next);
+    inputs.current[next === 'address' ? 'addressLine' : next]?.focus();
+  }
+
   async function create() {
+    setError('');
     const bodies = newSalonBodies(form, locale);
     if ('problem' in bodies) {
-      setError(problems[bodies.problem]);
+      showProblem(bodies.problem);
       return;
     }
     setBusy(true);
-    setError('');
+    setProblem(null);
+    let orgId = organizationId;
     try {
-      const org = await props.api.createOrganization(bodies.organization);
-      await props.api.createLocation(org.id, bodies.location);
+      if (!orgId) {
+        const org = await props.api.createOrganization(bodies.organization);
+        orgId = org.id;
+        setOrganizationId(orgId);
+      }
+      await props.api.createLocation(orgId, bodies.location);
       props.onCreated();
     } catch (e) {
-      setError(errorText(e, t));
       setBusy(false);
+      const path = e instanceof ApiError && e.code === 'VALIDATION_ERROR' && e.details[0]?.path;
+      if (path === 'name') showProblem(orgId ? 'locationName' : 'orgName');
+      else if (path === 'addressLine') showProblem('address');
+      else if (path === 'city' || path === 'postalCode') showProblem(path);
+      else setError(errorText(e, t));
     }
   }
 
@@ -67,22 +85,43 @@ export function NewSalonScreen(props: {
     key: TextKey,
     label: string,
     options: { maxLength: number; hint?: string; placeholder?: string; numeric?: boolean },
-  ) => (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        value={form[key]}
-        maxLength={options.maxLength}
-        keyboardType={options.numeric ? 'numbers-and-punctuation' : undefined}
-        placeholder={options.placeholder}
-        placeholderTextColor={colors.placeholder}
-        onChangeText={(value) => setForm({ ...form, [key]: value })}
-        style={styles.input}
-      />
-      {options.hint ? <Text style={styles.small}>{options.hint}</Text> : null}
-    </View>
-  );
+  ) => {
+    const invalid = problem !== null && problem === (key === 'addressLine' ? 'address' : key);
+    return (
+      <View style={styles.field}>
+        <Text style={styles.label}>{label}</Text>
+        <TextInput
+          ref={(input) => {
+            inputs.current[key] = input;
+          }}
+          accessibilityLabel={label}
+          editable={!busy && !(key === 'orgName' && organizationId)}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? 'new-salon-field-error' : undefined}
+          value={form[key]}
+          maxLength={options.maxLength}
+          keyboardType={options.numeric ? 'numbers-and-punctuation' : undefined}
+          placeholder={options.placeholder}
+          placeholderTextColor={colors.placeholder}
+          onChangeText={(value) => {
+            setForm({ ...form, [key]: value });
+            if (
+              invalid ||
+              (key === 'orgName' && problem === 'locationName' && !form.locationName.trim())
+            )
+              setProblem(null);
+          }}
+          style={[styles.input, invalid && styles.invalid]}
+        />
+        {invalid ? (
+          <Text nativeID="new-salon-field-error" role="alert" style={styles.fieldError}>
+            ! {problems[problem]}
+          </Text>
+        ) : null}
+        {options.hint ? <Text style={styles.small}>{options.hint}</Text> : null}
+      </View>
+    );
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -108,7 +147,10 @@ export function NewSalonScreen(props: {
           hint={t.salon.timeZoneHint}
           value={form.timezone}
           options={salonTimeZones(locale).map((z) => ({ value: z.timeZone, label: z.label }))}
-          onChange={(timezone) => setForm(withTimeZone(form, timezone))}
+          onChange={(timezone) => {
+            setForm(withTimeZone(form, timezone));
+            if (problem === 'postalCode') setProblem(null);
+          }}
         />
         <ChoiceList
           t={t}
@@ -133,7 +175,10 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
   section: { fontSize: 16, color: colors.ink, fontWeight: '700', marginBottom: 10 },
+  invalid: { borderColor: colors.danger },
+  fieldError: { color: colors.danger, fontSize: 15 },
   input: {
+    minWidth: 0,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
