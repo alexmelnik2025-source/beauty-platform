@@ -739,6 +739,11 @@ pnpm --filter @beauty/api-client generate
 - «Specjaliści» → «↑ / ↓»: если порядок не сохранился — ответ под строкой этого мастера, порядок возвращается.
 - e2e `team-invite`, скриншот `728-team-revoke-error`.
 
+## Страница салона: отказ «♡ Dodaj do ulubionych» под сердечком (задача 778, 24.11.2026)
+
+- Отказ сервера (нет связи, «Zbyt wiele prób», «уже 100 ulubionych») — сразу под кнопкой-сердечком, с «!», и читается
+  вместе с кнопкой; раньше — рамкой. e2e `web-favorites`, скриншот `778-salon-page-favorite-error`.
+
 ## «Bony podarunkowe»: отказ сервера у нажатой кнопки (задача 777, 24.11.2026)
 
 - Отказ сервера (нет связи, «Zbyt wiele prób» и т. п.) при «Sprzedaj bon» и «Zapisz» в «Zmień bon» — под этой кнопкой

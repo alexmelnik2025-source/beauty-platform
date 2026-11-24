@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { errorText, useI18n } from '@/lib/i18n';
 import type { ClientFavorites } from '@/lib/types';
-import { ErrorBox } from '../ui';
+import { FieldError } from '../ui';
 
 /**
  * Task 405: "♡ Dodaj do ulubionych" / "♥ W ulubionych" on a salon page for a client signed in to
@@ -22,7 +22,12 @@ export function FavoriteButton({
   // null = not known yet: no button.
   const [saved, setSaved] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 778 (owner's rule: errors where the action is): a refusal is said right under the heart
+   * with its "!" and read with the button, not as a box.
+   */
   const [error, setError] = useState('');
+  const errorId = `${useId()}-favorite-error`;
 
   useEffect(() => {
     let live = true;
@@ -63,11 +68,12 @@ export function FavoriteButton({
         className={className}
         aria-label={saved ? t.favorites.remove : t.favorites.add}
         disabled={busy}
+        aria-describedby={error ? errorId : undefined}
         onClick={() => void toggle()}
       >
         {saved ? t.favorites.saved : t.favorites.add}
       </button>
-      <ErrorBox>{error}</ErrorBox>
+      <FieldError id={errorId} text={error} />
     </div>
   );
 }

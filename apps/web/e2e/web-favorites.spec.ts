@@ -176,7 +176,28 @@ test('a signed-in client saves a salon on its page and finds it in "Ulubione"', 
 
     // Task 405: the heart on the salon page.
     await page.goto(`/pl/b/${slug}`);
-    await page.getByRole('button', { name: '♡ Dodaj do ulubionych' }).click();
+    // Task 778 (owner's rule: errors where the action is): a refusal is said right under the
+    // heart, with its "!", and read with the button — not as a box.
+    await page.route('**/v1/client/favorites/*', (route) =>
+      route.request().method() === 'PUT'
+        ? route.fulfill({
+            status: 429,
+            json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+          })
+        : route.fallback(),
+    );
+    const heart = page.getByRole('button', { name: '♡ Dodaj do ulubionych' });
+    await heart.click();
+    await expect(page.locator('.favorite-button .field-error')).toHaveText(
+      'Zbyt wiele prób. Odczekaj chwilę.',
+    );
+    await expect(heart).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+    await expect(page.locator('.favorite-button .alert')).toHaveCount(0);
+    await heart.scrollIntoViewIfNeeded();
+    await shot(page, '778-salon-page-favorite-error');
+    await page.unroute('**/v1/client/favorites/*');
+    await heart.click();
+    await expect(page.locator('.favorite-button .field-error')).toHaveCount(0);
     const saved = page.getByRole('button', { name: 'Usuń z ulubionych' });
     await expect(saved).toHaveText('♥ W ulubionych');
     await shot(page, '405-salon-page-favorite');
