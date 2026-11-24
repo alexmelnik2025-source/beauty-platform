@@ -1164,6 +1164,25 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   const terms = ownerPage.getByLabel('Regulamin rezerwacji', { exact: true });
   await expect(terms).toHaveValue(/^# Regulamin rezerwacji/);
   const privacy = ownerPage.getByLabel('Polityka prywatności', { exact: true });
+  // Task 749 (owner's rule: errors where the action is): a template that could not be fetched is
+  // said under its own "Wstaw szablon".
+  await ownerPage.route('**/legal-templates', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const privacyTemplate = ownerPage
+    .getByRole('region', { name: 'Regulamin i prywatność' })
+    .getByRole('button', { name: 'Wstaw szablon' })
+    .nth(1);
+  if (await privacy.inputValue()) ownerPage.once('dialog', (dialog) => void dialog.accept());
+  await privacyTemplate.click();
+  await expect(ownerPage.locator('#legal-template-error-privacyPolicy')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(privacyTemplate).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(ownerPage.locator('#legal-template-error-bookingTerms')).toHaveCount(0);
+  await expect(ownerPage.locator('.settings-card .alert')).toHaveCount(0);
+  await shot(ownerPage, '749-legal-template-error');
+  await ownerPage.unrouteAll({ behavior: 'wait' });
   ownerPage.once('dialog', (dialog) => void dialog.accept());
   await ownerPage
     .getByRole('region', { name: 'Regulamin i prywatność' })

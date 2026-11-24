@@ -12,6 +12,9 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **749 (ветка `agent/749-legal-template-error`, от main): «Ustawienia» → «Regulamin i prywatność» — отказ «Wstaw szablon» под кнопкой**
+  (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). e2e `booking`, скриншот
+  `749-legal-template-error`.
 - **748 (ветка `agent/748-client-guard-errors`, от main): карточка клиента — отказ «Zasady dla klienta» и «Zdejmij blokadę» у своего места**
   (полировка по правилу владельца «ошибки у поля», Q9, новых функций нет). e2e `q9-client-rules`, скриншот
   `748-client-rule-error`.
