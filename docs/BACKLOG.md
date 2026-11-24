@@ -26,23 +26,23 @@
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Ответ сервера не про адрес
   или код (нет связи, «Zbyt wiele prób») был рамкой над формой — теперь под кнопкой, введённое остаётся; ввод убирает
   ошибку. e2e `client-visits-field-errors`, скриншоты `770-visits-send-error`, `770-visits-verify-error`.
-- **763 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–762): карточка клиента → «Bonusy» — отказ «Wymień», «Anuluj kupon» и «Zapisz zmianę» у своего места**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 763 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–762): карточка клиента → «Bonusy» — отказ «Wymień», «Anuluj kupon» и «Zapisz zmianę» у своего места**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). Ответ сервера был рамкой вверху «Bonusy» —
   теперь под наградой, купоном или кнопкой «Zapisz zmianę». e2e `loyalty`, скриншот `763-client-coupon-cancel-error`.
-- **762 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–761): страница записи → «Powiadom mnie, gdy zwolni się termin» — отказ «Zapisz mnie na listę» под кнопкой**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 762 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–761): страница записи → «Powiadom mnie, gdy zwolni się termin» — отказ «Zapisz mnie na listę» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Ответ сервера не про одно
   поле был рамкой над формой — теперь сразу под кнопкой, введённое остаётся. e2e `waitlist`, скриншот
   `762-waitlist-join-error`.
-- **761 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–760): письмо «Zwolnił się termin» — отказ «Biorę ten termin» / «Nie, dziękuję» под нажатой кнопкой**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 761 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–760): письмо «Zwolnił się termin» — отказ «Biorę ten termin» / «Nie, dziękuję» под нажатой кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Раньше — рамкой вверху
   страницы. e2e `waitlist-offer`, скриншот `761-waitlist-offer-take-error`.
-- **759–760 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–758): ссылка на визит — отказ «Zrezygnuj» / «Odbiorę przy wizycie» и «Odłóż na następną wizytę» под строкой товара**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 759–760 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–758): ссылка на визит — отказ «Zrezygnuj» / «Odbiorę przy wizycie» и «Odłóż na następną wizytę» под строкой товара**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Раньше — рамкой над списком
   товаров. e2e `shop-after-visit`, скриншоты `759-booked-product-error`, `760-used-product-save-error`.
-- **758 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–757): «Moje wizyty» → визит → «Moje kupony» — отказ «Użyj» / «Nie używaj» под этим купоном**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 758 (ветка `agent/756-to-hand-waitlist-errors`, вместе с 756–757): «Moje wizyty» → визит → «Moje kupony» — отказ «Użyj» / «Nie używaj» под этим купоном**
   (полировка по правилу владельца «ошибки у поля», Q5 — путь клиента, новых функций нет). Раньше — рамкой над
   купонами. e2e `loyalty`, скриншот `758-client-coupon-error`.
-- **756–757 (ветка `agent/756-to-hand-waitlist-errors`, от main; номера 756–757 — чтобы не пересечься с параллельным запуском): отказ «Anuluj rezerwację» / «Wydaj i dolicz» и «Wypisz mnie z listy» — у кнопки**
+- **✅ Влито в main 24.11.2026, ~02:25 UTC (756–763 вместе, ветка `agent/756-763-rebased`; ветки `agent/756-to-hand-waitlist-errors` и `agent/756-763-stack` — устаревшие копии, не продолжать). 756–757 (ветка `agent/756-to-hand-waitlist-errors`, от main; номера 756–757 — чтобы не пересечься с параллельным запуском): отказ «Anuluj rezerwację» / «Wydaj i dolicz» и «Wypisz mnie z listy» — у кнопки**
   (полировка по правилу владельца «ошибки у поля», новых функций нет). 756: карточка визита → «Do wydania klientowi» —
   ответ сервера был рамкой над списком товаров, теперь под строкой этого товара. 757: ссылка из письма листа ожидания —
   отказ «Wypisz mnie z listy» был рамкой вверху страницы, теперь сразу под кнопкой. e2e `visit-to-hand`, `waitlist`,
