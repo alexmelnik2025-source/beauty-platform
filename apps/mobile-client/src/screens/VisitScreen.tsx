@@ -15,6 +15,7 @@ import type { BookingPreset } from '../booking';
 import {
   errorText,
   formFailure,
+  isNetworkError,
   validationField,
   wishFields,
   type FormFailure,
@@ -67,6 +68,8 @@ export function VisitScreen(props: {
   const [invalidWish, setInvalidWish] = useState<WishField>();
   const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
   const [asking, setAsking] = useState(false);
+  const changingVisit = useRef(false);
+  const [changeFailed, setChangeFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   /** Task Q3: the cancelled visit's products card is shown — it carries the main button. */
   const [productsToMove, setProductsToMove] = useState(false);
@@ -74,6 +77,8 @@ export function VisitScreen(props: {
   const [done, setDone] = useState('');
   /** "Change time": the specialist's free times (null while loading), the day and the time picked. */
   const [moving, setMoving] = useState(false);
+  const loadingSlots = useRef(false);
+  const [slotFailure, setSlotFailure] = useState<FormFailure | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [pickedDay, setPickedDay] = useState('');
   const [pending, setPending] = useState<Slot | null>(null);
@@ -81,7 +86,7 @@ export function VisitScreen(props: {
   tRef.current = t;
   // One key per "Yes": a second tap or a retry after a lost answer cancels once.
   const keyRef = useRef<string | null>(null);
-  const moveKeyRef = useRef<string | null>(null);
+  const moveKeyRef = useRef<{ start: string; key: string } | null>(null);
   /** My coupons for this visit (task 10d): loaded while the visit can still be changed. */
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
 
@@ -156,6 +161,7 @@ export function VisitScreen(props: {
   // Android "back" closes the card instead of the app.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (changingVisit.current) return true;
       if (moving) setMoving(false);
       else onBack();
       return true;
@@ -165,7 +171,10 @@ export function VisitScreen(props: {
 
   // Free times of the same specialist, from today in the salon's time zone.
   const loadSlots = useCallback(
-    async (target: ClientAppointment) => {
+    async (target: ClientAppointment): Promise<void> => {
+      if (loadingSlots.current) return;
+      loadingSlots.current = true;
+      setSlotFailure(null);
       setSlots(null);
       setPending(null);
       try {
@@ -173,13 +182,16 @@ export function VisitScreen(props: {
         setSlots(res.slots);
       } catch (e) {
         setSlots([]);
-        setError(errorText(e, tRef.current));
+        setSlotFailure(formFailure(e, tRef.current, () => void loadSlots(target)));
+      } finally {
+        loadingSlots.current = false;
       }
     },
     [api],
   );
 
   function startMoving() {
+    setChangeFailed(false);
     setMoving(true);
     setAsking(false);
     setError('');
@@ -188,10 +200,16 @@ export function VisitScreen(props: {
   }
 
   async function move(slot: Slot) {
+    if (changingVisit.current || busy) return;
+    changingVisit.current = true;
+    setChangeFailed(false);
     setBusy(true);
     setError('');
     try {
-      setVisit(await api.reschedule(visitId, slot.start, (moveKeyRef.current ??= newRequestKey())));
+      if (moveKeyRef.current?.start !== slot.start) {
+        moveKeyRef.current = { start: slot.start, key: newRequestKey() };
+      }
+      setVisit(await api.reschedule(visitId, slot.start, moveKeyRef.current.key));
       moveKeyRef.current = null;
       setPending(null);
       setMoving(false);
@@ -199,6 +217,7 @@ export function VisitScreen(props: {
       props.onChanged();
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
+      if (isNetworkError(e)) return setChangeFailed(true);
       setPending(null);
       setError(errorText(e, t));
       moveKeyRef.current = null;
@@ -210,6 +229,7 @@ export function VisitScreen(props: {
         await loadSlots(visit);
       }
     } finally {
+      changingVisit.current = false;
       setBusy(false);
     }
   }
@@ -247,6 +267,9 @@ export function VisitScreen(props: {
   }
 
   async function cancel() {
+    if (changingVisit.current || busy) return;
+    changingVisit.current = true;
+    setChangeFailed(false);
     setBusy(true);
     setError('');
     try {
@@ -256,11 +279,13 @@ export function VisitScreen(props: {
       props.onChanged();
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
+      if (isNetworkError(e)) return setChangeFailed(true);
       setAsking(false);
       setError(errorText(e, t));
       keyRef.current = null;
       await refresh();
     } finally {
+      changingVisit.current = false;
       setBusy(false);
     }
   }
@@ -313,7 +338,7 @@ export function VisitScreen(props: {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.top}>
-        <Button kind="link" label={v.back} onPress={onBack} />
+        <Button kind="link" label={v.back} disabled={busy} onPress={onBack} />
       </View>
       <Heading>{visit.service.name}</Heading>
       <View style={styles.when}>
@@ -365,6 +390,8 @@ export function VisitScreen(props: {
             <Text role="status" style={styles.muted}>
               {v.loadingSlots}
             </Text>
+          ) : slotFailure ? (
+            <FormFeedback failure={slotFailure} retryLabel={t.retry} />
           ) : days.length === 0 ? (
             <Text style={styles.muted}>{v.noSlots}</Text>
           ) : (
@@ -385,6 +412,7 @@ export function VisitScreen(props: {
                       aria-pressed={on}
                       disabled={busy}
                       onPress={() => {
+                        setChangeFailed(false);
                         setPickedDay(d.date);
                         setPending(null);
                       }}
@@ -403,7 +431,9 @@ export function VisitScreen(props: {
                     label={slot.time}
                     pressed={pending?.start === slot.start}
                     onPress={() => {
-                      if (!busy) setPending(slot);
+                      if (busy) return;
+                      setChangeFailed(false);
+                      setPending(slot);
                     }}
                   />
                 ))}
@@ -415,6 +445,15 @@ export function VisitScreen(props: {
               <Text style={styles.askText}>
                 {fill(v.moveAsk, { day: formatDay(pending.date, locale), time: pending.time })}
               </Text>
+              <FormFeedback
+                failure={
+                  changeFailed
+                    ? { message: t.error.network, retry: () => void move(pending) }
+                    : null
+                }
+                retryLabel={t.retry}
+                busy={busy}
+              />
               <View style={styles.askButtons}>
                 <View style={styles.askButton}>
                   <Button
@@ -443,11 +482,23 @@ export function VisitScreen(props: {
       ) : null}
 
       {actions.cancel && !asking && !moving ? (
-        <Button kind="secondary" label={v.cancel} onPress={() => setAsking(true)} />
+        <Button
+          kind="secondary"
+          label={v.cancel}
+          onPress={() => {
+            setChangeFailed(false);
+            setAsking(true);
+          }}
+        />
       ) : null}
       {actions.cancel && asking ? (
         <View role="alertdialog" aria-label={v.cancel} style={styles.ask}>
           <Text style={styles.askText}>{fill(v.cancelAsk, { day, time: visit.time })}</Text>
+          <FormFeedback
+            failure={changeFailed ? { message: t.error.network, retry: () => void cancel() } : null}
+            retryLabel={t.retry}
+            busy={busy}
+          />
           <View style={styles.askButtons}>
             <View style={styles.askButton}>
               <Button
