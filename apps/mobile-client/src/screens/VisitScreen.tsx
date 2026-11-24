@@ -482,7 +482,7 @@ export function VisitScreen(props: {
                 {fill(v.moveAsk, { day: formatDay(pending.date, locale), time: pending.time })}
               </Text>
               <View style={styles.askButtons}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.askButton}>
                   <Button
                     kind="secondary"
                     label={v.moveNo}
@@ -490,7 +490,7 @@ export function VisitScreen(props: {
                     onPress={() => setPending(null)}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.askButton}>
                   <Button label={v.moveYes} busy={busy} onPress={() => void move(pending)} />
                 </View>
               </View>
@@ -515,7 +515,7 @@ export function VisitScreen(props: {
         <View role="alertdialog" aria-label={v.cancel} style={styles.ask}>
           <Text style={styles.askText}>{fill(v.cancelAsk, { day, time: visit.time })}</Text>
           <View style={styles.askButtons}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.askButton}>
               <Button
                 kind="secondary"
                 label={v.cancelNo}
@@ -523,7 +523,7 @@ export function VisitScreen(props: {
                 onPress={() => setAsking(false)}
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.askButton}>
               <Button label={v.cancelYes} busy={busy} onPress={() => void cancel()} />
             </View>
           </View>
@@ -629,15 +629,27 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 14 },
   top: { flexDirection: 'row', marginLeft: -8 },
-  when: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  when: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   day: { fontSize: 18, fontWeight: '600', color: colors.ink, flexShrink: 1 },
   faded: { color: colors.muted, textDecorationLine: 'line-through' },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   small: { color: colors.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   label: { color: colors.muted, fontSize: 13 },
   salon: { fontSize: 16, fontWeight: '600', color: colors.ink },
-  value: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, gap: 12 },
+  value: { maxWidth: '100%', fontSize: 15, fontWeight: '600', color: colors.ink },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: 12,
+  },
   done: { color: '#1e6b3a', fontSize: 15, fontWeight: '600' },
   ask: {
     backgroundColor: colors.card,
@@ -648,7 +660,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   askText: { fontSize: 16, color: colors.ink, fontWeight: '600' },
-  askButtons: { flexDirection: 'row', gap: 10 },
+  askButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  askButton: { flexGrow: 1, flexBasis: 140 },
   askMove: { borderColor: colors.ink },
   move: {
     backgroundColor: colors.card,
@@ -669,7 +682,8 @@ const styles = StyleSheet.create({
   couponName: { fontSize: 15, color: colors.ink, flexShrink: 1 },
   days: { gap: 8, paddingVertical: 2 },
   dayChip: {
-    width: 56,
+    minWidth: 56,
+    paddingHorizontal: 4,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
