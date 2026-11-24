@@ -51,10 +51,12 @@ test('business app saves counted stock and shows the differences', async ({ brow
     }),
   );
   const base = `/v1/organizations/${org.id}/locations/${location.id}`;
+  const oilName = 'Olejek regenerujący do brody i włosów ProfesjonalnaSeriaBarberskaBezSpacji';
   for (const [name, stockQuantity] of [
     ['Pomada', 8],
     ['Szampon', 3],
-    ['Olejek', 6],
+    [oilName, 6],
+    ['Wosk', null],
   ] as const) {
     await json(
       await request.post(`${base}/products`, {
@@ -88,21 +90,43 @@ test('business app saves counted stock and shows the differences', async ({ brow
     const stocktake = phone.getByTestId('stocktake');
     const pomade = stocktake.getByLabel('Na półce — Pomada');
     const shampoo = stocktake.getByLabel('Na półce — Szampon');
-    const oil = stocktake.getByLabel('Na półce — Olejek');
+    const oilRow = stocktake.getByTestId('stocktake-row').filter({ hasText: oilName });
+    const oil = oilRow.getByLabel(`Na półce — ${oilName}`);
+    const oilTitle = oilRow.getByText(oilName, { exact: true });
+    const oilError = oilRow.getByRole('alert');
+    const untracked = stocktake.getByLabel('Na półce — Wosk');
     const save = stocktake.getByRole('button', { name: 'Zapisz inwentaryzację' });
     await expect(pomade).toHaveValue('8');
     await expect(shampoo).toHaveValue('3');
     await expect(oil).toHaveValue('6');
     await expect(save).toBeDisabled();
 
-    await pomade.fill('-1');
-    await expect(stocktake.getByText('Wpisz liczbę sztuk albo zostaw puste.')).toBeVisible();
-    await expect(save).toBeDisabled();
+    await expect(untracked).toHaveValue('');
+    await expect(stocktake.getByRole('alert')).toHaveCount(0);
+    await expect(oilTitle).toBeVisible();
+    const titleBox = (await oilTitle.boundingBox())!;
+    const inputBox = (await oil.boundingBox())!;
+    expect(titleBox.x).toBeGreaterThanOrEqual(0);
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(inputBox.x);
+    expect(inputBox.x + inputBox.width).toBeLessThanOrEqual(320);
+    expect(await oilTitle.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
 
     await pomade.fill('5');
-    await expect(stocktake.getByText('Wpisz liczbę sztuk albo zostaw puste.')).toBeHidden();
     await shampoo.fill('7');
-    await oil.clear();
+    await expect(save).toBeEnabled();
+    for (const invalid of ['-1', 'abc', '']) {
+      await oil.fill(invalid);
+      await expect(oil).toHaveValue(invalid);
+      await expect(oilError).toBeVisible();
+      await expect(oil).toHaveAttribute('aria-invalid', 'true');
+      await expect(oil).toHaveAccessibleDescription('! 0–100 000 szt.');
+      await expect(stocktake.getByRole('alert')).toHaveCount(1);
+      await expect(save).toBeDisabled();
+    }
+    await oil.fill('6');
+    await expect(oilError).toBeHidden();
+    await expect(oil).toHaveAccessibleDescription('');
+    await expect(save).toBeEnabled();
     await expect(stocktake.getByText('w systemie: 8 szt. · brakuje 3 szt.')).toBeVisible();
     await expect(stocktake.getByText('w systemie: 3 szt. · nadwyżka 4 szt.')).toBeVisible();
     await save.click();
@@ -111,12 +135,12 @@ test('business app saves counted stock and shows the differences', async ({ brow
     );
     await expect(stocktake).toBeHidden();
 
-    const saved = await json<{ products: { name: string; stockQuantity: number }[] }>(
+    const saved = await json<{ products: { name: string; stockQuantity: number | null }[] }>(
       await request.get(`${base}/products`, { headers: owner }),
     );
     expect(
       Object.fromEntries(saved.products.map(({ name, stockQuantity }) => [name, stockQuantity])),
-    ).toEqual({ Pomada: 5, Szampon: 7, Olejek: 6 });
+    ).toEqual({ Pomada: 5, Szampon: 7, [oilName]: 6, Wosk: null });
     await openStocktake.click();
     await expect(pomade).toHaveValue('5');
     await expect(shampoo).toHaveValue('7');
