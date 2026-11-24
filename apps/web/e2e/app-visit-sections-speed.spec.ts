@@ -16,6 +16,7 @@ const product = {
   stockQuantity: 5,
   barcode: 'CR1234',
 };
+const coupon = { id: 'coupon', name: 'Rabat', code: 'CR24', discountGrosze: 500, problem: null };
 const reserved = {
   id: 'reserved',
   name: 'Szampon',
@@ -64,7 +65,7 @@ async function mockSalon(page: Page, status: 'confirmed' | 'completed') {
       return route.fulfill({ json: sales });
     }
     const sections = {
-      [path + '/coupons']: ['coupons', { tier: null, applied: [], available: [] }],
+      [path + '/coupons']: ['coupons', { tier: null, applied: [], available: [coupon] }],
       [path + '/reservations']: ['reservations', { reservations: [reserved], toHandGrosze: 3500 }],
       [path + '/products']: ['sales', sales],
       [base + '/products']: ['catalogue', { products: catalogue, sold30Days: [] }],
@@ -102,7 +103,9 @@ test('status, barcode typing and reopening reuse visit section reads', async ({ 
     await expect(page.getByRole('heading', { name: pl.waitlist.title + ' (0)' })).toBeVisible();
     await open.click();
     await expect(page.getByTestId('visit-to-hand')).toBeVisible();
-    await expect(page.getByText(pl.clients.coupons + ' (0)')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: fill(pl.visit.coupons.useOne, { code: coupon.code }) }),
+    ).toBeVisible();
     await page.getByRole('button', { name: pl.visit.markCame, exact: true }).click();
     const code = page.getByTestId('visit-products-code');
     await expect(code).toBeVisible();
@@ -118,7 +121,9 @@ test('status, barcode typing and reopening reuse visit section reads', async ({ 
     await expect(code).toBeVisible();
     await expect(page.getByTestId('visit-to-hand')).toBeVisible();
     await expect(page.getByTestId('visit-vouchers')).toBeVisible();
-    await expect(page.getByText(pl.clients.coupons + ' (0)')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: fill(pl.visit.coupons.useOne, { code: coupon.code }) }),
+    ).toBeVisible();
     await page.getByRole('button', { name: pl.visit.back, exact: true }).click();
     await expect(page.getByRole('heading', { name: pl.waitlist.title + ' (0)' })).toBeVisible();
     // The attendance write refreshed the day once. The second return was read-only.
@@ -130,6 +135,40 @@ test('status, barcode typing and reopening reuse visit section reads', async ({ 
       vouchers: 1,
       waitlist: 2,
     });
+  } finally {
+    app.server.close();
+  }
+});
+
+test('reopening checks for newly issued coupons and newly reserved products after an empty visit', async ({
+  page,
+}) => {
+  const app = await serveApp('mobile-business');
+  try {
+    await mockSalon(page, 'confirmed');
+    await page.route(
+      '**' + path + '/coupons',
+      (route) => route.fulfill({ json: { tier: null, applied: [], available: [] } }),
+      { times: 1 },
+    );
+    await page.route(
+      '**' + path + '/reservations',
+      (route) => route.fulfill({ json: { reservations: [], toHandGrosze: 0 } }),
+      { times: 1 },
+    );
+    await page.goto(app.url);
+    const open = page.getByRole('button', { name: /Ewa · Strzyżenie/ });
+    const firstReservationRead = page.waitForResponse('**' + path + '/reservations');
+    await open.click();
+    await (await firstReservationRead).finished();
+    await expect(page.getByText(pl.clients.coupons + ' (0)')).toBeVisible();
+    await expect(page.getByTestId('visit-to-hand')).toHaveCount(0);
+    await page.getByRole('button', { name: pl.visit.back, exact: true }).click();
+    await open.click();
+    await expect(
+      page.getByRole('button', { name: fill(pl.visit.coupons.useOne, { code: coupon.code }) }),
+    ).toBeVisible();
+    await expect(page.getByTestId('visit-to-hand')).toContainText(reserved.name);
   } finally {
     app.server.close();
   }

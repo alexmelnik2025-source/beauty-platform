@@ -59,6 +59,7 @@ function VisitCouponsCard(props: Props) {
   ]);
   useEffect(() => {
     let alive = true;
+    let reusable = false;
     couponCache
       .read(
         salon,
@@ -66,12 +67,18 @@ function VisitCouponsCard(props: Props) {
         offersKey,
       )
       .then(
-        (data) => alive && setCoupons(data),
+        (data) => {
+          if (!alive) return;
+          reusable = hasCoupons(data);
+          setCoupons(data);
+        },
         // Without the list the visit still works; coupons simply are not offered.
         () => undefined,
       );
     return () => {
       alive = false;
+      // A client can claim their first coupon elsewhere without changing this visit.
+      if (!reusable) couponCache.clear(salon);
     };
   }, [api, salon, orgId, locationId, visit.id, offersKey, codeReset]);
 

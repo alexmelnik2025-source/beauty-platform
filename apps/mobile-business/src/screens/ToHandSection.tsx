@@ -11,6 +11,10 @@ import { invalidateSaleStock } from './ProductSalesSection';
 
 const reservationCache = new SalonReadCache<VisitReservations>();
 
+function hasVisibleReservations(data: VisitReservations) {
+  return data.reservations.some((row) => row.status === 'reserved' || row.status === 'handed');
+}
+
 type Action = 'hand-over' | 'cancel';
 
 function validAmount(grosze: number) {
@@ -68,18 +72,23 @@ export function ToHandSection(props: {
 
   useEffect(() => {
     let active = true;
+    let reusable = false;
     setData(null);
     setError(null);
     void load().then(
       (result) => {
-        if (active) setData(result);
+        if (!active) return;
+        reusable = hasVisibleReservations(result);
+        setData(result);
       },
       () => {},
     );
     return () => {
       active = false;
+      // The client can reserve their first product while the visit is closed.
+      if (!reusable) reservationCache.clear(salon);
     };
-  }, [load]);
+  }, [load, salon]);
 
   const run = async (reservationId: string, action: Action) => {
     const signal = lifetime.current?.signal;
@@ -95,7 +104,8 @@ export function ToHandSection(props: {
         reservationId,
         action,
       );
-      reservationCache.set(salon, updated, appointmentId);
+      if (hasVisibleReservations(updated)) reservationCache.set(salon, updated, appointmentId);
+      else reservationCache.clear(salon);
       invalidateSaleStock(salon, action === 'hand-over');
       if (signal.aborted) return;
       setData(updated);
