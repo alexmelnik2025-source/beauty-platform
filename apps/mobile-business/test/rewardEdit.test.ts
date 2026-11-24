@@ -10,19 +10,23 @@ import {
   toggledService,
 } from '../src/rewardEdit';
 
-const reward: LoyaltyReward = {
+const rewardWithoutLimits = {
   id: 'r1',
   name: 'Broda gratis',
   kind: 'free_service',
   discountPercent: null,
   freeServiceId: 's2',
   cost: 8,
-  serviceIds: ['s2'],
-  couponValidityDays: 30,
   sortOrder: 3,
   archivedAt: null,
   version: 4,
-} as LoyaltyReward;
+} satisfies Omit<LoyaltyReward, 'serviceIds' | 'couponValidityDays'>;
+
+const reward: LoyaltyReward = {
+  ...rewardWithoutLimits,
+  serviceIds: ['s2'],
+  couponValidityDays: 30,
+};
 
 describe('changing a reward (task 348)', () => {
   it('gives a saved reward its form back', () => {
@@ -75,6 +79,30 @@ describe('changing a reward (task 348)', () => {
       problem: 'validity',
     });
     expect(rewardToSave({ ...form, name: '' })).toEqual({ ok: false, problem: 'name' });
+  });
+
+  it('uses the coupon defaults when the API omits the limits', () => {
+    // @ts-expect-error Some API responses omit the coupon limits.
+    const form = rewardForm(rewardWithoutLimits);
+    expect(form).toMatchObject({ validityDays: '', serviceIds: [] });
+    expect(rewardToSave(form)).toMatchObject({
+      ok: true,
+      reward: { couponValidityDays: null, serviceIds: [] },
+    });
+    // @ts-expect-error The catalogue renders the same incomplete response.
+    expect(rewardLimits(rewardWithoutLimits, new Map(), DICTIONARIES.pl.loyalty, fill)).toBeNull();
+  });
+
+  it('checks the trimmed reward name at the 80-character boundary', () => {
+    const form = rewardForm(reward);
+    const name = 'ą'.repeat(80);
+    expect(rewardToSave({ ...form, name: ` ${name} ` })).toMatchObject({
+      ok: true,
+      reward: { name },
+    });
+    for (const invalid of ['   ', name + 'ą']) {
+      expect(rewardToSave({ ...form, name: invalid })).toEqual({ ok: false, problem: 'name' });
+    }
   });
 
   it('round-trips the maximum reward cost and refuses invalid costs on edit', () => {
