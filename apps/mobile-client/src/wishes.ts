@@ -28,12 +28,16 @@ export function asksWishes(q: WishQuestions | null | undefined): q is WishQuesti
 
 /** The drinks to offer, plus "nothing" — or none when the salon does not ask. */
 export function drinkChoices(q: WishQuestions): VisitDrink[] {
-  return q.drinks.length > 0 ? [...q.drinks, 'none'] : [];
+  return q.drinks.length > 0 ? [...new Set(q.drinks), 'none'] : [];
 }
 
 /** What is sent: only the questions asked, the note trimmed (empty → null, at most 200). */
 export function wishesToSend(w: VisitWishes, q: WishQuestions): VisitWishes {
-  const note = (w.note ?? '').trim().slice(0, NOTE_MAX);
+  // The API counts UTF-16 units. Drop the leading half of an emoji if the cut splits it.
+  const note = (w.note ?? '')
+    .trim()
+    .slice(0, NOTE_MAX)
+    .replace(/[\uD800-\uDBFF]$/, '');
   return {
     mood: q.mood ? w.mood : null,
     drink: q.drinks.length > 0 && w.drink && drinkChoices(q).includes(w.drink) ? w.drink : null,
