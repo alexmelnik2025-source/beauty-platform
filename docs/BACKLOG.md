@@ -12,6 +12,9 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
+- **750 (ветка `agent/750-commission-save-error`, от main): «Raporty» → «Ustaw prowizje» — отказ «Zapisz» под строкой мастера**
+  (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e `reports`, скриншот
+  `750-commission-save-error`.
 - **749 (ветка `agent/749-legal-template-error`, от main): «Ustawienia» → «Regulamin i prywatność» — отказ «Wstaw szablon» под кнопкой**
   (полировка по правилу владельца «ошибки у поля», Q6, новых функций нет). e2e `booking`, скриншот
   `749-legal-template-error`.

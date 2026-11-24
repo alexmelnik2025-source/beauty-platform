@@ -52,6 +52,12 @@ export function Commissions({
    * error is said under that row's field, not above the list; editing the field takes it away.
    */
   const [badRow, setBadRow] = useState('');
+  /**
+   * Task 750 (owner's rule: errors where the action is): a refused "Zapisz" of a specialist's
+   * commission is said under that specialist's row, not as a box above the whole list. The box
+   * stays only for a list that failed to load.
+   */
+  const [rowError, setRowError] = useState<{ staffId: string; text: string } | null>(null);
   const base = `/v1/organizations/${session.orgId}/locations/${session.location.id}/reports/commissions`;
 
   if (!canSet && rows.length === 0) return null;
@@ -92,6 +98,7 @@ export function Commissions({
     const commissionPercent = parsePercent(drafts[staffId] ?? '');
     if (commissionPercent === undefined) {
       setError('');
+      setRowError(null);
       setSaved('');
       setBadRow(staffId);
       return;
@@ -99,6 +106,7 @@ export function Commissions({
     setSaving(staffId);
     setSaved('');
     setError('');
+    setRowError(null);
     setBadRow('');
     try {
       show(
@@ -111,7 +119,7 @@ export function Commissions({
       onSaved();
     } catch (err) {
       if (err instanceof ApiError && err.code === 'VALIDATION_ERROR') setBadRow(staffId);
-      else setError(errorText(t, err));
+      else setRowError({ staffId, text: errorText(t, err) });
     } finally {
       setSaving('');
     }
@@ -197,6 +205,7 @@ export function Commissions({
                       onChange={(e) => {
                         setSaved('');
                         if (badRow === s.staffId) setBadRow('');
+                        if (rowError?.staffId === s.staffId) setRowError(null);
                         setDrafts({ ...drafts, [s.staffId]: e.target.value });
                       }}
                     />
@@ -206,6 +215,9 @@ export function Commissions({
                     type="button"
                     className="btn btn--small"
                     disabled={saving !== ''}
+                    aria-describedby={
+                      rowError?.staffId === s.staffId ? `commission-${s.staffId}-error` : undefined
+                    }
                     onClick={() => void save(s.staffId)}
                   >
                     {saving === s.staffId ? t.reports.commissionSaving : t.reports.commissionSave}
@@ -217,7 +229,13 @@ export function Commissions({
                   ) : null}
                   <FieldError
                     id={`commission-${s.staffId}-error`}
-                    text={badRow === s.staffId ? t.reports.commissionInvalid : undefined}
+                    text={
+                      badRow === s.staffId
+                        ? t.reports.commissionInvalid
+                        : rowError?.staffId === s.staffId
+                          ? rowError.text
+                          : undefined
+                    }
                   />
                 </li>
               ))}

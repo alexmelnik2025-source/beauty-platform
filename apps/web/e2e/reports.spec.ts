@@ -438,8 +438,27 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await shot(page, '666-commission-field-error');
   await ilian.getByRole('textbox').fill('40');
   await expect(commissions.getByText(/najwyżej jedno miejsce po przecinku/)).toHaveCount(0);
-  await ilian.getByRole('button', { name: 'Zapisz' }).click();
+  // Task 750 (owner's rule: errors where the action is): a refused "Zapisz" is said under
+  // Ilian's row, not above the list.
+  await page.route('**/commissions/*', (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  const saveIlian = ilian.getByRole('button', { name: 'Zapisz' });
+  await saveIlian.click();
+  await expect(ilian.locator('.field-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(saveIlian).toHaveAccessibleDescription('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(commissions.locator('.alert')).toHaveCount(0);
+  await expect(ilian.getByRole('textbox')).toHaveValue('40');
+  await shot(page, '750-commission-save-error');
+  await page.unrouteAll({ behavior: 'wait' });
+  await saveIlian.click();
   await expect(ilian.getByRole('status')).toHaveText('Zapisano.');
+  await expect(ilian.locator('.field-error')).toHaveCount(0);
   await expect(commissions.getByRole('heading', { name: /^Prowizje: 60,00\s*zł$/ })).toBeVisible();
   const ilianRow = commissions.getByRole('row').filter({ hasText: 'Ilian' });
   await expect(ilianRow).toContainText('40%');
