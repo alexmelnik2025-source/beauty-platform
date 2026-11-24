@@ -173,10 +173,9 @@ test('the owner shares the booking link from the business app (task 152)', async
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(PHONE.width);
       expect(bounds!.height).toBe(bounds!.width);
     }
-    const shareStaff = app.getByRole('button', {
-      name: `Udostępnij link specjalisty: ${staffName}`,
-      exact: true,
-    });
+    const shareStaff = app
+      .getByRole('group', { name: staffName, exact: true })
+      .getByRole('button', { name: 'Udostępnij link specjalisty', exact: true });
     await shareStaff.click();
     expect(await app.evaluate(() => navigator.clipboard.readText())).toContain(
       `/s/${location.slug}?utm_source=qr&staff=`,
@@ -186,6 +185,8 @@ test('the owner shares the booking link from the business app (task 152)', async
       expect(bounds!.width).toBeGreaterThanOrEqual(44);
       expect(bounds!.height).toBeGreaterThanOrEqual(44);
     }
+    await app.getByRole('button', { name: staffName }).click();
+    await expect(staffQr).toHaveCount(0);
   } finally {
     businessApp.server.close();
     await context.close();

@@ -214,7 +214,12 @@ function BookingLinks(props: Props) {
               {staff
                 .filter((s) => s.id === qrStaff)
                 .map((s) => (
-                  <View key={s.id} style={styles.staffBlock}>
+                  <View
+                    key={s.id}
+                    style={styles.staffBlock}
+                    role="group"
+                    accessibilityLabel={s.displayName}
+                  >
                     <SalonQr
                       link={staffQrLink(WEB_URL, location, s.id)}
                       name={location.name}
@@ -224,7 +229,6 @@ function BookingLinks(props: Props) {
                     <Button
                       kind="secondary"
                       label={b.staffQrShare}
-                      a11yLabel={`${b.staffQrShare}: ${s.displayName}`}
                       onPress={() => void shareStaff(s)}
                     />
                     {staffInfo ? (
