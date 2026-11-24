@@ -15,6 +15,11 @@ import { ErrorBox, FieldError, Spinner } from '../ui';
 /** Task 696: the fields of the quick "Dodaj produkt" form, in their order on screen. */
 type AddField = 'name' | 'price' | 'stock';
 const ADD_FIELDS: AddField[] = ['name', 'price', 'stock'];
+/**
+ * Task 820 (owner's rule: errors where the action is): a refused quick add is said under the add
+ * form's "Zapisz" (this id in place of a product's), not at the top of the list.
+ */
+const ADD_ROW = 'shop-add';
 
 const SHOP_CATEGORIES = [
   'hair_care',
@@ -203,7 +208,7 @@ export function MyShopSection({ base }: { base: string }) {
       setStock('');
       setAddProblems({});
       setAdding(false);
-    });
+    }, ADD_ROW);
   };
 
   if (!products) return error ? <ErrorBox>{error}</ErrorBox> : <Spinner />;
@@ -216,7 +221,9 @@ export function MyShopSection({ base }: { base: string }) {
   });
   const clearAdd = (field: AddField) => {
     if (addProblems[field]) setAddProblems({ ...addProblems, [field]: undefined });
+    if (rowError?.id === ADD_ROW) setRowError(null);
   };
+  const addError = rowError?.id === ADD_ROW ? rowError.text : '';
 
   const shown = products.filter((p) => p.active);
   const inShop = shown.filter((p) => p.inSalonShop).length;
@@ -333,10 +340,16 @@ export function MyShopSection({ base }: { base: string }) {
               />
               <FieldError id="shop-add-stock-error" text={addProblems.stock} />
             </label>
-            <button type="submit" className="btn" disabled={busy}>
+            <button
+              type="submit"
+              className="btn"
+              disabled={busy}
+              aria-describedby={addError ? 'shop-add-save-error' : undefined}
+            >
               {t.common.save}
             </button>
           </div>
+          <FieldError id="shop-add-save-error" text={addError} />
         </form>
       ) : null}
 

@@ -114,6 +114,28 @@ test('the new-service card says a blank name and a too-high price at their field
   await expect(card.locator('#service-priceGrosze-error')).toBeVisible();
   await price.fill('90');
   await expect(card.locator('#service-priceGrosze-error')).toHaveCount(0);
+  // Task 821 (owner's rule: errors where the action is): a refused save that names no field is
+  // said under "Zapisz" at the bottom of the long sheet, not at its top; the typed data stays.
+  const servicesUrl = (url: URL) => url.pathname.endsWith('/services');
+  await page.route(servicesUrl, (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await save.click();
+  await expect(card.locator('#service-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(save).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(name).toHaveValue('Strzyżenie męskie');
+  await expect(card.locator('.alert')).toHaveCount(0);
+  await save.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'e2e/screenshots/821-service-save-error.png' });
+  await page.unroute(servicesUrl);
+  await price.fill('90,00');
+  await expect(card.locator('#service-save-error')).toHaveCount(0);
+  await price.fill('90');
   await save.click();
   await expect(card).toHaveCount(0);
   await expect(page.getByText('Strzyżenie męskie').first()).toBeVisible();
