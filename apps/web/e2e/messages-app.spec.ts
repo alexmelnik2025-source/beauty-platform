@@ -94,7 +94,24 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await expect(app.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await app.route(`**${base}`, async (route) => {
+      await pending;
+      await route.continue();
+    });
     await openBusinessMenu(app, 'Wiadomości do klientów');
+    const skeleton = app.getByRole('progressbar', { name: 'Ładowanie…' });
+    await expect(skeleton).toBeVisible();
+    release();
+    await expect(skeleton).toBeHidden();
+    await app.unroute(`**${base}`);
+    await app.addStyleTag({
+      content: '[dir="auto"], textarea, input { font-size: 1.3rem !important }',
+    });
+
     await expect(app.getByRole('heading', { name: 'Wiadomości do klientów' })).toBeVisible();
     // The salon's defaults: a reminder 24 hours before, nothing held, no "next visit" email.
     await expect(app.getByRole('button', { name: '24 godz. przed', exact: true })).toHaveAttribute(
@@ -113,9 +130,29 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: '15 min', exact: true }).click();
     await app.getByLabel('Wysyłaj klientom przypomnienie „Pora na kolejną wizytę?”').click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
-    await expect(app.getByText('Wpisz liczbę dni od 7 do 365.')).toBeVisible();
-    await app.getByLabel('Ile dni po ostatniej wizycie (7–365)').fill('30');
-    await app.getByLabel('Własny tekst (nieobowiązkowo)').fill('Dawno Cię nie było — wpadnij!');
+    const days = app.getByRole('textbox', { name: 'Ile dni po ostatniej wizycie (7–365)' });
+    await expect(days).toHaveAccessibleDescription('! Wpisz liczbę dni od 7 do 365.');
+    await expect(days).toHaveAttribute('aria-invalid', 'true');
+    await days.fill('30');
+    await expect(app.getByRole('alert')).toBeHidden();
+    const custom = app.getByRole('switch', { name: 'Własny tekst (nieobowiązkowo)' });
+    const template = app.getByRole('textbox', { name: 'Własny tekst (nieobowiązkowo)' });
+    const save = app.getByRole('button', { name: 'Zapisz' });
+    await save.click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    await expect(template).toBeHidden();
+    await custom.click();
+    for (const blank of ['', '   ']) {
+      await template.fill(blank);
+      await save.click();
+      await expect(template).toHaveAttribute('aria-invalid', 'true');
+      await expect(template).toHaveAccessibleDescription(
+        '! Do uzupełnienia: Pora na kolejną wizytę',
+      );
+      await expect(app.getByRole('alert')).toBeInViewport({ ratio: 1 });
+    }
+    await template.fill('Dawno Cię nie było — wpadnij!');
+    await expect(app.getByRole('alert')).toBeHidden();
     await shot(app, '208-business-app-messages');
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();
@@ -137,7 +174,16 @@ test('the owner sets the messages to clients in the business app (task 208)', as
     await app.getByRole('button', { name: '‹ Wróć' }).click();
     await openBusinessMenu(app, 'Wiadomości do klientów');
     await expect(app.getByLabel('Ile dni po ostatniej wizycie (7–365)')).toHaveValue('30');
+    await expect(custom).toBeChecked();
+    await expect(template).toHaveValue('Dawno Cię nie było — wpadnij!');
     await shot(app, '208a-business-app-messages-saved');
+    await custom.click();
+    await save.click();
+    await expect(app.getByText('Zapisano.')).toBeVisible();
+    const standard = await json<{ rebookReminderText: string | null; rebookReminderDays: number }>(
+      await request.get(base, { headers: owner }),
+    );
+    expect(standard).toMatchObject({ rebookReminderText: null, rebookReminderDays: 30 });
     await app.getByLabel('Wysyłaj klientom przypomnienie „Pora na kolejną wizytę?”').click();
     await app.getByRole('button', { name: 'Zapisz' }).click();
     await expect(app.getByText('Zapisano.')).toBeVisible();

@@ -62,10 +62,11 @@ test('business app shows new bookings and keeps their read state', async ({ brow
       },
     }),
   );
+  const serviceName = 'Strzyżenie długich włosów z konsultacją i modelowaniem';
   const service = await json<{ id: string }>(
     await request.post(`${base}/services`, {
       headers: owner,
-      data: { name: 'Strzyżenie', durationMinutes: 45, priceGrosze: 9000 },
+      data: { name: serviceName, durationMinutes: 45, priceGrosze: 9000 },
     }),
   );
   const staff = await json<{ id: string }>(
@@ -106,10 +107,29 @@ test('business app shows new bookings and keeps their read state', async ({ brow
     const bell = phone.getByRole('button', { name: /^Powiadomienia(?: \(\d+\))?$/ });
     const back = phone.getByRole('button', { name: '‹ Wróć', exact: true });
     const readAll = phone.getByRole('button', { name: 'Oznacz wszystkie jako przeczytane' });
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await phone.route(
+      '**/v1/me/notifications?limit=100',
+      async (route) => {
+        await pending;
+        await route.continue();
+      },
+      { times: 1 },
+    );
     await bell.click();
+    const skeleton = phone.getByRole('progressbar', { name: 'Ładowanie…' });
+    await expect(skeleton).toBeVisible();
+    await expect(phone.getByText('Nie ma powiadomień w tym salonie.')).toBeHidden();
+    release();
+    await expect(skeleton).toBeHidden();
+    await phone.addStyleTag({ content: '[dir="auto"] { font-size: 1.3rem !important }' });
     await expect(phone.getByRole('heading', { name: 'Powiadomienia' })).toBeVisible();
     await expect(phone.getByText('Nie ma powiadomień w tym salonie.')).toBeVisible();
     await expect(readAll).toBeHidden();
+    await expect(phone.getByRole('button')).toHaveCount(1);
     await back.click();
 
     const publicPath = `/v1/public/locations/${location.slug}`;
@@ -150,11 +170,16 @@ test('business app shows new bookings and keeps their read state', async ({ brow
 
     await bell.click();
     const unread = phone.getByRole('button', {
-      name: /^Nowe: Nowa wizyta online, .* Anna Kowalska$/,
+      name: /^Nowe: Nowa wizyta online, .*Anna Kowalska · Strzyżenie długich włosów.*Kasia,/,
     });
-    const read = phone.getByRole('button', { name: /^Nowa wizyta online, .* Anna Kowalska$/ });
+    const read = phone.getByRole('button', {
+      name: /^Nowa wizyta online, .*Anna Kowalska · Strzyżenie długich włosów.*Kasia,/,
+    });
     await expect(unread).toBeVisible();
-    await expect(phone.getByText('Anna Kowalska · Strzyżenie · Kasia')).toBeVisible();
+    const detail = phone.getByText(`Anna Kowalska · ${serviceName} · Kasia`);
+    await detail.scrollIntoViewIfNeeded();
+    await expect(detail).toBeInViewport({ ratio: 1 });
+    expect(await detail.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(readAll).toBeVisible();
     await readAll.click();
     await expect(read).toBeVisible();

@@ -3,11 +3,17 @@ import { BackHandler, ScrollView, StyleSheet, Switch, Text, TextInput, View } fr
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
-import { HOLD_MINUTES, messagesChanges, messagesForm, REMINDER_HOURS } from '../messages';
+import {
+  HOLD_MINUTES,
+  messagesChanges,
+  messagesForm,
+  REMINDER_HOURS,
+  type MessagesProblem,
+} from '../messages';
 import { saveProblem } from '../salon';
 import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
-import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
+import { LoadingSkeleton, SalonReadCache, useScreenLifetime } from './HistoryScreen';
 
 export const locationCache = new SalonReadCache<Location>();
 
@@ -59,6 +65,8 @@ export function MessagesScreen(props: {
   const { api, t, salon, onBack } = props;
   const m = t.messages;
   const [error, setError] = useState('');
+  const [customText, setCustomText] = useState<boolean | null>(null);
+  const [fieldError, setFieldError] = useState<MessagesProblem | 'emptyText' | null>(null);
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -78,13 +86,27 @@ export function MessagesScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
+  const customTextEnabled = customText ?? Boolean(location?.rebookReminderText);
+  const invalidDays = fieldError === 'rebookDays';
+  const invalidText = fieldError === 'emptyText' || fieldError === 'rebookText';
+  const textError =
+    fieldError === 'emptyText' ? fill(t.salon.missing, { list: m.rebook }) : m.badText;
+
   async function save() {
     if (!location || !form || busy) return;
     setError('');
     setInfo('');
-    const checked = messagesChanges(location, form);
+    setFieldError(null);
+    const checked = messagesChanges(
+      location,
+      customTextEnabled ? form : { ...form, rebookText: '' },
+    );
     if ('problem' in checked) {
-      setError(checked.problem === 'rebookDays' ? m.badDays : m.badText);
+      setFieldError(checked.problem);
+      return;
+    }
+    if (form.rebookOn && customTextEnabled && !form.rebookText.trim()) {
+      setFieldError('emptyText');
       return;
     }
     if (Object.keys(checked.changes).length === 0) {
@@ -104,12 +126,14 @@ export function MessagesScreen(props: {
       if (signal.aborted) return;
       setLocation(saved);
       setForm(messagesForm(saved));
+      setCustomText(null);
       setInfo(m.saved);
     } catch (e) {
       locationCache.clear(salon);
       if (signal.aborted) return;
       if (saveProblem(e) === 'changedMeanwhile') {
         setError(m.changedMeanwhile);
+        setCustomText(null);
         await load();
       } else setError(errorText(e, t));
     } finally {
@@ -168,33 +192,72 @@ export function MessagesScreen(props: {
                 style={switchTouchTarget}
                 accessibilityLabel={m.rebookOn}
                 value={form.rebookOn}
-                onValueChange={(rebookOn) => setForm({ ...form, rebookOn })}
+                onValueChange={(rebookOn) => {
+                  setFieldError(null);
+                  setForm({ ...form, rebookOn });
+                }}
                 trackColor={{ true: colors.accent, false: colors.line }}
               />
             </View>
             {form.rebookOn ? (
               <>
+                <Text style={styles.label}>{m.rebookDays}</Text>
                 <TextInput
                   accessibilityLabel={m.rebookDays}
-                  placeholder={m.rebookDays}
-                  placeholderTextColor={colors.placeholder}
+                  aria-invalid={invalidDays}
+                  accessibilityHint={invalidDays ? m.badDays : undefined}
+                  aria-describedby={invalidDays ? 'rebook-days-error' : undefined}
                   value={form.rebookDays}
-                  onChangeText={(rebookDays) => setForm({ ...form, rebookDays })}
+                  onChangeText={(rebookDays) => {
+                    if (invalidDays) setFieldError(null);
+                    setForm({ ...form, rebookDays });
+                  }}
                   keyboardType="number-pad"
                   maxLength={3}
-                  style={styles.input}
+                  style={[styles.input, invalidDays && styles.invalid]}
                 />
-                <TextInput
-                  accessibilityLabel={m.rebookText}
-                  placeholder={m.rebookPlaceholder}
-                  placeholderTextColor={colors.placeholder}
-                  value={form.rebookText}
-                  onChangeText={(rebookText) => setForm({ ...form, rebookText })}
-                  maxLength={500}
-                  multiline
-                  numberOfLines={3}
-                  style={[styles.input, styles.multiline]}
-                />
+                {invalidDays && (
+                  <View nativeID="rebook-days-error">
+                    <ErrorText>! {m.badDays}</ErrorText>
+                  </View>
+                )}
+                <View style={styles.switchRow}>
+                  <Text style={[styles.value, { flex: 1 }]}>{m.rebookText}</Text>
+                  <Switch
+                    style={switchTouchTarget}
+                    accessibilityLabel={m.rebookText}
+                    value={customTextEnabled}
+                    onValueChange={(enabled) => {
+                      if (invalidText) setFieldError(null);
+                      setCustomText(enabled);
+                    }}
+                    trackColor={{ true: colors.accent, false: colors.line }}
+                  />
+                </View>
+                {customTextEnabled && (
+                  <TextInput
+                    accessibilityLabel={m.rebookText}
+                    aria-invalid={invalidText}
+                    accessibilityHint={invalidText ? textError : undefined}
+                    aria-describedby={invalidText ? 'rebook-text-error' : undefined}
+                    placeholder={m.rebookPlaceholder}
+                    placeholderTextColor={colors.placeholder}
+                    value={form.rebookText}
+                    onChangeText={(rebookText) => {
+                      if (invalidText) setFieldError(null);
+                      setForm({ ...form, rebookText });
+                    }}
+                    maxLength={500}
+                    multiline
+                    numberOfLines={3}
+                    style={[styles.input, styles.multiline, invalidText && styles.invalid]}
+                  />
+                )}
+                {customTextEnabled && invalidText && (
+                  <View nativeID="rebook-text-error">
+                    <ErrorText>! {textError}</ErrorText>
+                  </View>
+                )}
               </>
             ) : null}
             <Text style={styles.small}>{m.rebookHint}</Text>
@@ -202,7 +265,7 @@ export function MessagesScreen(props: {
           <Button label={m.save} busy={busy} onPress={() => void save()} />
         </>
       ) : !error ? (
-        <Text style={styles.muted}>{t.loading}</Text>
+        <LoadingSkeleton label={t.loading} />
       ) : null}
     </ScrollView>
   );
@@ -242,6 +305,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
+  invalid: { borderColor: colors.danger },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   chip: {
     maxWidth: '100%',
