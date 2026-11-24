@@ -139,6 +139,13 @@ export function ProductsSection({ base }: { base: string }) {
   const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
   /** Task 709: an error of "Przyjmij" / "Odpisz", said under the pieces of that product. */
   const [piecesError, setPiecesError] = useState<{ key: string; text: string } | null>(null);
+  /**
+   * Task 790 (owner's rule: errors where the action is): a refused "Zapisz", "Sprzedajemy",
+   * "Historia" or "Usuń" of a product row is said under that row, not at the top of the list.
+   */
+  const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
+  /** Task 791: a refused "CSV stanu magazynowego" is said under that button. */
+  const [csvError, setCsvError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [stocktake, setStocktake] = useState(false);
@@ -239,6 +246,12 @@ export function ProductsSection({ base }: { base: string }) {
       },
     ).then((ok) => ok && done());
   }
+  /** Task 790: typing in a product row takes back what the server said under it. */
+  const editRow = (id: string, draft: (typeof drafts)[string]) => {
+    setDrafts({ ...drafts, [id]: draft });
+    if (rowError?.id === id) setRowError(null);
+  };
+  const rowErrorText = (id: string) => (rowError?.id === id ? rowError.text : '');
   const piecesText = (key: string) => (piecesError?.key === key ? piecesError.text : '');
   const piecesProps = (key: string) => {
     const text = piecesText(key);
@@ -259,6 +272,7 @@ export function ProductsSection({ base }: { base: string }) {
   async function downloadStock() {
     setBusy(true);
     setError('');
+    setCsvError('');
     try {
       const res = await apiResponse(`${base}/products/export.csv`, {
         query: {
@@ -276,7 +290,7 @@ export function ProductsSection({ base }: { base: string }) {
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (err) {
-      setError(errorText(t, err));
+      setCsvError(errorText(t, err));
     } finally {
       setBusy(false);
     }
@@ -288,12 +302,13 @@ export function ProductsSection({ base }: { base: string }) {
       return;
     }
     setError('');
+    setRowError(null);
     setWriteOff({ quantity: '', note: '' });
     try {
       const res = await api<StockHistory>(`${base}/products/${id}/stock-history`);
       setHistoryOf({ id, rows: res.movements });
     } catch (err) {
-      setError(errorText(t, err));
+      setRowError({ id, text: errorText(t, err) });
     }
   }
 
@@ -572,10 +587,12 @@ export function ProductsSection({ base }: { base: string }) {
             className="btn btn--quiet btn--small"
             title={p.stockCsvHint}
             disabled={busy}
+            aria-describedby={csvError ? 'products-stock-csv-error' : undefined}
             onClick={() => void downloadStock()}
           >
             {p.stockCsv}
           </button>{' '}
+          <FieldError id="products-stock-csv-error" text={csvError} />
           {suppliers.length > 0 ? (
             <>
               <select
@@ -762,9 +779,7 @@ export function ProductsSection({ base }: { base: string }) {
                   {...rowProps('name')}
                   value={draft.name}
                   maxLength={80}
-                  onChange={(e) =>
-                    setDrafts({ ...drafts, [x.id]: { ...draft, name: e.target.value } })
-                  }
+                  onChange={(e) => editRow(x.id, { ...draft, name: e.target.value })}
                   style={{ flex: '1 1 12rem' }}
                 />
                 <span className="commission-row__input">
@@ -773,9 +788,7 @@ export function ProductsSection({ base }: { base: string }) {
                     aria-label={`${p.price} — ${x.name}`}
                     {...rowProps('price')}
                     value={draft.price}
-                    onChange={(e) =>
-                      setDrafts({ ...drafts, [x.id]: { ...draft, price: e.target.value } })
-                    }
+                    onChange={(e) => editRow(x.id, { ...draft, price: e.target.value })}
                   />
                   <span aria-hidden="true">{location.currency}</span>
                 </span>
@@ -786,9 +799,7 @@ export function ProductsSection({ base }: { base: string }) {
                     {...rowProps('cost')}
                     placeholder={p.costPlaceholder}
                     value={draft.cost}
-                    onChange={(e) =>
-                      setDrafts({ ...drafts, [x.id]: { ...draft, cost: e.target.value } })
-                    }
+                    onChange={(e) => editRow(x.id, { ...draft, cost: e.target.value })}
                   />
                   <span aria-hidden="true">{location.currency}</span>
                 </span>
@@ -797,9 +808,7 @@ export function ProductsSection({ base }: { base: string }) {
                   placeholder={p.supplier}
                   value={draft.supplier}
                   maxLength={80}
-                  onChange={(e) =>
-                    setDrafts({ ...drafts, [x.id]: { ...draft, supplier: e.target.value } })
-                  }
+                  onChange={(e) => editRow(x.id, { ...draft, supplier: e.target.value })}
                   style={{ flex: '0 1 9rem', minWidth: 0 }}
                 />
                 <input
@@ -808,9 +817,7 @@ export function ProductsSection({ base }: { base: string }) {
                   placeholder={p.barcode}
                   value={draft.barcode}
                   maxLength={40}
-                  onChange={(e) =>
-                    setDrafts({ ...drafts, [x.id]: { ...draft, barcode: e.target.value } })
-                  }
+                  onChange={(e) => editRow(x.id, { ...draft, barcode: e.target.value })}
                   style={{ flex: '0 1 9rem', minWidth: 0 }}
                 />
                 <span className="commission-row__input">
@@ -820,9 +827,7 @@ export function ProductsSection({ base }: { base: string }) {
                     {...rowProps('stock')}
                     placeholder="—"
                     value={draft.stock}
-                    onChange={(e) =>
-                      setDrafts({ ...drafts, [x.id]: { ...draft, stock: e.target.value } })
-                    }
+                    onChange={(e) => editRow(x.id, { ...draft, stock: e.target.value })}
                   />
                   <span aria-hidden="true">{p.pieces}</span>
                 </span>
@@ -833,9 +838,7 @@ export function ProductsSection({ base }: { base: string }) {
                     {...rowProps('low')}
                     placeholder="—"
                     value={draft.low}
-                    onChange={(e) =>
-                      setDrafts({ ...drafts, [x.id]: { ...draft, low: e.target.value } })
-                    }
+                    onChange={(e) => editRow(x.id, { ...draft, low: e.target.value })}
                   />
                   <span aria-hidden="true">{p.pieces}</span>
                 </span>
@@ -900,25 +903,29 @@ export function ProductsSection({ base }: { base: string }) {
                   type="button"
                   className="btn btn--small"
                   disabled={busy || (!changed && rowWrong.length === 0)}
+                  aria-describedby={rowErrorText(x.id) ? `product-${x.id}-action-error` : undefined}
                   onClick={() => {
                     // Task 722: a wrong field sends the cursor to it — the text is already under it.
                     if (rowWrong.length > 0) {
                       document.getElementById(`product-${x.id}-${rowWrong[0]![0]}`)?.focus();
                       return;
                     }
-                    void run(() =>
-                      api(`${base}/products/${x.id}`, {
-                        method: 'PATCH',
-                        body: {
-                          name: draft.name.trim(),
-                          priceGrosze: draftPrice,
-                          purchasePriceGrosze: draftCost,
-                          stockQuantity: draftStock,
-                          lowStockAt: draftLow,
-                          supplier: draft.supplier.trim() || null,
-                          barcode: draftBarcode,
-                        },
-                      }),
+                    setRowError(null);
+                    void run(
+                      () =>
+                        api(`${base}/products/${x.id}`, {
+                          method: 'PATCH',
+                          body: {
+                            name: draft.name.trim(),
+                            priceGrosze: draftPrice,
+                            purchasePriceGrosze: draftCost,
+                            stockQuantity: draftStock,
+                            lowStockAt: draftLow,
+                            supplier: draft.supplier.trim() || null,
+                            barcode: draftBarcode,
+                          },
+                        }),
+                      (text) => setRowError({ id: x.id, text }),
                     );
                   }}
                 >
@@ -929,14 +936,20 @@ export function ProductsSection({ base }: { base: string }) {
                     type="checkbox"
                     checked={x.active}
                     disabled={busy}
-                    onChange={(e) =>
-                      void run(() =>
-                        api(`${base}/products/${x.id}`, {
-                          method: 'PATCH',
-                          body: { active: e.target.checked },
-                        }),
-                      )
+                    aria-describedby={
+                      rowErrorText(x.id) ? `product-${x.id}-action-error` : undefined
                     }
+                    onChange={(e) => {
+                      setRowError(null);
+                      void run(
+                        () =>
+                          api(`${base}/products/${x.id}`, {
+                            method: 'PATCH',
+                            body: { active: e.target.checked },
+                          }),
+                        (text) => setRowError({ id: x.id, text }),
+                      );
+                    }}
                   />
                   <span>{p.active}</span>
                 </label>
@@ -945,6 +958,7 @@ export function ProductsSection({ base }: { base: string }) {
                   className="link-btn small"
                   aria-expanded={historyOf?.id === x.id}
                   aria-label={p.historyFor.replace('{name}', x.name)}
+                  aria-describedby={rowErrorText(x.id) ? `product-${x.id}-action-error` : undefined}
                   onClick={() => void toggleHistory(x.id)}
                 >
                   {p.history}
@@ -955,12 +969,22 @@ export function ProductsSection({ base }: { base: string }) {
                   disabled={busy}
                   onClick={() => {
                     if (window.confirm(p.removeAsk.replace('{name}', x.name))) {
-                      void run(() => api(`${base}/products/${x.id}`, { method: 'DELETE' }));
+                      setRowError(null);
+                      void run(
+                        () => api(`${base}/products/${x.id}`, { method: 'DELETE' }),
+                        (text) => setRowError({ id: x.id, text }),
+                      );
                     }
                   }}
+                  aria-describedby={rowErrorText(x.id) ? `product-${x.id}-action-error` : undefined}
                 >
                   {p.remove}
                 </button>
+                {rowErrorText(x.id) ? (
+                  <span style={{ flexBasis: '100%' }}>
+                    <FieldError id={`product-${x.id}-action-error`} text={rowErrorText(x.id)} />
+                  </span>
+                ) : null}
                 {historyOf?.id === x.id ? (
                   <div style={{ flexBasis: '100%' }} data-testid="stock-history">
                     <h3 className="small">{p.historyFor.replace('{name}', x.name)}</h3>

@@ -92,6 +92,11 @@ export default function CancellationGuardPage() {
   const [form, setForm] = useState<Form | null>(null);
   const [marked, setMarked] = useState<GuardedClients | null>(null);
   const [releasing, setReleasing] = useState<Marked | null>(null);
+  /**
+   * Task 794 (owner's rule: errors where the action is): a refused "Zdejmij oznaczenie" is said in
+   * the open sheet under its button — the page behind the sheet is not seen.
+   */
+  const [releaseError, setReleaseError] = useState('');
   const [error, setError] = useState('');
   /**
    * Task 665 (owner's rule: errors at the field): a number out of range is said under its own
@@ -170,6 +175,7 @@ export default function CancellationGuardPage() {
   async function release(client: Marked, note: string) {
     if (!lock()) return;
     setError('');
+    setReleaseError('');
     try {
       await api(`${url}/clients/${client.customerId}/release`, {
         method: 'POST',
@@ -179,7 +185,7 @@ export default function CancellationGuardPage() {
       setReleasing(null);
       setInfo(t.guard.released);
     } catch (err) {
-      setError(errorText(t, err));
+      setReleaseError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -388,6 +394,7 @@ export default function CancellationGuardPage() {
                   onClick={() => {
                     setInfo('');
                     setReleasing(c);
+                    setReleaseError('');
                   }}
                 >
                   {t.guard.release}
@@ -401,7 +408,11 @@ export default function CancellationGuardPage() {
         <ReleaseSheet
           client={releasing}
           busy={busy}
-          onClose={() => setReleasing(null)}
+          error={releaseError}
+          onClose={() => {
+            setReleasing(null);
+            setReleaseError('');
+          }}
           onRelease={(note) => void release(releasing, note)}
         />
       ) : null}
@@ -412,11 +423,13 @@ export default function CancellationGuardPage() {
 function ReleaseSheet({
   client,
   busy,
+  error,
   onClose,
   onRelease,
 }: {
   client: Marked;
   busy: boolean;
+  error: string;
   onClose: () => void;
   onRelease: (note: string) => void;
 }) {
@@ -440,10 +453,15 @@ function ReleaseSheet({
           <button type="button" className="btn btn--quiet grow" onClick={onClose}>
             {t.guard.cancel}
           </button>
-          <button className="btn grow" disabled={busy}>
+          <button
+            className="btn grow"
+            disabled={busy}
+            aria-describedby={error ? 'guard-release-error' : undefined}
+          >
             {t.guard.releaseYes}
           </button>
         </div>
+        <FieldError id="guard-release-error" text={error} />
       </form>
     </Sheet>
   );

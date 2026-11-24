@@ -258,8 +258,26 @@ test('the owner sets up the loyalty program: stamp card, rewards, service rules,
   await expect(rules.getByText('Zapisano')).toHaveCount(0);
   await rules.getByLabel('Broda', { exact: true }).fill('0');
   await expect(rules.getByText(/Wpisz liczbę od 0 do 100\s000\./)).toHaveCount(0);
-  await rules.getByRole('button', { name: 'Zapisz zasady usług' }).click();
+  // Task 795 (owner's rule: errors where the action is): a refused save is said under "Zapisz zasady
+  // usług" at the bottom of the list, not at the top of the page; the typed points stay.
+  const earnRulesUrl = (url: URL) => url.pathname.endsWith('/loyalty/earn-rules');
+  await page.route(earnRulesUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const saveRules = rules.getByRole('button', { name: 'Zapisz zasady usług' });
+  await saveRules.click();
+  await expect(rules.locator('#loyalty-rules-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveRules).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(rules.getByLabel('Broda', { exact: true })).toHaveValue('0');
+  await expect(page.locator('.alert', { hasText: 'Zbyt wiele prób' })).toHaveCount(0);
+  await saveRules.scrollIntoViewIfNeeded();
+  await shot(page, '795-loyalty-rules-error');
+  await page.unroute(earnRulesUrl);
+  await saveRules.click();
   await expect(rules.getByText('Zapisano')).toBeVisible();
+  await expect(rules.locator('#loyalty-rules-error')).toHaveCount(0);
   const withRules = await json<Program>(
     await request.get(`${orgBase}/loyalty/program`, { headers: owner }),
   );

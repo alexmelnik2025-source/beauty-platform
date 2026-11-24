@@ -44,10 +44,10 @@ export function salonReviewLine(review: SalonReview, locale: Locale): string {
     month: 'short',
     year: 'numeric',
   }).format(new Date(review.createdAt));
-  return [review.staffName, review.serviceName, day].join(' · ');
+  return [review.staffName?.trim(), review.serviceName?.trim(), day].filter(Boolean).join(' · ');
 }
 
-/** An older page is added below; a review already shown is not repeated. */
+/** Newest first, keeping page order for equal timestamps and the first copy of each review. */
 export function appendSalonReviews(shown: SalonReview[], page: SalonReview[]): SalonReview[] {
   const seen = new Set(shown.map((r) => r.id));
   const result = [...shown];
@@ -56,7 +56,7 @@ export function appendSalonReviews(shown: SalonReview[], page: SalonReview[]): S
     result.push(review);
     seen.add(review.id);
   }
-  return result;
+  return result.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 /** "★★★★☆" for 4 of 5. */

@@ -1019,6 +1019,22 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.getByRole('button', { name: /Kasia Nowak/ }).click();
   await expect(ownerPage.getByRole('dialog')).toContainText('Widzi telefon i e-mail klienta');
   await shot(ownerPage, '18-owner-permissions');
+  // Task 796 (owner's rule: errors where the action is): a refused "Zapisz" of the rights is said
+  // in the sheet's footer under the buttons, not at the top above the long list of rights.
+  const memberSheet = ownerPage.getByRole('dialog');
+  const rightsUrl = (url: URL) => /\/members\/[^/]+\/permissions$/.test(url.pathname);
+  await ownerPage.route(rightsUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const saveRights = memberSheet.getByRole('button', { name: 'Zapisz', exact: true });
+  await saveRights.click();
+  await expect(memberSheet.locator('#member-action-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(saveRights).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(memberSheet.locator('.alert')).toHaveCount(0);
+  await shot(ownerPage, '796-member-rights-save-error');
+  await ownerPage.unroute(rightsUrl);
   await ownerPage.keyboard.press('Escape');
   await ownerPage.goto('/pl/app/clients');
   await ownerPage.getByRole('button', { name: /Anna Kowalska/ }).click();

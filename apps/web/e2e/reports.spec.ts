@@ -466,12 +466,32 @@ test('the owner opens "Raporty": revenue, visits, clients, specialists, services
   await expect(commissions.getByRole('row').filter({ hasText: 'Marek' })).toHaveCount(0);
   await shot(page, '374-owner-reports-commissions');
 
+  // Task 793 (owner's rule: errors where the action is): a refused CSV file is said right under the
+  // buttons at the top, with the pressed one described by it — not in the report below.
+  const payoutCsvUrl = (url: URL) => url.pathname.endsWith('/reports/payout-csv');
+  await page.route(payoutCsvUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const payoutButton = page.getByRole('button', { name: 'CSV wypłat' });
+  await payoutButton.click();
+  await expect(page.locator('#report-csv-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(payoutButton).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(page.getByRole('button', { name: 'Pobierz CSV' })).not.toHaveAttribute(
+    'aria-describedby',
+    /.+/,
+  );
+  await expect(page.locator('.alert', { hasText: 'Zbyt wiele prób' })).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot(page, '793-report-csv-error');
+  await page.unroute(payoutCsvUrl);
+
   // "CSV wypłat" (task 392): what each specialist earned in the period, for the accountant.
   const [payoutCsv] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'CSV wypłat' }).click(),
   ]);
   expect(payoutCsv.suggestedFilename()).toMatch(/^payout-.+\.csv$/);
+  await expect(page.locator('#report-csv-error')).toHaveCount(0);
   const payoutFile = readFileSync((await payoutCsv.path())!, 'utf8');
   expect(payoutFile).toContain(
     'Specjalista;Odbyte wizyty;Opłacone wizyty;Przychód;Prowizja %;Prowizja;Napiwki;Do wypłaty',

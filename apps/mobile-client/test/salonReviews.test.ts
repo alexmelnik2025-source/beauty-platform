@@ -67,6 +67,27 @@ describe('reviews on the salon page of the client app (task 212)', () => {
     ]);
   });
 
+  it('shows the service and date when the staff name is missing', () => {
+    expect(salonReviewLine(review('a', { staffName: '   ' }), 'pl')).toBe(
+      'Strzyżenie · 5 lis 2026',
+    );
+  });
+
+  it('orders reviews by date and keeps page order across ties without truncating text', () => {
+    const text = 'Дякую! '.repeat(2000);
+    const older = review('older', { createdAt: '2026-11-04T19:00:00Z' });
+    const first = review('first', { text });
+    const tied = review('tied', { createdAt: '2026-11-05T11:00:00+01:00' });
+    const newest = review('newest', { createdAt: '2026-11-06T09:00:00Z' });
+
+    expect(appendSalonReviews([], [])).toEqual([]);
+    const shown = appendSalonReviews([], [older, first]);
+    expect(shown.map((item) => item.id)).toEqual(['first', 'older']);
+    const merged = appendSalonReviews(shown, [tied, newest, review('first')]);
+    expect(merged.map((item) => item.id)).toEqual(['newest', 'first', 'tied', 'older']);
+    expect(merged[1]?.text).toBe(text);
+  });
+
   it('keeps the first occurrence within a page and leaves the loaded list intact', () => {
     const shown = [review('a')];
     const first = review('b', { text: null, reply: null });
