@@ -228,7 +228,11 @@ test('client app checks voucher balance and browses salon reviews in Polish at 3
     await expect(reviews.getByText(fiveStars.reply)).toBeVisible();
     await expect(reviews.getByRole('img', { name: '5 z 5', exact: true })).toBeVisible();
 
-    // Double the review text size in the web preview, including the filter controls.
+    await expect(
+      reviews.getByRole('radio', { name: specialist + ' ★ 4,0 (1)', exact: true }),
+    ).toHaveAccessibleDescription('4,0 z 5, Opinie: 1');
+
+    // Enlarge the review text in the web preview, including the filter controls.
     await phone.addStyleTag({
       content: '[role="region"][aria-label="Opinie"] * { font-size: 2rem !important; }',
     });
@@ -263,10 +267,11 @@ test('client app checks voucher balance and browses salon reviews in Polish at 3
       holdFilter = resolve;
     });
     await phone.route(slowFilter, holdFilter);
-    await reviews.getByRole('radio', { name: '5 z 5, Opinie: 1' }).click();
+    await reviews.getByRole('radio', { name: '★ 5 (1)', exact: true }).click();
     const filterRequest = await pendingFilter;
     await expect(skeleton).toBeVisible();
-    const fourStarFilter = reviews.getByRole('radio', { name: '4 z 5, Opinie: 1' });
+    const fourStarFilter = reviews.getByRole('radio', { name: '★ 4 (1)', exact: true });
+    await expect(fourStarFilter).toHaveAccessibleDescription('4 z 5, Opinie: 1');
     await fourStarFilter.click();
     await expect(fourStarFilter).toHaveAttribute('aria-checked', 'true');
     await expect(reviews.getByText(fiveStars.text)).toBeHidden();
