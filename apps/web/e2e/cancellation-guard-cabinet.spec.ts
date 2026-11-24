@@ -151,6 +151,27 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
   await noShows.fill('2');
   await expect(owner.getByText('Wpisz liczbę od 1 do 20.')).toHaveCount(0);
   await owner.getByLabel('Najpierw zapłata za nieodbyte wizyty w salonie').check();
+  // Task 828 (owner's rule: errors where the action is): a refused save is said under "Zapisz",
+  // not in a box at the top of the page; what was typed stays, and any edit takes it away.
+  const guardUrl = (url: URL) => url.pathname.endsWith('/cancellation-guard');
+  await owner.route(guardUrl, (route) =>
+    route.request().method() === 'PUT'
+      ? route.fulfill({
+          status: 429,
+          json: { error: { code: 'RATE_LIMITED', message: 'slow down' } },
+        })
+      : route.fallback(),
+  );
+  await owner.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(owner.locator('#guard-save-error')).toHaveText('Zbyt wiele prób. Odczekaj chwilę.');
+  await expect(owner.getByRole('button', { name: 'Zapisz' })).toHaveAccessibleDescription(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(owner.locator('.page .alert')).toHaveCount(0);
+  await expect(noShows).toHaveValue('2');
+  await owner.getByRole('button', { name: 'Zapisz' }).scrollIntoViewIfNeeded();
+  await shot(owner, '828-guard-save-error');
+  await owner.unroute(guardUrl);
   await owner.getByRole('button', { name: 'Zapisz' }).click();
   await expect(owner.getByText('Zapisano ochronę przed odwołaniami.')).toBeVisible();
   await expect(owner.getByText('Jan Nowak')).toBeVisible();

@@ -84,6 +84,11 @@ export default function ClientsPage() {
    * button sees it.
    */
   const [moreError, setMoreError] = useState('');
+  /**
+   * Task 827 (owner's rule: errors where the action is): a refused CSV is said right under the
+   * export button in the page head, not in the box above the list.
+   */
+  const [csvError, setCsvError] = useState('');
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const [error, setError] = useState('');
   // Task 272: the filters were read from the address; from now on they are written back to it.
@@ -240,7 +245,7 @@ export default function ClientsPage() {
   async function exportCsv(): Promise<void> {
     if (exporting) return;
     setExporting(true);
-    setError('');
+    setCsvError('');
     try {
       const lang = (['pl', 'uk', 'ru', 'en'] as const).find((l) => l === locale) ?? 'pl';
       const res = await apiResponse(`/v1/organizations/${orgId}/customers/export.csv`, {
@@ -255,7 +260,7 @@ export default function ClientsPage() {
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (err) {
-      setError(errorText(t, err));
+      setCsvError(errorText(t, err));
     } finally {
       setExporting(false);
     }
@@ -277,6 +282,7 @@ export default function ClientsPage() {
               className="btn btn--quiet btn--small"
               title={filtered ? t.clients.exportListHint : t.clients.exportHint}
               disabled={exporting}
+              aria-describedby={csvError ? 'clients-csv-error' : undefined}
               onClick={() => void exportCsv()}
             >
               {filtered ? t.clients.exportList : t.clients.export}
@@ -288,6 +294,7 @@ export default function ClientsPage() {
         </div>
       </div>
       <div className="page">
+        <FieldError id="clients-csv-error" text={csvError} />
         <input
           className="input"
           type="search"

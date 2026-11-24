@@ -4981,3 +4981,11 @@ Zainstaluj aplikację»). **Мелочи**: в переключателе язы
 - В списке «Sprzedane bony» отказ сервера при «Anuluj bon» или «Pokaż» — под строкой этого бона (с «!»); отказ при
   «Pobierz CSV…» — под кнопками CSV. Раньше — рамкой вверху списка. e2e `gift-vouchers`, скриншоты
   `825-voucher-cancel-error`, `825-voucher-csv-error`.
+
+## «Klienci» и «Ochrona przed odwołaniami»: отказ сервера у кнопки (задачи 827–828, 24.11.2026)
+
+- «Klienci»: отказ при «Eksportuj CSV» / «Eksportuj tę listę (CSV)» — сразу под кнопками в шапке страницы (с «!»),
+  раньше рамкой над списком. e2e `booking`, скриншот `827-owner-clients-csv-error`.
+- «Ochrona przed odwołaniami»: отказ «Zapisz» без указания поля — под этой кнопкой в конце формы, введённое остаётся,
+  любая правка убирает ошибку; ошибки отдельных полей — как раньше, у поля. e2e `cancellation-guard-cabinet`,
+  скриншот `828-guard-save-error`.

@@ -1108,6 +1108,21 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await ownerPage.getByLabel('Kto dawno nie był').selectOption({ label: 'Wszyscy klienci' });
   await expect(ownerPage.getByRole('button', { name: /Anna Kowalska/ })).toBeVisible();
   await expect(ownerPage.getByRole('button', { name: 'Eksportuj CSV' })).toBeVisible();
+  // Task 827 (owner's rule: errors where the action is): a refused CSV is said right under the
+  // export button, not in the box above the list.
+  await ownerPage.route('**/customers/export.csv*', (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  await ownerPage.getByRole('button', { name: 'Eksportuj CSV' }).click();
+  await expect(ownerPage.locator('#clients-csv-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(
+    ownerPage.getByRole('button', { name: 'Eksportuj CSV' }),
+  ).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(ownerPage.locator('.page .alert')).toHaveCount(0);
+  await shot(ownerPage, '827-owner-clients-csv-error');
+  await ownerPage.unroute('**/customers/export.csv*');
   // GDPR (task 21): the owner downloads a client's data and erases them on request.
   await json(
     await request.post(`/v1/organizations/${org.id}/customers`, {

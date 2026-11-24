@@ -103,6 +103,11 @@ export default function CancellationGuardPage() {
    * field, "tick at least one rule" under the rules; editing a field takes its error away.
    */
   const [problems, setProblems] = useState<GuardField[]>([]);
+  /**
+   * Task 828 (owner's rule: errors where the action is): a refused save that names no field is
+   * said under "Zapisz" at the end of the form, not in the box at the top of the page.
+   */
+  const [saveError, setSaveError] = useState('');
   const [info, setInfo] = useState('');
   const { busy, lock, unlock } = useSubmitLock();
 
@@ -139,12 +144,12 @@ export default function CancellationGuardPage() {
     if (form.noShowsOn && maxNoShows === null) before.push('noShows');
     if (form.enabled && !form.changesOn && !form.lateOn && !form.noShowsOn) before.push('rules');
     if (before.length > 0) {
-      setError('');
+      setSaveError('');
       setProblems(before);
       return;
     }
     if (!lock()) return;
-    setError('');
+    setSaveError('');
     setProblems([]);
     try {
       const saved = await api<CancellationGuard>(url, {
@@ -166,7 +171,7 @@ export default function CancellationGuardPage() {
     } catch (err) {
       const fields = guardFieldsOf(err);
       setProblems(fields);
-      if (fields.length === 0) setError(errorText(t, err));
+      if (fields.length === 0) setSaveError(errorText(t, err));
     } finally {
       unlock();
     }
@@ -205,6 +210,7 @@ export default function CancellationGuardPage() {
   /** Editing a field (or ticking a rule) takes its error away. */
   const set = (patch: Partial<Form>, field?: GuardField) => {
     setForm({ ...form, ...patch });
+    setSaveError('');
     if (field && problems.includes(field)) setProblems(problems.filter((f) => f !== field));
   };
   const problem = (field: GuardField): string | undefined => {
@@ -344,9 +350,14 @@ export default function CancellationGuardPage() {
               <small className="muted">{t.guard.approvalHint}</small>
             ) : null}
           </fieldset>
-          <button className="btn btn--block" disabled={busy}>
+          <button
+            className="btn btn--block"
+            disabled={busy}
+            aria-describedby={saveError ? 'guard-save-error' : undefined}
+          >
             {t.common.save}
           </button>
+          <FieldError id="guard-save-error" text={saveError} />
         </form>
 
         <h2 style={{ marginTop: 24 }}>{t.guard.clients}</h2>
