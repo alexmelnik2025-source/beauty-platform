@@ -37,7 +37,9 @@ function VoucherPayments(props: Props) {
   const [code, setCode] = useState('');
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ field: 'code' | 'amount' | 'form'; text: string } | null>(
+    null,
+  );
   const [info, setInfo] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
@@ -69,12 +71,19 @@ function VoucherPayments(props: Props) {
     const signal = scope.current?.signal;
     if (!signal || signal.aborted || busy) return;
     setLoadFailure(null);
-    setError('');
+    setError(null);
     setInfo('');
     const wanted = code.trim().toUpperCase().replace(/[\s-]/g, '');
-    if (wanted.length < 4) return setError(v.notFound);
+    if (wanted.length < 4)
+      return setError({ field: 'code', text: code.trim() ? v.notFound : v.code });
     const grosze = parseAmount(amount);
-    if (!grosze) return setError(v.wrongAmount);
+    if (!grosze) return setError({ field: 'amount', text: v.wrongAmount });
+    if (props.toPayGrosze !== null && payments) {
+      const remaining = Math.max(0, props.toPayGrosze - payments.totalGrosze);
+      if (grosze > remaining) {
+        return setError({ field: 'amount', text: fill(v.visitLeft, { amount: money(remaining) }) });
+      }
+    }
     setBusy(true);
     try {
       const found = await api.giftVoucherByCode(salon.orgId, salon.locationId, wanted);
@@ -93,14 +102,24 @@ function VoucherPayments(props: Props) {
       setOpen(false);
       await load(signal);
     } catch (e) {
-      if (!signal.aborted)
-        setError(e instanceof ApiError && e.status === 404 ? v.notFound : voucherErrorText(e, t));
+      if (signal.aborted) return;
+      const text = voucherErrorText(e, t);
+      if (e instanceof ApiError && e.status === 404) setError({ field: 'code', text: v.notFound });
+      else if (e instanceof ApiError && e.code === 'VOUCHER_BALANCE')
+        setError({ field: 'amount', text });
+      else if (
+        e instanceof ApiError &&
+        ['VOUCHER_EXPIRED', 'VOUCHER_CANCELLED', 'VALIDATION_ERROR'].includes(e.code ?? '')
+      )
+        setError({ field: 'code', text });
+      else setError({ field: 'form', text });
     } finally {
       if (!signal.aborted) setBusy(false);
     }
   };
 
-  const message = error || (loadFailure ? voucherErrorText(loadFailure.cause, t) : '');
+  const message =
+    error?.field === 'form' ? error.text : loadFailure && voucherErrorText(loadFailure.cause, t);
   if (!payments) return message ? <ErrorText>{message}</ErrorText> : null;
   const left = visitVoucherLeft(props.toPayGrosze, payments.totalGrosze);
 
@@ -113,9 +132,14 @@ function VoucherPayments(props: Props) {
         currency={salon.currency}
         locale={props.locale}
       />
-      {info ? <Text style={styles.info}>{info}</Text> : null}
+      {info ? (
+        <Text role="status" style={styles.info}>
+          {info}
+        </Text>
+      ) : null}
       {open ? (
         <View style={{ gap: 8 }}>
+          {!payments.payments.length ? <Text style={styles.muted}>{v.noUses}</Text> : null}
           <TextInput
             accessibilityLabel={v.code}
             placeholder="ABCD-EFGH"
@@ -124,28 +148,51 @@ function VoucherPayments(props: Props) {
             maxLength={20}
             autoCapitalize="characters"
             autoCorrect={false}
-            onChangeText={setCode}
-            style={styles.input}
+            editable={!busy}
+            aria-invalid={error?.field === 'code'}
+            aria-describedby={error?.field === 'code' ? 'visit-voucher-code-error' : undefined}
+            onChangeText={(value) => {
+              setCode(value);
+              if (error?.field === 'code') setError(null);
+            }}
+            style={[styles.input, error?.field === 'code' && styles.invalid]}
             testID="visit-voucher-code"
           />
+          {error?.field === 'code' ? (
+            <View nativeID="visit-voucher-code-error">
+              <ErrorText>! {error.text}</ErrorText>
+            </View>
+          ) : null}
           <TextInput
             accessibilityLabel={v.payAmount}
             placeholder={v.payAmount}
             placeholderTextColor={colors.placeholder}
             value={amount}
             keyboardType="decimal-pad"
-            onChangeText={setAmount}
-            style={styles.input}
+            editable={!busy}
+            aria-invalid={error?.field === 'amount'}
+            aria-describedby={error?.field === 'amount' ? 'visit-voucher-amount-error' : undefined}
+            onChangeText={(value) => {
+              setAmount(value);
+              if (error?.field === 'amount') setError(null);
+            }}
+            style={[styles.input, error?.field === 'amount' && styles.invalid]}
             testID="visit-voucher-amount"
           />
+          {error?.field === 'amount' ? (
+            <View nativeID="visit-voucher-amount-error">
+              <ErrorText>! {error.text}</ErrorText>
+            </View>
+          ) : null}
           <View style={styles.row}>
-            <Button label={v.pay} busy={busy} disabled={!code.trim()} onPress={() => void pay()} />
+            <Button label={v.pay} busy={busy} onPress={() => void pay()} />
             <Button
               kind="link"
               label={t.clients.cancel}
+              disabled={busy}
               onPress={() => {
                 setOpen(false);
-                setError('');
+                setError(null);
               }}
             />
           </View>
@@ -154,6 +201,7 @@ function VoucherPayments(props: Props) {
         <Button
           kind="link"
           label={v.visitOpen}
+          disabled={busy}
           onPress={() => {
             setOpen(true);
             setInfo('');
@@ -209,12 +257,21 @@ const PaymentHistory = memo(function PaymentHistory({
 
 const styles = StyleSheet.create({
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
   name: { fontSize: 16, color: colors.ink, flexShrink: 1, flexGrow: 1 },
   muted: { color: colors.muted, fontSize: 14 },
   undone: { textDecorationLine: 'line-through', opacity: 0.6 },
   info: { color: colors.ink, fontSize: 14 },
+  invalid: { borderColor: colors.danger },
   input: {
+    minHeight: 44,
+    minWidth: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,

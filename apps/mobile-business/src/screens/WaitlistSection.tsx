@@ -23,7 +23,7 @@ interface Props {
  * Task 94: "Lista oczekujących" under the day's visits — clients who want a time on this
  * (full) day, with their contacts, for owners and managers (the server checks it too).
  * "+ Nowa wizyta" opens the new-visit form filled in for the client; "Usuń z listy" removes
- * them without a message. Nothing is shown when nobody waits or for days already gone.
+ * them without a message. Past days have no waiting list.
  */
 export function WaitlistSection(props: Props) {
   const key = JSON.stringify([
@@ -38,7 +38,7 @@ export function WaitlistSection(props: Props) {
 function DayWaitlist(props: Props) {
   const { api, t, salon, date } = props;
   const w = t.waitlist;
-  const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+  const [entries, setEntries] = useState<WaitlistEntry[] | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState('');
@@ -68,12 +68,12 @@ function DayWaitlist(props: Props) {
         if (!active || pending.current !== request) return;
         pending.current = null;
         const next = waitlistOfDay(list, date);
-        setEntries((previous) => (!previous.length && !next.length ? previous : next));
+        setEntries((previous) => (previous?.length === 0 && !next.length ? previous : next));
       },
       () => {
         if (!active || pending.current !== request) return;
         pending.current = null;
-        setEntries((previous) => (previous.length ? [] : previous));
+        setEntries(null);
       },
     );
     return () => {
@@ -91,7 +91,7 @@ function DayWaitlist(props: Props) {
       if (signal.aborted) return;
       // A refresh started before this removal may still contain the entry.
       pending.current = null;
-      setEntries((list) => list.filter((e) => e.id !== entry.id));
+      setEntries((list) => list?.filter((e) => e.id !== entry.id) ?? null);
       setInfo(fill(w.removed, { name: entry.name }));
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, t));
@@ -103,16 +103,20 @@ function DayWaitlist(props: Props) {
     }
   }
 
-  if (entries.length === 0 && !info && !error) return null;
+  if (!entries) return null;
 
   return (
     <View style={styles.wrap} accessibilityLabel={w.title}>
-      <Text style={styles.section}>
+      <Text role="heading" style={styles.section}>
         {w.title} ({entries.length})
       </Text>
       {entries.length > 0 ? <Text style={styles.muted}>{w.hint}</Text> : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
-      {info ? <Text style={styles.info}>{info}</Text> : null}
+      {info ? (
+        <Text role="status" style={styles.info}>
+          {info}
+        </Text>
+      ) : null}
       {entries.map((e) => (
         <Card key={e.id}>
           <WaitlistDetails entry={e} timeZone={props.timeZone} w={w} />
@@ -198,6 +202,6 @@ const styles = StyleSheet.create({
   },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
-  name: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  name: { maxWidth: '100%', flexShrink: 1, fontSize: 17, fontWeight: '600', color: colors.ink },
   info: { color: '#2e7d32', fontSize: 15 },
 });
