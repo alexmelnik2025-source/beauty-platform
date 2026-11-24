@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AuthPage } from '@/components/AuthPage';
-import { ErrorBox, FieldError, Spinner } from '@/components/ui';
+import { FieldError, Spinner } from '@/components/ui';
 import { api, ApiError, refreshSession, setAccessToken } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import type { InvitationPreview as Preview, Me } from '@/lib/types';
@@ -18,7 +18,14 @@ export default function InvitePage() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'joined'>('loading');
-  const [error, setError] = useState('');
+  /**
+   * Task 774 (owner's rule: errors where the action is): a refusal that is not about the code (no
+   * connection, too many tries, …) is said under the button that was pressed — "Wyślij kod",
+   * "Wyślij kod ponownie" or "Dołącz do zespołu" — not as a box above it.
+   */
+  const [error, setError] = useState<{ on: 'accept' | 'send' | 'resend'; text: string } | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   /** Not signed in: a one-time code to the invited address (no password, no sign-up). */
   const [codeSent, setCodeSent] = useState(false);
@@ -41,12 +48,12 @@ export default function InvitePage() {
 
   async function accept() {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       await api(`/v1/invitations/${token}/accept`, { method: 'POST' });
       setState('joined');
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ on: 'accept', text: errorText(t, err) });
       setBusy(false);
     }
   }
@@ -54,7 +61,7 @@ export default function InvitePage() {
   async function sendCode() {
     if (!preview) return;
     setBusy(true);
-    setError('');
+    setError(null);
     setCodeError('');
     try {
       await api('/v1/auth/code', {
@@ -64,7 +71,7 @@ export default function InvitePage() {
       });
       setCodeSent(true);
     } catch (err) {
-      setError(errorText(t, err));
+      setError({ on: codeSent ? 'resend' : 'send', text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -74,7 +81,7 @@ export default function InvitePage() {
   async function signInWithCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!preview) return;
-    setError('');
+    setError(null);
     // Task 686 (owner's rule: errors at the field): an empty or short code used to get the
     // browser's bubble; now it is said under the code field and the cursor goes there.
     const typed = code.trim();
@@ -95,7 +102,7 @@ export default function InvitePage() {
       setState('joined');
     } catch (err) {
       if (err instanceof ApiError && CODE_ERRORS.has(err.code)) setCodeError(errorText(t, err));
-      else setError(errorText(t, err));
+      else setError({ on: 'accept', text: errorText(t, err) });
     } finally {
       setBusy(false);
     }
@@ -115,7 +122,6 @@ export default function InvitePage() {
               {t.team.roles[preview.role]} · {fill(t.invite.forEmail, { email: preview.email })}
             </p>
           </div>
-          <ErrorBox>{error}</ErrorBox>
           {state === 'joined' ? (
             <>
               <p className="note">{t.invite.joined}</p>
@@ -124,14 +130,21 @@ export default function InvitePage() {
               </Link>
             </>
           ) : me && me.user.email === preview.email ? (
-            <button
-              type="button"
-              className="btn btn--block"
-              disabled={busy}
-              onClick={() => void accept()}
-            >
-              {t.invite.accept}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn--block"
+                disabled={busy}
+                aria-describedby={error?.on === 'accept' ? 'invite-accept-error' : undefined}
+                onClick={() => void accept()}
+              >
+                {t.invite.accept}
+              </button>
+              <FieldError
+                id="invite-accept-error"
+                text={error?.on === 'accept' ? error.text : undefined}
+              />
+            </>
           ) : me ? (
             <p className="note">{fill(t.invite.wrongEmail, { email: preview.email })}</p>
           ) : codeSent ? (
@@ -154,21 +167,35 @@ export default function InvitePage() {
                   onChange={(e) => {
                     setCode(e.target.value.replace(/\D/g, ''));
                     setCodeError('');
+                    setError(null);
                   }}
                 />
                 <FieldError id="invite-code-error" text={codeError} />
               </label>
-              <button className="btn btn--block" disabled={busy}>
+              <button
+                className="btn btn--block"
+                disabled={busy}
+                aria-describedby={error?.on === 'accept' ? 'invite-accept-error' : undefined}
+              >
                 {t.invite.accept}
               </button>
+              <FieldError
+                id="invite-accept-error"
+                text={error?.on === 'accept' ? error.text : undefined}
+              />
               <button
                 type="button"
                 className="btn btn--quiet btn--block"
                 disabled={busy}
+                aria-describedby={error?.on === 'resend' ? 'invite-resend-error' : undefined}
                 onClick={() => void sendCode()}
               >
                 {t.invite.resend}
               </button>
+              <FieldError
+                id="invite-resend-error"
+                text={error?.on === 'resend' ? error.text : undefined}
+              />
             </form>
           ) : (
             <>
@@ -177,10 +204,15 @@ export default function InvitePage() {
                 type="button"
                 className="btn btn--block"
                 disabled={busy}
+                aria-describedby={error?.on === 'send' ? 'invite-send-error' : undefined}
                 onClick={() => void sendCode()}
               >
                 {t.invite.sendCode}
               </button>
+              <FieldError
+                id="invite-send-error"
+                text={error?.on === 'send' ? error.text : undefined}
+              />
               <Link
                 className="btn btn--quiet btn--block"
                 href={`/${locale}/login?next=${encodeURIComponent(here)}`}
