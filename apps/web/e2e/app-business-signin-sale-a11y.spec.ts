@@ -185,7 +185,12 @@ for (const locale of LOCALES) {
       await fits(choice);
       await choice.click();
       await button(t.day.previous).click();
-      await page.getByRole('button', { name: /Jan Nowak/ }).click();
+      const visit = page.getByRole('button', { name: /Jan Nowak · Strzyżenie$/ });
+      await expect(visit).toBeVisible();
+      // The till loads above yesterday's visits and moves the row under the pointer.
+      await expect(button(t.day.tillClose)).toBeVisible();
+      await visit.click();
+      await expect(button(t.visit.back)).toBeVisible();
 
       const sales = page.getByTestId('visit-products');
       const scan = sales.getByRole('textbox', { name: p.saleByCode });
