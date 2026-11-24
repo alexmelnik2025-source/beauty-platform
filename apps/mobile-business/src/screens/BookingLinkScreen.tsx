@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { fontSize: 15, color: colors.ink },
   qrCaption: { maxWidth: '100%', textAlign: 'center' },
-  qrScan: { fontSize: 15, color: colors.ink },
+  qrScan: { maxWidth: '100%', textAlign: 'center', fontSize: 15, color: colors.ink },
   code: {
     fontSize: 13,
     color: colors.ink,

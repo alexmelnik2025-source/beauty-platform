@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, MemberList, PermissionCatalog, StaffCategoryList } from '../api';
 import { errorText } from '../errors';
@@ -57,7 +57,12 @@ function SalonPermissions(props: Props) {
     overrides: PermissionMap;
   } | null>(null);
   /** The category being written ("new" or its id) and the one waiting for "delete?". */
-  const [catForm, setCatForm] = useState<{ id: string | 'new'; form: CategoryForm } | null>(null);
+  const [catForm, setCatForm] = useState<{
+    id: string;
+    form: CategoryForm;
+    nameInvalid?: boolean;
+  } | null>(null);
+  const categoryNameInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
   const { orgId, locationId } = salon;
@@ -148,7 +153,9 @@ function SalonPermissions(props: Props) {
     if (!catForm) return;
     const body = categoryBody(catForm.form);
     if (!body.ok) {
-      setError(r.noName);
+      setError('');
+      setCatForm({ ...catForm, nameInvalid: true });
+      categoryNameInput.current?.focus();
       return;
     }
     const existing = categoriesById.get(catForm.id);
@@ -276,12 +283,22 @@ function SalonPermissions(props: Props) {
       <Card>
         <Text style={styles.label}>{r.categoryName}</Text>
         <TextInput
+          ref={categoryNameInput}
           accessibilityLabel={r.categoryName}
+          aria-invalid={!!catForm.nameInvalid}
+          aria-describedby={catForm.nameInvalid ? 'category-name-error' : undefined}
           value={form.name}
           maxLength={60}
-          onChangeText={(name) => setCatForm({ ...catForm, form: { ...form, name } })}
-          style={styles.input}
+          onChangeText={(name) =>
+            setCatForm({ ...catForm, nameInvalid: false, form: { ...form, name } })
+          }
+          style={[styles.input, catForm.nameInvalid && styles.invalid]}
         />
+        {catForm.nameInvalid ? (
+          <Text nativeID="category-name-error" role="alert" style={styles.fieldError}>
+            ! {r.noName}
+          </Text>
+        ) : null}
         {catalog.map((p) => {
           const on = form.permissions[p.key];
           return (
@@ -299,7 +316,9 @@ function SalonPermissions(props: Props) {
               }
               style={styles.check}
             >
-              <Text style={[styles.box, on && styles.boxOn]}>{on ? '✓' : ''}</Text>
+              <View style={[styles.box, on && styles.boxOn]}>
+                {on ? <Text style={styles.tick}>✓</Text> : null}
+              </View>
               <Text style={[styles.text, { flexShrink: 1 }]}>{label(p.key)}</Text>
             </Pressable>
           );
@@ -476,6 +495,8 @@ const styles = StyleSheet.create({
   small: { color: colors.muted, fontSize: 13 },
   info: { color: colors.ink, fontSize: 15 },
   perm: { gap: 6, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.line },
+  invalid: { borderColor: colors.danger },
+  fieldError: { color: colors.danger, fontSize: 15 },
   input: {
     borderWidth: 1,
     borderColor: colors.line,
@@ -513,15 +534,14 @@ const styles = StyleSheet.create({
   segText: { maxWidth: '100%', textAlign: 'center', fontSize: 14, color: colors.ink },
   check: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   box: {
-    width: 24,
-    height: 24,
+    minWidth: 24,
+    minHeight: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.ink,
     borderRadius: 6,
-    textAlign: 'center',
-    lineHeight: 20,
-    color: '#fff',
-    fontWeight: '700',
   },
+  tick: { color: '#fff', fontWeight: '700' },
   boxOn: { backgroundColor: colors.ink },
 });
