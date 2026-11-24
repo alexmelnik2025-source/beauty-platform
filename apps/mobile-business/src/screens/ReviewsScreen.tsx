@@ -253,18 +253,10 @@ export function ReviewsScreen(props: {
   );
   const settingsSaved = useCallback(
     (enabled: boolean) => {
-      reviewsCache.delete(salon);
-      if (displayed.current) {
-        const updated = { ...displayed.current, enabled };
-        recentPages(salon).set(displayedFilter.current.key, {
-          value: updated,
-          unansweredOnly: displayedFilter.current.unanswered,
-          expires: Date.now() + 60_000,
-        });
-        show(updated);
-      }
+      // Saving collection settings invalidates the list, including a previously empty page.
+      if (displayed.current) show({ ...displayed.current, enabled });
     },
-    [salon, show],
+    [show],
   );
 
   const { locale, timeZone } = props;
