@@ -386,6 +386,7 @@
 
 (PR — что сделано — дата.)
 
+- PR [#115](https://github.com/alexmelnik2025-source/beauty-platform/pull/115) (влит Claude 24.11.2026 напрямую, CI зелёный) — поток CV: доступность недели, карточки визита и блокировки в бизнес-приложении при крупном шрифте. PR [#116](https://github.com/alexmelnik2025-source/beauty-platform/pull/116) (влит Claude 24.11.2026 стеком `agent/835-837-stack`, CI зелёный; коммиты Codex без изменений, конфликт только в `docs/CODEX.md` — оставлены обе записи) — поток CW: тесты 18 запросов клиентского приложения.
 - PR [#114](https://github.com/alexmelnik2025-source/beauty-platform/pull/114), [#111](https://github.com/alexmelnik2025-source/beauty-platform/pull/111) (влиты Claude 24.11.2026 напрямую, CI зелёный) — поток CU: тесты запросов бизнес-приложения и исправление языка запросов; поток CR: скорость разделов карточки визита.
 - PR [#113](https://github.com/alexmelnik2025-source/beauty-platform/pull/113) (влит Claude 24.11.2026 веткой `agent/826-codex-ct`, CI зелёный; коммиты Codex без изменений, конфликт только в `docs/CODEX.md` — оставлены обе записи) — поток CT: скорость отзывов салона, бона и переноса товаров в клиентском приложении.
 - PR [#110](https://github.com/alexmelnik2025-source/beauty-platform/pull/110) (влит Claude 24.11.2026 напрямую, CI зелёный) — поток CP: скорость экрана данных салона в бизнес-приложении.
