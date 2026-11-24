@@ -135,12 +135,12 @@ test('"Sklep" in the client app lists products from salons, picked up at the sal
     await search.fill(prefix);
     await requested;
     try {
+      const cancelled = app.waitForEvent('requestfailed', (request) => staleSearch(request.url()));
       await app.getByRole('button', { name: 'Broda', exact: true }).click();
       const empty = app.getByText('Nic nie znaleziono. Zmień wyszukiwanie.');
       await expect(empty).toBeVisible();
-      const finished = app.waitForResponse((response) => staleSearch(response.url()));
       releaseSearch();
-      expect(await (await finished).finished()).toBeNull();
+      expect((await cancelled).failure()?.errorText).toContain('ERR_ABORTED');
       await app.evaluate(
         () =>
           new Promise<void>((resolve) =>
