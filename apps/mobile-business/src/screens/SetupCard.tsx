@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
-import type { Dictionary } from '../i18n';
+import { errorText } from '../errors';
+import { fill, type Dictionary } from '../i18n';
 import { bookableStaff, hasWeeklyHours, setupFinished, setupState, type SetupStep } from '../setup';
-import { Button, Card, colors } from '../ui';
+import { Button, Card, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
-/**
- * Task 352, "Pierwsze kroki": a card on the day screen of the owner or a manager while the salon
- * is not ready for online booking. Every open step has a button to its screen; the card is read
- * again each time the day screen comes back and disappears once all steps are done. Nothing is
- * shown while loading or when the reading fails — the card is a hint, not a blocker.
- */
 export function SetupCard(props: {
   api: BusinessApi;
   t: Dictionary;
@@ -20,10 +15,16 @@ export function SetupCard(props: {
 }) {
   const { api, salon, t } = props;
   const s = t.setup;
-  const [steps, setSteps] = useState<{ step: SetupStep; done: boolean }[] | null>(null);
+  const [steps, setSteps] = useState<ReturnType<typeof setupState> | null>(null);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    setSteps(null);
+    setError('');
+    setExpanded(false);
     void (async () => {
       try {
         const [location, services, staff] = await Promise.all([
@@ -33,6 +34,7 @@ export function SetupCard(props: {
         ]);
         let hoursSet = false;
         for (const person of bookableStaff(services, staff)) {
+          if (!alive) return;
           const hours = await api.workingHours(salon.orgId, salon.locationId, person.id);
           if (hasWeeklyHours(hours)) {
             hoursSet = true;
@@ -40,49 +42,78 @@ export function SetupCard(props: {
           }
         }
         if (alive) setSteps(setupState({ location, services, staff, hoursSet }));
-      } catch {
-        if (alive) setSteps(null);
+      } catch (e) {
+        if (alive) setError(errorText(e, t));
       }
     })();
     return () => {
       alive = false;
     };
-  }, [api, salon]);
+  }, [api, salon, t, attempt]);
 
-  if (!steps || setupFinished(steps)) return null;
-  const left = steps.filter((x) => !x.done).length;
+  if (steps && setupFinished(steps)) return null;
   return (
     <Card>
-      <Text style={styles.title} role="heading">
+      <Text style={styles.title} role="heading" aria-level={2}>
         {s.title}
       </Text>
-      <Text style={styles.muted}>{s.lead.replace('{n}', String(left))}</Text>
-      {steps.map(({ step, done }, i) => (
-        <View key={step} style={styles.step}>
-          <Text
-            style={[styles.text, done && styles.done]}
-            accessibilityLabel={`${i + 1}. ${s.steps[step]} — ${done ? s.doneLabel : s.todoLabel}`}
-          >
-            {done ? '✓' : `${i + 1}.`} {s.steps[step]}
+      {error ? (
+        <>
+          <ErrorText>{error}</ErrorText>
+          <Button
+            kind="secondary"
+            label={t.day.refresh}
+            a11yLabel={`${t.day.refresh}: ${s.title}`}
+            onPress={() => setAttempt((n) => n + 1)}
+          />
+        </>
+      ) : !steps ? (
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={`${s.title}: ${t.loading}`}
+          style={styles.skeleton}
+        />
+      ) : (
+        <>
+          <Text style={styles.muted}>
+            {fill(s.lead, { n: String(steps.filter((x) => !x.done).length) })}
           </Text>
-          {!done ? (
-            <Button
-              kind="link"
-              label={s.go}
-              a11yLabel={`${s.go}: ${s.steps[step]}`}
-              onPress={() => props.onOpen(step)}
-            />
-          ) : null}
-        </View>
-      ))}
+          <Button
+            kind="secondary"
+            label={`${t.navigation.more} ${expanded ? '▴' : '▸'}`}
+            a11yLabel={`${t.navigation.more}: ${s.title}`}
+            expanded={expanded}
+            onPress={() => setExpanded(!expanded)}
+          />
+          {expanded &&
+            steps.map(({ step, done }, i) =>
+              done ? (
+                <Text
+                  key={step}
+                  style={styles.muted}
+                  accessibilityLabel={`${i + 1}. ${s.steps[step]} — ${s.doneLabel}`}
+                >
+                  ✓ {s.steps[step]}
+                </Text>
+              ) : (
+                <Button
+                  key={step}
+                  kind="secondary"
+                  label={s.steps[step]}
+                  a11yLabel={`${s.go}: ${s.steps[step]}`}
+                  onPress={() => props.onOpen(step)}
+                />
+              ),
+            )}
+        </>
+      )}
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', color: colors.ink },
-  muted: { color: colors.muted, fontSize: 14, marginBottom: 6 },
-  step: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', minHeight: 36 },
-  text: { flex: 1, fontSize: 15, color: colors.ink },
-  done: { color: colors.muted, textDecorationLine: 'line-through' },
+  muted: { color: colors.muted, fontSize: 15 },
+  skeleton: { height: 16, width: '75%', borderRadius: 4, backgroundColor: colors.soft },
 });

@@ -20,7 +20,7 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `app-clients-now-${run}@example.com`;
 const NAME = `Klienci Widzą ${run}`;
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 // An address of its own for sign-up and sign-in (reserved for tests, RFC 2544).
 const n = Math.floor(Math.random() * 65_536);
 const ADDRESS = { 'x-forwarded-for': `198.19.${n >> 8}.${n & 255}` };
@@ -123,7 +123,27 @@ test('business app: the owner sees the salon as clients see it now', async ({
     await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
 
     const card = phone.getByTestId('clients-now');
+    await expect(phone.getByRole('button', { name: 'Udostępnij plan dnia' })).toBeVisible();
     await expect(card.getByLabel('Klienci widzą teraz: Otwarte · do północy')).toBeVisible();
+    const loading = phone.getByRole('progressbar', { name: 'Klienci widzą teraz: Ładowanie…' });
+    await phone.route(
+      `**/v1/public/locations/${location.slug}`,
+      async (route) => {
+        await expect(loading).toBeVisible();
+        await route.fulfill({ status: 503, json: {} });
+      },
+      { times: 1 },
+    );
+    await phone.getByRole('button', { name: 'Odśwież', exact: true }).click();
+    await expect(phone.getByRole('alert').filter({ hasText: 'Coś poszło nie tak' })).toBeVisible();
+    await phone.getByRole('button', { name: 'Odśwież: Klienci widzą teraz', exact: true }).click();
+    // React Native Web emits fixed pixel sizes. Enlarge the card text to at least 130%.
+    await phone.addStyleTag({ content: '[dir="auto"] { font-size: 22.1px !important }' });
+    await expect(card.getByLabel('Klienci widzą teraz: Otwarte · do północy')).toBeVisible();
+    const details = card.getByRole('button', { name: 'Więcej: Klienci widzą teraz' });
+    await expect(details).toHaveAttribute('aria-expanded', 'false');
+    await expect(card.getByText(/Dziś dla klientów/)).toHaveCount(0);
+    await details.click();
     await expect(card).toContainText('Dziś dla klientów: 00:00–24:00');
     await card.scrollIntoViewIfNeeded();
     await shot(phone, '366-business-app-clients-now');
@@ -148,13 +168,16 @@ test('business app: the owner sees the salon as clients see it now', async ({
       }),
     );
     await phone.getByRole('button', { name: 'Odśwież' }).click();
-    await expect(
-      card.getByLabel('Klienci widzą teraz: Zamknięte · otwarcie: jutro, 00:00'),
-    ).toBeVisible();
+    const closed = card.getByLabel('Klienci widzą teraz: Zamknięte · otwarcie: jutro, 00:00');
+    await expect(closed).toHaveCSS('font-size', '22.1px');
+    await closed.scrollIntoViewIfNeeded();
+    await expect(closed).toBeInViewport({ ratio: 1 });
+    expect(await closed.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await details.click();
     await expect(card).toContainText('Dziś dla klientów: nieczynne');
     await card.scrollIntoViewIfNeeded();
     await shot(phone, '366a-business-app-clients-now-closed');
-    await context.close();
+
     // booking.spec.ts expects its salon to be the only one in the catalogue: online booking off.
     const current = await json<{ version: number }>(await request.get(base, { headers: owner }));
     await json(
@@ -163,6 +186,10 @@ test('business app: the owner sees the salon as clients see it now', async ({
         data: { version: current.version, onlineBookingEnabled: false },
       }),
     );
+    await phone.getByRole('button', { name: 'Odśwież', exact: true }).click();
+    await expect(card).toContainText('Wyłączona — strona rezerwacji jest niedostępna.');
+    await expect(card.getByRole('button')).toHaveCount(0);
+    await context.close();
   } finally {
     businessApp.server.close();
   }

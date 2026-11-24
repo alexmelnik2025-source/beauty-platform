@@ -22,7 +22,7 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `base-app-owner-${run}@example.com`;
 const TOKEN = '3001234-3005678-DEVONLYE2ETOKEN00000000';
-const PHONE = { width: 390, height: 844 };
+const PHONE = { width: 320, height: 844 };
 
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png` });
 
@@ -179,11 +179,28 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
     const app = await context.newPage();
     await signInToApp(app, businessApp.url, OWNER);
 
-    // No Base yet: one quiet line, no card and no button.
+    // With Base disconnected, the card points to the cabinet.
     await app.getByRole('tab', { name: 'Sklep', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Sklep', exact: true })).toBeVisible();
+    const loading = app.getByRole('progressbar', { name: 'Base: Ładowanie…' });
+    await app.route(
+      `**${salon.base}/shop/integrations/base`,
+      async (route) => {
+        await expect(loading).toBeVisible();
+        await route.fulfill({ status: 503, json: {} });
+      },
+      { times: 1 },
+    );
     await app.getByRole('tab', { name: 'Integracje', exact: true }).click();
-    await expect(app.getByText(/podłączysz w panelu na komputerze/)).toBeVisible();
+    await expect(app.getByRole('alert').filter({ hasText: 'Coś poszło nie tak' })).toBeVisible();
+    await app.getByRole('button', { name: 'Odśwież: Base', exact: true }).click();
+    // React Native Web emits fixed pixel sizes. Enlarge the card text to at least 130%.
+    await app.addStyleTag({ content: '[dir="auto"] { font-size: 22.1px !important }' });
+    const off = app.getByText(/podłączysz w panelu na komputerze/);
+    await expect(off).toHaveCSS('font-size', '22.1px');
+    await off.scrollIntoViewIfNeeded();
+    await expect(off).toBeInViewport({ ratio: 1 });
+    expect(await off.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(app.getByRole('button', { name: 'Synchronizuj teraz' })).toHaveCount(0);
     await app.getByRole('button', { name: '‹ Wróć' }).click();
 
@@ -211,6 +228,10 @@ test('"Base" in "Mój sklep" of the business app: status and "Synchronizuj teraz
     await expect(app.getByText('Reuzel Pink Pomade 113 g', { exact: true })).toBeVisible();
     await app.getByRole('tab', { name: 'Integracje', exact: true }).click();
     await expect(app.getByText(/Połączono z Base \(…0000\) · produktów z Base: 1/)).toBeVisible();
+    const details = app.getByRole('button', { name: 'Więcej: Base' });
+    await expect(details).toHaveAttribute('aria-expanded', 'false');
+    await details.click();
+    await expect(details).toHaveAttribute('aria-expanded', 'true');
     await expect(
       app.getByText(/Ostatnia synchronizacja: (przed chwilą|\d+ min temu)\./),
     ).toBeVisible();
