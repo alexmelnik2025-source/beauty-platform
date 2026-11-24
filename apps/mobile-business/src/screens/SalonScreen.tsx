@@ -382,7 +382,7 @@ export function SalonScreen(props: {
   const question = (key: 'askMood' | 'askDrink' | 'askNote', text: string, label: string) =>
     form ? (
       <View style={[styles.switchRow, { marginTop: 10 }]}>
-        <Text accessibilityLabel={label} style={[styles.value, { flex: 1, fontWeight: '400' }]}>
+        <Text aria-hidden style={[styles.value, { flex: 1, fontWeight: '400' }]}>
           {text}
         </Text>
         <Switch
