@@ -10,6 +10,11 @@ const { platform, share } = vi.hoisted(() => ({
 vi.mock('react-native', () => ({ Platform: platform, Share: { share } }));
 
 const csv = '\uFEFFname,note,phone\r\n"Иван, Петров","Сказал ""да""\r\nНовая строка",\r\n';
+const longField = 'Zażółć 🪮'.repeat(8192);
+const delimitedFiles = [
+  { fileName: 'semicolon.csv', content: `\uFEFFname;note\r\nAnna;"${longField};koniec"\r\n` },
+  { fileName: 'tabs.tsv', content: `name\tnote\r\nAnna\t"${longField}\tend"\r\n` },
+];
 
 afterEach(() => {
   vi.useRealTimers();
@@ -27,6 +32,7 @@ it.each([
     mime: 'application/json',
   },
   { fileName: 'empty.csv', content: '', type: undefined, mime: 'text/csv;charset=utf-8' },
+  ...delimitedFiles.map((file) => ({ ...file, type: undefined, mime: 'text/csv;charset=utf-8' })),
 ])(
   'downloads $fileName with its original bytes and MIME type',
   async ({ fileName, content, type, mime }) => {
@@ -44,7 +50,7 @@ it.each([
 
     const blob = createUrl.mock.calls[0]?.[0] as Blob;
     expect(blob.type).toBe(mime);
-    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(new TextEncoder().encode(content));
+    expect(Buffer.from(await blob.arrayBuffer()).equals(Buffer.from(content, 'utf8'))).toBe(true);
     expect(document.createElement).toHaveBeenCalledExactlyOnceWith('a');
     expect(anchor.href).toBe(url);
     expect(anchor.download).toBe(fileName);
@@ -62,16 +68,19 @@ it.each([
   },
 );
 
-it('shares CSV text on a phone and preserves the CSV content after removing its BOM', async () => {
-  platform.OS = 'android';
-  share.mockResolvedValue({ action: 'sharedAction' });
-  const fileName = 'клиенты.csv';
-  const tools = csvTools();
+it.each([{ fileName: 'клиенты.csv', content: csv }, ...delimitedFiles])(
+  'shares $fileName on a phone, omitting only the initial BOM if present',
+  async ({ fileName, content }) => {
+    platform.OS = 'android';
+    share.mockResolvedValue({ action: 'sharedAction' });
+    const tools = csvTools();
 
-  await expect(shareCsv({ fileName, csv }, tools)).resolves.toBe('shared');
-  expect(share).toHaveBeenCalledExactlyOnceWith({ title: fileName, message: csv.slice(1) });
-  expect(tools.download).toBeUndefined();
-});
+    await expect(shareCsv({ fileName, csv: content }, tools)).resolves.toBe('shared');
+    const message = content.startsWith('\uFEFF') ? content.slice(1) : content;
+    expect(share).toHaveBeenCalledExactlyOnceWith({ title: fileName, message });
+    expect(tools.download).toBeUndefined();
+  },
+);
 
 it('uses the phone share sheet for supplier orders', async () => {
   platform.OS = 'ios';

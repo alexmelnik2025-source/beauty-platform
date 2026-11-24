@@ -16,8 +16,13 @@ export type OfferedDrink = (typeof OFFERED_DRINKS)[number];
 export function wishLines(wishes: Wishes | null | undefined, v: Dictionary['visit']): string[] {
   if (!wishes) return [];
   const lines: string[] = [];
-  if (wishes.mood) lines.push(`${MOOD_ICON[wishes.mood]} ${v.mood[wishes.mood]}`);
-  if (wishes.drink) lines.push(`${DRINK_ICON[wishes.drink]} ${v.drink[wishes.drink]}`);
-  if (wishes.note) lines.push(`✍️ ${wishes.note}`);
+  const { mood, drink, note } = wishes;
+  if (typeof mood === 'string' && Object.prototype.hasOwnProperty.call(MOOD_ICON, mood)) {
+    lines.push(`${MOOD_ICON[mood]} ${v.mood[mood]}`);
+  }
+  if (typeof drink === 'string' && Object.prototype.hasOwnProperty.call(DRINK_ICON, drink)) {
+    lines.push(`${DRINK_ICON[drink]} ${v.drink[drink]}`);
+  }
+  if (typeof note === 'string' && note.trim()) lines.push(`✍️ ${note}`);
   return lines;
 }
