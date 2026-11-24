@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  BackHandler,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -249,7 +258,7 @@ export function MessagesScreen(props: {
                     }}
                     maxLength={500}
                     multiline
-                    numberOfLines={3}
+                    scrollEnabled={false}
                     style={[styles.input, styles.multiline, invalidText && styles.invalid]}
                   />
                 )}
@@ -306,7 +315,11 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   invalid: { borderColor: colors.danger },
-  multiline: { minHeight: 80, textAlignVertical: 'top' },
+  multiline: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    ...Platform.select({ web: { fieldSizing: 'content' } }),
+  },
   chip: {
     maxWidth: '100%',
     borderWidth: 1,
