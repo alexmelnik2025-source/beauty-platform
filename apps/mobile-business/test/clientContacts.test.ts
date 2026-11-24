@@ -33,6 +33,13 @@ describe('a new client (task 332)', () => {
     ).toEqual({ ok: true, body: { name: 'Anna', phone: '+48600200300', locale: 'ru' } });
   });
 
+  it('requires a phone even when both contact fields are blank', () => {
+    expect(newCustomerBody({ ...emptyContacts('uk'), name: 'Олена Łącka' }, '48')).toEqual({
+      ok: false,
+      problem: 'phone',
+    });
+  });
+
   it('points at the first thing to fix', () => {
     expect(newCustomerBody(emptyContacts('pl'), '48')).toEqual({ ok: false, problem: 'name' });
     expect(newCustomerBody({ ...emptyContacts('pl'), name: 'Anna', phone: '12' }, '48')).toEqual({
@@ -81,6 +88,18 @@ describe('changing a client’s details (task 333)', () => {
         '48',
       ),
     ).toEqual({ ok: true, change: { phone: '+48601100200', email: null, locale: 'en' } });
+  });
+
+  it('opens a card without contacts and saves a supplied phone without inventing an email', () => {
+    const card = { ...client, name: 'Łukasz Жук', phone: null, email: null };
+    const form = contactsForm(card);
+    expect(form).toEqual({ name: 'Łukasz Жук', phone: '', email: '', locale: 'pl' });
+    expect(
+      contactsChange(card, { ...form, phone: '600 200 300', name: '  Łucja   Жук  ' }, '48'),
+    ).toEqual({
+      ok: true,
+      change: { name: 'Łucja Жук', phone: '+48600200300' },
+    });
   });
 
   it('a name and a phone are needed', () => {

@@ -66,6 +66,9 @@ export function clientReasons(
 ): string {
   const c = t.clients.guard;
   const parts: string[] = [];
+  if (client.rule !== 'salon' && client.rule !== 'trusted') {
+    parts.push(c.rules[client.rule]);
+  }
   if (client.reasons.includes('changes')) {
     parts.push(fill(c.reasonChanges, { n: String(client.changes) }));
   }

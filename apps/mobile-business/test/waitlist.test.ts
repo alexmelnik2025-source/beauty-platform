@@ -52,6 +52,23 @@ describe('waiting list of a day', () => {
     expect(waitlistOfDay(list, '2026-11-08')).toEqual([]);
   });
 
+  it('returns no clients for an empty waitlist', () => {
+    expect(waitlistOfDay({ from: '2026-11-06', items: [] }, '2026-11-06')).toEqual([]);
+  });
+
+  it('keeps the automatic booking choice while waiting and drops the entry once booked', () => {
+    const automatic = entry({ id: 'auto', autoBook: true, createdAt: '2026-11-05T09:00:00.000Z' });
+    const manual = entry({ id: 'manual', autoBook: false });
+    const list = { from: '2026-11-06', items: [automatic, manual] };
+    expect(waitlistOfDay(list, automatic.date)).toEqual([manual, automatic]);
+    expect(
+      waitlistOfDay(
+        { ...list, items: [{ ...automatic, status: 'booked' }, manual] },
+        automatic.date,
+      ),
+    ).toEqual([manual]);
+  });
+
   it('says when the client joined and was told, in the salon time zone', () => {
     expect(waitlistStatus(entry({}), 'Europe/Warsaw', W)).toBe('Czeka · Zapisał(a) się 09:12');
     expect(

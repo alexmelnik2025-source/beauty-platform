@@ -101,7 +101,7 @@ export function ProductSalesSection(props: {
 
   return (
     <View style={{ gap: 6 }} testID="visit-products">
-      <Text style={styles.label}>
+      <Text role="heading" aria-level={3} style={styles.label}>
         {sales.totalGrosze > 0
           ? fill(p.soldTotal, { amount: money(sales.totalGrosze) })
           : p.sold.toUpperCase()}
@@ -138,6 +138,7 @@ export function ProductSalesSection(props: {
               autoCorrect={false}
               editable={!busy}
               aria-invalid={Boolean(codeHint)}
+              aria-describedby={codeHint ? 'visit-barcode-error' : undefined}
               onChangeText={(value) => {
                 setCode(value);
                 setCodeError('');
@@ -146,7 +147,11 @@ export function ProductSalesSection(props: {
               style={[styles.input, !!codeHint && { borderColor: colors.danger }]}
               testID="visit-products-code"
             />
-            {codeHint ? <ErrorText>! {codeHint}</ErrorText> : null}
+            {codeHint ? (
+              <Text role="alert" nativeID="visit-barcode-error" style={styles.fieldError}>
+                ! {codeHint}
+              </Text>
+            ) : null}
           </View>
           <Button
             kind="secondary"
@@ -190,13 +195,28 @@ export function ProductSalesSection(props: {
 
 const styles = StyleSheet.create({
   label: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' },
-  name: { fontSize: 16, color: colors.ink, flexShrink: 1, flexGrow: 1 },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  name: {
+    fontSize: 16,
+    color: colors.ink,
+    flexShrink: 1,
+    flexGrow: 1,
+    flexBasis: 150,
+    minWidth: 0,
+  },
   muted: { color: colors.muted, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   codeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   codeField: { flexGrow: 1, flexBasis: 180, gap: 4 },
+  fieldError: { color: colors.danger, fontSize: 15 },
   input: {
+    minHeight: 44,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,

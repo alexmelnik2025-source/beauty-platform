@@ -17,17 +17,20 @@ export function parseRecent(raw: string | null): RecentSalon[] {
   try {
     const saved: unknown = JSON.parse(raw ?? '[]');
     if (!Array.isArray(saved)) return [];
-    return saved
-      .filter(
-        (x): x is RecentSalon =>
-          typeof x === 'object' &&
-          x !== null &&
-          typeof (x as RecentSalon).slug === 'string' &&
-          typeof (x as RecentSalon).name === 'string' &&
-          (x as RecentSalon).slug.length > 0,
+    const salons = new Map<string, RecentSalon>();
+    for (const entry of saved) {
+      if (
+        !entry ||
+        typeof entry.slug !== 'string' ||
+        !entry.slug.trim() ||
+        typeof entry.name !== 'string'
       )
-      .map(({ slug, name }) => ({ slug, name }))
-      .slice(0, RECENT_MAX);
+        continue;
+      if (salons.has(entry.slug)) continue;
+      salons.set(entry.slug, { slug: entry.slug, name: entry.name });
+      if (salons.size === RECENT_MAX) break;
+    }
+    return [...salons.values()];
   } catch {
     return [];
   }

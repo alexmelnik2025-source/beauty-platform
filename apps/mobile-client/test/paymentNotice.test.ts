@@ -15,6 +15,11 @@ describe('booking payment notice', () => {
     expect(paymentNoticeAmount(details('0', 'EUR'))).toEqual({ value: 0, currency: 'EUR' });
   });
 
+  it.each(['0', '5500'])('omits the amount %s when no currency was disclosed', (amount) => {
+    expect(paymentNoticeAmount([{ path: 'amountGrosze', message: amount }])).toBeNull();
+    expect(paymentNoticeAmount(details(amount, ''))).toBeNull();
+  });
+
   it('omits unpublished or malformed amounts', () => {
     for (const value of [
       undefined,

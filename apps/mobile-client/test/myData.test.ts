@@ -27,6 +27,13 @@ describe('saveMyData', () => {
     );
   });
 
+  it('propagates a share failure so the client can retry the export', async () => {
+    Platform.OS = 'ios';
+    const error = new Error('Share sheet unavailable');
+    share.mockRejectedValueOnce(error);
+    await expect(saveMyData(json, 'my-data.json', 'My data')).rejects.toBe(error);
+  });
+
   it('downloads the JSON file in the browser and revokes its object URL', async () => {
     Platform.OS = 'web';
     vi.useFakeTimers();

@@ -66,7 +66,14 @@ export function VisitProductsCard(props: {
       </Text>
       {reserved.map((r) => (
         <View key={r.id} style={styles.row}>
-          {r.photoId ? <Image source={photo(r.photoId)} style={styles.photo} /> : null}
+          {r.photoId ? (
+            <Image
+              accessible
+              accessibilityLabel={r.name}
+              source={photo(r.photoId)}
+              style={styles.photo}
+            />
+          ) : null}
           <View style={styles.grow}>
             <Text style={styles.name}>{r.quantity > 1 ? `${r.name} × ${r.quantity}` : r.name}</Text>
             <Text style={styles.muted}>
@@ -96,7 +103,14 @@ export function VisitProductsCard(props: {
           {open
             ? data.available.map((p) => (
                 <View key={p.id} style={styles.row}>
-                  {p.photoId ? <Image source={photo(p.photoId)} style={styles.photo} /> : null}
+                  {p.photoId ? (
+                    <Image
+                      accessible
+                      accessibilityLabel={p.name}
+                      source={photo(p.photoId)}
+                      style={styles.photo}
+                    />
+                  ) : null}
                   <View style={styles.grow}>
                     <Text style={styles.name}>
                       {p.name}
@@ -136,7 +150,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: '700', color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  grow: { flexGrow: 1, flexShrink: 1, gap: 2, minWidth: 140 },
+  grow: { flexGrow: 1, flexShrink: 1, gap: 2, flexBasis: 140, minWidth: 0 },
   photo: { width: 48, height: 48, borderRadius: 8 },
   name: { fontSize: 15, fontWeight: '600', color: colors.ink },
   price: { fontSize: 15, color: colors.ink },

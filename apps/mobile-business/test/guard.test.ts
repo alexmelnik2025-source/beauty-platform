@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CancellationGuard } from '../src/api';
+import { BusinessApi, type CancellationGuard } from '../src/api';
 import {
   actionLine,
   clientReasons,
@@ -11,7 +11,7 @@ import {
   ruleLines,
   type MarkedClient,
 } from '../src/guard';
-import { DICTIONARIES } from '../src/i18n';
+import { DICTIONARIES, LOCALES } from '../src/i18n';
 
 const pl = DICTIONARIES.pl;
 
@@ -25,6 +25,20 @@ const settings = (over: Partial<CancellationGuard> = {}): CancellationGuard => (
   version: 4,
   ...over,
 });
+
+const client: MarkedClient = {
+  customerId: 'c1',
+  name: 'Jan Kowalski',
+  phone: '+48600100200',
+  email: null,
+  reasons: ['no_shows'],
+  changes: 1,
+  lateCancellations: 0,
+  noShows: 2,
+  noShowAmountGrosze: 18000,
+  releasedAt: null,
+  rule: 'salon',
+};
 
 describe('cancellation protection in the business app', () => {
   it('owners and managers only', () => {
@@ -56,23 +70,49 @@ describe('cancellation protection in the business app', () => {
   });
 
   it('why a client is marked, with what the missed visits cost', () => {
-    const client: MarkedClient = {
-      customerId: 'c1',
-      name: 'Jan Kowalski',
-      phone: '+48600100200',
-      email: null,
-      reasons: ['no_shows'],
-      changes: 1,
-      lateCancellations: 0,
-      noShows: 2,
-      noShowAmountGrosze: 18000,
-      releasedAt: null,
-      rule: 'salon',
-    };
     expect(clientReasons(client, 'PLN', pl, 'pl')).toMatch(
       /^nieobecności: 2 · Nieodbyte wizyty: 180,00\s?zł$/,
     );
   });
+
+  it.each(['approval', 'phone_only', 'prepay'] as const)(
+    'explains a mark caused solely by the personal rule %s even with zero debt',
+    (rule) => {
+      const marked = { ...client, rule, reasons: [], noShows: 0, noShowAmountGrosze: 0 };
+      for (const locale of LOCALES) {
+        const dict = DICTIONARIES[locale];
+        expect(clientReasons(marked, 'PLN', dict, locale)).toBe(dict.clients.guard.rules[rule]);
+      }
+    },
+  );
+
+  it('keeps the personal rule, incidents and the last grosz of a large debt visible together', () => {
+    const marked = { ...client, rule: 'prepay' as const, noShowAmountGrosze: 2_147_483_647 };
+    const text = clientReasons(marked, 'PLN', pl, 'pl').replace(/\s/g, ' ');
+    expect(text).toBe(
+      pl.clients.guard.rules.prepay + ' · nieobecności: 2 · Nieodbyte wizyty: 21 474 836,47 zł',
+    );
+  });
+
+  it.each(['salon', 'trusted', 'prepay', 'approval', 'phone_only'] as const)(
+    'saves the selected client rule %s on the client’s own card',
+    async (rule) => {
+      const store = { get: async () => 'refresh', set: async () => undefined };
+      const api = new BusinessApi('https://api.test', store, async (url, init) => {
+        if (url.endsWith('/auth/refresh')) return Response.json({ accessToken: 'access' });
+        expect(url).toBe(
+          'https://api.test/v1/organizations/o1/locations/l1/cancellation-guard/clients/c1/rule',
+        );
+        expect(init?.method).toBe('PUT');
+        expect(JSON.parse(String(init?.body))).toEqual({ rule });
+        return Response.json({ customerId: 'c1', rule });
+      });
+      expect(await api.updateClientRule('o1', 'l1', 'c1', rule)).toMatchObject({
+        customerId: 'c1',
+        rule,
+      });
+    },
+  );
 
   it('the action names exist in every language', () => {
     for (const t of Object.values(DICTIONARIES)) {

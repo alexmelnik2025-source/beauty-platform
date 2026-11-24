@@ -61,6 +61,30 @@ describe('messagesChanges', () => {
     ).toEqual({ changes: { rebookReminderDays: 0, rebookReminderText: null } });
   });
 
+  it('clears a whitespace-only reminder and keeps placeholders as typed in a custom message', () => {
+    const saved = salon({ rebookReminderDays: 30, rebookReminderText: 'Stary tekst' });
+    const form = messagesForm(saved);
+    expect(messagesChanges(saved, { ...form, rebookText: '  \n  ' })).toEqual({
+      changes: { rebookReminderText: null },
+    });
+    const template = 'Zapraszamy {name} do {salon}!';
+    expect(messagesChanges(saved, { ...form, rebookText: template })).toEqual({
+      changes: { rebookReminderText: template },
+    });
+  });
+
+  it('accepts 500 characters after trimming and rejects a very long message', () => {
+    const saved = salon({ rebookReminderDays: 30 });
+    const form = messagesForm(saved);
+    const limit = 'ó'.repeat(500);
+    expect(messagesChanges(saved, { ...form, rebookText: ` ${limit} ` })).toEqual({
+      changes: { rebookReminderText: limit },
+    });
+    expect(messagesChanges(saved, { ...form, rebookText: limit.repeat(100) })).toEqual({
+      problem: 'rebookText',
+    });
+  });
+
   it('days must be 7–365 when it is on, the text up to 500 characters', () => {
     const form = { ...messagesForm(salon()), rebookOn: true };
     expect(messagesChanges(salon(), { ...form, rebookDays: '' })).toEqual({

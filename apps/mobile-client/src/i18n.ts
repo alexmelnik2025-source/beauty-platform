@@ -18,9 +18,9 @@ export const LANGUAGE_NAMES: Record<Locale, string> = {
   sq: 'Shqip',
 };
 
-/** A language from the API (it may know more than this app, e.g. tr, sq) → one the app has. */
+/** Use the profile language when supported, otherwise Polish. */
 export function appLocale(value: string): Locale {
-  return (LOCALES as string[]).includes(value) ? (value as Locale) : 'en';
+  return (LOCALES as string[]).includes(value) ? (value as Locale) : 'pl';
 }
 
 /** The phone's language if we have it (e.g. "uk-UA" → uk, "be" → ru), otherwise Polish. */
