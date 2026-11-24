@@ -66,7 +66,7 @@ export function clientReasons(
 ): string {
   const c = t.clients.guard;
   const parts: string[] = [];
-  if (client.rule !== 'salon' && client.rule !== 'trusted') {
+  if (client.rule === 'approval' || client.rule === 'phone_only' || client.rule === 'prepay') {
     parts.push(c.rules[client.rule]);
   }
   if (client.reasons.includes('changes')) {
