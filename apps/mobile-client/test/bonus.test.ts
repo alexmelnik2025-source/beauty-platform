@@ -149,6 +149,50 @@ describe('"My bonuses" texts', () => {
     expect(readyReward(empty)).toBeUndefined();
   });
 
+  it.each([
+    [-2, 0],
+    [0, 0],
+    [8, 6],
+  ])('bounds progress for a balance of %i', (balance, collected) => {
+    const c = card({ balance, rewards: [reward('a', 6, Math.max(0, 6 - balance))], next: null });
+    const label = `Zebrane: ${collected} z 6`;
+    const stamps = progress(pl, c);
+    expect(stamps?.label).toBe(label);
+    expect(stamps?.kind === 'stamps' && stamps.stamps.filter((s) => s.on).length).toBe(collected);
+    expect(progress(pl, { ...c, mode: 'points' })).toEqual({
+      kind: 'bar',
+      label,
+      value: collected,
+      max: 6,
+    });
+  });
+
+  it.each([
+    [-5, 'Zniżka 0%'],
+    [0, 'Zniżka 0%'],
+    [100, 'Zniżka 100%'],
+    [125, 'Zniżka 100%'],
+  ])(
+    'shows a %i percent reward within the full price of the visit',
+    (discountPercent, expected) => {
+      expect(rewardText(pl, reward('a', 1, 0, { discountPercent }))).toBe(expected);
+    },
+  );
+
+  it('rounds earning amounts to the nearest grosz in the salon currency', () => {
+    const c = card({
+      mode: 'points',
+      earning: {
+        ...card().earning,
+        spendUnitGrosze: 100.49,
+        minSpendGrosze: 100.5,
+      },
+    });
+    expect(earningText(pl, c, 'pl').replace(/\s/g, ' ')).toBe(
+      '1 pkt za każde 1,00 zł · od 1,01 zł za wizytę',
+    );
+  });
+
   it('how bonuses are earned, with the minimum and validity of points', () => {
     expect(earningText(pl, card(), 'pl')).toBe('Pieczątki za opłaconą wizytę: 1');
     const points = card({
@@ -172,6 +216,7 @@ describe('"My bonuses" texts', () => {
     expect(
       rewardText(pl, reward('a', 3, 0, { kind: 'free_service', freeServiceName: 'Broda' })),
     ).toBe('Gratis: Broda');
+    expect(signedPoints(0)).toBe('0');
     expect(signedPoints(1)).toBe('+1');
     expect(signedPoints(-3)).toBe('-3');
     expect(formatDate('2026-11-04T10:00:00Z', 'en')).toBe('4 Nov 2026');
@@ -229,6 +274,14 @@ describe('the salon’s bonus rules (task 19)', () => {
     extraPoints: 0,
     withinDays: 21,
   };
+
+  it.each([0, -3])(
+    'omits a non-positive extra of %i points from the bonus badge',
+    (extraPoints) => {
+      expect(extraBadge({ ...rule, extraPoints })).toBe('×2');
+      expect(extraBadge({ ...rule, extraPoints, multiplier: 1 })).toBe('');
+    },
+  );
 
   it('says what is added and when, in the client’s language', () => {
     expect(extraBadge(rule)).toBe('×2');

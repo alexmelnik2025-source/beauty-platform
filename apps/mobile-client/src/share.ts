@@ -30,7 +30,7 @@ export interface ShareTools {
   native?: (content: ShareMessage) => Promise<{ action: string }>;
   /** The browser's share menu (navigator.share), when it has one. */
   webShare?: (data: { title: string; text: string; url: string }) => Promise<void>;
-  /** Copy to the clipboard (navigator.clipboard.writeText). */
+  /** Copy to the device or browser clipboard. */
   copy?: (text: string) => Promise<void>;
 }
 
@@ -48,7 +48,7 @@ export async function shareSalon(
       const result = await tools.native(content);
       return result.action === 'dismissedAction' ? 'cancelled' : 'shared';
     } catch {
-      return 'failed';
+      // The device could not open the share sheet. Try the remaining tools.
     }
   }
   if (tools.webShare) {
