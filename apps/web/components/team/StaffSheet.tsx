@@ -71,6 +71,12 @@ export function StaffSheet({
   const [specialNote, setSpecialNote] = useState('');
   const [error, setError] = useState('');
   /**
+   * Task 814 (owner's rule: errors where the action is): a refused "Zapisz" is said under that
+   * button at the bottom of the sheet, a refused photo change under the photo — not at the top.
+   */
+  const [saveError, setSaveError] = useState('');
+  const [photoError, setPhotoError] = useState('');
+  /**
    * Task 660 (owner's rule: errors at the field): a name of only spaces is pointed out under
    * "Imię"; a special day or an absence whose "Do" is not after "Od" — under its "Do"; and the
    * server's answer about a special day or an absence stays in that section instead of the top
@@ -156,6 +162,7 @@ export function StaffSheet({
     }
     if (!lock()) return;
     setError('');
+    setSaveError('');
     setMessage('');
     try {
       let id = staff?.id;
@@ -203,7 +210,7 @@ export function StaffSheet({
       });
       onSaved();
     } catch (err) {
-      setError(errorText(t, err));
+      setSaveError(errorText(t, err));
       unlock();
     }
   }
@@ -288,7 +295,7 @@ export function StaffSheet({
   async function setPhoto(file: File | undefined) {
     if (!staff || !file) return;
     setPhotoBusy(true);
-    setError('');
+    setPhotoError('');
     try {
       const blob = await shrinkPhoto(file, STAFF_PHOTO_SIDE);
       const saved = await api<{ url: string }>(`${base}/staff/${staff.id}/photo`, {
@@ -298,7 +305,7 @@ export function StaffSheet({
       setPhotoUrl(saved.url);
       onPhotoChange();
     } catch (err) {
-      setError(errorText(t, err));
+      setPhotoError(errorText(t, err));
     } finally {
       setPhotoBusy(false);
       if (photoInput.current) photoInput.current.value = '';
@@ -307,13 +314,13 @@ export function StaffSheet({
 
   async function removePhoto() {
     if (!staff) return;
-    setError('');
+    setPhotoError('');
     try {
       await api(`${base}/staff/${staff.id}/photo`, { method: 'DELETE' });
       setPhotoUrl(null);
       onPhotoChange();
     } catch (err) {
-      setError(errorText(t, err));
+      setPhotoError(errorText(t, err));
     }
   }
 
@@ -355,7 +362,13 @@ export function StaffSheet({
 
   return (
     <Sheet title={staff ? staff.displayName : t.team.addStaff} onClose={onClose}>
-      <form noValidate className="form" onSubmit={save}>
+      <form
+        noValidate
+        className="form"
+        onSubmit={save}
+        // Task 814: editing anything in the form takes the refused-save line away.
+        onChange={() => setSaveError('')}
+      >
         <ErrorBox>{error}</ErrorBox>
         {message ? <p className="note">{message}</p> : null}
         {staff ? (
@@ -376,6 +389,7 @@ export function StaffSheet({
                 className="visually-hidden"
                 disabled={photoBusy}
                 aria-label={t.photos.staffAdd}
+                aria-describedby={photoError ? 'staff-photo-error' : undefined}
                 onChange={(e) => void setPhoto(e.target.files?.[0])}
               />
             </label>
@@ -386,6 +400,7 @@ export function StaffSheet({
             ) : null}
           </div>
         ) : null}
+        {staff ? <FieldError id="staff-photo-error" text={photoError} /> : null}
         <label className="field">
           <span>{t.team.displayName}</span>
           <input
@@ -551,9 +566,14 @@ export function StaffSheet({
           )}
         </section>
 
-        <button className="btn btn--block" disabled={busy || week === null}>
+        <button
+          className="btn btn--block"
+          disabled={busy || week === null}
+          aria-describedby={saveError ? 'staff-save-error' : undefined}
+        >
           {t.common.save}
         </button>
+        <FieldError id="staff-save-error" text={saveError} />
       </form>
 
       {staff ? (
