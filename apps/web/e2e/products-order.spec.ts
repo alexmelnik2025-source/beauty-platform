@@ -164,7 +164,24 @@ test('the owner sends the order for the products to order to each supplier', asy
   await expect(delivery.getByTestId('delivery-row')).toHaveCount(2);
   await delivery.scrollIntoViewIfNeeded();
   await shot(page, '476-owner-delivery');
-  await delivery.getByRole('button', { name: 'Przyjmij dostawę (5 szt.)' }).click();
+  // Task 811 (owner's rule: errors where the action is): a refused delivery is said under
+  // "Przyjmij dostawę", not above the list; the typed pieces stay.
+  const deliveryUrl = (url: URL) => url.pathname.endsWith('/products/delivery');
+  await page.route(deliveryUrl, (route) =>
+    route.fulfill({ status: 429, json: { error: { code: 'RATE_LIMITED', message: 'slow down' } } }),
+  );
+  const takeDelivery = delivery.getByRole('button', { name: 'Przyjmij dostawę (5 szt.)' });
+  await takeDelivery.click();
+  await expect(delivery.locator('#delivery-save-error')).toHaveText(
+    'Zbyt wiele prób. Odczekaj chwilę.',
+  );
+  await expect(takeDelivery).toHaveAccessibleDescription(/Zbyt wiele prób\. Odczekaj chwilę\.$/);
+  await expect(delivery.getByLabel('Przyszło — Pomada matowa')).toHaveValue('5');
+  await expect(delivery.locator('.alert')).toHaveCount(0);
+  await delivery.scrollIntoViewIfNeeded();
+  await shot(page, '811-delivery-save-error');
+  await page.unroute(deliveryUrl);
+  await takeDelivery.click();
   await expect(products.getByTestId('delivery-done')).toHaveText(
     'Dostawa przyjęta: 5 szt., produktów: 1.',
   );

@@ -745,6 +745,12 @@ pnpm --filter @beauty/api-client generate
   «+ Dodaj zdjęcie» — под этой кнопкой; раньше — рамкой под всем шагом. e2e `wish-photos`, скриншот
   `782-booking-photo-remove-error`.
 
+## «Produkty»: отказ «Przyjmij dostawę» и «Zapisz inwentaryzację» под кнопкой (задача 811, 24.11.2026)
+
+- Отказ сервера при «Przyjmij dostawę (N szt.)» и «Zapisz inwentaryzację» — под этой кнопкой внизу списка (с «!»);
+  раньше — рамкой над списком товаров. Введённые штуки остаются, правка поля убирает ошибку. e2e `products-order`,
+  `products`, скриншоты `811-delivery-save-error`, `811-stocktake-save-error`.
+
 ## «Program lojalnościowy»: отказ «Zapisz poziomy», «Zapisz» и «Usuń z katalogu» у кнопок (задача 810, 24.11.2026)
 
 - Отказ сервера при «Zapisz poziomy» (уровни клиентов) — под этой кнопкой внизу формы (с «!»); в окне награды отказ

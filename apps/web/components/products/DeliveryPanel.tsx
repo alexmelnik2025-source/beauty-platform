@@ -5,7 +5,7 @@ import { api, ApiError } from '@/lib/api';
 import { errorText, fill, useI18n } from '@/lib/i18n';
 import { orderQuantity } from '@/lib/to-order';
 import type { Product, StockDelivery } from '@/lib/types';
-import { ErrorBox, FieldError } from '../ui';
+import { FieldError } from '../ui';
 
 /** "" → null (nothing came), "12" → 12; anything else (0 too) → undefined (wrong). */
 function parsePieces(value: string): number | null | undefined {
@@ -58,6 +58,10 @@ export function DeliveryPanel({
   /** "" = all suppliers. */
   const [supplier, setSupplier] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * Task 811 (owner's rule: errors where the action is): a refused "Przyjmij dostawę" is said
+   * under that button at the bottom of the list, not above it; the typed pieces stay.
+   */
   const [error, setError] = useState('');
   /**
    * Task 670 (owner's rule: errors at the field): the products whose number the server did not
@@ -129,7 +133,6 @@ export function DeliveryPanel({
     >
       <h3>{p.deliveryTitle}</h3>
       <p className="small muted">{p.deliveryHint}</p>
-      <ErrorBox>{error}</ErrorBox>
       {suppliers.length > 0 ? (
         <p>
           <select
@@ -168,6 +171,7 @@ export function DeliveryPanel({
                   setPieces({ ...pieces, [x.id]: e.target.value });
                   setServerWrong(serverWrong.filter((id) => id !== x.id));
                   setEmpty(false);
+                  setError('');
                 }}
               />
               <span aria-hidden="true">{p.pieces}</span>
@@ -190,11 +194,13 @@ export function DeliveryPanel({
           type="button"
           className="btn btn--small"
           disabled={busy || parsed.length === 0}
+          aria-describedby={error ? 'delivery-save-error' : undefined}
           onClick={() => void save()}
         >
           {p.deliverySave.replace('{n}', String(total))}
         </button>
       </p>
+      <FieldError id="delivery-save-error" text={error} />
     </div>
   );
 }
