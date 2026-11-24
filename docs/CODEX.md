@@ -354,6 +354,9 @@
 
 (PR — что сделано — дата.)
 
+- PR [#110](https://github.com/alexmelnik2025-source/beauty-platform/pull/110) (влит Claude 24.11.2026 напрямую, CI зелёный) — поток CP: скорость экрана данных салона в бизнес-приложении.
+- PR [#112](https://github.com/alexmelnik2025-source/beauty-platform/pull/112), [#107](https://github.com/alexmelnik2025-source/beauty-platform/pull/107), [#108](https://github.com/alexmelnik2025-source/beauty-platform/pull/108) (влиты Claude 24.11.2026 стеком `agent/822-824-stack` (задачи 822, 824), CI зелёный; коммиты Codex перенесены без изменений, конфликт только в `docs/CODEX.md` — оставлены обе записи) — потоки CS (доступы и ссылка на запись), CN (сообщения, уведомления, журнал), CO (защита от отмен и отзывы): скорость в бизнес-приложении.
+- PR [#109](https://github.com/alexmelnik2025-source/beauty-platform/pull/109) (поток CQ) — не влит: красный e2e в прогоне на push (`app-langs-visit-sections`, `booking`), комментарий в PR.
 - PR [#106](https://github.com/alexmelnik2025-source/beauty-platform/pull/106) (влит Claude 24.11.2026 веткой `agent/815-820-stack` (задача 817), CI зелёный; коммит Codex перенесён без изменений, конфликт только в `docs/CODEX.md` — оставлены обе записи) — поток CL: скорость входа, выбора и создания салона, профиля в бизнес-приложении.
 - PR [#105](https://github.com/alexmelnik2025-source/beauty-platform/pull/105) (влит Claude 24.11.2026, CI зелёный) — поток CM: скорость входа и недавних салонов в клиентском приложении, тест тайм-аута сети.
 - PR [#103](https://github.com/alexmelnik2025-source/beauty-platform/pull/103) (влит Claude 24.11.2026 веткой `agent/812-814-stack`, CI зелёный; коммит Codex перенесён без изменений, конфликт был только в этом файле) — поток CJ: карточка визита в бизнес-приложении при обрыве сети и защита от двойного нажатия — 24.11.2026.

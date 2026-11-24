@@ -12,16 +12,16 @@
 
 (агент пишет сюда задачу, ветку и что уже сделано, если задача не уместилась в один запуск)
 
-- **823 (ветка `agent/823-staff-day-errors`, от main): «Zespół» → карточка специалиста — отказ «Zapisz dzień specjalny»,
+- **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 823 (ветка `agent/823-staff-day-errors`, от main): «Zespół» → карточка специалиста — отказ «Zapisz dzień specjalny»,
   «Dodaj nieobecność» под этими кнопками, отказ «Usuń» — под своей строкой** (полировка по правилу владельца «ошибки
   у поля», новых функций нет). e2e `special-days`, скриншоты `823-staff-special-remove-error`,
   `823-staff-special-save-error`, `823-staff-absence-add-error`.
-- **824 — PR Codex #107 (CN) и #108 (CO) в стеке `agent/822-824-stack`** (коммиты Codex без изменений, конфликт
+- **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 824 — PR Codex #107 (CN) и #108 (CO) в стеке `agent/822-824-stack`** (коммиты Codex без изменений, конфликт
   только в `docs/CODEX.md` — оставлены обе записи). Скорость сообщений, уведомлений, журнала, защиты от отмен и
   отзывов в бизнес-приложении; новых функций нет. PR #109 (CQ) не влит — красный e2e в прогоне на push, комментарий в PR.
-- **822 — PR Codex #112 (CS) в стеке `agent/822-824-stack`** (от main, коммит Codex без изменений, конфликт только в
+- **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 822 — PR Codex #112 (CS) в стеке `agent/822-824-stack`** (от main, коммит Codex без изменений, конфликт только в
   `docs/CODEX.md` — оставлены обе записи). PR Codex #110 (CP) влит напрямую (CI зелёный).
-- **825 (ветка `agent/825-voucher-list-errors`, поверх `agent/822-824-stack`): «Bony podarunkowe» — отказ «Anuluj bon»/«Pokaż» под строкой
+- **✅ Влито в main 24.11.2026 (~18:00 по Варшаве, ветка `agent/825-voucher-list-errors` со стеком `agent/822-824-stack`). 825 (ветка `agent/825-voucher-list-errors`, поверх `agent/822-824-stack`): «Bony podarunkowe» — отказ «Anuluj bon»/«Pokaż» под строкой
   бона, отказ CSV под кнопками CSV** (полировка по правилу владельца «ошибки у поля», новых функций нет). e2e
   `gift-vouchers`, скриншоты `825-voucher-cancel-error`, `825-voucher-csv-error`.
 
