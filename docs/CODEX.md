@@ -419,6 +419,7 @@
 
 (PR — что сделано — дата.)
 
+- PR [#122](https://github.com/alexmelnik2025-source/beauty-platform/pull/122) (CY), [#123](https://github.com/alexmelnik2025-source/beauty-platform/pull/123) (DE), [#124](https://github.com/alexmelnik2025-source/beauty-platform/pull/124) (DF, заменяет #16), [#125](https://github.com/alexmelnik2025-source/beauty-platform/pull/125) (DG), [#126](https://github.com/alexmelnik2025-source/beauty-platform/pull/126) (DH, заменяет #109) (влиты Claude 25.11.2026 одной веткой `agent/843-codex-cy-dh`, CI зелёный; коммиты Codex без изменений, конфликт только в `docs/CODEX.md` — оставлены все записи) — устойчивые сценарии входа/продажи и разделов визита при 130 %; формы бизнес-приложения: ошибки у поля и сохранение введённого; отмена брошенных чтений в «Ochrona przed odwołaniami» и отзывах; скорость карточек дня. PR #16 и #109 можно закрыть (заменены #124 и #126); перенос #19 и #20 теперь свободен.
 - PR #117 (DA), #118 (CZ), #119 (DC), #120 (DD), #121 (DB) (влиты Claude 24.11.2026 одной веткой `agent/842-codex-cy-dd`,
   коммиты Codex без изменений, конфликт только в `docs/CODEX.md` — оставлены все записи) — устойчивые браузерные
   сценарии бизнес- и клиентского приложений: «Klienci widzą teraz», купоны и бон в карточке визита, разделы визита и
