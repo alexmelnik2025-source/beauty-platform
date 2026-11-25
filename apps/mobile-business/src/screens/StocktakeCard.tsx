@@ -2,11 +2,14 @@ import { memo, useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, Stocktake } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { stocktakeCount } from '../stock';
 import { Button, Card, colors, ErrorText } from '../ui';
 import { useScreenLifetime } from './HistoryScreen';
 import type { SalonChoice } from './SalonsScreen';
+
+const EMPTY_COUNTS: Record<string, string> = {};
 
 const StocktakeRow = memo(function StocktakeRow({
   product,
@@ -81,15 +84,21 @@ export function StocktakeCard(props: {
 }) {
   const { api, t, salon, products } = props;
   const p = t.products;
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useFormDraft(
+    `stocktake.${salon.orgId}.${salon.locationId}.counts`,
+    EMPTY_COUNTS,
+  );
   const lifetime = useScreenLifetime(salon);
   const saving = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const changeCount = useCallback((id: string, value: string) => {
-    setDrafts((previous) => ({ ...previous, [id]: value }));
-  }, []);
+  const changeCount = useCallback(
+    (id: string, value: string) => {
+      setDrafts((previous) => ({ ...previous, [id]: value }));
+    },
+    [setDrafts],
+  );
 
   const changes: { productId: string; quantity: number }[] = [];
   let invalid = false;
@@ -122,6 +131,10 @@ export function StocktakeCard(props: {
     setError('');
     try {
       const result = await api.stocktake(salon.orgId, salon.locationId, changes);
+      // A reopened card may already contain edits made while this request was in flight.
+      setDrafts((current) =>
+        Object.fromEntries(Object.entries(current).filter(([id, value]) => drafts[id] !== value)),
+      );
       if (!signal.aborted) props.onSaved(result);
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, t));
@@ -139,13 +152,24 @@ export function StocktakeCard(props: {
         </Text>
         {rows}
         {error ? <ErrorText>{error}</ErrorText> : null}
-        <View style={{ marginTop: 8 }}>
+        <View style={{ marginTop: 8, gap: 8 }}>
           <Button
             label={p.stocktakeSave}
             busy={busy}
             disabled={disabled}
             onPress={() => void save()}
           />
+          {Object.keys(drafts).length > 0 ? (
+            <Button
+              kind="secondary"
+              label={p.cancel}
+              disabled={busy}
+              onPress={() => {
+                setDrafts(EMPTY_COUNTS);
+                setError('');
+              }}
+            />
+          ) : null}
         </View>
       </Card>
     </View>
