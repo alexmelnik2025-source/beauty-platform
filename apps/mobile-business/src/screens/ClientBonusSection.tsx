@@ -89,7 +89,7 @@ export function ClientBonusSection(props: {
       props.onAccount(
         await api.adjustLoyaltyBalance(salon.orgId, customerId, checked.points, checked.reason),
       );
-      setAdjust(null);
+      setAdjust((current) => (current === adjust ? null : current));
       return b.adjusted;
     });
   }
@@ -246,6 +246,7 @@ export function ClientBonusSection(props: {
             placeholder={b.adjustPoints}
             placeholderTextColor={colors.placeholder}
             value={adjust.points}
+            editable={!busy}
             onChangeText={(points) => setAdjust({ ...adjust, points })}
             keyboardType="numbers-and-punctuation"
             style={styles.input}
@@ -256,13 +257,19 @@ export function ClientBonusSection(props: {
             placeholder={b.adjustReason}
             placeholderTextColor={colors.placeholder}
             value={adjust.reason}
+            editable={!busy}
             onChangeText={(reason) => setAdjust({ ...adjust, reason })}
             maxLength={500}
             style={styles.input}
           />
           <View style={styles.row}>
             <Button label={b.adjust} busy={busy} onPress={saveAdjust} />
-            <Button kind="secondary" label={b.cancel} onPress={() => setAdjust(null)} />
+            <Button
+              kind="secondary"
+              label={b.cancel}
+              disabled={busy}
+              onPress={() => setAdjust(null)}
+            />
           </View>
         </View>
       ) : (
@@ -272,6 +279,7 @@ export function ClientBonusSection(props: {
             label={b.adjustOpen}
             onPress={() => {
               setNote(null);
+              setAdjustProblem(null);
               setAdjust({ points: '', reason: '' });
             }}
           />

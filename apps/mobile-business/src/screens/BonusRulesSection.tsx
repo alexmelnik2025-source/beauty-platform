@@ -20,6 +20,33 @@ import type { SalonChoice } from './SalonsScreen';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
+/** A null entry removes a row. Other entries hold only fields the user changed. */
+export type RuleRowChanges<Row> = Record<string, Partial<Row> | null>;
+
+export function editableRuleRows<Row extends object>(
+  saved: { id: string }[],
+  values: Row[],
+  empty: Row,
+  changes: RuleRowChanges<Row>,
+  onChange: (next: RuleRowChanges<Row>) => void,
+) {
+  const all = values.map((value, index) => ({ key: `saved:${saved[index]!.id}`, value }));
+  for (const key of Object.keys(changes)) {
+    if (key.startsWith('new:')) all.push({ key, value: empty });
+  }
+  const rows = all
+    .filter(({ key }) => changes[key] !== null)
+    .map(({ key, value }) => ({ key, value: { ...value, ...changes[key] } }));
+
+  return {
+    rows,
+    change: (key: string, fields: Partial<Row>) =>
+      onChange({ ...changes, [key]: { ...changes[key], ...fields } }),
+    remove: (key: string) => onChange({ ...changes, [key]: null }),
+    add: () => onChange({ ...changes, [`new:${Object.keys(changes).length}`]: {} }),
+  };
+}
+
 /**
  * Task 346: "Dodatkowe pieczątki i punkty" in "Program lojalnościowy" (owners and managers): the
  * rules in short ("×2 · pon., wt. · Kasia") and "Zmień zasady dodatkowe" — name, specialists,
@@ -35,7 +62,10 @@ export function BonusRulesSection(props: {
   const l = t.loyalty;
   const [data, setData] = useState<LoyaltyBonusRules | null>(null);
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
-  const [rows, setRows] = useFormDraft<BonusRow[] | null>('loyaltyBonus.rows', null);
+  const [draft, setDraft] = useFormDraft<{
+    session: symbol;
+    rows: RuleRowChanges<BonusRow>;
+  } | null>('loyaltyBonus.rows', null);
   const [invalid, setInvalid] = useState<Extract<
     ReturnType<typeof bonusToSave>,
     { ok: false }
@@ -68,27 +98,6 @@ export function BonusRulesSection(props: {
 
   if (!data) return note ? <ErrorText>{note.text}</ErrorText> : null;
 
-  async function save() {
-    if (!rows) return;
-    const checked = bonusToSave(rows);
-    setInvalid(null);
-    if (!checked.ok) return setInvalid(checked);
-    setBusy(true);
-    setNote(null);
-    try {
-      setData(await api.saveLoyaltyBonusRules(salon.orgId, checked.save));
-      setRows(null);
-      setNote({ text: l.bonusSaved, bad: false });
-    } catch (e) {
-      setNote({ text: errorText(e, t), bad: true });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const setRow = (index: number, change: Partial<BonusRow>) =>
-    rows && setRows(rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
-
   const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
     invalid?.problem === problem && invalid.row === row
       ? fill(l.bonusProblem[problem], { n: String((row ?? 0) + 1) })
@@ -104,7 +113,7 @@ export function BonusRulesSection(props: {
     )
   ) : null;
 
-  if (!rows) {
+  if (!draft) {
     return (
       <Card>
         <Text style={styles.muted}>{l.bonusRulesHint}</Text>
@@ -140,19 +149,42 @@ export function BonusRulesSection(props: {
           label={l.bonusChange}
           onPress={() => {
             setNote(null);
-            setRows(bonusRows(data));
+            setDraft({ session: Symbol(), rows: {} });
           }}
         />
       </Card>
     );
   }
 
+  const editor = editableRuleRows(data.rules, bonusRows(data), EMPTY_BONUS, draft.rows, (rows) =>
+    setDraft({ ...draft, rows }),
+  );
+
+  const { session } = draft;
+
+  async function save() {
+    const checked = bonusToSave(editor.rows.map(({ value }) => value));
+    setInvalid(null);
+    if (!checked.ok) return setInvalid(checked);
+    setBusy(true);
+    setNote(null);
+    try {
+      setData(await api.saveLoyaltyBonusRules(salon.orgId, checked.save));
+      setDraft((current) => (current?.session === session ? null : current));
+      setNote({ text: l.bonusSaved, bad: false });
+    } catch (e) {
+      setNote({ text: errorText(e, t), bad: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Card>
-      {rows.map((row, i) => {
+      {editor.rows.map(({ key, value: row }, i) => {
         const n = { n: String(i + 1) };
         return (
-          <View key={i} style={styles.item}>
+          <View key={key} style={styles.item}>
             <FormField
               error={errorAt('name', i)}
               accessibilityLabel={fill(l.bonusName, n)}
@@ -160,7 +192,7 @@ export function BonusRulesSection(props: {
               placeholderTextColor={colors.placeholder}
               value={row.name}
               maxLength={60}
-              onChangeText={(name) => setRow(i, { name })}
+              onChangeText={(name) => editor.change(key, { name })}
               style={styles.input}
             />
             <View style={styles.row}>
@@ -168,13 +200,13 @@ export function BonusRulesSection(props: {
                 error={errorAt('multiplier', i) || errorAt('nothing', i)}
                 label={fill(l.bonusMultiplier, n)}
                 value={row.multiplier}
-                onChange={(multiplier) => setRow(i, { multiplier })}
+                onChange={(multiplier) => editor.change(key, { multiplier })}
               />
               <Labeled
                 error={errorAt('extra', i)}
                 label={fill(l.bonusExtra, n)}
                 value={row.extraPoints}
-                onChange={(extraPoints) => setRow(i, { extraPoints })}
+                onChange={(extraPoints) => editor.change(key, { extraPoints })}
               />
             </View>
             <Text style={styles.label}>{l.bonusDays}</Text>
@@ -184,7 +216,7 @@ export function BonusRulesSection(props: {
                   key={d}
                   label={shortWeekday(d, locale)}
                   on={row.weekdays.includes(d)}
-                  onPress={() => setRow(i, { weekdays: toggled(row.weekdays, d) })}
+                  onPress={() => editor.change(key, { weekdays: toggled(row.weekdays, d) })}
                 />
               ))}
             </View>
@@ -197,7 +229,7 @@ export function BonusRulesSection(props: {
                       key={s.id}
                       label={s.name}
                       on={row.staffIds.includes(s.id)}
-                      onPress={() => setRow(i, { staffIds: toggled(row.staffIds, s.id) })}
+                      onPress={() => editor.change(key, { staffIds: toggled(row.staffIds, s.id) })}
                     />
                   ))}
                 </View>
@@ -207,24 +239,20 @@ export function BonusRulesSection(props: {
               error={errorAt('within', i)}
               label={fill(l.bonusWithin, n)}
               value={row.withinDays}
-              onChange={(withinDays) => setRow(i, { withinDays })}
+              onChange={(withinDays) => editor.change(key, { withinDays })}
             />
             <View style={styles.row}>
               <Button
                 kind="link"
                 label={fill(l.bonusRemove, n)}
-                onPress={() => setRows(rows.filter((_, j) => j !== i))}
+                onPress={() => editor.remove(key)}
               />
             </View>
           </View>
         );
       })}
-      {rows.length < MAX_BONUS_RULES ? (
-        <Button
-          kind="secondary"
-          label={l.bonusAdd}
-          onPress={() => setRows([...rows, { ...EMPTY_BONUS }])}
-        />
+      {editor.rows.length < MAX_BONUS_RULES ? (
+        <Button kind="secondary" label={l.bonusAdd} onPress={editor.add} />
       ) : null}
       <FieldError message={errorAt('tooMany')} />
       {message}
@@ -234,7 +262,8 @@ export function BonusRulesSection(props: {
           kind="secondary"
           label={l.cancel}
           onPress={() => {
-            setRows(null);
+            setDraft(null);
+            setInvalid(null);
             setNote(null);
           }}
         />

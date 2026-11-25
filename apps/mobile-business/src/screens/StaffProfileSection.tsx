@@ -11,13 +11,42 @@ import {
   profileForm,
   serviceChoices,
   SPECIALTIES,
-  toggleSpecialty,
+  type Specialty,
   type StaffProfileForm,
 } from '../staffProfile';
 import { photoType, uploadErrorText } from '../salonPhotos';
-import { toggled } from '../services';
 import { Button, Card, colors, ErrorText, Pressable, switchTouchTarget } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+
+type ProfileFields = Omit<StaffProfileForm, 'specialties' | 'serviceIds'>;
+type ChoiceEdit<T> = { id: T; selected: boolean };
+type ProfileDraft = Partial<ProfileFields> & {
+  specialties?: ChoiceEdit<Specialty>[];
+  serviceIds?: ChoiceEdit<string>[];
+};
+
+/** Untouched choices follow the server. Newly selected specialties come last (the first is primary). */
+function editedChoices<T>(saved: T[], edits: ChoiceEdit<T>[] = []): T[] {
+  return [
+    ...saved.filter((id) => !edits.some((edit) => edit.id === id)),
+    ...edits.filter((edit) => edit.selected).map((edit) => edit.id),
+  ];
+}
+
+function editChoice<T>(
+  saved: T[],
+  edits: ChoiceEdit<T>[] = [],
+  id: T,
+  selected: boolean,
+  ordered = false,
+): ChoiceEdit<T>[] {
+  const other = edits.filter((edit) => edit.id !== id);
+  if (selected === saved.includes(id)) {
+    // Re-selecting a specialty moves it to the end, which can change the primary specialty.
+    if (!ordered || !selected || editedChoices(saved, other).at(-1) === id) return other;
+  }
+  return [...other, { id, selected }];
+}
 
 /**
  * Task 326: the top of a specialist's page in "Grafik zespołu" (owner or manager) — the name
@@ -40,7 +69,15 @@ export function StaffProfileSection(props: {
   const p = t.staffProfile;
   const [staff, setStaff] = useState<StaffList[number] | null>(null);
   const [services, setServices] = useState<ServiceList>([]);
-  const [form, setForm] = useFormDraft<StaffProfileForm | null>(`staffProfile.${staffId}`, null);
+  const [draft, setDraft] = useFormDraft<ProfileDraft | null>(`staffProfile.${staffId}`, null);
+  const savedForm = staff && profileForm(staff);
+  const form = savedForm &&
+    draft && {
+      ...savedForm,
+      ...draft,
+      specialties: editedChoices(savedForm.specialties, draft.specialties),
+      serviceIds: editedChoices(savedForm.serviceIds, draft.serviceIds),
+    };
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -64,6 +101,15 @@ export function StaffProfileSection(props: {
     void load();
   }, [load]);
 
+  function editField<K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) {
+    setDraft((current) => {
+      if (!current || !savedForm) return current;
+      const next = { ...current, [key]: value };
+      if (value === savedForm[key]) delete next[key];
+      return next;
+    });
+  }
+
   async function save() {
     if (!staff || !form || busy) return;
     setError('');
@@ -75,12 +121,12 @@ export function StaffProfileSection(props: {
     }
     if (!checked.change && !checked.serviceIds) {
       setInfo(p.nothing);
-      setForm(null);
+      setDraft(null);
       return;
     }
     setBusy(true);
+    let saved = staff;
     try {
-      let saved = staff;
       if (checked.change) {
         saved = await api.updateStaff(
           salon.orgId,
@@ -99,17 +145,26 @@ export function StaffProfileSection(props: {
         );
       }
       setStaff(saved);
-      setForm(null);
+      setDraft((current) => (current === draft ? null : current));
       setInfo(p.saved);
-      if (saved.displayName !== staff.displayName) onRenamed(saved.displayName);
-      props.onSaved?.();
     } catch (e) {
+      // The profile PATCH can succeed even if updating its services fails. Retry only the services.
+      if (saved !== staff) {
+        setStaff(saved);
+        setDraft((current) =>
+          current && current === draft ? { serviceIds: current.serviceIds } : current,
+        );
+      }
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
         setError(p.changedMeanwhile);
-        setForm(null);
+        setDraft((current) => (current === draft ? null : current));
         await load();
       } else setError(errorText(e, t));
     } finally {
+      if (saved !== staff) {
+        if (saved.displayName !== staff.displayName) onRenamed(saved.displayName);
+        props.onSaved?.();
+      }
       setBusy(false);
     }
   }
@@ -246,7 +301,7 @@ export function StaffProfileSection(props: {
             onPress={() => {
               setInfo('');
               setError('');
-              setForm(profileForm(staff));
+              setDraft({});
             }}
           />
         </>
@@ -261,7 +316,7 @@ export function StaffProfileSection(props: {
               style={switchTouchTarget}
               accessibilityLabel={p.active}
               value={form.active}
-              onValueChange={(active) => setForm({ ...form, active })}
+              onValueChange={(active) => editField('active', active)}
               trackColor={{ true: colors.accent, false: colors.line }}
             />
           </View>
@@ -273,7 +328,7 @@ export function StaffProfileSection(props: {
               accessibilityLabel={p.name}
               value={form.displayName}
               maxLength={80}
-              onChangeText={(displayName) => setForm({ ...form, displayName })}
+              onChangeText={(displayName) => editField('displayName', displayName)}
               style={styles.input}
             />
           </View>
@@ -286,7 +341,7 @@ export function StaffProfileSection(props: {
               maxLength={500}
               multiline
               numberOfLines={3}
-              onChangeText={(bio) => setForm({ ...form, bio })}
+              onChangeText={(bio) => editField('bio', bio)}
               style={[styles.input, styles.multiline]}
             />
             <Text style={styles.small}>{p.bioHint}</Text>
@@ -305,7 +360,19 @@ export function StaffProfileSection(props: {
                     aria-pressed={on}
                     accessibilityState={{ selected: on }}
                     onPress={() =>
-                      setForm({ ...form, specialties: toggleSpecialty(form.specialties, code) })
+                      setDraft(
+                        (current) =>
+                          current && {
+                            ...current,
+                            specialties: editChoice(
+                              staff.specialties,
+                              current.specialties,
+                              code,
+                              !on,
+                              true,
+                            ),
+                          },
+                      )
                     }
                     style={[styles.chip, on && styles.chipOn]}
                   >
@@ -320,7 +387,7 @@ export function StaffProfileSection(props: {
               placeholder={p.customHint}
               value={form.customSpecialty}
               maxLength={40}
-              onChangeText={(customSpecialty) => setForm({ ...form, customSpecialty })}
+              onChangeText={(customSpecialty) => editField('customSpecialty', customSpecialty)}
               style={styles.input}
             />
           </View>
@@ -338,7 +405,18 @@ export function StaffProfileSection(props: {
                   accessibilityState={{ checked: on }}
                   aria-checked={on}
                   onPress={() =>
-                    setForm({ ...form, serviceIds: toggled(form.serviceIds, service.id) })
+                    setDraft(
+                      (current) =>
+                        current && {
+                          ...current,
+                          serviceIds: editChoice(
+                            staff.serviceIds,
+                            current.serviceIds,
+                            service.id,
+                            !on,
+                          ),
+                        },
+                    )
                   }
                   style={styles.check}
                 >
@@ -354,7 +432,7 @@ export function StaffProfileSection(props: {
 
           <View style={styles.row}>
             <Button label={p.save} busy={busy} onPress={() => void save()} />
-            <Button kind="link" label={p.cancel} onPress={() => setForm(null)} />
+            <Button kind="link" label={p.cancel} onPress={() => setDraft(null)} />
           </View>
         </Card>
       )}

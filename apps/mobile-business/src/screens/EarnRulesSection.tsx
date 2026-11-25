@@ -32,12 +32,16 @@ export function EarnRulesSection(props: {
 }) {
   const { api, t, salon, program } = props;
   const l = t.loyalty;
-  const [rows, setRows] = useFormDraft<EarnRows | null>('loyaltyEarn.rows', null);
+  const [changes, setChanges] = useFormDraft<EarnRows | null>('loyaltyEarn.rows', null);
   const [invalidService, setInvalidService] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   const services = earnServices(program, salon.locationId, props.services);
+  const defaults = earnRows(program, salon.locationId);
+  const rows =
+    changes &&
+    Object.fromEntries(services.map(({ id }) => [id, changes[id] ?? defaults[id] ?? '']));
   const unit = program.mode === 'stamps' ? l.earnStamps : l.earnPoints;
 
   async function save() {
@@ -49,7 +53,7 @@ export function EarnRulesSection(props: {
     setNote(null);
     try {
       props.onSaved(await api.saveLoyaltyEarnRules(salon.orgId, salon.locationId, checked.save));
-      setRows(null);
+      setChanges((current) => (current === changes ? null : current));
       setNote({ text: l.earnSaved, bad: false });
     } catch (e) {
       setNote({ text: errorText(e, t), bad: true });
@@ -96,7 +100,8 @@ export function EarnRulesSection(props: {
           label={l.earnChange}
           onPress={() => {
             setNote(null);
-            setRows(earnRows(program, salon.locationId));
+            setInvalidService(null);
+            setChanges({});
           }}
         />
       </Card>
@@ -115,7 +120,7 @@ export function EarnRulesSection(props: {
             placeholder={l.earnGeneral}
             placeholderTextColor={colors.placeholder}
             value={rows[s.id] ?? ''}
-            onChangeText={(value) => setRows({ ...rows, [s.id]: value })}
+            onChangeText={(value) => setChanges((draft) => draft && { ...draft, [s.id]: value })}
             keyboardType="number-pad"
             style={styles.input}
           />
@@ -129,7 +134,7 @@ export function EarnRulesSection(props: {
           label={l.cancel}
           onPress={() => {
             setNote(null);
-            setRows(null);
+            setChanges(null);
           }}
         />
       </View>
