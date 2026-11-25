@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { memo, useEffect, useId, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi } from '../api';
 import type { DayLocale } from '../day';
@@ -7,11 +7,12 @@ import { fill, type Dictionary } from '../i18n';
 import { openStatus, openStatusText, salonNow, todayHoursText, type PublicHours } from '../openNow';
 import { Button, Card, colors, ErrorText } from '../ui';
 import { SalonReadCache } from './HistoryScreen';
+import { readSalonCard } from './SetupCard';
 import type { SalonChoice } from './SalonsScreen';
 
 const hoursCache = new SalonReadCache<PublicHours | null>();
 
-export function ClientsNowCard(props: {
+export const ClientsNowCard = memo(function ClientsNowCard(props: {
   api: BusinessApi;
   t: Dictionary;
   locale: DayLocale;
@@ -34,28 +35,27 @@ export function ClientsNowCard(props: {
   useEffect(() => {
     if (previousRevision.current !== calendarRevision) hoursCache.clear(salon);
     previousRevision.current = calendarRevision;
-    let alive = true;
+    const controller = new AbortController();
+    const { signal } = controller;
     setError('');
     setHours(undefined);
-    hoursCache
-      .read(salon, async () => {
-        const location = await api.location(salon.orgId, salon.locationId);
-        return location.onlineBookingEnabled ? api.publicHours(location.slug) : null;
-      })
-      .then(
-        (next) => {
-          if (alive) {
-            setHours(next);
-            setNow(Date.now());
-          }
-        },
-        (e: unknown) => {
-          if (alive) setError(errorText(e, t));
-        },
-      );
-    return () => {
-      alive = false;
-    };
+    readSalonCard(hoursCache, salon, signal, async () => {
+      const location = await api.location(salon.orgId, salon.locationId);
+      return !signal.aborted && location.onlineBookingEnabled
+        ? api.publicHours(location.slug)
+        : null;
+    }).then(
+      (next) => {
+        if (!signal.aborted) {
+          setHours(next);
+          setNow(Date.now());
+        }
+      },
+      (e: unknown) => {
+        if (!signal.aborted) setError(errorText(e, t));
+      },
+    );
+    return () => controller.abort();
   }, [api, salon, calendarRevision, attempt, t]);
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export function ClientsNowCard(props: {
       </Card>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '700', color: colors.ink },
