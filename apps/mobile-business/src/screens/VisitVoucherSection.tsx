@@ -2,14 +2,18 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type Locale, type VisitVoucherPayments } from '../api';
 import { formatPrice } from '../day';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { parseTip as parseAmount } from '../tip';
 import { Button, colors, ErrorText } from '../ui';
 import { printedCode, visitVoucherAmount, visitVoucherLeft, voucherErrorText } from '../vouchers';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
+import { PendingVisitWrites } from './VisitCouponsSection';
 
 const voucherCache = new SalonReadCache<VisitVoucherPayments>();
+const pendingVoucherWrites = new PendingVisitWrites();
+const emptyDraft: { code: string; amount?: string } = { code: '' };
 
 interface Props {
   api: BusinessApi;
@@ -37,8 +41,11 @@ function VoucherPayments(props: Props) {
   const v = t.vouchers;
   const [payments, setPayments] = useState<VisitVoucherPayments | null>(null);
   const [open, setOpen] = useState(false);
-  const [code, setCode] = useState('');
-  const [amount, setAmount] = useState('');
+  const [draft, setDraft] = useFormDraft(`visitVoucher.${appointmentId}.payment`, emptyDraft);
+  const remainingAmount = visitVoucherAmount(props.toPayGrosze, payments?.totalGrosze ?? 0);
+  const amount =
+    draft.amount ?? (props.locale === 'en' ? remainingAmount.replace(',', '.') : remainingAmount);
+  const { code } = draft;
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ field: 'code' | 'amount'; text: string } | null>(null);
@@ -51,6 +58,8 @@ function VoucherPayments(props: Props) {
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
+        await pendingVoucherWrites.waitFor(salon, appointmentId);
+        if (signal.aborted) return;
         const data = await voucherCache.read(
           salon,
           () => withNetworkTimeout(api.visitVoucherPayments(orgId, locationId, appointmentId)),
@@ -97,18 +106,26 @@ function VoucherPayments(props: Props) {
       const found = await api.giftVoucherByCode(salon.orgId, salon.locationId, wanted);
       if (signal.aborted) return;
       field = 'amount';
-      const next = await api.redeemGiftVoucher(
-        salon.orgId,
-        salon.locationId,
-        found.voucher.id,
-        grosze,
-        props.serviceName,
+      const next = await pendingVoucherWrites.track(
+        salon,
         appointmentId,
+        api
+          .redeemGiftVoucher(
+            salon.orgId,
+            salon.locationId,
+            found.voucher.id,
+            grosze,
+            props.serviceName,
+            appointmentId,
+          )
+          .then((result) => {
+            voucherCache.clear(salon);
+            setDraft(emptyDraft);
+            return result;
+          }),
       );
-      voucherCache.clear(salon);
       if (signal.aborted) return;
       setInfo(fill(v.paid, { amount: money(grosze), left: money(next.voucher.balanceGrosze) }));
-      setCode('');
       setOpen(false);
       await load(signal);
     } catch (e) {
@@ -168,7 +185,7 @@ function VoucherPayments(props: Props) {
             aria-invalid={error?.field === 'code'}
             aria-describedby={error?.field === 'code' ? 'visit-voucher-code-error' : undefined}
             onChangeText={(value) => {
-              setCode(value.replace(/[\r\n]/g, ''));
+              setDraft((current) => ({ ...current, code: value.replace(/[\r\n]/g, '') }));
               if (error?.field === 'code') setError(null);
             }}
             style={[styles.input, error?.field === 'code' && styles.invalid]}
@@ -189,7 +206,7 @@ function VoucherPayments(props: Props) {
             aria-invalid={error?.field === 'amount'}
             aria-describedby={error?.field === 'amount' ? 'visit-voucher-amount-error' : undefined}
             onChangeText={(value) => {
-              setAmount(value);
+              setDraft((current) => ({ ...current, amount: value }));
               if (error?.field === 'amount') setError(null);
             }}
             style={[styles.input, error?.field === 'amount' && styles.invalid]}
@@ -207,6 +224,7 @@ function VoucherPayments(props: Props) {
               label={t.clients.cancel}
               disabled={busy}
               onPress={() => {
+                setDraft(emptyDraft);
                 setOpen(false);
                 setError(null);
               }}
@@ -222,8 +240,6 @@ function VoucherPayments(props: Props) {
           onPress={() => {
             setOpen(true);
             setInfo('');
-            const remaining = visitVoucherAmount(props.toPayGrosze, payments.totalGrosze);
-            setAmount(props.locale === 'en' ? remaining.replace(',', '.') : remaining);
           }}
         />
       )}
