@@ -1,3 +1,4 @@
+import { FormDrafts } from './formDrafts';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
@@ -141,18 +142,19 @@ export default function App() {
               onBack={openSalons}
             />
           ) : (
-            <DayScreen
-              key={stage.salon.locationId}
-              api={api}
-              t={t}
-              locale={locale}
-              salon={stage.salon}
-              timeZone={stage.timeZone}
-              canChangeSalon={stage.choices.length > 1}
-              onChangeSalon={() => setStage({ kind: 'salons', choices: stage.choices })}
-              onSignOut={signOut}
-              onLocale={setLocale}
-            />
+            <FormDrafts key={stage.salon.locationId}>
+              <DayScreen
+                api={api}
+                t={t}
+                locale={locale}
+                salon={stage.salon}
+                timeZone={stage.timeZone}
+                canChangeSalon={stage.choices.length > 1}
+                onChangeSalon={() => setStage({ kind: 'salons', choices: stage.choices })}
+                onSignOut={signOut}
+                onLocale={setLocale}
+              />
+            </FormDrafts>
           )}
         </View>
       </SafeAreaView>

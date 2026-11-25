@@ -1,3 +1,5 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -38,7 +40,7 @@ export function StaffProfileSection(props: {
   const p = t.staffProfile;
   const [staff, setStaff] = useState<StaffList[number] | null>(null);
   const [services, setServices] = useState<ServiceList>([]);
-  const [form, setForm] = useState<StaffProfileForm | null>(null);
+  const [form, setForm] = useFormDraft<StaffProfileForm | null>(`staffProfile.${staffId}`, null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -173,7 +175,7 @@ export function StaffProfileSection(props: {
   return (
     <>
       <Text style={styles.section}>{p.title}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== p.noName ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
       {!form ? (
         <>
@@ -266,7 +268,8 @@ export function StaffProfileSection(props: {
 
           <View style={styles.field}>
             <Text style={styles.label}>{p.name}</Text>
-            <TextInput
+            <FormField
+              error={error === p.noName ? error : undefined}
               accessibilityLabel={p.name}
               value={form.displayName}
               maxLength={80}

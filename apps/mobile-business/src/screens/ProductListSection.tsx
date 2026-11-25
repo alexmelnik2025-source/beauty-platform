@@ -1,3 +1,5 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, CatalogProduct, Locale, Product, StockHistory } from '../api';
@@ -52,14 +54,14 @@ export function ProductListSection(props: {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'low'>('all');
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [addOptions, setAddOptions] = useState(false);
-  const [showOnline, setShowOnline] = useState(false);
+  const [adding, setAdding] = useFormDraft('products.adding', false);
+  const [addOptions, setAddOptions] = useFormDraft('products.addOptions', false);
+  const [showOnline, setShowOnline] = useFormDraft('products.showOnline', false);
   const [products, setProducts] = useState<Product[] | null>(null);
   /** Task 461: pieces sold at the visits of the last 30 days, by product. */
   const [sold30, setSold30] = useState<Map<string, number>>(new Map());
-  const [editId, setEditId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({
+  const [editId, setEditId] = useFormDraft<string | null>('products.editId', null);
+  const [draft, setDraft] = useFormDraft('products.draft', {
     name: '',
     price: '',
     cost: '',
@@ -73,11 +75,11 @@ export function ProductListSection(props: {
     id: string;
     rows: StockHistory['movements'];
   } | null>(null);
-  const [deliveryId, setDeliveryId] = useState<string | null>(null);
-  const [delivery, setDelivery] = useState('');
-  const [writeOffId, setWriteOffId] = useState<string | null>(null);
-  const [writeOff, setWriteOff] = useState({ quantity: '', note: '' });
-  const [fresh, setFresh] = useState({
+  const [deliveryId, setDeliveryId] = useFormDraft<string | null>('products.deliveryId', null);
+  const [delivery, setDelivery] = useFormDraft('products.delivery', '');
+  const [writeOffId, setWriteOffId] = useFormDraft<string | null>('products.writeOffId', null);
+  const [writeOff, setWriteOff] = useFormDraft('products.writeOff', { quantity: '', note: '' });
+  const [fresh, setFresh] = useFormDraft('products.fresh', {
     name: '',
     price: '',
     cost: '',
@@ -90,6 +92,7 @@ export function ProductListSection(props: {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [nameMissing, setNameMissing] = useState(false);
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
   /** Task 464: "" = the stock CSV of all suppliers. */
@@ -231,12 +234,19 @@ export function ProductListSection(props: {
 
   return (
     <View style={{ gap: 8 }} testID="products">
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== p.barcodeTaken ? <ErrorText>{error}</ErrorText> : null}
       {!adding ? (
-        <Button label={p.add} onPress={() => setAdding(true)} />
+        <Button
+          label={p.add}
+          onPress={() => {
+            setNameMissing(false);
+            setAdding(true);
+          }}
+        />
       ) : (
         <Card>
-          <TextInput
+          <FormField
+            error={nameMissing && !fresh.name.trim() ? p.nameRequired : undefined}
             accessibilityLabel={p.newName}
             placeholder={p.newName}
             placeholderTextColor={colors.placeholder}
@@ -245,7 +255,8 @@ export function ProductListSection(props: {
             onChangeText={(name) => setFresh({ ...fresh, name })}
             style={styles.input}
           />
-          <TextInput
+          <FormField
+            error={freshPrice === null ? p.priceInvalid : undefined}
             accessibilityLabel={fill(p.priceIn, { currency: salon.currency })}
             placeholder={fill(p.priceIn, { currency: salon.currency })}
             placeholderTextColor={colors.placeholder}
@@ -254,8 +265,8 @@ export function ProductListSection(props: {
             onChangeText={(price) => setFresh({ ...fresh, price })}
             style={[styles.input, freshPrice === null && styles.invalid]}
           />
-          {freshPrice === null ? <ErrorText>{`! ${p.priceInvalid}`}</ErrorText> : null}
-          <TextInput
+          <FormField
+            error={freshStock === undefined ? p.stockInvalid : undefined}
             accessibilityLabel={p.stockIn}
             placeholder={p.stockIn}
             placeholderTextColor={colors.placeholder}
@@ -264,7 +275,6 @@ export function ProductListSection(props: {
             onChangeText={(stock) => setFresh({ ...fresh, stock })}
             style={[styles.input, freshStock === undefined && styles.invalid]}
           />
-          {freshStock === undefined ? <ErrorText>{`! ${p.stockInvalid}`}</ErrorText> : null}
           <Button
             kind="link"
             label={`${t.navigation.more} ${addOptions ? '▾' : '▸'}`}
@@ -273,7 +283,8 @@ export function ProductListSection(props: {
           />
           {addOptions ? (
             <View style={{ gap: 8 }}>
-              <TextInput
+              <FormField
+                error={freshCost === undefined ? p.priceInvalid : undefined}
                 accessibilityLabel={`${p.costNew} (${salon.currency})`}
                 placeholder={`${p.costNew} (${salon.currency})`}
                 placeholderTextColor={colors.placeholder}
@@ -282,7 +293,6 @@ export function ProductListSection(props: {
                 onChangeText={(cost) => setFresh({ ...fresh, cost })}
                 style={styles.input}
               />
-              {freshCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
               <TextInput
                 accessibilityLabel={p.supplierNew}
                 placeholder={p.supplierNew}
@@ -292,7 +302,14 @@ export function ProductListSection(props: {
                 onChangeText={(supplier) => setFresh({ ...fresh, supplier })}
                 style={styles.input}
               />
-              <TextInput
+              <FormField
+                error={
+                  freshBarcode === undefined
+                    ? p.barcodeInvalid
+                    : error === p.barcodeTaken
+                      ? error
+                      : undefined
+                }
                 accessibilityLabel={p.barcodeNew}
                 placeholder={p.barcodeNew}
                 placeholderTextColor={colors.placeholder}
@@ -303,10 +320,8 @@ export function ProductListSection(props: {
                 onChangeText={(barcode) => setFresh({ ...fresh, barcode })}
                 style={styles.input}
               />
-              {freshBarcode === undefined ? (
-                <Text style={styles.warn}>{p.barcodeInvalid}</Text>
-              ) : null}
-              <TextInput
+              <FormField
+                error={freshLow === undefined ? p.stockInvalid : undefined}
                 accessibilityLabel={p.lowIn}
                 placeholder={p.lowIn}
                 placeholderTextColor={colors.placeholder}
@@ -315,7 +330,6 @@ export function ProductListSection(props: {
                 onChangeText={(low) => setFresh({ ...fresh, low })}
                 style={styles.input}
               />
-              {freshLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
               <View style={styles.top}>
                 <Text style={styles.name}>{t.shop.showInSalon}</Text>
                 <Switch
@@ -332,7 +346,6 @@ export function ProductListSection(props: {
               label={p.save}
               busy={busy}
               disabled={
-                fresh.name.trim() === '' ||
                 fresh.price.trim() === '' ||
                 freshPrice === null ||
                 freshCost === undefined ||
@@ -340,7 +353,12 @@ export function ProductListSection(props: {
                 freshLow === undefined ||
                 freshBarcode === undefined
               }
-              onPress={() =>
+              onPress={() => {
+                if (!fresh.name.trim()) {
+                  setNameMissing(true);
+                  return;
+                }
+                setNameMissing(false);
                 void run(() =>
                   api.addProduct(
                     salon.orgId,
@@ -369,8 +387,8 @@ export function ProductListSection(props: {
                     setAddOptions(false);
                     setAdding(false);
                   }
-                })
-              }
+                });
+              }}
             />
             <Button
               kind="secondary"
@@ -582,22 +600,24 @@ export function ProductListSection(props: {
       {shown.map((x) =>
         editId === x.id ? (
           <Card key={x.id}>
-            <TextInput
+            <FormField
+              error={nameMissing && !draft.name.trim() ? p.nameRequired : undefined}
               accessibilityLabel={p.name}
               value={draft.name}
               maxLength={80}
               onChangeText={(name) => setDraft({ ...draft, name })}
               style={styles.input}
             />
-            <TextInput
+            <FormField
+              error={draftPrice === null ? p.priceInvalid : undefined}
               accessibilityLabel={fill(p.priceIn, { currency: salon.currency })}
               keyboardType="decimal-pad"
               value={draft.price}
               onChangeText={(price) => setDraft({ ...draft, price })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            {draftPrice === null ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
-            <TextInput
+            <FormField
+              error={draftCost === undefined ? p.priceInvalid : undefined}
               accessibilityLabel={`${p.costNew} (${salon.currency})`}
               placeholder={`${p.costNew} (${salon.currency})`}
               placeholderTextColor={colors.placeholder}
@@ -606,7 +626,6 @@ export function ProductListSection(props: {
               onChangeText={(cost) => setDraft({ ...draft, cost })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            {draftCost === undefined ? <Text style={styles.warn}>{p.priceInvalid}</Text> : null}
             <TextInput
               accessibilityLabel={p.supplierNew}
               placeholder={p.supplierNew}
@@ -616,7 +635,14 @@ export function ProductListSection(props: {
               onChangeText={(supplier) => setDraft({ ...draft, supplier })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            <TextInput
+            <FormField
+              error={
+                draftBarcode === undefined
+                  ? p.barcodeInvalid
+                  : error === p.barcodeTaken
+                    ? error
+                    : undefined
+              }
               accessibilityLabel={p.barcodeNew}
               placeholder={p.barcodeNew}
               placeholderTextColor={colors.placeholder}
@@ -627,10 +653,8 @@ export function ProductListSection(props: {
               onChangeText={(barcode) => setDraft({ ...draft, barcode })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            {draftBarcode === undefined ? (
-              <Text style={styles.warn}>{p.barcodeInvalid}</Text>
-            ) : null}
-            <TextInput
+            <FormField
+              error={draftStock === undefined ? p.stockInvalid : undefined}
               accessibilityLabel={p.stockIn}
               placeholder={p.stockIn}
               placeholderTextColor={colors.placeholder}
@@ -639,8 +663,8 @@ export function ProductListSection(props: {
               onChangeText={(stock) => setDraft({ ...draft, stock })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            {draftStock === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
-            <TextInput
+            <FormField
+              error={draftLow === undefined ? p.stockInvalid : undefined}
               accessibilityLabel={p.lowIn}
               placeholder={p.lowIn}
               placeholderTextColor={colors.placeholder}
@@ -649,7 +673,6 @@ export function ProductListSection(props: {
               onChangeText={(low) => setDraft({ ...draft, low })}
               style={[styles.input, { marginTop: 8 }]}
             />
-            {draftLow === undefined ? <Text style={styles.warn}>{p.stockInvalid}</Text> : null}
             <View style={styles.row}>
               <Button
                 label={p.save}
@@ -659,10 +682,14 @@ export function ProductListSection(props: {
                   draftCost === undefined ||
                   draftStock === undefined ||
                   draftLow === undefined ||
-                  draftBarcode === undefined ||
-                  draft.name.trim() === ''
+                  draftBarcode === undefined
                 }
-                onPress={() =>
+                onPress={() => {
+                  if (!draft.name.trim()) {
+                    setNameMissing(true);
+                    return;
+                  }
+                  setNameMissing(false);
                   void run(() =>
                     api.updateProduct(salon.orgId, salon.locationId, x.id, {
                       name: draft.name.trim(),
@@ -673,8 +700,8 @@ export function ProductListSection(props: {
                       supplier: draft.supplier.trim() || null,
                       barcode: draftBarcode ?? null,
                     }),
-                  ).then((ok) => ok && setEditId(null))
-                }
+                  ).then((ok) => ok && setEditId(null));
+                }}
               />
               <Button kind="secondary" label={p.cancel} onPress={() => setEditId(null)} />
             </View>

@@ -103,7 +103,8 @@ test('business app: the owner adds an extra stamps rule', async ({ browser, requ
     await phone.getByLabel('Nazwa zasady 1').fill('Spokojne dni');
     await phone.getByLabel('Mnożnik × (zasada 1)').fill('1');
     await phone.getByRole('button', { name: 'Zapisz zasady dodatkowe' }).click();
-    await expect(phone.getByText(/^Zasada 1: musi coś dawać/)).toBeVisible();
+    await expect(phone.getByLabel('Mnożnik × (zasada 1)')).toHaveAttribute('aria-invalid', 'true');
+    await expect(phone.getByText(/^! Zasada 1: musi coś dawać/)).toBeVisible();
     await phone.getByLabel('Mnożnik × (zasada 1)').fill('2');
     await phone.getByRole('button', { name: 'pon.', exact: true }).click();
     await phone.getByRole('button', { name: 'wt.', exact: true }).click();

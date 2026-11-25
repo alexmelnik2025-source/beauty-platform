@@ -1,3 +1,5 @@
+import { useClearFormDraft, useFormDraft } from '../formDrafts';
+import { FieldGroup, FormField } from '../formFields';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
@@ -61,30 +63,42 @@ export function NewVisitScreen(props: {
 }) {
   const { api, t, salon, me, mineId, onBack } = props;
   const n = t.newVisit;
+  const draftKey = `newVisit.${props.preset ? JSON.stringify(props.preset) : 'manual'}.`;
+  const clearDraft = useClearFormDraft(draftKey);
   const [services, setServices] = useState<ServiceList | null>(null);
   const [staff, setStaff] = useState<StaffList>([]);
-  const [serviceId, setServiceId] = useState('');
-  const [staffId, setStaffId] = useState('');
+  const [serviceId, setServiceId] = useFormDraft(`${draftKey}serviceId`, '');
+  const [staffId, setStaffId] = useFormDraft(`${draftKey}staffId`, '');
   const firstDay = props.preset?.date ?? props.date;
-  const [date, setDate] = useState(firstDay < props.today ? props.today : firstDay);
+  const [date, setDate] = useFormDraft(
+    `${draftKey}date`,
+    firstDay < props.today ? props.today : firstDay,
+  );
   const [availability, setAvailability] = useState<Availability | null>(null);
-  const [start, setStart] = useState('');
-  const [walkIn, setWalkIn] = useState(false);
-  const [walkInDay, setWalkInDay] = useState(props.today);
-  const [walkInTime, setWalkInTime] = useState('');
-  const [paid, setPaid] = useState(false);
+  const [start, setStart] = useFormDraft(`${draftKey}start`, '');
+  const [walkIn, setWalkIn] = useFormDraft(`${draftKey}walkIn`, false);
+  const [walkInDay, setWalkInDay] = useFormDraft(`${draftKey}walkInDay`, props.today);
+  const [walkInTime, setWalkInTime] = useFormDraft(`${draftKey}walkInTime`, '');
+  const [paid, setPaid] = useFormDraft(`${draftKey}paid`, false);
   /** Task 227: how the walk-in paid (optional). */
-  const [paidWith, setPaidWith] = useState<PaymentMethod | null>(null);
+  const [paidWith, setPaidWith] = useFormDraft<PaymentMethod | null>(`${draftKey}paidWith`, null);
   const [search, setSearch] = useState('');
   const [found, setFound] = useState<CustomerList | null>(null);
-  const [client, setClient] = useState<Client>(props.preset?.customer ?? null);
+  const [client, setClient] = useFormDraft<Client>(
+    `${draftKey}client`,
+    props.preset?.customer ?? null,
+  );
   // Task 223: the time of the visit booked again, picked once if it is free on the first day.
-  const wantedTime = useRef(props.preset?.time);
-  const [form, setForm] = useState(props.preset?.client ?? { name: '', phone: '', email: '' });
+  const wantedTime = useRef(start ? undefined : props.preset?.time);
+  const [form, setForm] = useFormDraft(
+    `${draftKey}form`,
+    props.preset?.client ?? { name: '', phone: '', email: '' },
+  );
   // Applied once, when the services and specialists have loaded.
-  const preset = useRef(props.preset);
-  const [note, setNote] = useState('');
+  const preset = useRef(serviceId ? undefined : props.preset);
+  const [note, setNote] = useFormDraft(`${draftKey}note`, '');
   const [problem, setProblem] = useState<ClientProblem | 'time' | 'client' | null>(null);
+  const [timeError, setTimeError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const searchable = maySearchClients(me);
@@ -120,7 +134,7 @@ export function NewVisitScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, t, me, mineId]);
+  }, [api, salon, t, me, mineId, setServiceId, setStaffId]);
 
   // Android "back" closes the form instead of the app.
   useEffect(() => {
@@ -161,7 +175,7 @@ export function NewVisitScreen(props: {
     const same = freeTimes(availability, staffId, date).find((s) => s.time === wantedTime.current);
     wantedTime.current = undefined;
     if (same) setStart(same.start);
-  }, [availability, staffId, date]);
+  }, [availability, staffId, date, setStart]);
 
   // Clients of the salon as the owner or manager types (from 2 characters).
   useEffect(() => {
@@ -184,6 +198,7 @@ export function NewVisitScreen(props: {
 
   async function save() {
     setProblem(null);
+    setTimeError('');
     setError('');
     let when = start;
     if (walkIn) {
@@ -217,10 +232,15 @@ export function NewVisitScreen(props: {
           walkIn: walkIn ? { paid, method: paidWith } : null,
         }),
       );
+      clearDraft();
       props.onCreated(created);
     } catch (e) {
       const kind = createProblem(e);
-      setError(kind === 'other' ? errorText(e, t) : n.problem[kind]);
+      if (kind === 'other' || kind === 'forbidden') {
+        setError(kind === 'other' ? errorText(e, t) : n.problem.forbidden);
+      } else {
+        setTimeError(n.problem[kind]);
+      }
       if (kind === 'taken') void loadTimes();
     } finally {
       setBusy(false);
@@ -314,16 +334,20 @@ export function NewVisitScreen(props: {
                   />
                 ))}
               </View>
-              <TextInput
+              <FormField
+                error={problem === 'time' ? n.badTime : timeError || undefined}
                 accessibilityLabel={n.startTime}
                 placeholder={n.startTime}
                 value={walkInTime}
                 inputMode="numeric"
                 maxLength={5}
-                onChangeText={setWalkInTime}
+                onChangeText={(value) => {
+                  setProblem(null);
+                  setTimeError('');
+                  setWalkInTime(value);
+                }}
                 style={styles.input}
               />
-              {problem === 'time' ? <ErrorText>{n.badTime}</ErrorText> : null}
               <Check label={n.paid} checked={paid} onPress={() => setPaid(!paid)} />
               {paid ? <PaymentMethodPicker t={t} value={paidWith} onChange={setPaidWith} /> : null}
             </Card>
@@ -353,29 +377,34 @@ export function NewVisitScreen(props: {
                 />
               </View>
               <Text style={styles.section}>{n.time}</Text>
-              {!times ? (
-                <Text style={styles.muted}>{t.loading}</Text>
-              ) : times.length === 0 ? (
-                <Text style={styles.muted}>{n.noTimes}</Text>
-              ) : (
-                <View style={styles.times}>
-                  {times.map((s) => (
-                    <Pressable
-                      accessibilityLabel={s.time}
-                      key={s.start}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: start === s.start }}
-                      onPress={() => setStart(s.start)}
-                      style={[styles.time, start === s.start && styles.timeChosen]}
-                    >
-                      <Text style={[styles.timeText, start === s.start && { color: '#fff' }]}>
-                        {s.time}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-              {problem === 'time' ? <ErrorText>{n.pickTime}</ErrorText> : null}
+              <FieldGroup error={problem === 'time' ? n.pickTime : timeError || undefined}>
+                {!times ? (
+                  <Text style={styles.muted}>{t.loading}</Text>
+                ) : times.length === 0 ? (
+                  <Text style={styles.muted}>{n.noTimes}</Text>
+                ) : (
+                  <View style={styles.times}>
+                    {times.map((s) => (
+                      <Pressable
+                        accessibilityLabel={s.time}
+                        key={s.start}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: start === s.start }}
+                        onPress={() => {
+                          setProblem(null);
+                          setTimeError('');
+                          setStart(s.start);
+                        }}
+                        style={[styles.time, start === s.start && styles.timeChosen]}
+                      >
+                        <Text style={[styles.timeText, start === s.start && { color: '#fff' }]}>
+                          {s.time}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </FieldGroup>
             </>
           )}
 
@@ -417,7 +446,10 @@ export function NewVisitScreen(props: {
               ) : null}
               <Card>
                 <Text style={styles.label}>{n.newClient}</Text>
-                <TextInput
+                <FormField
+                  error={
+                    problem === 'name' ? n.badName : problem === 'client' ? n.pickClient : undefined
+                  }
                   accessibilityLabel={n.name}
                   placeholder={n.name}
                   value={form.name}
@@ -425,8 +457,8 @@ export function NewVisitScreen(props: {
                   onChangeText={(name) => setForm({ ...form, name })}
                   style={styles.input}
                 />
-                {problem === 'name' ? <ErrorText>{n.badName}</ErrorText> : null}
-                <TextInput
+                <FormField
+                  error={problem === 'phone' ? n.badPhone : undefined}
                   accessibilityLabel={n.phone}
                   placeholder={`${n.phone} (+${dialForTimeZone(props.timeZone)})`}
                   value={form.phone}
@@ -435,8 +467,8 @@ export function NewVisitScreen(props: {
                   onChangeText={(phone) => setForm({ ...form, phone })}
                   style={styles.input}
                 />
-                {problem === 'phone' ? <ErrorText>{n.badPhone}</ErrorText> : null}
-                <TextInput
+                <FormField
+                  error={problem === 'email' ? n.badEmail : undefined}
                   accessibilityLabel={n.email}
                   placeholder={n.email}
                   value={form.email}
@@ -446,9 +478,7 @@ export function NewVisitScreen(props: {
                   onChangeText={(email) => setForm({ ...form, email })}
                   style={styles.input}
                 />
-                {problem === 'email' ? <ErrorText>{n.badEmail}</ErrorText> : null}
               </Card>
-              {problem === 'client' ? <ErrorText>{n.pickClient}</ErrorText> : null}
             </>
           )}
 

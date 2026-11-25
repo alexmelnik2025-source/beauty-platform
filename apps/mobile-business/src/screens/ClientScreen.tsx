@@ -1,3 +1,5 @@
+import { FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
@@ -57,16 +59,16 @@ export function ClientScreen(props: {
   const [client, setClient] = useState<CustomerDetail | null>(null);
   const [mayEdit, setMayEdit] = useState(salon.role !== 'staff');
   const [ownOnly, setOwnOnly] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [note, setNote] = useState('');
-  const [tags, setTags] = useState('');
+  const [editing, setEditing] = useFormDraft(`client.${id}.editing`, false);
+  const [note, setNote] = useFormDraft(`client.${id}.note`, '');
+  const [tags, setTags] = useFormDraft(`client.${id}.tags`, '');
   /** Task 226: the salon's labels, offered while editing (owners and managers). */
   const [knownTags, setKnownTags] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
   /** Task 333: the name, phone, email and language being changed, and what to fix. */
-  const [contacts, setContacts] = useState<ContactsForm | null>(null);
+  const [contacts, setContacts] = useFormDraft<ContactsForm | null>(`client.${id}.contacts`, null);
   const [contactsProblem, setContactsProblem] = useState<ClientProblem | null>(null);
   const [account, setAccount] = useState<LoyaltyAccount | null>(null);
   /** Task 161c: the cancellation-protection mark (owners and managers). */
@@ -76,7 +78,10 @@ export function ClientScreen(props: {
   const [ruleFeedback, setRuleFeedback] = useState<{ text: string; bad: boolean } | null>(null);
   const [releaseNote, setReleaseNote] = useState('');
   /** Task 241: the birthday editor (owners and managers), day and month as typed. */
-  const [birthdayEdit, setBirthdayEdit] = useState<{ day: string; month: string } | null>(null);
+  const [birthdayEdit, setBirthdayEdit] = useFormDraft<{ day: string; month: string } | null>(
+    `client.${id}.birthdayEdit`,
+    null,
+  );
   /** Task 334: "Usuń dane klienta" asks first. */
   const [erasing, setErasing] = useState(false);
   /** Task 334: what happened, shown inside the card (it is at the bottom of a long screen). */
@@ -437,7 +442,7 @@ export function ClientScreen(props: {
         ))}
       </View>
 
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== c.birthdayInvalid ? <ErrorText>{error}</ErrorText> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 
       <Card>
@@ -467,9 +472,10 @@ export function ClientScreen(props: {
         {salon.role !== 'staff' && client.phone !== null && !client.anonymizedAt ? (
           birthdayEdit ? (
             <View style={styles.form}>
-              <Text style={styles.small}>{c.birthdayInvalid}</Text>
               <View style={styles.row}>
-                <TextInput
+                <FormField
+                  containerStyle={{ flex: 1 }}
+                  error={error === c.birthdayInvalid ? error : undefined}
                   accessibilityLabel={c.birthdayDay}
                   placeholder={c.birthdayDay}
                   placeholderTextColor={colors.placeholder}

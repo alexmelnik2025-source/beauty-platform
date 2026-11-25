@@ -1,3 +1,4 @@
+import { useFormDraft } from '../formDrafts';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
@@ -64,7 +65,7 @@ export function ClientsScreen(props: {
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   /** Task 332: the new client being written, what to fix, and a client already there. */
-  const [adding, setAdding] = useState<ContactsForm | null>(null);
+  const [adding, setAdding] = useFormDraft<ContactsForm | null>('clients.adding', null);
   const [addProblem, setAddProblem] = useState<ClientProblem | null>(null);
   const [exists, setExists] = useState<{ field: 'phone' | 'email'; id: string | null } | null>(
     null,
@@ -318,24 +319,22 @@ export function ClientsScreen(props: {
             form={adding}
             onChange={(next) => {
               setAdding(next);
+              setAddProblem(null);
               setExists(null);
             }}
             problem={addProblem}
+            duplicate={exists ?? undefined}
             timeZone={props.timeZone}
           />
           {addError ? <ErrorText>{addError}</ErrorText> : null}
           {exists ? (
             <View style={{ gap: 8 }}>
-              <Text role="alert" style={styles.warn}>
-                {exists.field === 'phone' ? t.clientCard.phoneExists : t.clientCard.emailExists}
-              </Text>
               <View style={styles.row}>
                 {exists.id ? (
                   <Button
                     kind="secondary"
                     label={t.clientCard.openExisting}
                     onPress={() => {
-                      setAdding(null);
                       setExists(null);
                       setOpenId(exists.id);
                     }}

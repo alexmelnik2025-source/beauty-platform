@@ -1,3 +1,5 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
@@ -46,9 +48,11 @@ export function HappyHoursScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [choosing, setChoosing] = useState(false);
-  const [kind, setKind] = useState<'hours' | 'lastMinute'>('hours');
-  const [invalidHours, setInvalidHours] = useState(false);
-  const [form, setForm] = useState<typeof EMPTY_FORM | null>(null);
+  const [kind, setKind] = useFormDraft<'hours' | 'lastMinute'>('promotion.kind', 'hours');
+  const [problem, setProblem] = useState<
+    import('../happyHours').RuleProblem | 'lastMinuteHours' | null
+  >(null);
+  const [form, setForm] = useFormDraft<typeof EMPTY_FORM | null>('promotion.form', null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -104,11 +108,10 @@ export function HappyHoursScreen(props: {
   function add() {
     if (!form || !rules || busy) return;
     setError('');
-    setInvalidHours(false);
+    setProblem(null);
     const checked = kind === 'lastMinute' ? newLastMinuteRule(form) : newRule(form);
     if (!checked.ok) {
-      if (checked.problem === 'lastMinuteHours') setInvalidHours(true);
-      else setError(h.problem[checked.problem]);
+      setProblem(checked.problem);
       return;
     }
     void save(
@@ -126,7 +129,7 @@ export function HappyHoursScreen(props: {
     setKind(next);
     setForm(EMPTY_FORM);
     setChoosing(false);
-    setInvalidHours(false);
+    setProblem(null);
     setError('');
   }
 
@@ -148,20 +151,19 @@ export function HappyHoursScreen(props: {
           <Text style={styles.name}>{kind === 'lastMinute' ? h.lastMinute : h.scheduled}</Text>
           {kind === 'lastMinute' ? (
             <>
-              <TextInput
+              <FormField
+                error={problem === 'lastMinuteHours' ? h.badLastMinuteHours : undefined}
                 accessibilityLabel={h.lastMinuteHours}
-                aria-invalid={invalidHours}
                 placeholder={h.lastMinuteHours}
                 placeholderTextColor={colors.placeholder}
                 value={form.hours}
                 onChangeText={(hours) => {
-                  setInvalidHours(false);
+                  setProblem(null);
                   setForm({ ...form, hours });
                 }}
                 keyboardType="number-pad"
-                style={[styles.input, invalidHours && { borderColor: colors.danger }]}
+                style={styles.input}
               />
-              {invalidHours ? <ErrorText>! {h.badLastMinuteHours}</ErrorText> : null}
             </>
           ) : (
             <>
@@ -179,6 +181,7 @@ export function HappyHoursScreen(props: {
                   );
                 })}
               </View>
+              {problem === 'days' ? <ErrorText>! {h.problem.days}</ErrorText> : null}
               <View style={styles.row}>
                 <TextInput
                   accessibilityLabel={h.start}
@@ -189,7 +192,11 @@ export function HappyHoursScreen(props: {
                   keyboardType="numbers-and-punctuation"
                   style={[styles.input, { flex: 1 }]}
                 />
-                <TextInput
+                <FormField
+                  containerStyle={{ flex: 1 }}
+                  error={
+                    problem === 'clock' || problem === 'hours' ? h.problem[problem] : undefined
+                  }
                   accessibilityLabel={h.end}
                   placeholder={h.end}
                   placeholderTextColor={colors.placeholder}
@@ -201,7 +208,8 @@ export function HappyHoursScreen(props: {
               </View>
             </>
           )}
-          <TextInput
+          <FormField
+            error={problem === 'percent' ? h.problem.percent : undefined}
             accessibilityLabel={h.percent}
             placeholder={h.percent}
             placeholderTextColor={colors.placeholder}
