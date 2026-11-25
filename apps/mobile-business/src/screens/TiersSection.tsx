@@ -1,5 +1,7 @@
+import { FieldError, FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyTiers } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
@@ -22,11 +24,15 @@ export function TiersSection(props: {
   const { api, t, salon } = props;
   const l = t.loyalty;
   const [data, setData] = useState<LoyaltyTiers | null>(null);
-  const [form, setForm] = useState<{
+  const [form, setForm] = useFormDraft<{
     basis: LoyaltyTiers['basis'];
     period: string;
     rows: TierRow[];
-  } | null>(null);
+  } | null>('loyaltyTiers.form', null);
+  const [invalid, setInvalid] = useState<Extract<
+    ReturnType<typeof tiersToSave>,
+    { ok: false }
+  > | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -47,12 +53,8 @@ export function TiersSection(props: {
   async function save() {
     if (!form) return;
     const checked = tiersToSave(form.basis, form.period, form.rows);
-    if (!checked.ok) {
-      return setNote({
-        text: fill(l.tiersProblem[checked.problem], { n: String((checked.row ?? 0) + 1) }),
-        bad: true,
-      });
-    }
+    setInvalid(null);
+    if (!checked.ok) return setInvalid(checked);
     setBusy(true);
     setNote(null);
     try {
@@ -69,6 +71,11 @@ export function TiersSection(props: {
   const setRow = (index: number, change: Partial<TierRow>) =>
     form &&
     setForm({ ...form, rows: form.rows.map((r, i) => (i === index ? { ...r, ...change } : r)) });
+
+  const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
+    invalid?.problem === problem && invalid.row === row
+      ? fill(l.tiersProblem[problem], { n: String((row ?? 0) + 1) })
+      : undefined;
 
   const message = note ? (
     note.bad ? (
@@ -130,7 +137,8 @@ export function TiersSection(props: {
         />
       </View>
       <Text style={styles.label}>{l.tierPeriod}</Text>
-      <TextInput
+      <FormField
+        error={errorAt('period')}
         accessibilityLabel={l.tierPeriod}
         value={form.period}
         onChangeText={(period) => setForm({ ...form, period })}
@@ -141,7 +149,8 @@ export function TiersSection(props: {
         const n = { n: String(i + 1) };
         return (
           <View key={i} style={styles.tier}>
-            <TextInput
+            <FormField
+              error={errorAt('name', i)}
               accessibilityLabel={fill(l.tierName, n)}
               placeholder={fill(l.tierName, n)}
               placeholderTextColor={colors.placeholder}
@@ -151,7 +160,8 @@ export function TiersSection(props: {
               style={styles.input}
             />
             <View style={styles.row}>
-              <TextInput
+              <FormField
+                error={errorAt('threshold', i) || errorAt('same', i)}
                 accessibilityLabel={
                   form.basis === 'spend'
                     ? fill(l.tierThresholdSpend, { ...n, currency: salon.currency })
@@ -168,7 +178,8 @@ export function TiersSection(props: {
                 onChangeText={(threshold) => setRow(i, { threshold })}
                 style={[styles.input, styles.grow]}
               />
-              <TextInput
+              <FormField
+                error={errorAt('discount', i)}
                 accessibilityLabel={fill(l.tierDiscount, n)}
                 placeholder={fill(l.tierDiscount, n)}
                 placeholderTextColor={colors.placeholder}
@@ -200,6 +211,7 @@ export function TiersSection(props: {
           }
         />
       ) : null}
+      <FieldError message={errorAt('tooMany')} />
       {message}
       <View style={styles.row}>
         <Button label={l.tiersSave} busy={busy} onPress={() => void save()} />

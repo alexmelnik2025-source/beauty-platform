@@ -1,3 +1,5 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, TillClose } from '../api';
@@ -172,14 +174,13 @@ function TillMovements(props: PartProps) {
   const { api, t, salon, view, onChange } = props;
   const d = t.day;
   const date = view.date;
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<'in' | 'out'>('out');
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const [open, setOpen] = useFormDraft(`tillMovement.${date}.open`, false);
+  const [kind, setKind] = useFormDraft<'in' | 'out'>(`tillMovement.${date}.kind`, 'out');
+  const [amount, setAmount] = useFormDraft(`tillMovement.${date}.amount`, '');
+  const [note, setNote] = useFormDraft(`tillMovement.${date}.note`, '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => setOpen(false), [date]);
+  const [attempted, setAttempted] = useState(false);
 
   const money = (hundredths: number) => formatPrice(hundredths, view.currency, props.locale);
   const parsed = parseCash(amount);
@@ -203,6 +204,7 @@ function TillMovements(props: PartProps) {
     setAmount('');
     setNote('');
     setError('');
+    setAttempted(false);
     setOpen(true);
   };
 
@@ -258,7 +260,12 @@ function TillMovements(props: PartProps) {
             ))}
           </View>
           <Text style={styles.label}>{fill(d.tillMoveAmount, { currency: view.currency })}</Text>
-          <TextInput
+          <FormField
+            error={
+              (attempted || amount.trim()) && (parsed === null || parsed === 0)
+                ? d.tillInvalid
+                : undefined
+            }
             accessibilityLabel={fill(d.tillMoveAmount, { currency: view.currency })}
             placeholder="0"
             keyboardType="decimal-pad"
@@ -266,11 +273,9 @@ function TillMovements(props: PartProps) {
             onChangeText={setAmount}
             style={styles.input}
           />
-          {amount.trim() !== '' && (parsed === null || parsed === 0) ? (
-            <Text style={styles.muted}>{d.tillInvalid}</Text>
-          ) : null}
           <Text style={styles.label}>{d.tillMoveNote}</Text>
-          <TextInput
+          <FormField
+            error={attempted && !note.trim() ? d.tillMoveReasonRequired : undefined}
             accessibilityLabel={d.tillMoveNote}
             placeholder={d.tillMoveHint}
             maxLength={200}
@@ -283,8 +288,9 @@ function TillMovements(props: PartProps) {
             <Button
               label={d.tillSave}
               busy={busy}
-              disabled={!ready}
-              onPress={() =>
+              onPress={() => {
+                setAttempted(true);
+                if (!ready) return;
                 void run(
                   () =>
                     api.addTillMovement(salon.orgId, salon.locationId, {
@@ -294,8 +300,8 @@ function TillMovements(props: PartProps) {
                       note: note.trim(),
                     }),
                   () => setOpen(false),
-                )
-              }
+                );
+              }}
             />
             <Button kind="link" label={d.tillCancel} onPress={() => setOpen(false)} />
           </View>
@@ -317,30 +323,31 @@ function TillCount(props: PartProps) {
   const { api, t, salon, view, onChange } = props;
   const d = t.day;
   const date = view.date;
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const [open, setOpen] = useFormDraft(`tillClose.${date}.open`, false);
+  const [amount, setAmount] = useFormDraft(`tillClose.${date}.amount`, '');
+  const [note, setNote] = useFormDraft(`tillClose.${date}.note`, '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => setOpen(false), [date]);
+  const [attempted, setAttempted] = useState(false);
 
   const money = (hundredths: number) => formatPrice(hundredths, view.currency, props.locale);
   const parsed = parseCash(amount);
   const close = view.close;
   // Task 554: "Sprawdzono z terminalem i kontem" only when the day brought something not in cash.
   const nonCash = view.otherPayments.length > 0;
-  const [checked, setChecked] = useState(false);
+  const [checked, setChecked] = useFormDraft(`tillClose.${date}.checked`, false);
 
   const start = () => {
     setAmount(close ? cashInput(close.countedCashGrosze) : '');
     setNote(close?.note ?? '');
     setChecked(close?.nonCashChecked ?? false);
     setError('');
+    setAttempted(false);
     setOpen(true);
   };
 
   const save = async () => {
+    setAttempted(true);
     if (parsed === null) return;
     setBusy(true);
     setError('');
@@ -368,7 +375,8 @@ function TillCount(props: PartProps) {
       <View style={styles.box} testID="till-close-form">
         <ExpectedText {...props} />
         <Text style={styles.label}>{fill(d.tillCounted, { currency: view.currency })}</Text>
-        <TextInput
+        <FormField
+          error={(attempted || amount.trim()) && parsed === null ? d.tillInvalid : undefined}
           accessibilityLabel={fill(d.tillCounted, { currency: view.currency })}
           placeholder="0"
           keyboardType="decimal-pad"
@@ -376,9 +384,6 @@ function TillCount(props: PartProps) {
           onChangeText={setAmount}
           style={styles.input}
         />
-        {amount.trim() !== '' && parsed === null ? (
-          <Text style={styles.muted}>{d.tillInvalid}</Text>
-        ) : null}
         <Text style={styles.label}>{d.tillNote}</Text>
         <TextInput
           accessibilityLabel={d.tillNote}
@@ -405,12 +410,7 @@ function TillCount(props: PartProps) {
         ) : null}
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
-          <Button
-            label={d.tillSave}
-            busy={busy}
-            disabled={parsed === null}
-            onPress={() => void save()}
-          />
+          <Button label={d.tillSave} busy={busy} onPress={() => void save()} />
           <Button kind="link" label={d.tillCancel} onPress={() => setOpen(false)} />
         </View>
       </View>

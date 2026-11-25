@@ -1,5 +1,7 @@
+import { useFormDraft } from '../formDrafts';
+import { FormField } from '../formFields';
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -37,12 +39,13 @@ export function TeamScreen(props: {
   const { api, t, salon, onBack } = props;
   const z = t.team;
   const [team, setTeam] = useState<Team | null>(null);
+  const [inviteProblem, setInviteProblem] = useState<'email' | 'phone' | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [form, setForm] = useState<Form | null>(null);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'staff' | 'manager'>('staff');
+  const [form, setForm] = useFormDraft<Form | null>('team.form', null);
+  const [email, setEmail] = useFormDraft('team.email', '');
+  const [phone, setPhone] = useFormDraft('team.phone', '');
+  const [role, setRole] = useFormDraft<'staff' | 'manager'>('team.role', 'staff');
   const [busy, setBusy] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
   /** Task 330: "Uprawnienia" is open. */
@@ -97,7 +100,8 @@ export function TeamScreen(props: {
         locale: props.locale,
       },
     );
-    if (!checked.ok) return setError(z.problem[checked.problem]);
+    setInviteProblem(null);
+    if (!checked.ok) return setInviteProblem(checked.problem);
     setBusy(true);
     try {
       await api.invite(salon.orgId, checked.body);
@@ -201,7 +205,8 @@ export function TeamScreen(props: {
           <Text role="heading" aria-level={2} style={styles.section}>
             {form.name ? fill(z.inviteFor, { name: form.name }) : z.inviteTitle}
           </Text>
-          <TextInput
+          <FormField
+            error={inviteProblem === 'email' ? z.problem.email : undefined}
             accessibilityLabel={z.email}
             placeholder={z.email}
             placeholderTextColor={colors.placeholder}
@@ -212,7 +217,8 @@ export function TeamScreen(props: {
             keyboardType="email-address"
             style={styles.input}
           />
-          <TextInput
+          <FormField
+            error={inviteProblem === 'phone' ? z.problem.phone : undefined}
             accessibilityLabel={z.phone}
             placeholder={`${z.phone} (+${dialForTimeZone(props.timeZone)})`}
             placeholderTextColor={colors.placeholder}

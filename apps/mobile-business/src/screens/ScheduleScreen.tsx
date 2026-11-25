@@ -1,3 +1,5 @@
+import { FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, TimeOffList, WorkingHours } from '../api';
@@ -42,17 +44,23 @@ export function ScheduleScreen(props: {
   const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
   /** Time off being added; task 338: `part` = the hours of one day ("12:00–15:00"), null = whole days. */
-  const [form, setForm] = useState<{
+  const [form, setForm] = useFormDraft<{
     from: string;
     to: string;
     note: string;
     part: string | null;
-  } | null>(null);
+  } | null>(`schedule.${staffId}.form`, null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const [week, setWeek] = useState<Record<number, string> | null>(null);
+  const [week, setWeek] = useFormDraft<Record<number, string> | null>(
+    `schedule.${staffId}.week`,
+    null,
+  );
   const [badDay, setBadDay] = useState<number | null>(null);
   /** Task 335: "Dzień specjalny" — the date and the hours being typed, and what to fix. */
-  const [special, setSpecial] = useState<{ date: string; text: string } | null>(null);
+  const [special, setSpecial] = useFormDraft<{ date: string; text: string } | null>(
+    `schedule.${staffId}.special`,
+    null,
+  );
   const [specialProblem, setSpecialProblem] = useState<'empty' | 'bad' | null>(null);
   const [removingSpecial, setRemovingSpecial] = useState<string | null>(null);
 
@@ -176,7 +184,9 @@ export function ScheduleScreen(props: {
           onSaved={props.onSaved}
         />
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error && error !== s.badOffHours && error !== s.badRange ? (
+        <ErrorText>{error}</ErrorText>
+      ) : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 
       {hours ? (
@@ -188,7 +198,8 @@ export function ScheduleScreen(props: {
               {weekRows(hours, props.locale).map((d) => (
                 <View key={d.weekday} style={styles.dateRow}>
                   <Text style={styles.dayName}>{d.name}</Text>
-                  <TextInput
+                  <FormField
+                    error={badDay === d.weekday ? fill(s.badHours, { day: d.name }) : undefined}
                     accessibilityLabel={d.name}
                     placeholder={s.dayOff}
                     value={week[d.weekday] ?? ''}
@@ -196,9 +207,6 @@ export function ScheduleScreen(props: {
                     onChangeText={(text) => setWeek({ ...week, [d.weekday]: text })}
                     style={styles.input}
                   />
-                  {badDay === d.weekday ? (
-                    <ErrorText>{fill(s.badHours, { day: d.name })}</ErrorText>
-                  ) : null}
                 </View>
               ))}
               <View style={styles.row}>
@@ -323,7 +331,14 @@ export function ScheduleScreen(props: {
               </View>
               <View style={styles.dateRow}>
                 <Text style={styles.label}>{s.specialHours}</Text>
-                <TextInput
+                <FormField
+                  error={
+                    specialProblem
+                      ? specialProblem === 'empty'
+                        ? s.specialEmpty
+                        : s.specialBad
+                      : undefined
+                  }
                   accessibilityLabel={s.specialHours}
                   placeholder="10:00–14:00"
                   value={special.text}
@@ -332,11 +347,6 @@ export function ScheduleScreen(props: {
                   style={styles.input}
                 />
                 <Text style={styles.small}>{s.specialHint}</Text>
-                {specialProblem ? (
-                  <ErrorText>
-                    {specialProblem === 'empty' ? s.specialEmpty : s.specialBad}
-                  </ErrorText>
-                ) : null}
               </View>
               <View style={styles.row}>
                 <Button label={s.specialSave} busy={busy} onPress={() => void saveSpecial()} />
@@ -430,10 +440,12 @@ export function ScheduleScreen(props: {
                   </View>
                 );
               })}
+              {error === s.badRange ? <ErrorText>! {error}</ErrorText> : null}
               {form.part !== null ? (
                 <View style={styles.dateRow}>
                   <Text style={styles.label}>{s.offHours}</Text>
-                  <TextInput
+                  <FormField
+                    error={error === s.badOffHours ? error : undefined}
                     accessibilityLabel={s.offHours}
                     placeholder="12:00–15:00"
                     value={form.part}

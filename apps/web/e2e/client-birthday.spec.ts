@@ -560,8 +560,9 @@ test('the owner writes down a birthday and sees the birthdays of the week', asyn
     await app.getByLabel('Dzień', { exact: true }).fill('31');
     await app.getByLabel('Miesiąc (1–12)').fill('4');
     await app.getByRole('button', { name: 'Zapisz', exact: true }).first().click();
-    // 31 April does not exist: the hint shows again as an error.
-    await expect(app.getByText('Wpisz dzień i miesiąc, np. 15 i 3 — bez roku.')).toHaveCount(2);
+    // 31 April does not exist: the error is shown next to the day.
+    await expect(app.getByLabel('Dzień', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+    await expect(app.getByText('! Wpisz dzień i miesiąc, np. 15 i 3 — bez roku.')).toBeVisible();
     await app.getByLabel('Dzień', { exact: true }).fill('16');
     await app.getByLabel('Miesiąc (1–12)').fill('3');
     await shot(app, '241-business-app-birthday-edit');

@@ -1,5 +1,7 @@
+import { FormField } from '../formFields';
+import { useFormDraft } from '../formDrafts';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, LoyaltyProgram } from '../api';
 import {
   earnRows,
@@ -30,7 +32,8 @@ export function EarnRulesSection(props: {
 }) {
   const { api, t, salon, program } = props;
   const l = t.loyalty;
-  const [rows, setRows] = useState<EarnRows | null>(null);
+  const [rows, setRows] = useFormDraft<EarnRows | null>('loyaltyEarn.rows', null);
+  const [invalidService, setInvalidService] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -40,9 +43,8 @@ export function EarnRulesSection(props: {
   async function save() {
     if (!rows) return;
     const checked = earnToSave(rows, services);
-    if (!checked.ok) {
-      return setNote({ text: fill(l.earnProblem, { service: checked.service }), bad: true });
-    }
+    setInvalidService(null);
+    if (!checked.ok) return setInvalidService(checked.service);
     setBusy(true);
     setNote(null);
     try {
@@ -107,7 +109,8 @@ export function EarnRulesSection(props: {
       {services.map((s) => (
         <View key={s.id} style={styles.item}>
           <Text style={styles.text}>{s.name}</Text>
-          <TextInput
+          <FormField
+            error={invalidService === s.name ? fill(l.earnProblem, { service: s.name }) : undefined}
             accessibilityLabel={fill(l.earnField, { service: s.name, unit })}
             placeholder={l.earnGeneral}
             placeholderTextColor={colors.placeholder}
