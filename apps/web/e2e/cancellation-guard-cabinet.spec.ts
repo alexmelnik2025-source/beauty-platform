@@ -233,6 +233,7 @@ test('the owner turns on cancellation protection and lifts a client’s block', 
     await app.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await app.getByRole('button', { name: 'Karta klienta: Jan Nowak', exact: true }).click();
     await expect(app.getByRole('heading', { name: 'Jan Nowak' })).toBeVisible();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     await expect(app.getByText('Ochrona przed odwołaniami')).toBeVisible();
     await expect(app.getByText('Klient nie jest teraz oznaczony.')).toBeVisible();
     await expect(app.getByText(/Zdjęto blokadę · Zapłacił 180 zł/)).toBeVisible();

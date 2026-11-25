@@ -4,7 +4,7 @@ import type { FavoriteSalon, Locale } from '../api';
 import type { Dictionary } from '../i18n';
 import { OpenNow } from '../OpenNow';
 import { addressText } from '../salon';
-import { Button, Card, colors } from '../ui';
+import { Button, Card, colors, Disclosure } from '../ui';
 
 /**
  * "Favourites": the salons the client saved, newest first — book, open the salon's page or
@@ -55,7 +55,7 @@ export function FavoritesView(props: {
           ) : (
             <Text style={styles.paused}>{t.favorites.notBookable}</Text>
           )}
-          <View style={styles.row}>
+          <Disclosure label={t.catalog.more}>
             {salon.bookable ? (
               <Button
                 kind="link"
@@ -72,7 +72,7 @@ export function FavoritesView(props: {
               disabled={removing !== null && removing !== salon.slug}
               onPress={() => void remove(salon.slug)}
             />
-          </View>
+          </Disclosure>
         </Card>
       ))}
     </View>
@@ -80,10 +80,9 @@ export function FavoritesView(props: {
 }
 
 const styles = StyleSheet.create({
-  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
+  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 12 },
   name: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20, marginBottom: 8 },
   status: { marginTop: -4, marginBottom: 8 },
   paused: { color: colors.muted, fontSize: 14, fontStyle: 'italic' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', marginTop: 4 },
 });

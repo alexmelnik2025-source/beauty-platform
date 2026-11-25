@@ -2,6 +2,7 @@ import type { Dictionary } from './pl';
 
 export const ru: Dictionary = {
   appTitle: 'Визиты',
+  loading: 'Загрузка…',
   signIn: {
     title: 'Мои визиты',
     subtitle:
@@ -20,6 +21,7 @@ export const ru: Dictionary = {
   visits: {
     waiting: 'Ждёт подтверждения',
     title: 'Мои визиты',
+    profile: 'Профиль',
     signedInAs: 'Вы вошли как {email}',
     upcoming: 'Предстоящие',
     past: 'История',
@@ -132,8 +134,7 @@ export const ru: Dictionary = {
     tierNextVisits: 'До уровня «{name}» не хватает визитов: {count}',
     tierNextSpend: 'До уровня «{name}» не хватает: {amount}',
     tierTop: 'Это высший уровень в этом салоне',
-    empty:
-      'Бонусов пока нет. Когда в вашем салоне есть программа лояльности, здесь появятся ваши отметки и баллы.',
+    empty: 'У вас пока нет бонусов.',
     book: 'Записаться',
     programOff: 'Салон выключил программу — ваши купоны по-прежнему действуют.',
     readyStamps: 'Уже можно получить «{reward}» — или копить дальше на награду побольше.',
@@ -419,7 +420,7 @@ export const ru: Dictionary = {
   },
   favorites: {
     tab: 'Избранное',
-    empty: 'У вас пока нет избранных салонов. Откройте салон в каталоге и нажмите «♡ В избранное».',
+    empty: 'У вас пока нет избранных салонов.',
     add: '♡ В избранное',
     saved: '♥ В избранном',
     remove: 'Убрать из избранного',
