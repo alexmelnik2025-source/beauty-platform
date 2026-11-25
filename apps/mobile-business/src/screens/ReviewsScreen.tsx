@@ -26,7 +26,6 @@ import {
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
-import { screenRead } from './GuardScreen';
 
 // Store completed pages for each filter only for the current salon session.
 const reviewsCache = new WeakMap<
@@ -156,15 +155,20 @@ export function ReviewsScreen(props: {
         for (;;) {
           result =
             cached?.value ??
-            (await screenRead(
+            (await withNetworkTimeout(
+              api.reviews(
+                salon.orgId,
+                salon.locationId,
+                {
+                  before: previous?.nextBefore ?? undefined,
+                  staffId: staffId ?? undefined,
+                  serviceId: serviceId ?? undefined,
+                  rating: rating ?? undefined,
+                  unanswered,
+                },
+                signal,
+              ),
               signal,
-              api.reviews(salon.orgId, salon.locationId, {
-                before: previous?.nextBefore ?? undefined,
-                staffId: staffId ?? undefined,
-                serviceId: serviceId ?? undefined,
-                rating: rating ?? undefined,
-                unanswered,
-              }),
             ));
           if (signal.aborted || request.current !== id) return;
           const latest = recentPages(salon);
@@ -589,8 +593,11 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
   const load = useCallback(async () => {
     const signal = lifetime.current!.signal;
     if (signal.aborted) return;
-    const current = await settingsCache.read(salon, () =>
-      screenRead(signal, api.reviewSettings(salon.orgId, salon.locationId)),
+    const current = await settingsCache.read(
+      salon,
+      () => api.reviewSettings(salon.orgId, salon.locationId, signal),
+      '',
+      signal,
     );
     if (signal.aborted) return;
     setSaved(current);

@@ -24,7 +24,7 @@ import {
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
-import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
+import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
 const ruleFields = new Map<string, GuardProblem>([
   ['maxChanges', 'changes'],
   ['windowHours', 'windowDays'],
@@ -33,22 +33,6 @@ const ruleFields = new Map<string, GuardProblem>([
 ]);
 const settingsCache = new SalonReadCache<CancellationGuard>();
 const clientsCache = new SalonReadCache<GuardedClients>();
-
-// BusinessApi reads do not accept an AbortSignal. Release the pending cache entry
-// when its screen closes, so a later visit never subscribes to the abandoned read.
-export async function screenRead<T>(signal: AbortSignal, read: Promise<T>): Promise<T> {
-  let cancel!: () => void;
-  const left = new Promise<never>((_, reject) => {
-    cancel = () => reject(new Error('Screen closed'));
-  });
-  signal.addEventListener('abort', cancel);
-  try {
-    if (signal.aborted) cancel();
-    return await withNetworkTimeout(Promise.race([read, left]));
-  } finally {
-    signal.removeEventListener('abort', cancel);
-  }
-}
 
 /**
  * Task 207: "Ochrona przed odwołaniami" — the owner or a manager sees the salon's rules,
@@ -88,11 +72,17 @@ export function GuardScreen(props: {
     if (signal.aborted) return;
     try {
       const [s, list] = await Promise.all([
-        settingsCache.read(salon, () =>
-          screenRead(signal, api.guardSettings(salon.orgId, salon.locationId)),
+        settingsCache.read(
+          salon,
+          () => api.guardSettings(salon.orgId, salon.locationId, signal),
+          '',
+          signal,
         ),
-        clientsCache.read(salon, () =>
-          screenRead(signal, api.guardedClients(salon.orgId, salon.locationId)),
+        clientsCache.read(
+          salon,
+          () => api.guardedClients(salon.orgId, salon.locationId, signal),
+          '',
+          signal,
         ),
       ]);
       if (signal.aborted) return;

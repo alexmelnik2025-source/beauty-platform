@@ -1259,6 +1259,7 @@ export class BusinessApi {
       /** Task 382: only the reviews without the salon's answer. */
       unanswered?: boolean;
     } = {},
+    signal?: AbortSignal,
   ): Promise<SalonReviews> {
     const params = new URLSearchParams();
     if (filter.before) params.set('before', filter.before);
@@ -1270,14 +1271,18 @@ export class BusinessApi {
     return this.authed<SalonReviews>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/reviews${query}`,
+      undefined,
+      signal,
     );
   }
 
   /** Task 341, owner or manager only (the server checks): whether and when clients are asked. */
-  reviewSettings(orgId: string, locationId: string): Promise<ReviewSettings> {
+  reviewSettings(orgId: string, locationId: string, signal?: AbortSignal): Promise<ReviewSettings> {
     return this.authed<ReviewSettings>(
       'GET',
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/review-settings`,
+      undefined,
+      signal,
     );
   }
 
@@ -1648,8 +1653,12 @@ export class BusinessApi {
   }
 
   /** Task 207, owner or manager only (the server checks): the settings (version 0 = never saved). */
-  guardSettings(orgId: string, locationId: string): Promise<CancellationGuard> {
-    return this.authed<CancellationGuard>('GET', guardPath(orgId, locationId));
+  guardSettings(
+    orgId: string,
+    locationId: string,
+    signal?: AbortSignal,
+  ): Promise<CancellationGuard> {
+    return this.authed<CancellationGuard>('GET', guardPath(orgId, locationId), undefined, signal);
   }
 
   /** Saves the whole settings with the version read; 409 VERSION_CONFLICT when changed meanwhile. */
@@ -1662,8 +1671,13 @@ export class BusinessApi {
   }
 
   /** The clients the protection marks now (empty while it is off). */
-  guardedClients(orgId: string, locationId: string): Promise<GuardedClients> {
-    return this.authed<GuardedClients>('GET', `${guardPath(orgId, locationId)}/clients`);
+  guardedClients(orgId: string, locationId: string, signal?: AbortSignal): Promise<GuardedClients> {
+    return this.authed<GuardedClients>(
+      'GET',
+      `${guardPath(orgId, locationId)}/clients`,
+      undefined,
+      signal,
+    );
   }
 
   /** Task 161c, owner or manager only (the server checks): the client's cancellation-protection mark. */
@@ -2217,14 +2231,20 @@ export class BusinessApi {
   }
 
   /** A signed-in call; an expired access token is renewed once and the call repeated. */
-  private async authed<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async authed<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
     if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
+    const send = () => this.call<T>(method, path, body, true, this.requestLocale, signal);
     try {
-      return await this.call<T>(method, path, body, true);
+      return await send();
     } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) throw error;
+      if (signal?.aborted || !(error instanceof ApiError) || error.status !== 401) throw error;
       if (!(await this.refresh())) throw error;
-      return this.call<T>(method, path, body, true);
+      return send();
     }
   }
 
@@ -2252,6 +2272,7 @@ export class BusinessApi {
     body?: unknown,
     auth = false,
     locale = this.requestLocale,
+    signal?: AbortSignal,
   ): Promise<T> {
     const headers: Record<string, string> = {
       accept: 'application/json',
@@ -2264,6 +2285,7 @@ export class BusinessApi {
     const res = await this.fetchFn(`${this.baseUrl}${path}`, {
       method,
       headers,
+      signal,
       body: upload ? upload.file : body === undefined ? undefined : JSON.stringify(body),
     });
     if (res.status === 204) return undefined as T;
