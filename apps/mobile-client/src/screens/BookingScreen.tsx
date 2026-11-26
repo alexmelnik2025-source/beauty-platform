@@ -91,6 +91,24 @@ const PROBLEM_TEXT: Record<ContactProblem, (t: Dictionary) => string> = {
 const AVAILABILITY_TTL = 30_000;
 type CachedDay = { slots: Slot[]; loadedAt: number };
 type AvailabilityQuery = Parameters<ClientApi['availability']>[1];
+type ProductReservationResult = { confirmed: number; unconfirmed: number };
+
+export async function reserveBookingProducts(
+  api: Pick<ClientApi, 'reserveByToken'>,
+  manageToken: string,
+  productIds: string[],
+): Promise<ProductReservationResult> {
+  let confirmed = 0;
+  for (const productId of productIds) {
+    try {
+      await api.reserveByToken(manageToken, productId);
+      confirmed++;
+    } catch {
+      // A lost response leaves this product unconfirmed. Continue with the other products.
+    }
+  }
+  return { confirmed, unconfirmed: productIds.length - confirmed };
+}
 
 function useBookingTimes(slug: string, query: AvailabilityQuery | null, preferredDay: string) {
   const [cache, setCache] = useState(() => new Map<string, Map<string, CachedDay>>());
@@ -204,6 +222,7 @@ export function BookingScreen(props: {
   const presetStep = props.preset && start.step !== 'service' ? start.step : null;
   const [selectedDay, setDay] = useState('');
   const [hold, setHold] = useState<Hold | null>(null);
+  const [holdingSlot, setHoldingSlot] = useState<Slot | null>(null);
   const [payNotice, setPayNotice] = useState<{
     holdId: string;
     amount: ReturnType<typeof paymentNoticeAmount>;
@@ -240,26 +259,21 @@ export function BookingScreen(props: {
   holdRef.current = hold;
   const doneRef = useRef(false);
   doneRef.current = done !== null;
-  /** Task Q3 (screen C): how many products that came along were put aside for the new visit. */
-  const [brought, setBrought] = useState(0);
-  const bringRef = useRef(false);
+  const productIds = props.preset?.productIds;
+  const reservation = useRef<Promise<ProductReservationResult> | null>(null);
+  const [products, setProducts] = useState<ProductReservationResult | null>(null);
   useEffect(() => {
-    const ids = props.preset?.productIds ?? [];
-    if (!done || bringRef.current || ids.length === 0) return;
-    bringRef.current = true;
-    void (async () => {
-      let count = 0;
-      for (const productId of ids) {
-        try {
-          await api.reserveByToken(done.manageToken, productId);
-          count += 1;
-        } catch {
-          // Sold out meanwhile: the visit stays booked, the product can be added later.
-        }
-      }
-      setBrought(count);
-    })();
-  }, [done, api, props.preset]);
+    if (!done || !productIds?.length) return;
+    let visible = true;
+    // Reuse the pending result if the effect runs again; a second POST could reserve twice.
+    reservation.current ??= reserveBookingProducts(api, done.manageToken, productIds);
+    void reservation.current.then((result) => {
+      if (visible) setProducts(result);
+    });
+    return () => {
+      visible = false;
+    };
+  }, [done, api, productIds]);
 
   const service = salon.services.find((s) => s.id === serviceId);
   const staffList = staffFor(salon, serviceId);
@@ -392,6 +406,7 @@ export function BookingScreen(props: {
   async function pickTime(slot: Slot, key = newRequestKey()) {
     if (submitting.current) return;
     setSubmitting(true);
+    setHoldingSlot(slot);
     setError('');
     try {
       const created = await api.hold(
@@ -412,6 +427,7 @@ export function BookingScreen(props: {
       fail(e, () => void pickTime(slot, key));
       if (afterBookingError(e) === 'reloadTimes') reloadSlots();
     } finally {
+      setHoldingSlot(null);
       setSubmitting(false);
     }
   }
@@ -816,7 +832,12 @@ export function BookingScreen(props: {
           {rowStaff.length > 1 ? (
             // Task 70c: the line's specialists over the times, "Any" first (as on Booksy).
             <View style={styles.chips} accessibilityLabel={b.pickStaff}>
-              <Chip label={b.anyShort} pressed={!staffId} onPress={() => filterStaff()} />
+              <Chip
+                label={b.anyShort}
+                pressed={!staffId}
+                disabled={busy}
+                onPress={() => filterStaff()}
+              />
               {rowStaff.map((id) => {
                 const who = salon.staff.find((x) => x.id === id);
                 return who ? (
@@ -824,6 +845,7 @@ export function BookingScreen(props: {
                     key={id}
                     label={who.displayName}
                     pressed={staffId === id}
+                    disabled={busy}
                     onPress={() => filterStaff(id)}
                   />
                 ) : null;
@@ -866,6 +888,11 @@ export function BookingScreen(props: {
                 <Text style={styles.muted}>{t.visit.loadingSlots}</Text>
               ) : null}
               {daySlots?.length === 0 ? <Text style={styles.muted}>{b.noSlotsDay}</Text> : null}
+              {holdingSlot ? (
+                <Text role="status" aria-live="polite" style={styles.text}>
+                  {fill(b.holdingTime, { time: holdingSlot.time })}
+                </Text>
+              ) : null}
               {dayParts(daySlots ?? []).map((p) => (
                 <View key={p.part} style={{ gap: 6 }}>
                   <Text style={styles.muted}>{b[p.part]}</Text>
@@ -877,7 +904,8 @@ export function BookingScreen(props: {
                           <Chip
                             key={slot.start}
                             label={slot.time}
-                            pressed={false}
+                            pressed={holdingSlot?.start === slot.start}
+                            disabled={busy}
                             onPress={select}
                           />
                         );
@@ -1176,9 +1204,18 @@ export function BookingScreen(props: {
               {salon.name}, {salon.addressLine}, {salon.city}
             </Text>
           </Card>
-          {brought > 0 ? (
-            <Text role="status" style={styles.text}>
-              ✓ {fill(t.visitProducts.brought, { n: String(brought) })}
+          {productIds?.length ? (
+            <Text role="status" aria-live="polite" style={styles.text}>
+              {products
+                ? [
+                    products.confirmed > 0 &&
+                      `✓ ${fill(t.visitProducts.brought, { n: String(products.confirmed) })}`,
+                    products.unconfirmed > 0 &&
+                      fill(t.visitProducts.reserveUnconfirmed, { n: String(products.unconfirmed) }),
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                : t.visitProducts.reserving}
             </Text>
           ) : null}
           {!done.appointment.awaitingApproval ? (

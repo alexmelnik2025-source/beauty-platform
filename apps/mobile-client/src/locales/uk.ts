@@ -204,6 +204,7 @@ export const uk: Dictionary = {
     photosKeptUntil: 'Фото видалимо {date}.',
   },
   book: {
+    holdingTime: 'Бронюємо час на {time}…',
     doneTitleWaiting: 'Запис надіслано',
     doneLeadWaiting:
       'Салон підтвердить візит — час уже заброньовано для вас. Ми напишемо на e-mail, коли салон його прийме.',
@@ -452,6 +453,8 @@ export const uk: Dictionary = {
     leave: 'Вийти з листа',
   },
   visitProducts: {
+    reserving: 'Відкладаємо товари до вашого візиту…',
+    reserveUnconfirmed: 'Кількість товарів, резерв яких не підтверджено: {n}.',
     title: 'Товари на отримання',
     statusReserved: 'Чекає в салоні — оплатите під час візиту',
     statusHanded: 'Отримано',

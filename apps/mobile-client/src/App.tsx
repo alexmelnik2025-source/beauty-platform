@@ -25,18 +25,13 @@ type Stage =
   | { kind: 'signIn' }
   | { kind: 'visits'; person: ClientPerson };
 
-/**
- * The catalogue, a salon and its booking, opened over sign-in or "My visits" (no sign-in
- * needed). "Book again" and "Book" on a loyalty card open the booking straight from "My visits"
- * (`fromVisits`: back returns there) with the same service and specialist.
- */
+/** Screens opened over sign-in or "My visits". Back reveals the preceding screen. */
 type Finder =
-  | null
   | { kind: 'catalog'; query?: string; openNow?: boolean; bestRated?: boolean }
   | { kind: 'shop' }
-  | { kind: 'salon'; slug: string; name: string; fromVisits?: boolean; fromShop?: boolean }
+  | { kind: 'salon'; slug: string; name: string }
   | { kind: 'open'; slug: string; name: string; preset?: BookingPreset }
-  | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset; fromVisits?: boolean };
+  | { kind: 'book'; salon: PublicLocation; preset?: BookingPreset };
 
 const deviceLocale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
 
@@ -48,34 +43,42 @@ export default function App() {
   const api = useMemo(() => new ClientApi(API_URL, tokenStore), []);
   const [locale, setLocale] = useState<Locale>(deviceLocale);
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
-  const [finder, setFinder] = useState<Finder>(null);
+  const [finderPath, setFinderPath] = useState<Finder[]>([]);
+  const finder = finderPath.at(-1);
+  const catalog = finderPath.find((screen) => screen.kind === 'catalog');
+  const back = () => setFinderPath(finderPath.slice(0, -1));
+  const openSalon = ({ slug, name }: { slug: string; name: string }) =>
+    setFinderPath([...finderPath, { kind: 'salon', slug, name }]);
   // A new key reloads "My visits" (after booking) or prefills the sign-in email.
   const [visitsKey, setVisitsKey] = useState(0);
   const [signInEmail, setSignInEmail] = useState('');
   // Grows when a salon is saved to or removed from "Favourites" on its page.
   const [favoritesVersion, setFavoritesVersion] = useState(0);
   const favoriteChanged = useCallback(() => setFavoritesVersion((v) => v + 1), []);
-  const openSalonFromVisits = useCallback(
-    (slug: string, name: string) => setFinder({ kind: 'salon', slug, name, fromVisits: true }),
+  const openSalonFromHome = useCallback(
+    (slug: string, name: string) => setFinderPath([{ kind: 'salon', slug, name }]),
     [],
   );
   // Task 180b: "Czego szukasz?" on the start screen opens the catalogue with that search.
   const openCatalog = useCallback(
-    (query?: string) => setFinder({ kind: 'catalog', ...(query && { query }) }),
+    (query?: string) => setFinderPath([{ kind: 'catalog', query }]),
     [],
   );
   // Task 370: "Otwarte teraz (n)" on the start screen — the catalogue with the filter on.
-  const openCatalogOpenNow = useCallback(() => setFinder({ kind: 'catalog', openNow: true }), []);
+  const openCatalogOpenNow = useCallback(
+    () => setFinderPath([{ kind: 'catalog', openNow: true }]),
+    [],
+  );
   // Task 379: "★ Najlepiej oceniane" on the start screen — the best rated salons first.
   const openCatalogBestRated = useCallback(
-    () => setFinder({ kind: 'catalog', bestRated: true }),
+    () => setFinderPath([{ kind: 'catalog', bestRated: true }]),
     [],
   );
   // Task Q3: "Sklep" — products from salons, under "Znajdź salon" on the start screen.
-  const openShop = useCallback(() => setFinder({ kind: 'shop' }), []);
+  const openShop = useCallback(() => setFinderPath([{ kind: 'shop' }]), []);
   const openBooking = useCallback(
     (slug: string, name: string, preset?: BookingPreset) =>
-      setFinder({ kind: 'open', slug, name, ...(preset && { preset }) }),
+      setFinderPath([{ kind: 'open', slug, name, preset }]),
     [],
   );
   // Task 402: "Ostatnio oglądane" on the start screen — kept on this device only.
@@ -95,8 +98,8 @@ export default function App() {
     void recentSalonsStore.set([]);
   }, []);
   const openRecent = useCallback(
-    (salon: RecentSalon) => setFinder({ kind: 'salon', slug: salon.slug, name: salon.name }),
-    [],
+    (salon: RecentSalon) => openSalonFromHome(salon.slug, salon.name),
+    [openSalonFromHome],
   );
   const t = DICTIONARIES[locale];
 
@@ -112,10 +115,10 @@ export default function App() {
   const openLink = useCallback((url: string | null | undefined) => {
     const link = parseDeepLink(url);
     if (!link) return;
-    setFinder(
+    setFinderPath(
       link.preset
-        ? { kind: 'open', slug: link.slug, name: '', preset: link.preset }
-        : { kind: 'salon', slug: link.slug, name: '' },
+        ? [{ kind: 'open', slug: link.slug, name: '', preset: link.preset }]
+        : [{ kind: 'catalog' }, { kind: 'salon', slug: link.slug, name: '' }],
     );
   }, []);
   useEffect(() => {
@@ -208,47 +211,48 @@ export default function App() {
                 onFindSalon={openCatalog}
                 onShop={openShop}
                 onBook={openBooking}
-                onOpenSalon={openSalonFromVisits}
+                onOpenSalon={openSalonFromHome}
                 favoritesVersion={favoritesVersion}
                 recent={recent}
                 onClearRecent={clearRecent}
               />
             )}
           </View>
-          {finder ? (
-            <View style={finder.kind === 'catalog' ? styles.fill : styles.hidden}>
+          {catalog ? (
+            <View style={finder === catalog ? styles.fill : styles.hidden}>
               <CatalogScreen
                 api={api}
                 t={t}
                 locale={locale}
                 onLocale={changeLocale}
-                initialQuery={finder.kind === 'catalog' ? finder.query : undefined}
-                initialOpenNow={finder.kind === 'catalog' && finder.openNow === true}
-                initialBestRated={finder.kind === 'catalog' && finder.bestRated === true}
-                onOpen={(s) => setFinder({ kind: 'salon', slug: s.slug, name: s.name })}
-                onBack={() => setFinder(null)}
+                initialQuery={catalog.query}
+                initialOpenNow={catalog.openNow}
+                initialBestRated={catalog.bestRated}
+                onOpen={openSalon}
+                onBack={back}
               />
             </View>
           ) : null}
-          {/* The shop stays mounted under a salon opened from it: back keeps the search. */}
-          {finder?.kind === 'shop' || (finder?.kind === 'salon' && finder.fromShop) ? (
-            <View style={finder.kind === 'shop' ? styles.fill : styles.hidden}>
+          {/* Keep the product and search mounted while its salon or booking is open. */}
+          {finderPath.some((screen) => screen.kind === 'shop') ? (
+            <View style={finder?.kind === 'shop' ? styles.fill : styles.hidden}>
               <ShopScreen
                 api={api}
                 t={t}
                 locale={locale}
-                onBack={() => setFinder(null)}
+                onBack={back}
                 signedIn={stage.kind === 'visits'}
-                onOpenSalon={(s) =>
-                  setFinder({ kind: 'salon', slug: s.slug, name: s.name, fromShop: true })
-                }
+                onOpenSalon={openSalon}
                 onBookWith={(s, productId) =>
-                  setFinder({
-                    kind: 'open',
-                    slug: s.slug,
-                    name: s.name,
-                    preset: { productIds: [productId] },
-                  })
+                  setFinderPath([
+                    ...finderPath,
+                    {
+                      kind: 'open',
+                      slug: s.slug,
+                      name: s.name,
+                      preset: { productIds: [productId] },
+                    },
+                  ])
                 }
               />
             </View>
@@ -260,12 +264,12 @@ export default function App() {
               t={t}
               slug={finder.slug}
               name={finder.name}
-              onBack={() => setFinder(null)}
+              onBack={back}
               onLoaded={(salon) =>
-                setFinder((f) =>
-                  f?.kind === 'open'
-                    ? { kind: 'book', salon, preset: f.preset, fromVisits: true }
-                    : f,
+                setFinderPath((path) =>
+                  path.at(-1) === finder
+                    ? [...path.slice(0, -1), { kind: 'book', salon, preset: finder.preset }]
+                    : path,
                 )
               }
             />
@@ -280,13 +284,9 @@ export default function App() {
               email={stage.kind === 'visits' ? stage.person.email : undefined}
               signedIn={stage.kind === 'visits'}
               preset={finder.preset}
-              onBack={() =>
-                finder.fromVisits
-                  ? setFinder(null)
-                  : setFinder({ kind: 'salon', slug: finder.salon.slug, name: finder.salon.name })
-              }
+              onBack={back}
               onFinished={(email) => {
-                setFinder(null);
+                setFinderPath([]);
                 if (stage.kind === 'visits') setVisitsKey((k) => k + 1);
                 else setSignInEmail(email);
               }}
@@ -300,26 +300,22 @@ export default function App() {
               locale={locale}
               slug={finder.slug}
               name={finder.name}
-              onBack={() =>
-                setFinder(
-                  finder.fromShop
-                    ? { kind: 'shop' }
-                    : finder.fromVisits
-                      ? null
-                      : { kind: 'catalog' },
-                )
+              onBack={back}
+              onBook={(salon, preset) =>
+                setFinderPath([...finderPath, { kind: 'book', salon, preset }])
               }
-              onBook={(salon, preset) => setFinder({ kind: 'book', salon, preset })}
               signedIn={stage.kind === 'visits'}
               onFavoriteChanged={favoriteChanged}
               onViewed={salonViewed}
               onOpenSalon={(s) =>
-                setFinder({
-                  kind: 'salon',
-                  slug: s.slug,
-                  name: s.name,
-                  fromVisits: finder.fromVisits,
-                })
+                setFinderPath([
+                  ...finderPath.slice(0, -1),
+                  {
+                    kind: 'salon',
+                    slug: s.slug,
+                    name: s.name,
+                  },
+                ])
               }
             />
           ) : null}

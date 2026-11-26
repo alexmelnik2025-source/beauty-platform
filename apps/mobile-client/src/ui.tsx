@@ -90,6 +90,7 @@ export function Chip(props: {
   pressed: boolean;
   compact?: boolean;
   expanded?: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
@@ -98,8 +99,15 @@ export function Chip(props: {
       accessibilityLabel={props.a11yLabel ?? props.label}
       aria-pressed={props.pressed}
       aria-expanded={props.expanded}
+      accessibilityState={{ disabled: props.disabled }}
+      disabled={props.disabled}
       onPress={props.onPress}
-      style={[styles.chip, props.compact && styles.compactChip, props.pressed && styles.chipOn]}
+      style={[
+        styles.chip,
+        props.compact && styles.compactChip,
+        props.pressed && styles.chipOn,
+        props.disabled && { opacity: 0.6 },
+      ]}
     >
       <Text
         style={[

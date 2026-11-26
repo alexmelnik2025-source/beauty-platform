@@ -204,6 +204,7 @@ export const pl = {
     photosKeptUntil: 'Zdjęcia usuniemy {date}.',
   },
   book: {
+    holdingTime: 'Rezerwujemy godzinę {time}…',
     doneTitleWaiting: 'Rezerwacja wysłana',
     doneLeadWaiting:
       'Salon potwierdzi wizytę — termin jest już dla Ciebie zarezerwowany. Napiszemy e-mailem, gdy salon ją przyjmie.',
@@ -451,6 +452,8 @@ export const pl = {
     leave: 'Wypisz się',
   },
   visitProducts: {
+    reserving: 'Odkładamy produkty na Twoją wizytę…',
+    reserveUnconfirmed: 'Liczba produktów bez potwierdzonej rezerwacji: {n}.',
     title: 'Produkty do odbioru',
     statusReserved: 'Czeka w salonie — zapłacisz przy wizycie',
     statusHanded: 'Odebrane',

@@ -45,6 +45,37 @@ import type { RecentSalon } from '../recent';
 /** The tabs of the screen: upcoming visits, history, bonuses, favourite salons. */
 type Tab = Scope | 'bonuses' | 'favorites';
 
+type TabData =
+  | {
+      tab: 'upcoming';
+      items: ClientAppointment[];
+      waitlist: ClientWaitlistEntry[];
+      mine: FavoriteSpecialist[];
+    }
+  | { tab: 'past'; items: ClientAppointment[]; summary: ClientVisitSummary }
+  | { tab: 'bonuses'; items: ClientLoyaltyCard[] }
+  | { tab: 'favorites'; items: FavoriteSalon[] };
+
+async function readTab(api: ClientApi, tab: Tab): Promise<TabData> {
+  if (tab === 'bonuses') return { tab, items: (await api.loyalty()).items };
+  if (tab === 'favorites') return { tab, items: (await api.favorites()).items };
+  if (tab === 'past') {
+    const [visits, summary] = await Promise.all([api.appointments(tab), api.visitSummary()]);
+    return { tab, items: visits.items, summary };
+  }
+  const [visits, waiting, past] = await Promise.all([
+    api.appointments(tab),
+    api.waitlist(),
+    api.appointments('past'),
+  ]);
+  return {
+    tab,
+    items: visits.items,
+    waitlist: waiting.items,
+    mine: favoriteSpecialists(past.items),
+  };
+}
+
 /**
  * "My visits": upcoming and past visits in every salon, found by the client's email, and
  * "My bonuses" — the loyalty cards of those salons — and the client's favourite salons.
@@ -68,63 +99,61 @@ export function VisitsScreen(props: {
   /** Task 415: "Ostatnio oglądane" under "Znajdź salon", as on the start screen. */
   recent?: RecentSalon[];
   onClearRecent?: () => void;
-  onSignOut: () => void;
+  onSignOut: () => Promise<void>;
   /** The server no longer accepts the session (signed out elsewhere, or it ended). */
   onSessionEnded: () => void;
 }) {
   const { api, t, locale, onSessionEnded } = props;
   const [tab, setTab] = useState<Tab>('upcoming');
-  const [items, setItems] = useState<ClientAppointment[] | null>(null);
-  const [bonuses, setBonuses] = useState<ClientLoyaltyCard[] | null>(null);
-  const [favorites, setFavorites] = useState<FavoriteSalon[] | null>(null);
-  // Task 51: the waiting lists, shown above the upcoming visits.
-  const [waitlist, setWaitlist] = useState<ClientWaitlistEntry[]>([]);
-  // Task 165d: the client's specialist in each salon, booked in one tap.
-  const [mine, setMine] = useState<FavoriteSpecialist[]>([]);
-  // Task 293: "Twoje wizyty" above the history — all time, every salon.
-  const [summary, setSummary] = useState<ClientVisitSummary | null>(null);
+  const [data, setData] = useState<TabData | null>(null);
+  const panel = data?.tab === tab ? data : null;
   // Task 298: the history of one salon only (its slug); null = every salon.
   const [salon, setSalon] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ message: string; action?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<ClientAppointment | null>(null);
   const changed = useRef(false);
+  const latestLoad = useRef(0);
+  const pending = useRef(new Set<string>());
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+
+  async function runAction(key: string, action: () => Promise<void>) {
+    if (pending.current.has(key)) return;
+    pending.current.add(key);
+    setBusy(new Set(pending.current));
+    try {
+      await action();
+    } finally {
+      pending.current.delete(key);
+      setBusy(new Set(pending.current));
+    }
+  }
 
   const load = useCallback(async () => {
+    const request = ++latestLoad.current;
     setLoading(true);
     try {
-      if (tab === 'bonuses') setBonuses((await api.loyalty()).items);
-      else if (tab === 'favorites') setFavorites((await api.favorites()).items);
-      else if (tab === 'upcoming') {
-        const [visits, waiting, past] = await Promise.all([
-          api.appointments(tab),
-          api.waitlist(),
-          api.appointments('past'),
-        ]);
-        setItems(visits.items);
-        setWaitlist(waiting.items);
-        setMine(favoriteSpecialists(past.items));
-      } else {
-        const [visits, sum] = await Promise.all([api.appointments(tab), api.visitSummary()]);
-        setItems(visits.items);
-        setSummary(sum);
-      }
-      setError('');
+      const result = await readTab(api, tab);
+      if (request !== latestLoad.current) return;
+      setData(result);
+      setError(null);
     } catch (e) {
+      if (request !== latestLoad.current) return;
       if (!api.signedIn) return onSessionEnded();
-      setError(errorText(e, t));
+      setError({ message: errorText(e, t) });
     } finally {
-      setLoading(false);
+      if (request === latestLoad.current) setLoading(false);
     }
   }, [api, tab, t, onSessionEnded]);
 
   useEffect(() => {
-    setItems(null);
-    setBonuses(null);
-    setFavorites(null);
-    setSummary(null);
+    setData(null);
     setSalon(null);
+    setError(null);
     void load();
+    return () => {
+      latestLoad.current++;
+    };
   }, [load]);
 
   // A salon saved or removed on its page: the list is fresh when the client comes back.
@@ -138,12 +167,19 @@ export function VisitsScreen(props: {
 
   const leaveWaitlist = useCallback(
     async (id: string) => {
+      const request = latestLoad.current;
+      const action = `waitlist:${id}`;
       try {
         await api.leaveWaitlist(id);
-        setWaitlist((list) => list.filter((e) => e.id !== id));
+        setData((current) =>
+          current?.tab === 'upcoming'
+            ? { ...current, waitlist: current.waitlist.filter((e) => e.id !== id) }
+            : current,
+        );
+        setError((current) => (current?.action === action ? null : current));
       } catch (e) {
         if (!api.signedIn) return onSessionEnded();
-        setError(errorText(e, t));
+        if (request === latestLoad.current) setError({ message: errorText(e, t), action });
       }
     },
     [api, t, onSessionEnded],
@@ -151,21 +187,27 @@ export function VisitsScreen(props: {
 
   const removeFavorite = useCallback(
     async (slug: string) => {
+      const request = latestLoad.current;
+      const action = `favorite:${slug}`;
       try {
         await api.removeFavorite(slug);
-        setFavorites((list) => list?.filter((s) => s.slug !== slug) ?? null);
+        setData((current) =>
+          current?.tab === 'favorites'
+            ? { ...current, items: current.items.filter((s) => s.slug !== slug) }
+            : current,
+        );
+        setError((current) => (current?.action === action ? null : current));
       } catch (e) {
         if (!api.signedIn) return onSessionEnded();
-        setError(errorText(e, t));
+        if (request === latestLoad.current) setError({ message: errorText(e, t), action });
       }
     },
     [api, t, onSessionEnded],
   );
 
   // Task 97: "Download my data" (GDPR), as on the site.
-  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
   const downloadData = useCallback(async () => {
-    setDownloading(true);
     try {
       const data = await api.exportData();
       await saveMyData(
@@ -173,12 +215,10 @@ export function VisitsScreen(props: {
         myDataFileName(data),
         t.visits.downloadDataTitle,
       );
-      setError('');
+      setDownloadError('');
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
-      setError(errorText(e, t));
-    } finally {
-      setDownloading(false);
+      setDownloadError(errorText(e, t));
     }
   }, [api, t, onSessionEnded]);
 
@@ -209,7 +249,8 @@ export function VisitsScreen(props: {
   }
 
   // Task 298: the salons of the history; the filter shows only when there are two or more.
-  const salons = tab === 'past' && items ? salonsOf(items) : [];
+  const items = panel?.tab === 'upcoming' || panel?.tab === 'past' ? panel.items : null;
+  const salons = panel?.tab === 'past' ? salonsOf(panel.items) : [];
 
   return (
     <ScrollView
@@ -260,41 +301,34 @@ export function VisitsScreen(props: {
 
       {error ? (
         <View style={{ gap: 12 }}>
-          <ErrorText>{error}</ErrorText>
+          <ErrorText>{error.message}</ErrorText>
           <Button kind="secondary" label={t.visits.refresh} onPress={load} />
         </View>
       ) : null}
 
-      {!error &&
-      (tab === 'bonuses'
-        ? bonuses === null
-        : tab === 'favorites'
-          ? favorites === null
-          : items === null) ? (
-        <LoadingCards label={t.loading} />
+      {!error && !panel ? <LoadingCards label={t.loading} /> : null}
+
+      {panel?.tab === 'bonuses' ? (
+        <BonusesView t={t} locale={locale} items={panel.items} onBook={props.onBook} />
       ) : null}
 
-      {tab === 'bonuses' && bonuses ? (
-        <BonusesView t={t} locale={locale} items={bonuses} onBook={props.onBook} />
-      ) : null}
-
-      {tab === 'favorites' && favorites ? (
+      {panel?.tab === 'favorites' ? (
         <FavoritesView
           t={t}
           locale={locale}
-          items={favorites}
+          items={panel.items}
           onOpen={props.onOpenSalon}
           onBook={props.onBook}
           onRemove={removeFavorite}
         />
       ) : null}
 
-      {tab === 'upcoming' && mine.length > 0 ? (
+      {panel?.tab === 'upcoming' && panel.mine.length > 0 ? (
         <View role="region" aria-label={t.visits.mySpecialists} style={{ gap: 8 }}>
           <Text role="heading" aria-level={2} style={styles.day}>
             {t.visits.mySpecialists}
           </Text>
-          {mine.map((f) => (
+          {panel.mine.map((f) => (
             <Card key={f.slug}>
               <Text style={styles.service}>{f.staffName}</Text>
               <Text style={styles.muted}>
@@ -310,12 +344,12 @@ export function VisitsScreen(props: {
         </View>
       ) : null}
 
-      {tab === 'upcoming' && waitlist.length > 0 ? (
+      {panel?.tab === 'upcoming' && panel.waitlist.length > 0 ? (
         <View style={{ gap: 8 }}>
           <Text role="heading" aria-level={2} style={styles.day}>
             {t.waitlist.title}
           </Text>
-          {waitlist.map((entry) => {
+          {panel.waitlist.map((entry) => {
             const day = formatDay(entry.date, locale);
             return (
               <Card key={entry.id}>
@@ -346,7 +380,8 @@ export function VisitsScreen(props: {
                     kind="link"
                     label={t.waitlist.leave}
                     a11yLabel={`${t.waitlist.leave}: ${entry.serviceName}, ${day}`}
-                    onPress={() => void leaveWaitlist(entry.id)}
+                    busy={busy.has(`waitlist:${entry.id}`)}
+                    onPress={() => runAction(`waitlist:${entry.id}`, () => leaveWaitlist(entry.id))}
                   />
                 </View>
               </Card>
@@ -355,8 +390,8 @@ export function VisitsScreen(props: {
         </View>
       ) : null}
 
-      {tab === 'past' && summary && summary.completed > 0 ? (
-        <SummaryCard summary={summary} t={t} locale={locale} />
+      {panel?.tab === 'past' && panel.summary.completed > 0 ? (
+        <SummaryCard summary={panel.summary} t={t} locale={locale} />
       ) : null}
 
       {(tab === 'upcoming' || tab === 'past') && items && items.length === 0 ? (
@@ -411,13 +446,19 @@ export function VisitsScreen(props: {
       />
       <Disclosure label={t.visits.profile}>
         <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
+        {downloadError ? <ErrorText>{downloadError}</ErrorText> : null}
         <Button
           kind="link"
-          label={t.visits.downloadData}
-          busy={downloading}
-          onPress={() => void downloadData()}
+          label={downloadError ? t.retry : t.visits.downloadData}
+          busy={busy.has('export')}
+          onPress={() => runAction('export', downloadData)}
         />
-        <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
+        <Button
+          kind="link"
+          label={t.visits.signOut}
+          busy={busy.has('signOut')}
+          onPress={() => runAction('signOut', props.onSignOut)}
+        />
         <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
       </Disclosure>
     </ScrollView>
