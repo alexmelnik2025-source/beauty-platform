@@ -44,17 +44,19 @@ async function photoRequest<T>(request: Promise<T>): Promise<T> {
 
 // Presses can arrive together before React has rendered the disabled button.
 function usePhotoAction() {
-  const running = useRef(false);
+  const running = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
-  async function run(action: () => Promise<void>) {
+  useEffect(() => () => running.current?.abort(), []);
+  async function run(action: (signal: AbortSignal) => Promise<void>) {
     if (running.current) return;
-    running.current = true;
+    const controller = new AbortController();
+    running.current = controller;
     setBusy(true);
     try {
-      await action();
+      await action(controller.signal);
     } finally {
-      running.current = false;
-      setBusy(false);
+      running.current = null;
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
   return { busy, run };
@@ -118,7 +120,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     return errorText(err, t);
   }
 
-  async function add() {
+  async function add(signal: AbortSignal) {
     const left = MAX_WISH_PHOTOS - photos.length;
     if (left <= 0) return;
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -128,6 +130,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
       // Smaller files: the API takes at most 3 MB per photo.
       quality: 0.6,
     }).catch(() => null);
+    if (signal.aborted) return;
     if (!picked) {
       setFailure({ message: w.photosNoAccess });
       return;
@@ -135,10 +138,11 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     if (picked.canceled || picked.assets.length === 0) {
       return;
     }
-    await upload(picked.assets.slice(0, left));
+    await upload(signal, picked.assets.slice(0, left));
   }
 
   async function upload(
+    signal: AbortSignal,
     assets: ImagePicker.ImagePickerAsset[],
     knownIds = photos.map((photo) => photo.id),
     reconcile = false,
@@ -151,6 +155,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     try {
       if (reconcile) {
         const { items } = await photoRequest(api.holdPhotos(hold));
+        if (signal.aborted) return;
         setPhotos(items);
         // A lost response may have hidden a successful upload of the first pending photo.
         if (items.some((photo) => !knownIds.includes(photo.id))) pending = pending.slice(1);
@@ -159,22 +164,29 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
       while (pending.length > 0) {
         const asset = pending[0]!;
         postStarted = false;
-        const blob = await photoRequest(fetch(asset.uri).then((response) => response.blob()));
+        const blob =
+          asset.file ??
+          (await photoRequest<Blob>(
+            fetch(asset.uri, { signal }).then((response) => response.blob()),
+          ));
+        if (signal.aborted) return;
         postStarted = true;
         const saved = await photoRequest(
           api.addHoldPhoto(hold, blob, photoType(asset.mimeType, blob.type)),
         );
+        if (signal.aborted) return;
         pending = pending.slice(1);
         knownIds.push(saved.id);
         setPhotos((list) => [...list, saved]);
       }
     } catch (err) {
+      if (signal.aborted) return;
       setFailedUpload({
         asset: pending[0]!,
         failure: formFailure(
           err,
           t,
-          () => void run(() => upload(pending, knownIds, postStarted)),
+          () => void run((retrySignal) => upload(retrySignal, pending, knownIds, postStarted)),
           problem(err),
         ),
       });
@@ -183,18 +195,28 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
     }
   }
 
-  async function remove(id: string, reconcile = false) {
+  async function remove(signal: AbortSignal, id: string, reconcile = false) {
     setFailure(null);
     try {
       if (
         !reconcile ||
         (await photoRequest(api.holdPhotos(hold))).items.some((photo) => photo.id === id)
       ) {
+        if (signal.aborted) return;
         await photoRequest(api.removeHoldPhoto(hold, id));
       }
+      if (signal.aborted) return;
       setPhotos((list) => list.filter((p) => p.id !== id));
     } catch (err) {
-      setFailure(formFailure(err, t, () => void run(() => remove(id, true)), problem(err)));
+      if (signal.aborted) return;
+      setFailure(
+        formFailure(
+          err,
+          t,
+          () => void run((retrySignal) => remove(retrySignal, id, true)),
+          problem(err),
+        ),
+      );
     } finally {
       holdLists.clear(api, holdKey);
     }
@@ -211,7 +233,7 @@ export function WishPhotosPicker(props: { t: Dictionary; api: ClientApi; hold: H
           t={t}
           photos={photos}
           busy={busy}
-          onRemove={(id) => void run(() => remove(id))}
+          onRemove={(id) => void run((signal) => remove(signal, id))}
         />
         <FormFeedback failure={failure?.retry ? failure : null} retryLabel={t.retry} busy={busy} />
         {failedUpload ? (
@@ -364,18 +386,23 @@ function VisitPhotoCard(props: VisitPhotoProps) {
     };
   }, [api, visit.id, loadAttempt]);
 
-  async function remove(id: string, reconcile = false) {
+  async function remove(signal: AbortSignal, id: string, reconcile = false) {
     setFailure(null);
     try {
       if (
         !reconcile ||
         (await photoRequest(api.visitPhotos(visit.id))).items.some((photo) => photo.id === id)
       ) {
+        if (signal.aborted) return;
         await photoRequest(api.removeVisitPhoto(visit.id, id));
       }
+      if (signal.aborted) return;
       setList((l) => (l ? { ...l, items: l.items.filter((p) => p.id !== id) } : l));
     } catch (err) {
-      setFailure(formFailure(err, t, () => void run(() => remove(id, true))));
+      if (signal.aborted) return;
+      setFailure(
+        formFailure(err, t, () => void run((retrySignal) => remove(retrySignal, id, true))),
+      );
     } finally {
       visitLists.clear(api, visit.id);
     }
@@ -392,7 +419,9 @@ function VisitPhotoCard(props: VisitPhotoProps) {
           t={t}
           photos={list?.items ?? []}
           busy={busy}
-          onRemove={visit.canChangeWishes ? (id) => void run(() => remove(id)) : undefined}
+          onRemove={
+            visit.canChangeWishes ? (id) => void run((signal) => remove(signal, id)) : undefined
+          }
         />
         {list?.deleteAfter ? (
           <Text style={styles.lead}>

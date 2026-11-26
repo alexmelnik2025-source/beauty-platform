@@ -51,7 +51,6 @@ function UsedProductsContent(props: Props) {
   if (!data.products.length) return null;
   const next = data.nextVisit;
   const when = next ? `${next.time} · ${formatDay(next.date, locale)}` : '';
-  const toBring = data.products.filter((p) => p.available).map((p) => p.id);
 
   return (
     <View role="region" aria-label={s.usedTitle} style={styles.card} testID="used-products">
@@ -94,17 +93,18 @@ function UsedProductsContent(props: Props) {
         <>
           <Text style={styles.muted}>
             {s.noNext}
-            {toBring.length ? ` ${s.bookNextHint}` : ''}
+            {data.products.some((p) => p.available) ? ` ${s.bookNextHint}` : ''}
           </Text>
           <Button
             label={s.bookNext}
-            onPress={() =>
+            onPress={() => {
+              const toBring = data.products.filter((p) => p.available).map((p) => p.id);
               props.onBookNext({
                 serviceId: data.rebook.serviceId,
                 staffId: data.rebook.staffId,
                 ...(toBring.length ? { productIds: toBring } : {}),
-              })
-            }
+              });
+            }}
           />
         </>
       )}

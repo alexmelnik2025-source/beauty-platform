@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { memo, useEffect, useId, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, ClientApi, type Locale, type PublicGiftVoucher } from '../api';
 import { API_URL } from '../config';
@@ -32,9 +32,9 @@ type VoucherProps = {
   slug: string;
 };
 
-export function VoucherCheck(props: VoucherProps) {
+export const VoucherCheck = memo(function VoucherCheck(props: VoucherProps) {
   return <VoucherForm key={props.slug} {...props} />;
-}
+});
 
 function VoucherForm({ api, t, locale, slug }: VoucherProps) {
   const pending = useRef<symbol | null>(null);
@@ -108,13 +108,14 @@ function VoucherForm({ api, t, locale, slug }: VoucherProps) {
         {t.voucherCheck.code}
       </Text>
       <TextInput
+        autoFocus
         aria-labelledby={labelId}
         aria-invalid={invalidCode}
         aria-describedby={message ? errorId : undefined}
         accessibilityLabel={t.voucherCheck.code}
         accessibilityHint={message || undefined}
         placeholder="ABCD-EFGH"
-        placeholderTextColor={colors.placeholder}
+        placeholderTextColor={colors.muted}
         value={code}
         onChangeText={(value) => {
           pending.current = null;

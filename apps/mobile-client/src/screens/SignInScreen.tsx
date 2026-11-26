@@ -110,7 +110,7 @@ export function SignInScreen(props: SignInProps) {
         <TextInput
           accessibilityLabel={t.catalog.startSearch}
           placeholder={t.catalog.search}
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={colors.muted}
           value={what}
           onChangeText={setWhat}
           onSubmitEditing={() => props.onFindSalon(what.trim())}
@@ -171,12 +171,15 @@ const SignInForm = memo(function SignInForm(
   const [activeRequest, setActiveRequest] = useState<'send' | 'confirm' | null>(null);
   const busy = activeRequest !== null;
 
+  const previousRecipient = useRef(sentTo);
   useEffect(() => {
-    if (fieldIssue && !busy && field.current) {
+    const changedField = previousRecipient.current !== sentTo;
+    if (!busy && (changedField || fieldIssue) && field.current) {
+      previousRecipient.current = sentTo;
       field.current.focus();
       if (Platform.OS !== 'web') AccessibilityInfo.sendAccessibilityEvent(field.current, 'focus');
     }
-  }, [fieldIssue, busy]);
+  }, [fieldIssue, sentTo, busy]);
 
   async function send(email = parseEmail(input)) {
     if (submitting.current) return;
@@ -235,7 +238,7 @@ const SignInForm = memo(function SignInForm(
             error={fieldError}
             accessibilityLabel={t.signIn.email}
             placeholder={t.signIn.email}
-            placeholderTextColor={colors.placeholder}
+            placeholderTextColor={colors.muted}
             editable={!busy}
             value={input}
             onChangeText={(value) => {
@@ -266,7 +269,7 @@ const SignInForm = memo(function SignInForm(
             error={fieldError}
             accessibilityLabel={t.signIn.code}
             placeholder="000000"
-            placeholderTextColor={colors.line}
+            placeholderTextColor={colors.muted}
             editable={!busy}
             value={code}
             onChangeText={(v) => {
