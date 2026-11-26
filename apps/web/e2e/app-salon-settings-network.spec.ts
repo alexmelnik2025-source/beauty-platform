@@ -176,6 +176,7 @@ test('guard rules can be retried with the same values', async ({ page }) => {
 
 test('member permissions keep the selected exception after a failed save', async ({ page }) => {
   await openBusinessMenu(page, pl.team.open);
+  await button(page, pl.navigation.more).click();
   await button(page, pl.rights.open).click();
   await button(page, pl.rights.change + ': Kasia').click();
   const allow = page.getByRole('radio', {
@@ -205,6 +206,7 @@ test('member permissions keep the selected exception after a failed save', async
 
 test('a category keeps its name and permissions until the server accepts it', async ({ page }) => {
   await openBusinessMenu(page, pl.team.open);
+  await button(page, pl.navigation.more).click();
   await button(page, pl.rights.open).click();
   await button(page, pl.rights.addCategory).click();
   const name = page.getByLabel(pl.rights.categoryName, { exact: true });

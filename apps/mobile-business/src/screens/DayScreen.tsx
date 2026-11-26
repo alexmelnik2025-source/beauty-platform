@@ -37,7 +37,7 @@ import { shareText, type TextShareTools } from '../share';
 import { errorText } from '../errors';
 import { badge } from '../notifications';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import { Button, Card, colors, ErrorText, Heading, LoadingCards, Pressable } from '../ui';
 import { LanguagePicker } from './LanguagePicker';
 import { BlockScreen } from './BlockScreen';
 import { NotificationsScreen } from './NotificationsScreen';
@@ -1010,7 +1010,7 @@ export function DayScreen(props: {
           ) : null}
         </>
       ) : !error ? (
-        <Text style={styles.muted}>{t.loading}</Text>
+        <LoadingCards label={t.loading} />
       ) : null}
     </ScrollView>,
   );
