@@ -8,6 +8,7 @@ import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
 import { MAX_TIERS, tierRows, tiersToSave, type TierRow } from '../tiers';
 import { Button, Card, colors, ErrorText, Pressable } from '../ui';
+import { editableRuleRows, type RuleRowChanges } from './BonusRulesSection';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -24,10 +25,11 @@ export function TiersSection(props: {
   const { api, t, salon } = props;
   const l = t.loyalty;
   const [data, setData] = useState<LoyaltyTiers | null>(null);
-  const [form, setForm] = useFormDraft<{
-    basis: LoyaltyTiers['basis'];
-    period: string;
-    rows: TierRow[];
+  const [draft, setDraft] = useFormDraft<{
+    session: symbol;
+    basis?: LoyaltyTiers['basis'];
+    period?: string;
+    rows: RuleRowChanges<TierRow>;
   } | null>('loyaltyTiers.form', null);
   const [invalid, setInvalid] = useState<Extract<
     ReturnType<typeof tiersToSave>,
@@ -50,28 +52,6 @@ export function TiersSection(props: {
   if (!data) return note ? <ErrorText>{note.text}</ErrorText> : null;
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
-  async function save() {
-    if (!form) return;
-    const checked = tiersToSave(form.basis, form.period, form.rows);
-    setInvalid(null);
-    if (!checked.ok) return setInvalid(checked);
-    setBusy(true);
-    setNote(null);
-    try {
-      setData(await api.saveLoyaltyTiers(salon.orgId, checked.save));
-      setForm(null);
-      setNote({ text: l.tiersSaved, bad: false });
-    } catch (e) {
-      setNote({ text: errorText(e, t), bad: true });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const setRow = (index: number, change: Partial<TierRow>) =>
-    form &&
-    setForm({ ...form, rows: form.rows.map((r, i) => (i === index ? { ...r, ...change } : r)) });
-
   const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
     invalid?.problem === problem && invalid.row === row
       ? fill(l.tiersProblem[problem], { n: String((row ?? 0) + 1) })
@@ -87,7 +67,7 @@ export function TiersSection(props: {
     )
   ) : null;
 
-  if (!form) {
+  if (!draft) {
     return (
       <Card>
         <Text style={styles.muted}>{l.tiersHint}</Text>
@@ -115,11 +95,44 @@ export function TiersSection(props: {
           label={l.tiersChange}
           onPress={() => {
             setNote(null);
-            setForm({ basis: data.basis, period: String(data.periodDays), rows: tierRows(data) });
+            setDraft({ session: Symbol(), rows: {} });
           }}
         />
       </Card>
     );
+  }
+
+  const basis = draft.basis ?? data.basis;
+  const period = draft.period ?? String(data.periodDays);
+  const editor = editableRuleRows(
+    data.tiers,
+    tierRows(data),
+    { name: '', threshold: '', discountPercent: '0' },
+    draft.rows,
+    (rows) => setDraft({ ...draft, rows }),
+  );
+
+  const { session } = draft;
+
+  async function save() {
+    const checked = tiersToSave(
+      basis,
+      period,
+      editor.rows.map(({ value }) => value),
+    );
+    setInvalid(null);
+    if (!checked.ok) return setInvalid(checked);
+    setBusy(true);
+    setNote(null);
+    try {
+      setData(await api.saveLoyaltyTiers(salon.orgId, checked.save));
+      setDraft((current) => (current?.session === session ? null : current));
+      setNote({ text: l.tiersSaved, bad: false });
+    } catch (e) {
+      setNote({ text: errorText(e, t), bad: true });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -127,28 +140,28 @@ export function TiersSection(props: {
       <View style={styles.row}>
         <Chip
           label={l.tierBasisVisits}
-          on={form.basis === 'visits'}
-          onPress={() => setForm({ ...form, basis: 'visits' })}
+          on={basis === 'visits'}
+          onPress={() => setDraft({ ...draft, basis: 'visits' })}
         />
         <Chip
           label={l.tierBasisSpend}
-          on={form.basis === 'spend'}
-          onPress={() => setForm({ ...form, basis: 'spend' })}
+          on={basis === 'spend'}
+          onPress={() => setDraft({ ...draft, basis: 'spend' })}
         />
       </View>
       <Text style={styles.label}>{l.tierPeriod}</Text>
       <FormField
         error={errorAt('period')}
         accessibilityLabel={l.tierPeriod}
-        value={form.period}
-        onChangeText={(period) => setForm({ ...form, period })}
+        value={period}
+        onChangeText={(period) => setDraft({ ...draft, period })}
         keyboardType="number-pad"
         style={styles.input}
       />
-      {form.rows.map((row, i) => {
+      {editor.rows.map(({ key, value: row }, i) => {
         const n = { n: String(i + 1) };
         return (
-          <View key={i} style={styles.tier}>
+          <View key={key} style={styles.tier}>
             <FormField
               error={errorAt('name', i)}
               accessibilityLabel={fill(l.tierName, n)}
@@ -156,26 +169,26 @@ export function TiersSection(props: {
               placeholderTextColor={colors.placeholder}
               value={row.name}
               maxLength={40}
-              onChangeText={(name) => setRow(i, { name })}
+              onChangeText={(name) => editor.change(key, { name })}
               style={styles.input}
             />
             <View style={styles.row}>
               <FormField
                 error={errorAt('threshold', i) || errorAt('same', i)}
                 accessibilityLabel={
-                  form.basis === 'spend'
+                  basis === 'spend'
                     ? fill(l.tierThresholdSpend, { ...n, currency: salon.currency })
                     : fill(l.tierThresholdVisits, n)
                 }
                 placeholder={
-                  form.basis === 'spend'
+                  basis === 'spend'
                     ? fill(l.tierThresholdSpend, { ...n, currency: salon.currency })
                     : fill(l.tierThresholdVisits, n)
                 }
                 placeholderTextColor={colors.placeholder}
                 value={row.threshold}
-                keyboardType={form.basis === 'spend' ? 'decimal-pad' : 'number-pad'}
-                onChangeText={(threshold) => setRow(i, { threshold })}
+                keyboardType={basis === 'spend' ? 'decimal-pad' : 'number-pad'}
+                onChangeText={(threshold) => editor.change(key, { threshold })}
                 style={[styles.input, styles.grow]}
               />
               <FormField
@@ -185,7 +198,7 @@ export function TiersSection(props: {
                 placeholderTextColor={colors.placeholder}
                 value={row.discountPercent}
                 keyboardType="number-pad"
-                onChangeText={(discountPercent) => setRow(i, { discountPercent })}
+                onChangeText={(discountPercent) => editor.change(key, { discountPercent })}
                 style={[styles.input, styles.grow]}
               />
             </View>
@@ -193,23 +206,14 @@ export function TiersSection(props: {
               <Button
                 kind="link"
                 label={fill(l.tierRemove, n)}
-                onPress={() => setForm({ ...form, rows: form.rows.filter((_, j) => j !== i) })}
+                onPress={() => editor.remove(key)}
               />
             </View>
           </View>
         );
       })}
-      {form.rows.length < MAX_TIERS ? (
-        <Button
-          kind="secondary"
-          label={l.tierAdd}
-          onPress={() =>
-            setForm({
-              ...form,
-              rows: [...form.rows, { name: '', threshold: '', discountPercent: '0' }],
-            })
-          }
-        />
+      {editor.rows.length < MAX_TIERS ? (
+        <Button kind="secondary" label={l.tierAdd} onPress={editor.add} />
       ) : null}
       <FieldError message={errorAt('tooMany')} />
       {message}
@@ -219,7 +223,8 @@ export function TiersSection(props: {
           kind="secondary"
           label={l.cancel}
           onPress={() => {
-            setForm(null);
+            setDraft(null);
+            setInvalid(null);
             setNote(null);
           }}
         />
