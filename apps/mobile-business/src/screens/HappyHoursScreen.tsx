@@ -27,6 +27,8 @@ const EMPTY_FORM = {
   staffIds: [] as string[],
 };
 
+type PromotionDraft = typeof EMPTY_FORM & { kind: 'hours' | 'lastMinute' };
+
 /**
  * Task 99: "Happy hours" — the owner or a manager sees the salon's cheaper hours, adds one
  * (days, from–to, discount, optionally some specialists) and removes one from the phone.
@@ -48,11 +50,10 @@ export function HappyHoursScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [choosing, setChoosing] = useState(false);
-  const [kind, setKind] = useFormDraft<'hours' | 'lastMinute'>('promotion.kind', 'hours');
   const [problem, setProblem] = useState<
     import('../happyHours').RuleProblem | 'lastMinuteHours' | null
   >(null);
-  const [form, setForm] = useFormDraft<typeof EMPTY_FORM | null>('promotion.form', null);
+  const [form, setForm, resetForm] = useFormDraft<PromotionDraft | null>('promotion.form', null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -90,14 +91,14 @@ export function HappyHoursScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  async function save(next: ReturnType<typeof rulesToSave>, done: string) {
+  async function save(next: ReturnType<typeof rulesToSave>, done: string, onSuccess?: () => void) {
     setBusy(true);
     try {
       const saved = await api.saveHappyHours(salon.orgId, salon.locationId, next);
       setRules(saved.rules);
-      setForm(null);
       setInfo(done);
       setError('');
+      onSuccess?.();
     } catch (e) {
       setError(errorText(e, t));
     } finally {
@@ -109,14 +110,15 @@ export function HappyHoursScreen(props: {
     if (!form || !rules || busy) return;
     setError('');
     setProblem(null);
-    const checked = kind === 'lastMinute' ? newLastMinuteRule(form) : newRule(form);
+    const checked = form.kind === 'lastMinute' ? newLastMinuteRule(form) : newRule(form);
     if (!checked.ok) {
       setProblem(checked.problem);
       return;
     }
     void save(
       rulesToSave(rules, { add: checked.rule }),
-      kind === 'lastMinute' ? h.promotionSaved : h.saved,
+      form.kind === 'lastMinute' ? h.promotionSaved : h.saved,
+      resetForm,
     );
   }
 
@@ -125,9 +127,8 @@ export function HappyHoursScreen(props: {
       ? fill(h.lastMinuteSummary, { hours: String(rule.lastMinuteHours) })
       : `${daysText(rule.weekdays, props.locale, h.everyDay)} · ${rule.start}–${rule.end}`;
 
-  function startForm(next: 'hours' | 'lastMinute') {
-    setKind(next);
-    setForm(EMPTY_FORM);
+  function startForm(kind: PromotionDraft['kind']) {
+    setForm({ ...EMPTY_FORM, kind });
     setChoosing(false);
     setProblem(null);
     setError('');
@@ -148,8 +149,8 @@ export function HappyHoursScreen(props: {
 
       {form ? (
         <Card>
-          <Text style={styles.name}>{kind === 'lastMinute' ? h.lastMinute : h.scheduled}</Text>
-          {kind === 'lastMinute' ? (
+          <Text style={styles.name}>{form.kind === 'lastMinute' ? h.lastMinute : h.scheduled}</Text>
+          {form.kind === 'lastMinute' ? (
             <>
               <FormField
                 error={problem === 'lastMinuteHours' ? h.badLastMinuteHours : undefined}
@@ -237,7 +238,15 @@ export function HappyHoursScreen(props: {
           <Text style={styles.muted}>{h.onlyNew}</Text>
           <View style={styles.row}>
             <Button label={h.save} busy={busy} onPress={add} />
-            <Button kind="secondary" label={h.cancel} onPress={() => setForm(null)} />
+            <Button
+              kind="secondary"
+              label={h.cancel}
+              onPress={() => {
+                resetForm();
+                setProblem(null);
+                setError('');
+              }}
+            />
           </View>
         </Card>
       ) : choosing ? (

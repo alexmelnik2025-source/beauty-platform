@@ -23,6 +23,7 @@ import {
 import { photosLeft, photoType, uploadErrorText } from '../salonPhotos';
 import { CURRENCIES, currencyName, matching, salonTimeZones } from '../country';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import {
   LEGAL_KEYS,
@@ -38,7 +39,13 @@ import { Button, Card, colors, ErrorText, Heading, Pressable, switchTouchTarget 
 import { SPOKEN, toggleLanguage } from '../profile';
 import { DRINK_ICON, MOOD_ICON, OFFERED_DRINKS } from '../wishes';
 import type { SalonChoice } from './SalonsScreen';
-import { SalonDraft, SalonDraftInput, settingsForm, useSalonValue } from './SalonDraft';
+import {
+  SalonDraft,
+  SalonDraftInput,
+  settingsForm,
+  useSalonValue,
+  type SalonEdits,
+} from './SalonDraft';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
 import { locationCache } from './MessagesScreen';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -126,6 +133,11 @@ export function SalonScreen(props: {
   const [uploading, setUploading] = useState(false);
 
   const lifetime = useScreenLifetime(salon);
+  const [previousEdits, rememberEdits] = useFormDraft<SalonEdits | null>(
+    `salon.settings.${salon.locationId}`,
+    null,
+  );
+  const editsToRestore = useRef(previousEdits);
   const [location, setLocation] = useState<Location | null>(null);
   const [draft, setDraft] = useState<SalonDraft | null>(null);
   const form = draft?.values;
@@ -153,11 +165,15 @@ export function SalonScreen(props: {
       );
       if (signal.aborted) return;
       setLocation(saved);
-      setDraft(new SalonDraft(settingsForm(saved)));
+      setDraft(new SalonDraft(settingsForm(saved), editsToRestore.current));
+      if (editsToRestore.current) {
+        editsToRestore.current = null;
+        rememberEdits(null);
+      }
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, dictionary.current));
     }
-  }, [api, salon, lifetime]);
+  }, [api, salon, lifetime, rememberEdits]);
 
   useEffect(() => {
     void load();
@@ -246,10 +262,11 @@ export function SalonScreen(props: {
       setSection(null);
       setError('');
       setInfo('');
-    } else if (!dirty) {
+    } else {
+      if (draft?.dirty) rememberEdits(draft.edits);
       onBack();
     }
-  }, [section, busy, uploading, dirty, onBack]);
+  }, [section, busy, uploading, draft, rememberEdits, onBack]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -509,7 +526,7 @@ export function SalonScreen(props: {
             kind="link"
             label={selected ? `‹ ${t.navigation.settings}` : s.back}
             onPress={goBack}
-            disabled={busy || uploading || (!selected && dirty)}
+            disabled={busy || uploading}
           />
         </View>
         <Heading>{selected?.title ?? t.navigation.settings}</Heading>

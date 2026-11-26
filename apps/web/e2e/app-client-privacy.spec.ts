@@ -110,6 +110,7 @@ test('business app: the owner downloads and erases a client’s data (GDPR)', as
     await phone.getByRole('tab', { name: 'Klienci', exact: true }).click();
     await phone.getByRole('button', { name: 'Karta klienta: Jan Nowak', exact: true }).click();
     await expect(phone.getByRole('heading', { name: 'Jan Nowak' })).toBeVisible();
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await expect(phone.getByText('Dane osobowe (RODO)')).toBeVisible();
 
     // ── download: the JSON file with everything the salon keeps ────────────

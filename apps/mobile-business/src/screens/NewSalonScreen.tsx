@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type ComponentRef } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ApiError, type BusinessApi, type Locale } from '../api';
 import {
   CURRENCIES,
@@ -9,6 +9,7 @@ import {
   salonZoneOf,
 } from '../country';
 import { errorText } from '../errors';
+import { useClearFormDraft, useFormDraft } from '../formDrafts';
 import type { Dictionary } from '../i18n';
 import { emptyNewSalon, newSalonBodies, withTimeZone, type NewSalonProblem } from '../newSalon';
 import { Button, Card, colors, ErrorText, Heading } from '../ui';
@@ -28,11 +29,14 @@ export function NewSalonScreen(props: {
   onCreated: () => void;
   onBack: () => void;
 }) {
-  const { t, locale } = props;
+  const { t, locale, onBack } = props;
   const n = t.newSalon;
-  const [form, setForm] = useState(() =>
+  const [initial] = useState(() =>
     emptyNewSalon(salonZoneOf(Intl.DateTimeFormat().resolvedOptions().timeZone)),
   );
+  const [form, setForm] = useFormDraft('newSalon.form', initial);
+  const clearDraft = useClearFormDraft('newSalon.');
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const inputs = useRef<Partial<Record<TextKey, ComponentRef<typeof TextInput> | null>>>({});
   const [problem, setProblem] = useState<NewSalonProblem | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -40,6 +44,26 @@ export function NewSalonScreen(props: {
   const creating = useRef(false);
   const [busy, setBusy] = useState(false);
   const poland = regionForTimeZone(form.timezone) === 'PL';
+  const dirty = (Object.keys(initial) as (keyof typeof initial)[]).some(
+    (key) => form[key] !== initial[key],
+  );
+
+  // Onboarding runs before the salon's draft provider. Keep the editor and any
+  // completed organization step mounted until the person explicitly discards it.
+  const goBack = useCallback(() => {
+    if (creating.current) return;
+    if (confirmLeave) setConfirmLeave(false);
+    else if (dirty) setConfirmLeave(true);
+    else onBack();
+  }, [confirmLeave, dirty, onBack]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      goBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [goBack]);
 
   const { timezone, currency } = form;
   const countryChoices = useMemo(
@@ -69,7 +93,7 @@ export function NewSalonScreen(props: {
         />
       </Card>
     ),
-    [t, locale, timezone, currency],
+    [t, locale, timezone, currency, setForm],
   );
 
   const problems: Record<NewSalonProblem, string> = {
@@ -104,6 +128,7 @@ export function NewSalonScreen(props: {
         setOrganizationId(orgId);
       }
       await props.api.createLocation(orgId, bodies.location);
+      clearDraft();
       props.onCreated();
     } catch (e) {
       creating.current = false;
@@ -179,9 +204,26 @@ export function NewSalonScreen(props: {
     );
   };
 
+  if (confirmLeave) {
+    return (
+      <ScrollView contentContainerStyle={styles.screen}>
+        <Heading>{t.navigation.unsaved}</Heading>
+        <Button label={t.salon.back} onPress={goBack} />
+        <Button
+          label={t.navigation.discard}
+          kind="secondary"
+          onPress={() => {
+            clearDraft();
+            onBack();
+          }}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-      <Button kind="link" label={t.salon.back} disabled={busy} onPress={props.onBack} />
+      <Button kind="link" label={t.salon.back} disabled={busy} onPress={goBack} />
       <Heading>{n.title}</Heading>
       <Text style={styles.muted}>{n.lead}</Text>
       <Card>

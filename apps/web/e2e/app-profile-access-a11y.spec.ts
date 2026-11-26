@@ -144,6 +144,7 @@ test('salon fields, permission and language checkboxes, and sharing at 320 px wi
     ).toBeOK();
 
     await openBusinessMenu(page, t.team.open);
+    await button(page, t.navigation.more).click();
     await button(page, t.rights.open).click();
     await button(page, t.rights.addCategory).click();
     const category = field(t.rights.categoryName);

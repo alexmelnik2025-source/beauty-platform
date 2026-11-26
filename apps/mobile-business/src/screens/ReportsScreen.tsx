@@ -26,7 +26,16 @@ import {
 } from '../reports';
 import { shareCsv } from '../share';
 import { signed } from '../tillClose';
-import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import {
+  Button,
+  Card,
+  colors,
+  Disclosure,
+  ErrorText,
+  Heading,
+  LoadingCards,
+  Pressable,
+} from '../ui';
 import { ClientScreen } from './ClientScreen';
 import { CommissionsSection } from './CommissionsSection';
 import { csvTools } from './csvTools';
@@ -342,11 +351,7 @@ export function ReportsScreen(props: {
           <Text style={styles.small}>{r.note}</Text>
           {totals.visits > 0 ? (
             <View style={{ gap: 4 }}>
-              <Button
-                kind="secondary"
-                label={csvBusy ? t.loading : r.csv}
-                onPress={() => void downloadCsv()}
-              />
+              <Button label={csvBusy ? t.loading : r.csv} onPress={() => void downloadCsv()} />
               <Text style={styles.small}>{Platform.OS === 'web' ? r.csvHint : r.csvHintPhone}</Text>
               {csvInfo ? (
                 <Text role="status" style={styles.small}>
@@ -357,26 +362,28 @@ export function ReportsScreen(props: {
           ) : null}
 
           {shown.scope === 'location' ? (
-            <View style={{ gap: 4 }}>
-              <Button
-                kind="secondary"
-                label={csvBusy ? t.loading : r.tillCsv}
-                onPress={() => void downloadCsv('till')}
-              />
-              <Text style={styles.small}>{r.tillCsvHint}</Text>
-              <Button
-                kind="secondary"
-                label={csvBusy ? t.loading : r.payoutCsv}
-                onPress={() => void downloadCsv('payout')}
-              />
-              <Text style={styles.small}>{r.payoutCsvHint}</Text>
-              <Button
-                kind="secondary"
-                label={csvBusy ? t.loading : r.stockHistoryCsv}
-                onPress={() => void downloadCsv('stock-history')}
-              />
-              <Text style={styles.small}>{r.stockHistoryCsvHint}</Text>
-            </View>
+            <Disclosure label={t.navigation.more}>
+              <View style={{ gap: 4 }}>
+                <Button
+                  kind="secondary"
+                  label={csvBusy ? t.loading : r.tillCsv}
+                  onPress={() => void downloadCsv('till')}
+                />
+                <Text style={styles.small}>{r.tillCsvHint}</Text>
+                <Button
+                  kind="secondary"
+                  label={csvBusy ? t.loading : r.payoutCsv}
+                  onPress={() => void downloadCsv('payout')}
+                />
+                <Text style={styles.small}>{r.payoutCsvHint}</Text>
+                <Button
+                  kind="secondary"
+                  label={csvBusy ? t.loading : r.stockHistoryCsv}
+                  onPress={() => void downloadCsv('stock-history')}
+                />
+                <Text style={styles.small}>{r.stockHistoryCsvHint}</Text>
+              </View>
+            </Disclosure>
           ) : null}
 
           {totals.visits === 0 ? (
@@ -401,31 +408,36 @@ export function ReportsScreen(props: {
               .map(([title, rows]) => (
                 <View key={title} style={{ gap: 8 }}>
                   <Text style={styles.section}>{title}</Text>
-                  {rows.map((row) => (
-                    <Card key={row.id}>
-                      <View style={styles.cardTop}>
-                        <Text style={styles.name}>{row.name}</Text>
-                        <Text style={styles.name}>{money(row.revenueGrosze)}</Text>
-                      </View>
-                      <Text style={styles.muted}>
-                        {fill(r.row, {
-                          completed: String(row.completed),
-                          noShow: String(row.noShow),
-                        })}
-                      </Text>
-                      {row.cancelledByClient + row.cancelledBySalon > 0 ? (
+                  <Card>
+                    {rows.map((row, index) => (
+                      <View
+                        key={row.id}
+                        style={[styles.tableRow, index > 0 && styles.tableDivider]}
+                      >
+                        <View style={styles.cardTop}>
+                          <Text style={styles.name}>{row.name}</Text>
+                          <Text style={styles.name}>{money(row.revenueGrosze)}</Text>
+                        </View>
                         <Text style={styles.muted}>
-                          {fill(r.rowCancelled, {
-                            n: String(row.cancelledByClient + row.cancelledBySalon),
-                            split: fill(r.cancelledSplit, {
-                              client: String(row.cancelledByClient),
-                              salon: String(row.cancelledBySalon),
-                            }),
+                          {fill(r.row, {
+                            completed: String(row.completed),
+                            noShow: String(row.noShow),
                           })}
                         </Text>
-                      ) : null}
-                    </Card>
-                  ))}
+                        {row.cancelledByClient + row.cancelledBySalon > 0 ? (
+                          <Text style={styles.muted}>
+                            {fill(r.rowCancelled, {
+                              n: String(row.cancelledByClient + row.cancelledBySalon),
+                              split: fill(r.cancelledSplit, {
+                                client: String(row.cancelledByClient),
+                                salon: String(row.cancelledBySalon),
+                              }),
+                            })}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ))}
+                  </Card>
                 </View>
               ))
           )}
@@ -1213,7 +1225,7 @@ export function ReportsScreen(props: {
           ) : null}
         </>
       ) : !error ? (
-        <Text style={styles.muted}>{t.loading}</Text>
+        <LoadingCards label={t.loading} />
       ) : null}
     </ScrollView>
   );
@@ -1239,6 +1251,8 @@ const styles = StyleSheet.create({
   section: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.muted, letterSpacing: 1 },
   muted: { color: colors.muted, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
+  tableRow: { gap: 4 },
+  tableDivider: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   name: { fontSize: 16, fontWeight: '600', color: colors.ink, flexShrink: 1 },
   trend: { fontSize: 13, fontWeight: '600', color: colors.danger },

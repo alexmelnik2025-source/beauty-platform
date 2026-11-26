@@ -4,6 +4,7 @@ import { ApiError, type BusinessApi, type Locale } from '../api';
 import { localToIso, nextFullHour, seriesDoneText, SERIES_WEEKS, shiftTime } from '../blocks';
 import { dayTitle } from '../day';
 import { errorText } from '../errors';
+import { useClearFormDraft, useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { Button, colors, ErrorText, Heading, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
@@ -72,7 +73,9 @@ export function BlockScreen(props: {
     date === props.today ? nextFullHour(props.timeZone) : '12:00',
   );
   const [to, setTo] = useState(() => shiftTime(from, 60));
-  const [reason, setReason] = useState('');
+  const draftKey = `block.${salon.locationId}.${date}.`;
+  const [reason, setReason] = useFormDraft(`${draftKey}reason`, '');
+  const clearDraft = useClearFormDraft(draftKey);
   const [weekly, setWeekly] = useState(false);
   const [weeks, setWeeks] = useState<number>(SERIES_WEEKS.start);
   const [error, setError] = useState('');
@@ -119,16 +122,18 @@ export function BlockScreen(props: {
         end: localToIso(date, to, props.timeZone),
         reason: reason.trim(),
       };
+      let message = b.added;
       if (weekly) {
         const made = await api.addTimeBlockSeries(salon.orgId, salon.locationId, {
           ...body,
           weeks,
         });
-        props.onSaved(seriesDoneText(made, t));
+        message = seriesDoneText(made, t);
       } else {
         await api.addTimeBlock(salon.orgId, salon.locationId, body);
-        props.onSaved(b.added);
       }
+      clearDraft();
+      props.onSaved(message);
     } catch (e) {
       if (e instanceof ApiError && e.code === 'APPOINTMENTS_IN_THE_WAY') {
         setFields({ end: b.inTheWay });
@@ -316,7 +321,15 @@ export function BlockScreen(props: {
       {error ? <ErrorText>{error}</ErrorText> : null}
       <View style={styles.row}>
         <Button label={b.save} busy={busy} onPress={() => void save()} />
-        <Button kind="secondary" label={b.cancel} disabled={busy} onPress={onBack} />
+        <Button
+          kind="secondary"
+          label={b.cancel}
+          disabled={busy}
+          onPress={() => {
+            clearDraft();
+            onBack();
+          }}
+        />
       </View>
     </ScrollView>
   );

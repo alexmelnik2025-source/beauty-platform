@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { BusinessApi, Location } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import {
   HOLD_MINUTES,
@@ -31,6 +32,21 @@ import {
 } from './HistoryScreen';
 
 export const locationCache = new SalonReadCache<Location>();
+
+type MessageEdits = Partial<MessagesForm> & { customText?: boolean };
+const noEdits: MessageEdits = {};
+
+function changedFields(edits: MessageEdits, saved: MessagesForm): MessageEdits {
+  const changes = { ...edits };
+  for (const key of Object.keys(saved) as (keyof MessagesForm)[]) {
+    if (changes[key] === saved[key]) delete changes[key];
+  }
+  // Switching custom text off still hides a typed template until the switch is turned on again.
+  const hidesDraftText = changes.customText === false && changes.rebookText !== undefined;
+  if (!hidesDraftText && changes.customText === Boolean(saved.rebookText))
+    delete changes.customText;
+  return changes;
+}
 
 export function useLocationForm<T>(
   api: BusinessApi,
@@ -57,6 +73,7 @@ export function useLocationForm<T>(
       if (signal.aborted) return;
       setLocation(saved);
       setForm(toForm(saved));
+      return saved;
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, dictionary.current));
     }
@@ -83,18 +100,28 @@ export function MessagesScreen(props: {
   const { api, t, salon, onBack } = props;
   const m = t.messages;
   const [error, setError] = useState('');
-  const [customText, setCustomText] = useState<boolean | null>(null);
+  const [edits, setEdits] = useFormDraft(`messages.${salon.orgId}.${salon.locationId}`, noEdits);
   const [fieldError, setFieldError] = useState<MessagesProblem | 'emptyText' | null>(null);
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
 
-  const { location, setLocation, form, setForm, lifetime, load } = useLocationForm(
-    api,
-    salon,
-    messagesForm,
-    t,
-    setError,
+  const {
+    location,
+    setLocation,
+    form: savedForm,
+    setForm,
+    lifetime,
+    load,
+  } = useLocationForm(api, salon, messagesForm, t, setError);
+  const form = savedForm && { ...savedForm, ...edits };
+  const edit = useCallback(
+    (fields: MessageEdits) =>
+      setEdits((previous) => {
+        const next = { ...previous, ...fields };
+        return savedForm && !saving.current ? changedFields(next, savedForm) : next;
+      }),
+    [savedForm, setEdits],
   );
 
   useEffect(() => {
@@ -105,7 +132,8 @@ export function MessagesScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  const customTextEnabled = customText ?? Boolean(location?.rebookReminderText);
+  const customTextEnabled =
+    edits.customText ?? (edits.rebookText !== undefined || Boolean(location?.rebookReminderText));
   const invalidDays = fieldError === 'rebookDays';
   const invalidText = fieldError === 'emptyText' || fieldError === 'rebookText';
   const textError =
@@ -129,29 +157,45 @@ export function MessagesScreen(props: {
       return;
     }
     if (Object.keys(checked.changes).length === 0) {
+      setEdits(noEdits);
       setInfo(m.nothing);
       return;
     }
+
+    function clearSubmittedEdits(saved: Location) {
+      setEdits((latest) => {
+        if (latest === edits) return noEdits;
+        // The person may have continued typing while the request was in flight.
+        const remaining = { ...latest };
+        for (const field of Object.keys(edits) as (keyof MessageEdits)[]) {
+          if (remaining[field] === edits[field]) delete remaining[field];
+        }
+        return changedFields(remaining, messagesForm(saved));
+      });
+    }
+
     const signal = lifetime.current!.signal;
     saving.current = true;
     setBusy(true);
     try {
-      const saved = await withNetworkTimeout(
-        api.updateLocation(salon.orgId, salon.locationId, location.version, checked.changes),
+      // A screen reopened during the write must load the resulting version of the salon.
+      locationCache.clear(salon);
+      const saved = await locationCache.read(salon, () =>
+        withNetworkTimeout(
+          api.updateLocation(salon.orgId, salon.locationId, location.version, checked.changes),
+        ),
       );
-      locationCache.set(salon, saved);
+      clearSubmittedEdits(saved);
       if (signal.aborted) return;
       setLocation(saved);
       setForm(messagesForm(saved));
-      setCustomText(null);
       setInfo(m.saved);
     } catch (e) {
-      locationCache.clear(salon);
       if (signal.aborted) return;
       if (saveProblem(e) === 'changedMeanwhile') {
         setError(m.changedMeanwhile);
-        setCustomText(null);
-        await load();
+        const current = await load();
+        if (current) clearSubmittedEdits(current);
       } else setError(errorText(e, t));
     } finally {
       saving.current = false;
@@ -193,7 +237,7 @@ export function MessagesScreen(props: {
             m={m}
             reminderHoursBefore={form.reminderHoursBefore}
             waitlistHoldMinutes={form.waitlistHoldMinutes}
-            setForm={setForm}
+            edit={edit}
           />
           <Card>
             <Text style={styles.label}>{m.rebook}</Text>
@@ -207,7 +251,7 @@ export function MessagesScreen(props: {
                 value={form.rebookOn}
                 onValueChange={(rebookOn) => {
                   setFieldError(null);
-                  setForm({ ...form, rebookOn });
+                  edit({ rebookOn });
                 }}
                 trackColor={{ true: colors.accent, false: colors.line }}
               />
@@ -223,7 +267,7 @@ export function MessagesScreen(props: {
                   value={form.rebookDays}
                   onChangeText={(rebookDays) => {
                     if (invalidDays) setFieldError(null);
-                    setForm({ ...form, rebookDays });
+                    edit({ rebookDays });
                   }}
                   keyboardType="number-pad"
                   maxLength={3}
@@ -244,7 +288,7 @@ export function MessagesScreen(props: {
                     value={customTextEnabled}
                     onValueChange={(enabled) => {
                       if (invalidText) setFieldError(null);
-                      setCustomText(enabled);
+                      edit({ customText: enabled });
                     }}
                     trackColor={{ true: colors.accent, false: colors.line }}
                   />
@@ -260,7 +304,7 @@ export function MessagesScreen(props: {
                     value={form.rebookText}
                     onChangeText={(rebookText) => {
                       if (invalidText) setFieldError(null);
-                      setForm({ ...form, rebookText });
+                      edit({ customText: true, rebookText });
                     }}
                     maxLength={500}
                     multiline
@@ -290,12 +334,12 @@ const TimingSettings = memo(function TimingSettings({
   m,
   reminderHoursBefore,
   waitlistHoldMinutes,
-  setForm,
+  edit,
 }: {
   m: Dictionary['messages'];
   reminderHoursBefore: number;
   waitlistHoldMinutes: number;
-  setForm: React.Dispatch<React.SetStateAction<MessagesForm | null>>;
+  edit: (fields: MessageEdits) => void;
 }) {
   return (
     <>
@@ -307,7 +351,7 @@ const TimingSettings = memo(function TimingSettings({
               key={hours}
               label={hours === 0 ? m.reminderNone : fill(m.reminderHours, { n: String(hours) })}
               on={reminderHoursBefore === hours}
-              onPress={() => setForm((form) => form && { ...form, reminderHoursBefore: hours })}
+              onPress={() => edit({ reminderHoursBefore: hours })}
             />
           ))}
         </View>
@@ -320,7 +364,7 @@ const TimingSettings = memo(function TimingSettings({
               key={minutes}
               label={minutes === 0 ? m.holdOff : fill(m.holdMinutes, { n: String(minutes) })}
               on={waitlistHoldMinutes === minutes}
-              onPress={() => setForm((form) => form && { ...form, waitlistHoldMinutes: minutes })}
+              onPress={() => edit({ waitlistHoldMinutes: minutes })}
             />
           ))}
         </View>

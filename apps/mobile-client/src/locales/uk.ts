@@ -2,6 +2,7 @@ import type { Dictionary } from './pl';
 
 export const uk: Dictionary = {
   appTitle: 'Візити',
+  loading: 'Завантаження…',
   signIn: {
     title: 'Мої візити',
     subtitle:
@@ -20,6 +21,7 @@ export const uk: Dictionary = {
   visits: {
     waiting: 'Чекає на підтвердження',
     title: 'Мої візити',
+    profile: 'Профіль',
     signedInAs: 'Ви увійшли як {email}',
     upcoming: 'Майбутні',
     past: 'Історія',
@@ -132,8 +134,7 @@ export const uk: Dictionary = {
     tierNextVisits: 'До рівня «{name}» бракує візитів: {count}',
     tierNextSpend: 'До рівня «{name}» бракує: {amount}',
     tierTop: 'Це найвищий рівень у цьому салоні',
-    empty:
-      'Бонусів поки немає. Коли у вашому салоні є програма лояльності, тут з’являться ваші штампи й бали.',
+    empty: 'У вас ще немає бонусів.',
     book: 'Записатися',
     programOff: 'Салон вимкнув програму — ваші купони й далі дійсні.',
     readyStamps: 'Уже можна отримати «{reward}» — або збирати далі на більшу нагороду.',
@@ -416,8 +417,7 @@ export const uk: Dictionary = {
   },
   favorites: {
     tab: 'Улюблені',
-    empty:
-      'У вас ще немає улюблених салонів. Відкрийте салон у каталозі й торкніться «♡ Додати в улюблені».',
+    empty: 'У вас ще немає улюблених салонів.',
     add: '♡ Додати в улюблені',
     saved: '♥ В улюблених',
     remove: 'Прибрати з улюблених',

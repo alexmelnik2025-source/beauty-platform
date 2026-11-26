@@ -121,6 +121,7 @@ test('business app: permissions fit at 320 px with large text', async ({ browser
     await page.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(mail.text)![1]!);
     await page.getByRole('button', { name: 'Zaloguj się' }).click();
     await openBusinessMenu(page, 'Zespół');
+    await page.getByRole('button', { name: 'Więcej', exact: true }).click();
     await page.getByRole('button', { name: 'Uprawnienia', exact: true }).click();
     await page.addStyleTag({
       content: '[dir="auto"]:not([role="heading"]) { font-size: 21px !important }',

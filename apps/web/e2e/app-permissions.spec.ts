@@ -120,6 +120,7 @@ test('business app: the owner sets what a specialist may do', async ({ browser, 
 
     await openBusinessMenu(phone, 'Zespół');
     await expect(phone.getByRole('heading', { name: 'Zespół', exact: true })).toBeVisible();
+    await phone.getByRole('button', { name: 'Więcej', exact: true }).click();
     await phone.getByRole('button', { name: 'Uprawnienia', exact: true }).click();
     await expect(phone.getByRole('heading', { name: 'Uprawnienia', exact: true })).toBeVisible();
     await expect(phone.getByText('Kasia Nowak')).toBeVisible();

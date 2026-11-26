@@ -8,6 +8,7 @@ import {
   type Locale,
 } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import {
   actionLine,
   clientReasons,
@@ -54,16 +55,19 @@ export function GuardScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [askOff, setAskOff] = useState(false);
-  const [releaseId, setReleaseId] = useState<string | null>(null);
-  const note = useRef('');
-  const pending = useRef(false);
-  const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState<GuardForm | null>(null);
+  const draftKey = `guard.${salon.orgId}.${salon.locationId}`;
+  const [releaseId, setReleaseId] = useFormDraft<string | null>(`${draftKey}.releaseId`, null);
+  const [phase, setPhase] = useState<'saving' | 'refreshing' | null>(null);
+  const pending = useRef<typeof phase>(null);
+  const busy = phase !== null;
+  const [edits, setEdits] = useFormDraft<Partial<GuardForm> | null>(`${draftKey}.rules`, null);
+  const savedForm = settings && guardForm(settings);
+  const form = savedForm && edits && { ...savedForm, ...edits };
 
   const [attemptedSave, setAttemptedSave] = useState(false);
   const checked = settings && form ? guardRulesToSave(settings, form) : null;
   const [serverProblem, setServerProblem] = useState<GuardProblem | null>(null);
-  const dirty = settings && form && JSON.stringify(guardForm(settings)) !== JSON.stringify(form);
+  const dirty = form && JSON.stringify(savedForm) !== JSON.stringify(form);
   const problem = attemptedSave && checked && !checked.ok ? checked.problem : serverProblem;
 
   const lifetime = useScreenLifetime(salon);
@@ -97,27 +101,38 @@ export function GuardScreen(props: {
     void load();
   }, [load]);
 
+  const back = useCallback(() => {
+    if (pending.current !== 'saving') onBack();
+  }, [onBack]);
+
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
+      back();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [back]);
 
   async function run(action: (signal: AbortSignal) => Promise<void>, done: string, rules = false) {
     if (pending.current) return;
-    pending.current = true;
+    const setPending = (next: typeof phase) => {
+      pending.current = next;
+      setPhase(next);
+    };
+    const refresh = () => {
+      setPending('refreshing');
+      return load();
+    };
+    setPending('saving');
     setError('');
     setInfo('');
     setServerProblem(null);
     const signal = lifetime.current!.signal;
-    setBusy(true);
     try {
       await action(signal);
       clientsCache.clear(salon);
       if (signal.aborted) return;
-      await load();
+      await refresh();
       if (!signal.aborted) setInfo(done);
     } catch (e) {
       if (signal.aborted) return;
@@ -126,7 +141,7 @@ export function GuardScreen(props: {
         settingsCache.clear(salon);
         clientsCache.clear(salon);
         setError(g.conflict);
-        await load();
+        await refresh();
       } else {
         const field =
           rules &&
@@ -136,8 +151,7 @@ export function GuardScreen(props: {
         else setError(errorText(e, t));
       }
     } finally {
-      pending.current = false;
-      if (!signal.aborted) setBusy(false);
+      if (!signal.aborted) setPending(null);
     }
   }
 
@@ -159,9 +173,15 @@ export function GuardScreen(props: {
     );
   }
 
-  function changeRule(key: 'changes' | 'windowDays' | 'lateMinutes' | 'noShows', value: string) {
+  function changeRule<K extends keyof GuardForm>(key: K, value: GuardForm[K]) {
     if (serverProblem === key) setServerProblem(null);
-    setForm((current) => current && { ...current, [key]: value });
+    if (!savedForm) return;
+    setEdits((current) => {
+      const next = { ...current };
+      if (savedForm[key] === value) delete next[key];
+      else next[key] = value;
+      return next;
+    });
   }
 
   function saveRules() {
@@ -171,20 +191,18 @@ export function GuardScreen(props: {
     void run(
       async (signal) => {
         await saveSettings(checked.save, signal);
-        if (!signal.aborted) setForm(null);
+        setEdits(null);
       },
       g.rulesSaved,
       true,
     );
   }
 
-  function release(customerId: string) {
-    const text = note.current;
-    void run(async (signal) => {
-      await api.releaseGuard(salon.orgId, salon.locationId, customerId, text);
-      if (signal.aborted) return;
+  function release(customerId: string, note: string, clearNote: () => void) {
+    void run(async () => {
+      await api.releaseGuard(salon.orgId, salon.locationId, customerId, note);
+      clearNote();
       setReleaseId(null);
-      note.current = '';
     }, g.released);
   }
 
@@ -199,7 +217,7 @@ export function GuardScreen(props: {
       ListHeaderComponent={
         <View style={styles.header}>
           <View style={styles.row}>
-            <Button kind="link" label={g.back} onPress={onBack} />
+            <Button kind="link" label={g.back} disabled={phase === 'saving'} onPress={back} />
           </View>
           <Heading>{g.title}</Heading>
           <Text style={styles.muted}>{g.hint}</Text>
@@ -272,7 +290,7 @@ export function GuardScreen(props: {
                     onPress={() => {
                       setServerProblem(null);
                       setAttemptedSave(false);
-                      setForm(guardForm(settings));
+                      setEdits({});
                       setInfo('');
                       setError('');
                     }}
@@ -287,7 +305,7 @@ export function GuardScreen(props: {
                     disabled={busy}
                     label={g.changesOn}
                     on={form.changesOn}
-                    onPress={() => setForm({ ...form, changesOn: !form.changesOn })}
+                    onPress={() => changeRule('changesOn', !form.changesOn)}
                   />
                   {form.changesOn ? (
                     <View style={styles.pair}>
@@ -313,7 +331,7 @@ export function GuardScreen(props: {
                     disabled={busy}
                     label={g.lateOn}
                     on={form.lateOn}
-                    onPress={() => setForm({ ...form, lateOn: !form.lateOn })}
+                    onPress={() => changeRule('lateOn', !form.lateOn)}
                   />
                   {form.lateOn ? (
                     <Field
@@ -328,7 +346,7 @@ export function GuardScreen(props: {
                     disabled={busy}
                     label={g.noShowsOn}
                     on={form.noShowsOn}
-                    onPress={() => setForm({ ...form, noShowsOn: !form.noShowsOn })}
+                    onPress={() => changeRule('noShowsOn', !form.noShowsOn)}
                   />
                   {form.noShowsOn ? (
                     <Field
@@ -350,7 +368,7 @@ export function GuardScreen(props: {
                         role="radio"
                         aria-checked={form.action === action}
                         accessibilityState={{ checked: form.action === action, disabled: busy }}
-                        onPress={() => setForm({ ...form, action })}
+                        onPress={() => changeRule('action', action)}
                         style={[styles.choice, form.action === action && styles.choiceOn]}
                       >
                         <Text style={[styles.text, form.action === action && { color: '#fff' }]}>
@@ -370,7 +388,7 @@ export function GuardScreen(props: {
                       kind="secondary"
                       disabled={busy}
                       label={g.cancel}
-                      onPress={() => setForm(null)}
+                      onPress={() => setEdits(null)}
                     />
                   </View>
                 </Card>
@@ -392,52 +410,68 @@ export function GuardScreen(props: {
         <Card>
           <ClientDetails client={client} currency={marked!.currency} locale={props.locale} t={t} />
           {releaseId === client.customerId ? (
-            <View
-              role="group"
-              accessibilityLabel={fill(g.releaseOne, { name: client.name })}
-              style={{ gap: 8 }}
-            >
-              <Text style={styles.text}>{g.releaseAsk}</Text>
-              <TextInput
-                accessibilityLabel={g.note}
-                editable={!busy}
-                placeholder={g.note}
-                placeholderTextColor={colors.placeholder}
-                defaultValue={note.current}
-                onChangeText={(text) => {
-                  note.current = text;
-                }}
-                style={styles.input}
-              />
-              <View style={styles.row}>
-                <Button
-                  label={g.releaseYes}
-                  busy={busy}
-                  onPress={() => release(client.customerId)}
-                />
-                <Button
-                  kind="secondary"
-                  disabled={busy}
-                  label={g.no}
-                  onPress={() => setReleaseId(null)}
-                />
-              </View>
-            </View>
+            <ReleaseForm
+              draftKey={`${draftKey}.client.${client.customerId}.note`}
+              label={fill(g.releaseOne, { name: client.name })}
+              g={g}
+              busy={busy}
+              onRelease={(note, clearNote) => release(client.customerId, note, clearNote)}
+              onCancel={() => setReleaseId(null)}
+            />
           ) : (
             <Button
               kind="link"
               disabled={busy}
               label={g.release}
               a11yLabel={fill(g.releaseOne, { name: client.name })}
-              onPress={() => {
-                setReleaseId(client.customerId);
-                note.current = '';
-              }}
+              onPress={() => setReleaseId(client.customerId)}
             />
           )}
         </Card>
       )}
     />
+  );
+}
+
+function ReleaseForm(props: {
+  draftKey: string;
+  label: string;
+  g: Dictionary['guard'];
+  busy: boolean;
+  onRelease: (note: string, clearNote: () => void) => void;
+  onCancel: () => void;
+}) {
+  const { g, busy } = props;
+  const [note, setNote] = useFormDraft(props.draftKey, '');
+  return (
+    <View role="group" accessibilityLabel={props.label} style={{ gap: 8 }}>
+      <Text style={styles.text}>{g.releaseAsk}</Text>
+      <TextInput
+        accessibilityLabel={g.note}
+        editable={!busy}
+        placeholder={g.note}
+        placeholderTextColor={colors.placeholder}
+        value={note}
+        onChangeText={setNote}
+        style={styles.input}
+      />
+      <View style={styles.row}>
+        <Button
+          label={g.releaseYes}
+          busy={busy}
+          onPress={() => props.onRelease(note, () => setNote(''))}
+        />
+        <Button
+          kind="secondary"
+          disabled={busy}
+          label={g.no}
+          onPress={() => {
+            setNote('');
+            props.onCancel();
+          }}
+        />
+      </View>
+    </View>
   );
 }
 

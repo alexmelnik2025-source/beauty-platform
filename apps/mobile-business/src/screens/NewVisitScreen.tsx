@@ -1,6 +1,6 @@
 import { useClearFormDraft, useFormDraft } from '../formDrafts';
 import { FieldGroup, FormField } from '../formFields';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
   AppointmentDetail,
@@ -61,47 +61,72 @@ export function NewVisitScreen(props: {
   onBack: () => void;
   onCreated: (visit: AppointmentDetail) => void;
 }) {
-  const { api, t, salon, me, mineId, onBack } = props;
+  const { api, t, salon, me, mineId, onBack, preset } = props;
   const n = t.newVisit;
-  const draftKey = `newVisit.${props.preset ? JSON.stringify(props.preset) : 'manual'}.`;
+  // Rebooking has a customer ID. Waitlist presets only carry the entry's contact fields.
+  const source = preset
+    ? JSON.stringify([
+        preset.customer ? 'rebook' : 'waitlist',
+        preset.serviceId,
+        preset.staffId,
+        preset.date,
+        preset.time,
+        preset.customer?.id ?? [preset.client.name, preset.client.phone, preset.client.email],
+      ])
+    : 'manual';
+  const draftKey = `newVisit.${source}.`;
   const clearDraft = useClearFormDraft(draftKey);
   const [services, setServices] = useState<ServiceList | null>(null);
   const [staff, setStaff] = useState<StaffList>([]);
-  const [serviceId, setServiceId] = useFormDraft(`${draftKey}serviceId`, '');
-  const [staffId, setStaffId] = useFormDraft(`${draftKey}staffId`, '');
-  const firstDay = props.preset?.date ?? props.date;
+  const suggested =
+    preset && services
+      ? presetChoice(preset, services, (id) => staffForService(staff, id, me, mineId))
+      : undefined;
+  const [serviceId, setServiceId] = useFormDraft(
+    `${draftKey}serviceId`,
+    suggested?.serviceId ?? '',
+  );
+  const [staffId, setStaffId] = useFormDraft(`${draftKey}staffId`, suggested?.staffId ?? '');
+  const firstDay = preset?.date ?? props.date;
   const [date, setDate] = useFormDraft(
     `${draftKey}date`,
     firstDay < props.today ? props.today : firstDay,
   );
   const [availability, setAvailability] = useState<Availability | null>(null);
-  const [start, setStart] = useFormDraft(`${draftKey}start`, '');
+  const [timesRevision, setTimesRevision] = useState(0);
+  const times = availability ? freeTimes(availability, staffId, date) : null;
+  const suggestedStart = preset?.time && times?.find((slot) => slot.time === preset.time)?.start;
+  const [start, setStart] = useFormDraft(`${draftKey}start`, suggestedStart ?? '');
   const [walkIn, setWalkIn] = useFormDraft(`${draftKey}walkIn`, false);
   const [walkInDay, setWalkInDay] = useFormDraft(`${draftKey}walkInDay`, props.today);
   const [walkInTime, setWalkInTime] = useFormDraft(`${draftKey}walkInTime`, '');
   const [paid, setPaid] = useFormDraft(`${draftKey}paid`, false);
   /** Task 227: how the walk-in paid (optional). */
   const [paidWith, setPaidWith] = useFormDraft<PaymentMethod | null>(`${draftKey}paidWith`, null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useFormDraft(`${draftKey}search`, '');
   const [found, setFound] = useState<CustomerList | null>(null);
-  const [client, setClient] = useFormDraft<Client>(
-    `${draftKey}client`,
-    props.preset?.customer ?? null,
+  const [clientId, setClientId] = useFormDraft<string | null>(
+    `${draftKey}clientId`,
+    preset?.customer?.id ?? null,
   );
-  // Task 223: the time of the visit booked again, picked once if it is free on the first day.
-  const wantedTime = useRef(start ? undefined : props.preset?.time);
-  const [form, setForm] = useFormDraft(
-    `${draftKey}form`,
-    props.preset?.client ?? { name: '', phone: '', email: '' },
-  );
-  // Applied once, when the services and specialists have loaded.
-  const preset = useRef(serviceId ? undefined : props.preset);
+  const [chosenClient, setChosenClient] = useState<Client>(null);
+  const [clientError, setClientError] = useState('');
+  const client =
+    chosenClient?.id === clientId
+      ? chosenClient
+      : preset?.customer?.id === clientId
+        ? preset.customer
+        : null;
+  const [name, setName] = useFormDraft(`${draftKey}name`, preset?.client.name ?? '');
+  const [phone, setPhone] = useFormDraft(`${draftKey}phone`, preset?.client.phone ?? '');
+  const [email, setEmail] = useFormDraft(`${draftKey}email`, preset?.client.email ?? '');
   const [note, setNote] = useFormDraft(`${draftKey}note`, '');
   const [problem, setProblem] = useState<ClientProblem | 'time' | 'client' | null>(null);
   const [timeError, setTimeError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const searchable = maySearchClients(me);
+  const restoreClientId = searchable && !client ? clientId : null;
   const mayMark =
     me.role !== 'staff' ||
     me.permissions.manageAllAppointments ||
@@ -116,17 +141,8 @@ export function NewVisitScreen(props: {
           api.staff(salon.orgId, salon.locationId),
         ]);
         if (!alive) return;
-        const offered = activeServices(list);
-        setServices(offered);
+        setServices(activeServices(list));
         setStaff(team);
-        if (preset.current) {
-          const choice = presetChoice(preset.current, offered, (id) =>
-            staffForService(team, id, me, mineId),
-          );
-          preset.current = undefined;
-          setServiceId(choice.serviceId);
-          setStaffId(choice.staffId);
-        }
       } catch (e) {
         if (alive) setError(errorText(e, t));
       }
@@ -134,16 +150,16 @@ export function NewVisitScreen(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, t, me, mineId, setServiceId, setStaffId]);
+  }, [api, salon, t]);
 
   // Android "back" closes the form instead of the app.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
+      if (!busy) onBack();
       return true;
     });
     return () => sub.remove();
-  }, [onBack]);
+  }, [onBack, busy]);
 
   const who = serviceId ? staffForService(staff, serviceId, me, mineId) : [];
 
@@ -154,28 +170,32 @@ export function NewVisitScreen(props: {
     setStaffId(options.length === 1 ? options[0]!.id : '');
   };
 
-  const loadTimes = useCallback(async () => {
-    if (!serviceId || !staffId || walkIn) return;
+  useEffect(() => {
     setAvailability(null);
-    try {
-      setAvailability(
-        await api.availability(salon.orgId, salon.locationId, { serviceId, staffId, date }),
-      );
-    } catch (e) {
-      setError(errorText(e, t));
-    }
-  }, [api, salon, serviceId, staffId, date, walkIn, t]);
+    if (!serviceId || !staffId || walkIn) return;
+    let alive = true;
+    void api.availability(salon.orgId, salon.locationId, { serviceId, staffId, date }).then(
+      (result) => alive && setAvailability(result),
+      (e) => alive && setError(errorText(e, t)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [api, salon, serviceId, staffId, date, walkIn, t, timesRevision]);
 
+  // Only the choice is drafted. Read the current name and visible phone when returning to it.
   useEffect(() => {
-    void loadTimes();
-  }, [loadTimes]);
-
-  useEffect(() => {
-    if (!availability || !wantedTime.current) return;
-    const same = freeTimes(availability, staffId, date).find((s) => s.time === wantedTime.current);
-    wantedTime.current = undefined;
-    if (same) setStart(same.start);
-  }, [availability, staffId, date, setStart]);
+    if (!restoreClientId) return;
+    let alive = true;
+    setClientError('');
+    void api.customer(salon.orgId, restoreClientId).then(
+      ({ id, name, phone }) => alive && setChosenClient({ id, name, phone }),
+      (e) => alive && setClientError(errorText(e, t)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [api, salon.orgId, restoreClientId, t]);
 
   // Clients of the salon as the owner or manager types (from 2 characters).
   useEffect(() => {
@@ -205,15 +225,15 @@ export function NewVisitScreen(props: {
       const time = parseTime(walkInTime);
       if (!time) return setProblem('time');
       when = localToInstant(walkInDay, time, props.timeZone);
-    } else if (!when) {
+    } else if (!times?.some((slot) => slot.start === when)) {
       return setProblem('time');
     }
     let customer: { id: string } | { name: string; phone: string; email?: string };
     if (client) {
       customer = { id: client.id };
     } else {
-      if (!form.name.trim() && !form.phone.trim()) return setProblem('client');
-      const checked = checkNewClient(form, dialForTimeZone(props.timeZone));
+      if (!name.trim() && !phone.trim()) return setProblem('client');
+      const checked = checkNewClient({ name, phone, email }, dialForTimeZone(props.timeZone));
       if (!checked.ok) return setProblem(checked.problem);
       customer = checked.customer;
     }
@@ -241,20 +261,19 @@ export function NewVisitScreen(props: {
       } else {
         setTimeError(n.problem[kind]);
       }
-      if (kind === 'taken') void loadTimes();
+      if (kind === 'taken') setTimesRevision((revision) => revision + 1);
     } finally {
       setBusy(false);
     }
   }
 
   const service = services?.find((s) => s.id === serviceId);
-  const specialist = staff.find((s) => s.id === staffId);
-  const times = availability ? freeTimes(availability, staffId, date) : null;
+  const specialist = who.find((s) => s.id === staffId);
 
   return (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={styles.row}>
-        <Button kind="link" label={n.back} onPress={onBack} />
+        <Button kind="link" label={n.back} disabled={busy} onPress={onBack} />
       </View>
       <Heading>{n.title}</Heading>
       {error ? <ErrorText>{error}</ErrorText> : null}
@@ -414,8 +433,17 @@ export function NewVisitScreen(props: {
             <Chosen
               label={client.phone ? `${client.name} · ${client.phone}` : client.name}
               change={n.changeClient}
-              onChange={() => setClient(null)}
+              onChange={() => setClientId(null)}
             />
+          ) : restoreClientId ? (
+            <View>
+              {clientError ? (
+                <ErrorText>{clientError}</ErrorText>
+              ) : (
+                <Text style={styles.muted}>{t.loading}</Text>
+              )}
+              <Button kind="link" label={n.changeClient} onPress={() => setClientId(null)} />
+            </View>
           ) : (
             <>
               {searchable ? (
@@ -437,7 +465,8 @@ export function NewVisitScreen(props: {
                       label={c.name}
                       detail={c.phone ?? c.email ?? undefined}
                       onPress={() => {
-                        setClient({ id: c.id, name: c.name, phone: c.phone });
+                        setChosenClient({ id: c.id, name: c.name, phone: c.phone });
+                        setClientId(c.id);
                         setSearch('');
                       }}
                     />
@@ -452,30 +481,30 @@ export function NewVisitScreen(props: {
                   }
                   accessibilityLabel={n.name}
                   placeholder={n.name}
-                  value={form.name}
+                  value={name}
                   maxLength={100}
-                  onChangeText={(name) => setForm({ ...form, name })}
+                  onChangeText={setName}
                   style={styles.input}
                 />
                 <FormField
                   error={problem === 'phone' ? n.badPhone : undefined}
                   accessibilityLabel={n.phone}
                   placeholder={`${n.phone} (+${dialForTimeZone(props.timeZone)})`}
-                  value={form.phone}
+                  value={phone}
                   inputMode="tel"
                   maxLength={20}
-                  onChangeText={(phone) => setForm({ ...form, phone })}
+                  onChangeText={setPhone}
                   style={styles.input}
                 />
                 <FormField
                   error={problem === 'email' ? n.badEmail : undefined}
                   accessibilityLabel={n.email}
                   placeholder={n.email}
-                  value={form.email}
+                  value={email}
                   inputMode="email"
                   autoCapitalize="none"
                   maxLength={254}
-                  onChangeText={(email) => setForm({ ...form, email })}
+                  onChangeText={setEmail}
                   style={styles.input}
                 />
               </Card>
@@ -491,7 +520,12 @@ export function NewVisitScreen(props: {
             onChangeText={setNote}
             style={[styles.input, { minHeight: 64 }]}
           />
-          <Button label={n.save} busy={busy} onPress={() => void save()} />
+          <Button
+            label={n.save}
+            busy={busy}
+            disabled={!!restoreClientId}
+            onPress={() => void save()}
+          />
         </>
       ) : null}
     </ScrollView>
