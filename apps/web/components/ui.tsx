@@ -15,23 +15,29 @@ export function Wordmark({ href }: { href?: string }) {
 }
 
 /**
- * Links to the same page in the other languages; `query` (e.g. "?embed=1") is kept. The salon
- * dashboard offers only the languages it is fully translated into.
+ * Owner 26.11.2026: on every page the language is one compact "PL ▾" that opens the list of the
+ * other languages (the public pages offer all of them, the salon dashboard only its fully
+ * translated ones); `query` (e.g. "?embed=1") is kept. Ukrainian is "UA".
  */
 export function LanguageSwitch({ query = '' }: { query?: string }) {
   const { locale, t } = useI18n();
   const pathname = usePathname() ?? `/${locale}`;
   const rest = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
   const dashboard = /^\/(app|login|register|verify-email|invite)(\/|$)/.test(rest);
+  const code = (l: string) => (l === 'uk' ? 'UA' : l.toUpperCase());
   return (
-    <nav className="lang" aria-label={t.common.language}>
-      {(dashboard ? DASHBOARD_LOCALES : LOCALES).map((l) => (
-        <a key={l} href={`/${l}${rest}${query}`} aria-current={l === locale} lang={l}>
-          {/* Task Q5: Ukrainian is "UA" everywhere, as on the salon's language badges. */}
-          {l === 'uk' ? 'UA' : l.toUpperCase()}
-        </a>
-      ))}
-    </nav>
+    <details className="lang-menu lang-menu--start">
+      <summary aria-label={`${t.common.language}: ${code(locale)}`}>
+        {code(locale)} <span aria-hidden="true">▾</span>
+      </summary>
+      <nav className="lang-menu__list" aria-label={t.common.language}>
+        {(dashboard ? DASHBOARD_LOCALES : LOCALES).map((l) => (
+          <a key={l} href={`/${l}${rest}${query}`} aria-current={l === locale} lang={l}>
+            {code(l)}
+          </a>
+        ))}
+      </nav>
+    </details>
   );
 }
 
