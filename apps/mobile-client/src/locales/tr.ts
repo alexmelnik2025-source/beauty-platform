@@ -210,6 +210,7 @@ export const tr: Dictionary = {
     photosKeptUntil: 'Fotoğrafları {date} tarihinde sileriz.',
   },
   book: {
+    holdingTime: '{time} saati sizin için ayrılıyor…',
     doneTitleWaiting: 'Rezervasyon gönderildi',
     doneLeadWaiting:
       'Salon randevunuzu onaylayacak — saat sizin için ayrıldı. Salon kabul ettiğinde size e-posta göndereceğiz.',
@@ -457,6 +458,8 @@ export const tr: Dictionary = {
     leave: 'Listeden çık',
   },
   visitProducts: {
+    reserving: 'Ürünler randevunuz için ayrılıyor…',
+    reserveUnconfirmed: 'Rezervasyonu doğrulanamayan ürün sayısı: {n}.',
     title: 'Teslim alınacak ürünler',
     statusReserved: 'Salonda bekliyor — ziyarette ödeyin',
     statusHanded: 'Teslim alındı',

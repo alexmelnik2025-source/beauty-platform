@@ -204,6 +204,7 @@ export const en: Dictionary = {
     photosKeptUntil: 'We delete the photos on {date}.',
   },
   book: {
+    holdingTime: 'Reserving {time}…',
     doneTitleWaiting: 'Booking sent',
     doneLeadWaiting:
       'The salon will confirm your visit — the time is already held for you. We will email you when the salon accepts it.',
@@ -449,6 +450,8 @@ export const en: Dictionary = {
     leave: 'Leave the list',
   },
   visitProducts: {
+    reserving: 'Reserving products for your visit…',
+    reserveUnconfirmed: 'Products we couldn’t confirm for pickup: {n}.',
     title: 'Products to pick up',
     statusReserved: 'Waiting at the salon — pay at your visit',
     statusHanded: 'Picked up',
