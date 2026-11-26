@@ -9,7 +9,7 @@ import { Button, colors, ErrorText } from '../ui';
 import { printedCode, visitVoucherAmount, visitVoucherLeft, voucherErrorText } from '../vouchers';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
-import { PendingVisitWrites } from './VisitCouponsSection';
+import { PendingVisitWrites, VisitReadError } from './VisitCouponsSection';
 
 const voucherCache = new SalonReadCache<VisitVoucherPayments>();
 const pendingVoucherWrites = new PendingVisitWrites();
@@ -54,7 +54,8 @@ function VoucherPayments(props: Props) {
 
   const { orgId, locationId } = salon;
   const scope = useRef<AbortController | null>(null);
-  const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
+  const [readAttempt, setReadAttempt] = useState(0);
+  const [loadFailure, setLoadFailure] = useState<{ cause: unknown; attempt: number } | null>(null);
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
@@ -69,10 +70,10 @@ function VoucherPayments(props: Props) {
         setPayments(data);
         setLoadFailure(null);
       } catch (cause) {
-        if (!signal.aborted) setLoadFailure({ cause });
+        if (!signal.aborted) setLoadFailure({ cause, attempt: readAttempt });
       }
     },
-    [api, salon, orgId, locationId, appointmentId],
+    [api, salon, orgId, locationId, appointmentId, readAttempt],
   );
 
   useEffect(() => {
@@ -146,8 +147,26 @@ function VoucherPayments(props: Props) {
     }
   };
 
-  const message = loadFailure && voucherErrorText(loadFailure.cause, t);
-  if (!payments) return message ? <ErrorText>{message}</ErrorText> : null;
+  const confirmation = info ? (
+    <Text role="status" style={styles.info}>
+      {info}
+    </Text>
+  ) : null;
+  if (loadFailure) {
+    return (
+      <View style={{ gap: 6 }} testID="visit-vouchers">
+        {confirmation}
+        <VisitReadError
+          title={v.title}
+          message={voucherErrorText(loadFailure.cause, t)}
+          refresh={t.day.refresh}
+          retrying={busy || loadFailure.attempt !== readAttempt}
+          onRetry={() => setReadAttempt(readAttempt + 1)}
+        />
+      </View>
+    );
+  }
+  if (!payments) return null;
   const left = visitVoucherLeft(props.toPayGrosze, payments.totalGrosze);
 
   return (
@@ -159,11 +178,7 @@ function VoucherPayments(props: Props) {
         currency={salon.currency}
         locale={props.locale}
       />
-      {info ? (
-        <Text role="status" style={styles.info}>
-          {info}
-        </Text>
-      ) : null}
+      {confirmation}
       {open ? (
         <View style={{ gap: 8 }}>
           {!payments.payments.length ? <Text style={styles.muted}>{v.noUses}</Text> : null}
@@ -243,7 +258,6 @@ function VoucherPayments(props: Props) {
           }}
         />
       )}
-      {message ? <ErrorText>{message}</ErrorText> : null}
     </View>
   );
 }

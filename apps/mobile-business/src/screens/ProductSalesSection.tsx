@@ -15,7 +15,7 @@ import { fill, type Dictionary } from '../i18n';
 import { Button, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
-import { PendingVisitWrites } from './VisitCouponsSection';
+import { PendingVisitWrites, VisitReadError } from './VisitCouponsSection';
 
 const catalogueCache = new SalonReadCache<ProductList['products']>();
 const salesCache = new SalonReadCache<VisitProductSales>();
@@ -53,6 +53,8 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   const [codeError, setCodeError] = useState('');
   const [products, setProducts] = useState<ProductList['products']>([]);
   const [sales, setSales] = useState<VisitProductSales | null>(null);
+  const [readAttempt, setReadAttempt] = useState(0);
+  const [readFailure, setReadFailure] = useState<{ cause: unknown; attempt: number } | null>(null);
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -76,14 +78,15 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
       if (!active) return;
       setProducts(list);
       setSales(sold);
+      setReadFailure(null);
     }
-    void load().catch((e) => {
-      if (active) setError(errorText(e, t));
+    void load().catch((cause: unknown) => {
+      if (active) setReadFailure({ cause, attempt: readAttempt });
     });
     return () => {
       active = false;
     };
-  }, [api, salon, appointmentId, canChange, t]);
+  }, [api, salon, appointmentId, canChange, readAttempt]);
 
   const run = async (
     action: () => Promise<VisitProductSales>,
@@ -119,8 +122,8 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
         const list = await readCatalogue(api, salon);
         if (!signal.aborted) setProducts(list);
       }
-    } catch (e) {
-      if (!signal.aborted) setError(errorText(e, t));
+    } catch (cause) {
+      if (!signal.aborted) setReadFailure({ cause, attempt: readAttempt });
     } finally {
       submitting.current = false;
       if (!signal.aborted) setBusy(false);
@@ -129,7 +132,20 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
 
   const withCodes = products.some((x) => x.barcode !== null);
 
-  if (!sales) return error ? <ErrorText>{error}</ErrorText> : null;
+  if (readFailure) {
+    return (
+      <View style={{ gap: 6 }} testID="visit-products">
+        <VisitReadError
+          title={p.sold}
+          message={errorText(readFailure.cause, t)}
+          refresh={t.day.refresh}
+          retrying={readFailure.attempt !== readAttempt}
+          onRetry={() => setReadAttempt(readAttempt + 1)}
+        />
+      </View>
+    );
+  }
+  if (!sales) return null;
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
