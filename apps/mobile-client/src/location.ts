@@ -15,21 +15,27 @@ type Geolocation = {
 
 export function locate(geolocation?: Geolocation, timeoutMs = 10_000): Promise<Place | null> {
   return new Promise((resolve) => {
+    // The provider's timeout starts after the user has answered the permission prompt.
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    const finish = (place: Place | null) => {
+      clearTimeout(timer);
+      resolve(place);
+    };
     try {
       const provider =
         geolocation ??
         (globalThis as { navigator?: { geolocation?: Geolocation } }).navigator?.geolocation;
       if (!provider) {
-        resolve(null);
+        finish(null);
         return;
       }
       provider.getCurrentPosition(
-        ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
-        () => resolve(null),
+        ({ coords }) => finish({ latitude: coords.latitude, longitude: coords.longitude }),
+        () => finish(null),
         { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 5 * 60_000 },
       );
     } catch {
-      resolve(null);
+      finish(null);
     }
   });
 }

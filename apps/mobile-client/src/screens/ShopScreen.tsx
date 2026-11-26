@@ -307,13 +307,14 @@ function ProductView(props: {
   onBookWith: (salon: { slug: string; name: string }, productId: string) => void;
 }) {
   const { product: p, api, t, locale } = props;
-  const [visits, setVisits] = useState<ClientAppointment[]>([]);
+  const [visits, setVisits] = useState<ClientAppointment[] | null>(null);
   const [visitsError, setVisitsError] = useState('');
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!props.signedIn) return;
     let live = true;
+    setVisits(null);
     setVisitsError('');
     props.visitReads
       .read(api, 'upcoming', () => api.appointments('upcoming'))
@@ -344,6 +345,9 @@ function ProductView(props: {
         {t.shop.where}
       </Text>
       <Text style={styles.small}>{t.shop.pickup}</Text>
+      {props.signedIn && visits === null && !visitsError ? (
+        <ActivityIndicator accessibilityLabel={t.visits.upcoming} color={colors.ink} />
+      ) : null}
       {visitsError ? (
         <View>
           <ErrorText>{visitsError}</ErrorText>
@@ -355,7 +359,8 @@ function ProductView(props: {
           key={o.productId}
           offer={o}
           productName={p.name}
-          visit={o.available ? nextVisitAt(visits, o.salon.slug) : null}
+          visitsKnown={!props.signedIn || visits !== null}
+          visit={props.signedIn && o.available && visits ? nextVisitAt(visits, o.salon.slug) : null}
           api={api}
           locale={locale}
           t={t}
@@ -370,6 +375,7 @@ function ProductView(props: {
 const OfferRow = memo(function OfferRow({
   offer: o,
   productName,
+  visitsKnown,
   visit,
   api,
   locale,
@@ -379,6 +385,7 @@ const OfferRow = memo(function OfferRow({
 }: {
   offer: ShopOffer;
   productName: string;
+  visitsKnown: boolean;
   visit: ClientAppointment | null;
   api: ClientApi;
   locale: Locale;
@@ -418,7 +425,7 @@ const OfferRow = memo(function OfferRow({
             }}
           />
         </View>
-      ) : o.available ? (
+      ) : o.available && visitsKnown ? (
         <View style={{ marginTop: 8 }}>
           <Button
             kind="secondary"
