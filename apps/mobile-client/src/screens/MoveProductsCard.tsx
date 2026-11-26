@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale, VisitProducts } from '../api';
 import type { BookingPreset } from '../booking';
 import { errorText } from '../errors';
@@ -26,8 +26,8 @@ export function MoveProductsCard(props: {
   visitId: string;
   serviceId: string;
   staffId: string | null;
-  /** Told when the card appears, so the screen keeps one main button. */
-  onShown?: (shown: boolean) => void;
+  /** Offer ordinary rebooking only after the list confirms there is nothing to transfer. */
+  emptyAction: ReactNode;
   onBook: (preset: BookingPreset) => void;
 }) {
   const { api, t, locale, visitId } = props;
@@ -67,11 +67,6 @@ export function MoveProductsCard(props: {
   }, [api, visitId, attempt]);
 
   const waiting = data?.reservations.filter(canMove) ?? [];
-  const shown = !!data && waiting.length > 0;
-  const { onShown } = props;
-  useEffect(() => {
-    onShown?.(shown);
-  }, [onShown, shown]);
   const feedback = failure ? (
     <View>
       <ErrorText>{errorText(failure.cause, t)}</ErrorText>
@@ -85,14 +80,25 @@ export function MoveProductsCard(props: {
       />
     </View>
   ) : null;
-  if (!data) return feedback;
-  if (!shown) {
+  if (!data)
+    return (
+      feedback ?? (
+        <ActivityIndicator
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={s.title}
+          color={colors.ink}
+        />
+      )
+    );
+  if (!waiting.length) {
     return (
       <>
         {feedback}
         <Text role="status" aria-live="polite" style={styles.muted}>
           {`${s.title}: 0`}
         </Text>
+        {props.emptyAction}
       </>
     );
   }

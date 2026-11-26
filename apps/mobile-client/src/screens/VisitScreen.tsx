@@ -1,4 +1,5 @@
 import { FormFeedback } from '../FormFeedback';
+import { withNetworkTimeout } from '../withNetworkTimeout';
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
@@ -66,13 +67,15 @@ export function VisitScreen(props: {
   const visitId = visit.id;
   const [wishFailure, setWishFailure] = useState<FormFailure | null>(null);
   const [invalidWish, setInvalidWish] = useState<WishField>();
-  const [wishDraft, setWishDraft] = useState<VisitWishes>(props.visit.wishes);
+  // Keep only fields edited on this screen. Untouched wishes follow the refreshed appointment.
+  const [wishEdits, setWishEdits] = useState<Partial<VisitWishes>>({});
+  const wishDraft = { ...visit.wishes, ...wishEdits };
+  const openingCalendar = useRef(false);
+  const [calendarBusy, setCalendarBusy] = useState(false);
   const [asking, setAsking] = useState(false);
   const changingVisit = useRef(false);
   const [changeFailed, setChangeFailed] = useState(false);
   const [busy, setBusy] = useState(false);
-  /** Task Q3: the cancelled visit's products card is shown — it carries the main button. */
-  const [productsToMove, setProductsToMove] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
   /** "Change time": the specialist's free times (null while loading), the day and the time picked. */
@@ -88,7 +91,9 @@ export function VisitScreen(props: {
   const keyRef = useRef<string | null>(null);
   const moveKeyRef = useRef<{ start: string; key: string } | null>(null);
   /** My coupons for this visit (task 10d): loaded while the visit can still be changed. */
-  const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
+  const [couponList, setCouponList] = useState<{ data?: VisitCoupons; error?: unknown }>({});
+  const [couponAttempt, setCouponAttempt] = useState(0);
+  const coupons = couponList.data;
 
   function visitError(e: unknown) {
     if (!api.signedIn) return onSessionEnded();
@@ -127,6 +132,9 @@ export function VisitScreen(props: {
 
   /** Task 22: the phone opens the visit's .ics file and offers to add it to its calendar. */
   async function addToCalendar() {
+    if (openingCalendar.current) return;
+    openingCalendar.current = true;
+    setCalendarBusy(true);
     setError('');
     try {
       const { url } = await api.calendarLink(visit.id);
@@ -134,6 +142,9 @@ export function VisitScreen(props: {
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
       setError(errorText(e, t));
+    } finally {
+      openingCalendar.current = false;
+      setCalendarBusy(false);
     }
   }
 
@@ -238,19 +249,23 @@ export function VisitScreen(props: {
   useEffect(() => {
     if (!couponsOpen) return;
     let live = true;
-    api
-      .visitCoupons(visitId)
-      .then((data) => {
-        if (live) setCoupons(data);
-      })
-      // Without the list the visit still works; coupons are simply not offered.
-      .catch(() => undefined);
+    setCouponList({});
+    withNetworkTimeout(api.visitCoupons(visitId)).then(
+      (data) => {
+        if (live) setCouponList({ data });
+      },
+      (error: unknown) => {
+        if (live) setCouponList({ error });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [api, visitId, couponsOpen, visit.discountGrosze]);
+  }, [api, visitId, couponsOpen, visit.discountGrosze, couponAttempt]);
 
   async function changeCoupon(action: () => Promise<ClientAppointment>) {
+    if (changingVisit.current || busy) return;
+    changingVisit.current = true;
     setBusy(true);
     setError('');
     setDone('');
@@ -262,6 +277,7 @@ export function VisitScreen(props: {
       setError(errorText(e, t));
       await refresh();
     } finally {
+      changingVisit.current = false;
       setBusy(false);
     }
   }
@@ -292,7 +308,8 @@ export function VisitScreen(props: {
 
   /** Task 80: change the wishes until the visit starts. */
   async function saveWishes(wishes: VisitWishes) {
-    if (busy || !asksWishes(visit.wishQuestions)) return;
+    if (changingVisit.current || busy || !asksWishes(visit.wishQuestions)) return;
+    changingVisit.current = true;
     setWishFailure(null);
     setInvalidWish(undefined);
     setBusy(true);
@@ -301,7 +318,7 @@ export function VisitScreen(props: {
     try {
       const saved = await api.updateWishes(visit.id, wishesToSend(wishes, visit.wishQuestions));
       setVisit(saved);
-      setWishDraft(saved.wishes);
+      setWishEdits({});
       setDone(t.wishStep.saved);
     } catch (e) {
       if (!api.signedIn) return onSessionEnded();
@@ -309,6 +326,7 @@ export function VisitScreen(props: {
       if (field) setInvalidWish(field);
       else setWishFailure(formFailure(e, t, () => void saveWishes(wishes)));
     } finally {
+      changingVisit.current = false;
       setBusy(false);
     }
   }
@@ -334,6 +352,21 @@ export function VisitScreen(props: {
     (details?.status === 'confirmed' &&
       !details.awaitingApproval &&
       Date.parse(details.end) <= Date.now());
+
+  const rebook = again ? (
+    <>
+      <Button
+        label={v.bookAgain}
+        onPress={() =>
+          props.onBook(again.slug, visit.salon.name, {
+            serviceId: again.serviceId,
+            staffId: again.staffId,
+          })
+        }
+      />
+      <Text style={styles.small}>{v.bookAgainHint}</Text>
+    </>
+  ) : null;
 
   return (
     <ScrollView contentContainerStyle={styles.screen}>
@@ -550,7 +583,12 @@ export function VisitScreen(props: {
             invalid={invalidWish}
             onChange={(wishes) => {
               if (busy) return;
-              setWishDraft(wishes);
+              const changes = Object.fromEntries(
+                wishFields
+                  .filter((field) => wishes[field] !== wishDraft[field])
+                  .map((field) => [field, wishes[field]]),
+              );
+              setWishEdits((current) => ({ ...current, ...changes }));
               setInvalidWish(undefined);
               setWishFailure(null);
             }}
@@ -567,12 +605,22 @@ export function VisitScreen(props: {
 
       <VisitPhotos t={t} api={api} locale={locale} visit={visit} />
 
-      {couponsOpen && coupons && (coupons.applied.length > 0 || coupons.available.length > 0) ? (
+      {couponsOpen &&
+      ('error' in couponList || coupons?.applied.length || coupons?.available.length) ? (
         <View role="region" aria-label={v.coupons} style={styles.move}>
           <Text role="heading" aria-level={2} style={styles.moveTitle}>
             {v.coupons}
           </Text>
-          {coupons.applied.map((c) => (
+          {'error' in couponList ? (
+            <FormFeedback
+              failure={{
+                message: errorText(couponList.error, t),
+                retry: () => setCouponAttempt((n) => n + 1),
+              }}
+              retryLabel={t.retry}
+            />
+          ) : null}
+          {coupons?.applied.map((c) => (
             <View key={c.id} style={styles.couponRow}>
               <Text style={styles.couponName}>✓ {c.name}</Text>
               <Button
@@ -583,8 +631,8 @@ export function VisitScreen(props: {
               />
             </View>
           ))}
-          {coupons.available.length > 0 ? <Text style={styles.muted}>{v.couponsHint}</Text> : null}
-          {coupons.available.map((c) => (
+          {coupons?.available.length ? <Text style={styles.muted}>{v.couponsHint}</Text> : null}
+          {coupons?.available.map((c) => (
             <View key={c.id} style={styles.couponRow}>
               <Text style={styles.couponName}>
                 {c.name}
@@ -647,7 +695,7 @@ export function VisitScreen(props: {
           visitId={visit.id}
           serviceId={again.serviceId}
           staffId={again.staffId}
-          onShown={setProductsToMove}
+          emptyAction={rebook}
           onBook={(preset) => props.onBook(again.slug, visit.salon.name, preset)}
         />
       ) : null}
@@ -656,6 +704,7 @@ export function VisitScreen(props: {
         <Button
           kind="secondary"
           label={v.addToCalendar}
+          busy={calendarBusy}
           disabled={busy}
           onPress={() => void addToCalendar()}
         />
@@ -682,21 +731,7 @@ export function VisitScreen(props: {
           onPress={() => void Linking.openURL(directionsUrl(visit.salon, Platform.OS))}
         />
       ) : null}
-      {/* One main button: "Wybierz nowy termin" above already books the same again. */}
-      {again && !productsToMove ? (
-        <>
-          <Button
-            label={v.bookAgain}
-            onPress={() =>
-              props.onBook(again.slug, visit.salon.name, {
-                serviceId: again.serviceId,
-                staffId: again.staffId,
-              })
-            }
-          />
-          <Text style={styles.small}>{v.bookAgainHint}</Text>
-        </>
-      ) : null}
+      {visit.status !== 'cancelled' ? rebook : null}
     </ScrollView>
   );
 }
