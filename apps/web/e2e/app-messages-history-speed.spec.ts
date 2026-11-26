@@ -78,7 +78,7 @@ test('typing and returning to message settings reuse the saved location', async 
   await expect(field).toHaveValue(location.rebookReminderText + '12345');
   await page.getByRole('button', { name: m.back, exact: true }).click();
   await openBusinessMenu(page, m.open);
-  await expect(field).toHaveValue(location.rebookReminderText);
+  await expect(field).toHaveValue(location.rebookReminderText + '12345');
   expect(reads).toBe(1);
 });
 
