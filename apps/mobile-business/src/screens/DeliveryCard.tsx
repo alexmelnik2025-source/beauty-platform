@@ -1,12 +1,25 @@
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Product, StockDelivery } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { orderQuantity, parseDelivery } from '../stock';
 import { Button, Card, colors, ErrorText, Pressable } from '../ui';
 import { invalidateSaleStock } from './ProductSalesSection';
 import type { SalonChoice } from './SalonsScreen';
+
+const EMPTY_DELIVERY: { supplier: string; pieces: Record<string, string> } = {
+  supplier: '',
+  pieces: {},
+};
+
+// Reopening a delivery while it is being received must not book the same pieces twice.
+type PendingDelivery = {
+  done: Promise<string>;
+  onSaved: (result: StockDelivery) => void;
+};
+const pendingDeliveries = new WeakMap<SalonChoice, PendingDelivery>();
 
 /**
  * Task 477: "Przyjmij dostawę" in the business app, as in the cabinet (476) — the whole order from
@@ -22,29 +35,39 @@ export function DeliveryCard(props: {
   sold30: ReadonlyMap<string, number>;
   onSaved: (result: StockDelivery) => void;
 }) {
-  const { api, t, salon } = props;
+  const { api, t, salon, onSaved } = props;
   const p = t.products;
   const active = props.products.filter((x) => x.active);
-  const [pieces, setPieces] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      active.map((x) => [
-        x.id,
-        x.lowStock || x.stockQuantity === 0
-          ? String(orderQuantity(x, props.sold30.get(x.id) ?? 0))
-          : '',
-      ]),
-    ),
+  const [draft, setDraft] = useFormDraft(
+    `delivery.${salon.orgId}.${salon.locationId}`,
+    EMPTY_DELIVERY,
   );
-  /** "" = all suppliers. */
-  const [supplier, setSupplier] = useState('');
-  const submitting = useRef(false);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(() => pendingDeliveries.get(salon));
+  const busy = Boolean(pending);
   const [error, setError] = useState('');
 
-  const changeQuantity = useCallback((id: string, value: string) => {
-    setPieces((current) => ({ ...current, [id]: value }));
-    setError('');
-  }, []);
+  useEffect(() => {
+    if (!pending) return;
+    let open = true;
+    pending.onSaved = onSaved;
+    void pending.done.then((message) => {
+      if (open) {
+        setPending(undefined);
+        setError(message);
+      }
+    });
+    return () => {
+      open = false;
+    };
+  }, [pending, onSaved]);
+
+  const changeQuantity = useCallback(
+    (id: string, value: string) => {
+      setDraft((current) => ({ ...current, pieces: { ...current.pieces, [id]: value } }));
+      setError('');
+    },
+    [setDraft],
+  );
 
   const suppliers = [
     ...new Map(
@@ -53,10 +76,19 @@ export function DeliveryCard(props: {
         .map((x) => [x.supplier!.toLocaleLowerCase(), x.supplier!]),
     ).values(),
   ].sort((a, b) => a.localeCompare(b));
+  const supplier =
+    suppliers.find((name) => name.toLocaleLowerCase() === draft.supplier.toLocaleLowerCase()) ?? '';
   const shown = active.filter(
     (x) => supplier === '' || x.supplier?.toLocaleLowerCase() === supplier.toLocaleLowerCase(),
   );
-  const parsed = shown.map((x) => ({ product: x, n: parseDelivery(pieces[x.id] ?? '') }));
+  const parsed = shown.map((product) => {
+    const value =
+      draft.pieces[product.id] ??
+      (product.lowStock || product.stockQuantity === 0
+        ? String(orderQuantity(product, props.sold30.get(product.id) ?? 0))
+        : '');
+    return { product, value, n: parseDelivery(value) };
+  });
   const wrong = parsed.some((r) => r.n === undefined);
   const items = parsed.flatMap(({ product, n }) =>
     typeof n === 'number' ? [{ productId: product.id, quantity: n }] : [],
@@ -64,21 +96,24 @@ export function DeliveryCard(props: {
   const failedItem = error && items.length === 1 ? items[0]?.productId : undefined;
   const total = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const save = async () => {
-    if (submitting.current || wrong || !items.length) return;
-    submitting.current = true;
-    setBusy(true);
+  const save = () => {
+    if (pendingDeliveries.has(salon) || wrong || !items.length) return;
     setError('');
-    try {
-      const result = await api.delivery(salon.orgId, salon.locationId, items);
-      invalidateSaleStock(salon, false);
-      props.onSaved(result);
-    } catch (e) {
-      setError(errorText(e, t));
-    } finally {
-      submitting.current = false;
-      setBusy(false);
-    }
+    const delivery: PendingDelivery = {
+      onSaved,
+      done: api
+        .delivery(salon.orgId, salon.locationId, items)
+        .then((result) => {
+          setDraft(EMPTY_DELIVERY);
+          invalidateSaleStock(salon, false);
+          delivery.onSaved(result);
+          return '';
+        })
+        .catch((e: unknown) => errorText(e, t))
+        .finally(() => pendingDeliveries.delete(salon)),
+    };
+    pendingDeliveries.set(salon, delivery);
+    setPending(delivery);
   };
 
   return (
@@ -104,7 +139,7 @@ export function DeliveryCard(props: {
                 aria-pressed={supplier === name}
                 style={[styles.filter, supplier === name && styles.activeFilter]}
                 onPress={() => {
-                  setSupplier(name);
+                  setDraft((current) => ({ ...current, supplier: name }));
                   setError('');
                 }}
               >
@@ -115,13 +150,13 @@ export function DeliveryCard(props: {
             ))}
           </View>
         ) : null}
-        {parsed.map(({ product: x, n }) => (
+        {parsed.map(({ product: x, value, n }) => (
           <DeliveryRow
             key={x.id}
             product={x}
             p={p}
             busy={busy}
-            value={pieces[x.id] ?? ''}
+            value={value}
             fieldError={n === undefined ? p.deliveryInvalid : failedItem === x.id ? error : ''}
             hasSaveError={Boolean(error) && n !== null}
             onChange={changeQuantity}
@@ -137,8 +172,19 @@ export function DeliveryCard(props: {
             label={fill(p.deliverySave, { n: String(total) })}
             busy={busy}
             disabled={wrong || items.length === 0}
-            onPress={() => void save()}
+            onPress={save}
           />
+          {draft !== EMPTY_DELIVERY ? (
+            <Button
+              kind="secondary"
+              label={p.cancel}
+              disabled={busy}
+              onPress={() => {
+                setDraft(EMPTY_DELIVERY);
+                setError('');
+              }}
+            />
+          ) : null}
         </View>
       </Card>
     </View>

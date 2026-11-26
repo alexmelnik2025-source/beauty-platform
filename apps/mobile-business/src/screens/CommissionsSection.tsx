@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { BusinessApi, Locale, SalonReport, StaffCommissions } from '../api';
 import { parsePercent, percentInput, percentText } from '../commissions';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { Button, Card, colors, ErrorText } from '../ui';
 import { SalonReadCache, useScreenLifetime } from './HistoryScreen';
@@ -30,7 +31,10 @@ export function CommissionsSection(props: {
   const canSet = report.scope === 'location';
   const rows = report.staff.filter((s) => s.commissionPercent !== null);
   const [list, setList] = useState<StaffCommissions['staff'] | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useFormDraft<Record<string, string>>(
+    `commissions.${salon.orgId}.${salon.locationId}`,
+    {},
+  );
   const lifetime = useScreenLifetime(salon);
   const pending = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -44,13 +48,15 @@ export function CommissionsSection(props: {
   const tipsOf = (id: string) => report.tips.staff.find((s) => s.id === id)?.tipsGrosze ?? 0;
   const payout = rows.reduce((sum, row) => sum + (row.commissionGrosze ?? 0) + tipsOf(row.id), 0);
 
-  const show = (next: StaffCommissions) => {
-    setList(next.staff);
-    setDrafts(
-      Object.fromEntries(
-        next.staff.map((s) => [s.staffId, percentInput(s.commissionPercent, locale)]),
-      ),
-    );
+  const clearStaffDraft = (staffId: string) => {
+    if (drafts[staffId] === undefined) return;
+    setDrafts((current) => {
+      // A save can finish after the editor was reopened with another value.
+      if (current[staffId] !== drafts[staffId]) return current;
+      const remaining = { ...current };
+      delete remaining[staffId];
+      return remaining;
+    });
   };
 
   const open = async () => {
@@ -68,7 +74,7 @@ export function CommissionsSection(props: {
       const next = await readSalonCard(commissionsCache, salon, signal, () =>
         api.commissions(salon.orgId, salon.locationId),
       );
-      if (!signal.aborted) show(next);
+      if (!signal.aborted) setList(next.staff);
     } catch (e) {
       if (!signal.aborted) setError(errorText(e, t));
     } finally {
@@ -77,9 +83,9 @@ export function CommissionsSection(props: {
     }
   };
 
-  const save = async (staffId: string) => {
+  const save = async ({ staffId, commissionPercent }: StaffCommissions['staff'][number]) => {
     if (pending.current) return;
-    const percent = parsePercent(drafts[staffId] ?? '');
+    const percent = parsePercent(drafts[staffId] ?? percentInput(commissionPercent, locale));
     if (percent === undefined) {
       setError(r.commissionInvalid);
       return;
@@ -91,18 +97,13 @@ export function CommissionsSection(props: {
     setError('');
     try {
       const updated = await api.setCommission(salon.orgId, salon.locationId, staffId, percent);
+      clearStaffDraft(staffId);
       if (signal.aborted) {
         commissionsCache.clear(salon);
         return;
       }
       commissionsCache.set(salon, updated);
       setList(updated.staff);
-      const row = updated.staff.find((s) => s.staffId === staffId);
-      if (row)
-        setDrafts((previous) => ({
-          ...previous,
-          [staffId]: percentInput(row.commissionPercent, locale),
-        }));
       setSaved(staffId);
       props.onSaved();
     } catch (e) {
@@ -178,10 +179,10 @@ export function CommissionsSection(props: {
                     placeholderTextColor={colors.placeholder}
                     keyboardType="decimal-pad"
                     editable={busy !== s.staffId}
-                    value={drafts[s.staffId] ?? ''}
+                    value={drafts[s.staffId] ?? percentInput(s.commissionPercent, locale)}
                     onChangeText={(text) => {
                       setSaved('');
-                      setDrafts({ ...drafts, [s.staffId]: text });
+                      setDrafts((current) => ({ ...current, [s.staffId]: text }));
                     }}
                     maxLength={5}
                     style={styles.input}
@@ -193,8 +194,20 @@ export function CommissionsSection(props: {
                   a11yLabel={fill(r.commissionSaveFor, { name: s.displayName })}
                   busy={busy === s.staffId}
                   disabled={busy !== '' && busy !== s.staffId}
-                  onPress={() => void save(s.staffId)}
+                  onPress={() => void save(s)}
                 />
+                {drafts[s.staffId] !== undefined ? (
+                  <Button
+                    kind="secondary"
+                    label={t.team.cancel}
+                    a11yLabel={`${t.team.cancel} — ${s.displayName}`}
+                    disabled={busy === s.staffId}
+                    onPress={() => {
+                      clearStaffDraft(s.staffId);
+                      setError('');
+                    }}
+                  />
+                ) : null}
               </View>
               {saved === s.staffId ? (
                 <Text role="status" style={styles.small}>
