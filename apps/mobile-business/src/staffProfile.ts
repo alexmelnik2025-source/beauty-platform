@@ -1,4 +1,5 @@
 import type { ServiceList, StaffList } from './api';
+import { sameSelection } from './profile';
 
 /**
  * Tasks 326–327: a specialist's profile in "Grafik zespołu" — the name clients see, a short
@@ -63,9 +64,6 @@ export function toggleSpecialty(list: Specialty[], code: Specialty): Specialty[]
 const sameList = <T>(a: readonly T[], b: readonly T[]) =>
   a.length === b.length && a.every((v, i) => v === b[i]);
 
-const sameSet = (a: readonly string[], b: readonly string[]) =>
-  a.length === b.length && a.every((v) => b.includes(v));
-
 export type ProfileProblem = 'noName';
 
 /**
@@ -88,7 +86,9 @@ export function profileChanges(
   if (form.active !== staff.active) change.active = form.active;
   return {
     change: Object.keys(change).length > 0 ? change : null,
-    serviceIds: sameSet(form.serviceIds, staff.serviceIds) ? null : form.serviceIds,
+    serviceIds: sameSelection(form.serviceIds, staff.serviceIds)
+      ? null
+      : [...new Set(form.serviceIds)],
   };
 }
 

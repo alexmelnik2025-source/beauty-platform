@@ -48,6 +48,7 @@ export function HappyHoursScreen(props: {
   const [serviceNames, setServiceNames] = useState(new Map<string, string>());
   const [staffOrder, setStaffOrder] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [info, setInfo] = useState('');
   const [choosing, setChoosing] = useState(false);
   const [problem, setProblem] = useState<
@@ -58,6 +59,7 @@ export function HappyHoursScreen(props: {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    setLoadError('');
     try {
       const [hours, staff, services] = await Promise.all([
         api.happyHours(salon.orgId, salon.locationId),
@@ -73,9 +75,8 @@ export function HappyHoursScreen(props: {
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((s) => ({ id: s.id, name: s.displayName })),
       );
-      setError('');
     } catch (e) {
-      setError(errorText(e, t));
+      setLoadError(errorText(e, t));
     }
   }, [api, salon, t]);
 
@@ -146,6 +147,12 @@ export function HappyHoursScreen(props: {
         </Text>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {loadError ? (
+        <>
+          <ErrorText>{loadError}</ErrorText>
+          {rules === null ? <Button kind="secondary" label={t.day.refresh} onPress={load} /> : null}
+        </>
+      ) : null}
 
       {form ? (
         <Card>
@@ -237,7 +244,7 @@ export function HappyHoursScreen(props: {
           ) : null}
           <Text style={styles.muted}>{h.onlyNew}</Text>
           <View style={styles.row}>
-            <Button label={h.save} busy={busy} onPress={add} />
+            <Button label={h.save} busy={busy} disabled={rules === null} onPress={add} />
             <Button
               kind="secondary"
               label={h.cancel}
@@ -267,7 +274,7 @@ export function HappyHoursScreen(props: {
       ) : null}
 
       {rules === null ? (
-        !error ? (
+        !loadError ? (
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : rules.length === 0 ? (

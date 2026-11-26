@@ -210,6 +210,7 @@ export const sq: Dictionary = {
     photosKeptUntil: 'Fotot do t’i fshijmë më {date}.',
   },
   book: {
+    holdingTime: 'Po rezervojmë orën {time}…',
     doneTitleWaiting: 'Rezervimi u dërgua',
     doneLeadWaiting:
       "Salloni do ta konfirmojë vizitën — ora është mbajtur tashmë për ju. Do t'ju shkruajmë me email kur salloni ta pranojë.",
@@ -457,6 +458,8 @@ export const sq: Dictionary = {
     leave: 'Dil nga lista',
   },
   visitProducts: {
+    reserving: 'Po lëmë mënjanë produktet për vizitën tuaj…',
+    reserveUnconfirmed: 'Numri i produkteve me rezervim të pakonfirmuar: {n}.',
     title: 'Produkte për t’u marrë',
     statusReserved: 'Pret në sallon — paguani gjatë vizitës',
     statusHanded: 'U mor',

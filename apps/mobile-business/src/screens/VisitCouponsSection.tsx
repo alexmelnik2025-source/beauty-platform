@@ -36,6 +36,8 @@ function VisitCouponsCard(props: Props) {
   const { api, t, salon, visit } = props;
   const c = t.visit.coupons;
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
+  const [readAttempt, setReadAttempt] = useState(0);
+  const [readFailure, setReadFailure] = useState<{ cause: unknown; attempt: number } | null>(null);
   const draftKey = `visitCoupons.${visit.id}.code`;
   // The field handles typing locally. A successful list or code action clears the matching input.
   const [, setCode] = useFormDraft(draftKey, '');
@@ -84,15 +86,17 @@ function VisitCouponsCard(props: Props) {
         if (!alive) return;
         reusable = hasCoupons(data);
         setCoupons(data);
+        setReadFailure(null);
       })
-      // Without the list the visit still works; coupons simply are not offered.
-      .catch(() => undefined);
+      .catch((cause: unknown) => {
+        if (alive) setReadFailure({ cause, attempt: readAttempt });
+      });
     return () => {
       alive = false;
       // A client can claim their first coupon elsewhere without changing this visit.
       if (!reusable) couponCache.clear(salon);
     };
-  }, [api, salon, orgId, locationId, visit.id, offersKey, codeReset]);
+  }, [api, salon, orgId, locationId, visit.id, offersKey, codeReset, readAttempt]);
 
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
@@ -137,6 +141,21 @@ function VisitCouponsCard(props: Props) {
     }
   }
 
+  if (readFailure) {
+    return (
+      <Card>
+        <View style={styles.form} testID="visit-coupons">
+          <VisitReadError
+            title={c.title}
+            message={errorText(readFailure.cause, t)}
+            refresh={t.day.refresh}
+            retrying={readFailure.attempt !== readAttempt}
+            onRetry={() => setReadAttempt(readAttempt + 1)}
+          />
+        </View>
+      </Card>
+    );
+  }
   if (!coupons) return null;
   if (!hasCoupons(coupons) && !note) {
     return <Text style={styles.muted}>{t.clients.coupons} (0)</Text>;
@@ -259,6 +278,30 @@ function VisitCouponsCard(props: Props) {
         </Text>
       ) : null}
     </Card>
+  );
+}
+
+export function VisitReadError(props: {
+  title: string;
+  message: string;
+  refresh: string;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <>
+      <Text role="heading" aria-level={3} style={styles.label}>
+        {props.title}
+      </Text>
+      <ErrorText>{props.message}</ErrorText>
+      <Button
+        kind="secondary"
+        label={props.refresh}
+        a11yLabel={`${props.refresh}: ${props.title}`}
+        disabled={props.retrying}
+        onPress={props.onRetry}
+      />
+    </>
   );
 }
 

@@ -10,7 +10,7 @@ export function noticesOfSalon(
   orgId: string,
   locationId: string,
 ): Notice[] {
-  return list.filter((n) => n.organizationId === orgId && n.data.locationId === locationId);
+  return list.filter((n) => n?.organizationId === orgId && n.data?.locationId === locationId);
 }
 
 /** "booked" | "created" | "rescheduled" | "cancelled" — the key of the text in the dictionary. */

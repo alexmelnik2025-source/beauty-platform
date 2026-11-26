@@ -1,6 +1,6 @@
 import { FormField } from '../formFields';
 import { useFormDraft } from '../formDrafts';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -66,6 +66,8 @@ export function ClientScreen(props: {
   const { api, t, salon, id, onBack } = props;
   const c = t.clients;
   const [client, setClient] = useState<CustomerDetail | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const latestRead = useRef(0);
   const [mayEdit, setMayEdit] = useState(salon.role !== 'staff');
   const [ownOnly, setOwnOnly] = useState(false);
   const [editing, setEditing] = useFormDraft(`client.${id}.editing`, false);
@@ -97,16 +99,19 @@ export function ClientScreen(props: {
   const [privacyNote, setPrivacyNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   const load = useCallback(async () => {
+    const request = ++latestRead.current;
     try {
-      setClient(await api.customer(salon.orgId, id));
+      const detail = await api.customer(salon.orgId, id);
+      if (request === latestRead.current) setClient(detail);
     } catch (e) {
-      setError(errorText(e, t));
+      if (request === latestRead.current) setError(errorText(e, t));
     }
-  }, [api, salon, id, t]);
+  }, [api, salon.orgId, id, t]);
 
   useEffect(() => {
-    void load();
     let alive = true;
+    setError('');
+    void load();
     // Owners and managers: stamps or points, tier and coupons (the server refuses specialists).
     if (salon.role !== 'staff') {
       void api.loyaltyAccount(salon.orgId, id).then(
@@ -132,8 +137,9 @@ export function ClientScreen(props: {
     );
     return () => {
       alive = false;
+      latestRead.current++;
     };
-  }, [api, salon, id, load]);
+  }, [api, salon, id, load, loadAttempt]);
 
   // Android "back" closes the card instead of the app.
   useEffect(() => {
@@ -321,7 +327,18 @@ export function ClientScreen(props: {
     return (
       <View style={styles.screen}>
         <View style={styles.row}>{back}</View>
-        {error ? <ErrorText>{error}</ErrorText> : <LoadingCards label={t.loading} />}
+        {error ? (
+          <>
+            <ErrorText>{error}</ErrorText>
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              onPress={() => setLoadAttempt((attempt) => attempt + 1)}
+            />
+          </>
+        ) : (
+          <LoadingCards label={t.loading} />
+        )}
       </View>
     );
   }

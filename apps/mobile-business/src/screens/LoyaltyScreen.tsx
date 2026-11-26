@@ -65,6 +65,7 @@ export function LoyaltyScreen(props: {
   const [rewardProblem, setRewardProblem] = useState<
     import('../rewardEdit').RewardFullProblem | null
   >(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [askOff, setAskOff] = useState(false);
@@ -95,6 +96,7 @@ export function LoyaltyScreen(props: {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const [p, r, ops, list] = await Promise.all([
         api.loyaltyProgram(salon.orgId),
@@ -110,6 +112,8 @@ export function LoyaltyScreen(props: {
       setError('');
     } catch (e) {
       setError(errorText(e, t));
+    } finally {
+      setLoading(false);
     }
   }, [api, salon, t]);
 
@@ -147,7 +151,7 @@ export function LoyaltyScreen(props: {
   function switchTo(enabled: boolean) {
     if (!program) return;
     setAskOff(false);
-    void run(
+    return run(
       async () =>
         setProgram(await api.saveLoyaltyProgram(salon.orgId, programToSave(program, enabled))),
       enabled ? l.turnedOn : l.turnedOff,
@@ -159,7 +163,7 @@ export function LoyaltyScreen(props: {
     const checked = rulesToSave(program, rules);
     setRulesProblem(null);
     if (!checked.ok) return setRulesProblem(checked.problem);
-    void run(async () => {
+    return run(async () => {
       setProgram(await api.saveLoyaltyProgram(salon.orgId, checked.save));
       setRuleChanges((current) => (current === ruleChanges ? null : current));
     }, l.rulesSaved);
@@ -179,6 +183,10 @@ export function LoyaltyScreen(props: {
   }
 
   function changeReward(changes: Partial<Omit<RewardFormFull, 'serviceIds'>>) {
+    if (rewardProblem && form) {
+      const checked = rewardToSave({ ...form, ...changes });
+      if (checked.ok || checked.problem !== rewardProblem) setRewardProblem(null);
+    }
     setRewardDraft((draft) => draft && { ...draft, changes: { ...draft.changes, ...changes } });
   }
 
@@ -187,45 +195,43 @@ export function LoyaltyScreen(props: {
   }
 
   /** Adds a reward, or with "Zmień" saves the changed one (task 348). */
-  function saveReward() {
+  async function saveReward() {
     if (!form || !rewardDraft) return;
     const checked = rewardToSave(form);
     setRewardProblem(null);
     if (!checked.ok) return setRewardProblem(checked.problem);
     setBusy(true);
-    void (async () => {
-      try {
-        const saved = savedReward
-          ? await api.updateLoyaltyReward(
-              salon.orgId,
-              savedReward.id,
-              rewardUpdate(savedReward, checked.reward),
-            )
-          : await api.addLoyaltyReward(salon.orgId, checked.reward);
-        setRewardDraft((current) => {
-          if (current === rewardDraft) return null;
-          // Further edits to a just-created reward must update it on the next save.
-          if (current?.session === rewardDraft.session && current.rewardId === null) {
-            return { ...current, rewardId: saved.id };
-          }
-          return current;
-        });
-        setInfo(savedReward ? l.updated : l.added);
-        setError('');
-        await load();
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 409) {
-          setInfo('');
-          setError(l.rewardConflict);
-          setRewardDraft((current) => (current === rewardDraft ? null : current));
-          await load();
-        } else {
-          setError(errorText(e, t));
+    try {
+      const saved = savedReward
+        ? await api.updateLoyaltyReward(
+            salon.orgId,
+            savedReward.id,
+            rewardUpdate(savedReward, checked.reward),
+          )
+        : await api.addLoyaltyReward(salon.orgId, checked.reward);
+      setRewardDraft((current) => {
+        if (current === rewardDraft) return null;
+        // Further edits to a just-created reward must update it on the next save.
+        if (current?.session === rewardDraft.session && current.rewardId === null) {
+          return { ...current, rewardId: saved.id };
         }
-      } finally {
-        setBusy(false);
+        return current;
+      });
+      setInfo(savedReward ? l.updated : l.added);
+      setError('');
+      await load();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        setInfo('');
+        setError(l.rewardConflict);
+        setRewardDraft((current) => (current === rewardDraft ? null : current));
+        await load();
+      } else {
+        setError(errorText(e, t));
       }
-    })();
+    } finally {
+      setBusy(false);
+    }
   }
 
   /** "kupon ważny 30 dni · tylko: Broda" or null. */
@@ -233,7 +239,7 @@ export function LoyaltyScreen(props: {
 
   function remove(id: string) {
     setRemoveId(null);
-    void run(async () => {
+    return run(async () => {
       await api.removeLoyaltyReward(salon.orgId, id);
       await load();
     }, l.removed);
@@ -364,9 +370,11 @@ export function LoyaltyScreen(props: {
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {program === null ? (
-        !error ? (
+        error ? (
+          <Button kind="secondary" label={t.day.refresh} busy={loading} onPress={load} />
+        ) : (
           <Text style={styles.muted}>{t.loading}</Text>
-        ) : null
+        )
       ) : (
         <>
           <Card>

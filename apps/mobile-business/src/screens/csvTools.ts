@@ -11,14 +11,17 @@ export function csvTools(type = 'text/csv;charset=utf-8'): CsvShareTools {
   }
   return {
     download: (fileName, csv) => {
-      const url = URL.createObjectURL(new Blob([csv], { type }));
       const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const url = URL.createObjectURL(new Blob([csv], { type }));
+      try {
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        a.remove();
+      }
     },
   };
 }

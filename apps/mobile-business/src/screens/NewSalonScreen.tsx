@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { ApiError, type BusinessApi, type Locale } from '../api';
+import { ApiError, type BusinessApi, type Locale, type Organization } from '../api';
 import {
   CURRENCIES,
   currencyName,
@@ -16,6 +16,7 @@ import { Button, Card, colors, ErrorText, Heading } from '../ui';
 import { ChoiceList } from './SalonScreen';
 
 type TextKey = 'orgName' | 'locationName' | 'addressLine' | 'city' | 'postalCode';
+export type PendingOrganization = Pick<Organization, 'id' | 'name'>;
 
 /**
  * Task 350, "Załóż salon": the company and its first salon for a person who has none yet (they
@@ -26,20 +27,22 @@ export function NewSalonScreen(props: {
   api: BusinessApi;
   t: Dictionary;
   locale: Locale;
+  organization: PendingOrganization | null;
+  onOrganizationCreated: (organization: PendingOrganization) => void;
   onCreated: () => void;
   onBack: () => void;
 }) {
   const { t, locale, onBack } = props;
   const n = t.newSalon;
-  const [initial] = useState(() =>
-    emptyNewSalon(salonZoneOf(Intl.DateTimeFormat().resolvedOptions().timeZone)),
-  );
+  const [initial] = useState(() => ({
+    ...emptyNewSalon(salonZoneOf(Intl.DateTimeFormat().resolvedOptions().timeZone)),
+    orgName: props.organization?.name ?? '',
+  }));
   const [form, setForm] = useFormDraft('newSalon.form', initial);
   const clearDraft = useClearFormDraft('newSalon.');
   const [confirmLeave, setConfirmLeave] = useState(false);
   const inputs = useRef<Partial<Record<TextKey, ComponentRef<typeof TextInput> | null>>>({});
   const [problem, setProblem] = useState<NewSalonProblem | null>(null);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const creating = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -48,8 +51,7 @@ export function NewSalonScreen(props: {
     (key) => form[key] !== initial[key],
   );
 
-  // Onboarding runs before the salon's draft provider. Keep the editor and any
-  // completed organization step mounted until the person explicitly discards it.
+  // Discarding unsaved fields leaves the organization already created on the server intact.
   const goBack = useCallback(() => {
     if (creating.current) return;
     if (confirmLeave) setConfirmLeave(false);
@@ -120,12 +122,12 @@ export function NewSalonScreen(props: {
     creating.current = true;
     setBusy(true);
     setProblem(null);
-    let orgId = organizationId;
+    let orgId = props.organization?.id;
     try {
       if (!orgId) {
         const org = await props.api.createOrganization(bodies.organization);
         orgId = org.id;
-        setOrganizationId(orgId);
+        props.onOrganizationCreated({ id: orgId, name: org.name ?? bodies.organization.name });
       }
       await props.api.createLocation(orgId, bodies.location);
       clearDraft();
@@ -161,7 +163,7 @@ export function NewSalonScreen(props: {
           accessibilityLabel={label}
           aria-labelledby={`${fieldId}-label`}
           accessibilityHint={invalid ? problems[problem] : options.hint}
-          editable={!busy && !(key === 'orgName' && organizationId)}
+          editable={!busy && !(key === 'orgName' && props.organization)}
           aria-invalid={invalid}
           aria-describedby={invalid ? `${fieldId}-error` : hintId}
           value={form[key]}

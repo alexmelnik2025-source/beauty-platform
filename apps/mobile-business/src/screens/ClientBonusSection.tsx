@@ -1,6 +1,6 @@
 import { useFormDraft } from '../formDrafts';
 import { FormField } from '../formFields';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale, LoyaltyAccount, LoyaltyReward } from '../api';
 import {
@@ -45,6 +45,7 @@ export function ClientBonusSection(props: {
   );
   const [adjustProblem, setAdjustProblem] = useState<'points' | 'reason' | null>(null);
   const [busy, setBusy] = useState(false);
+  const actionPending = useRef(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   useEffect(() => {
@@ -67,6 +68,8 @@ export function ClientBonusSection(props: {
   }
 
   async function run(action: () => Promise<string>) {
+    if (actionPending.current) return;
+    actionPending.current = true;
     setBusy(true);
     setAsk(null);
     try {
@@ -76,6 +79,7 @@ export function ClientBonusSection(props: {
       setNote({ text: bonusErrorText(e, t) ?? errorText(e, t), bad: true });
       await reload().catch(() => undefined);
     } finally {
+      actionPending.current = false;
       setBusy(false);
     }
   }

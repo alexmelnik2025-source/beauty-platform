@@ -70,6 +70,7 @@ export function BonusRulesSection(props: {
     ReturnType<typeof bonusToSave>,
     { ok: false }
   > | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -94,9 +95,23 @@ export function BonusRulesSection(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, t]);
+  }, [api, salon, t, loadAttempt]);
 
-  if (!data) return note ? <ErrorText>{note.text}</ErrorText> : null;
+  if (!data) {
+    return note ? (
+      <Card>
+        <ErrorText>{note.text}</ErrorText>
+        <Button
+          kind="secondary"
+          label={t.day.refresh}
+          onPress={() => {
+            setNote(null);
+            setLoadAttempt((attempt) => attempt + 1);
+          }}
+        />
+      </Card>
+    ) : null;
+  }
 
   const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
     invalid?.problem === problem && invalid.row === row
@@ -167,7 +182,6 @@ export function BonusRulesSection(props: {
     setInvalid(null);
     if (!checked.ok) return setInvalid(checked);
     setBusy(true);
-    setNote(null);
     try {
       setData(await api.saveLoyaltyBonusRules(salon.orgId, checked.save));
       setDraft((current) => (current?.session === session ? null : current));
@@ -257,7 +271,7 @@ export function BonusRulesSection(props: {
       <FieldError message={errorAt('tooMany')} />
       {message}
       <View style={styles.row}>
-        <Button label={l.bonusSave} busy={busy} onPress={() => void save()} />
+        <Button label={l.bonusSave} busy={busy} onPress={save} />
         <Button
           kind="secondary"
           label={l.cancel}
