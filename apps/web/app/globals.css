@@ -386,6 +386,11 @@ fieldset.field > legend {
   box-shadow: 0 6px 20px rgb(0 0 0 / 8%);
 }
 
+/* The public pages: "PL ▾" keeps its own width wherever it stands (a column or a row). */
+.lang-menu--start {
+  align-self: flex-start;
+}
+
 .lang-menu__list a {
   padding: 6px 10px;
   border-radius: var(--radius-s);

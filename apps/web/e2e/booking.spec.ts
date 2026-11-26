@@ -230,10 +230,7 @@ test('a client books online; the visit is in the salon and staff calendars; emai
   await expect(visitor.getByRole('heading', { name: 'Znajdź salon' })).toBeVisible();
   // Task Q5 / 649: the title and the site's language on one line on a 390 px phone.
   const titleBox = (await visitor.getByRole('heading', { name: 'Znajdź salon' }).boundingBox())!;
-  const langBox = (await visitor
-    .locator('.directory-top')
-    .getByRole('navigation', { name: 'Język' })
-    .boundingBox())!;
+  const langBox = (await visitor.locator('.directory-top .lang-menu summary').boundingBox())!;
   expect(langBox.y).toBeLessThan(titleBox.y + titleBox.height);
   expect(langBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width);
   expect(langBox.x + langBox.width).toBeLessThanOrEqual(PHONE.width);

@@ -113,7 +113,11 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
   await client.waitForURL(new RegExp(`/tr/b/${slug}`));
   await expect(client.locator('html')).toHaveAttribute('lang', 'tr');
   await expect(client.getByRole('heading', { name: 'Berber Moda' })).toBeVisible();
+  // Owner 26.11.2026: only the current language is shown; the list opens on a tap.
+  await expect(client.getByLabel('Dil: TR')).toBeVisible();
   const languages = client.getByRole('navigation', { name: 'Dil' });
+  await expect(languages).toBeHidden();
+  await client.getByLabel('Dil: TR').click();
   await expect(languages.getByRole('link')).toHaveText(['PL', 'UA', 'RU', 'EN', 'TR', 'SQ']);
   await shot(client, '71-booking-turkish');
 
@@ -164,6 +168,8 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
   await expect(client.getByRole('button', { name: 'Randevuyu iptal et' })).toBeVisible();
   await shot(client, '71d-visit-turkish');
 
+  // Owner 26.11.2026: one "TR ▾" that opens the list of languages.
+  await client.getByLabel('Dil: TR').click();
   await client.getByRole('navigation', { name: 'Dil' }).getByRole('link', { name: 'SQ' }).click();
   await client.waitForURL(/\/sq\/m\//);
   await expect(client.getByText('Takimi juaj')).toBeVisible();
@@ -175,6 +181,7 @@ test('a client books in Turkish and reads the visit in Albanian', async ({ brows
 
 test('the salon dashboard offers only its fully translated languages', async ({ page }) => {
   await page.goto('/tr/login');
+  await page.getByLabel('Dil: TR').click();
   const languages = page.getByRole('navigation', { name: 'Dil' });
   await expect(languages.getByRole('link')).toHaveText(['PL', 'UA', 'RU', 'EN']);
 });
