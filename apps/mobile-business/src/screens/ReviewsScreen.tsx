@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ApiError,
@@ -8,6 +8,7 @@ import {
   type SalonReviews,
 } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { shareCsv } from '../share';
 import { csvTools } from './csvTools';
 import { fill, type Dictionary } from '../i18n';
@@ -32,6 +33,7 @@ const reviewsCache = new WeakMap<
   SalonChoice,
   Map<string, { value: SalonReviews; unansweredOnly: boolean; expires: number }>
 >();
+const pendingReplies = new WeakMap<SalonChoice, Map<string, Promise<Review>>>();
 function recentPages(salon: SalonChoice) {
   let pages = reviewsCache.get(salon);
   if (!pages) {
@@ -108,7 +110,6 @@ export function ReviewsScreen(props: {
   const lifetime = useScreenLifetime(salon, key);
   const request = useRef<symbol | null>(null);
   const [editors, setEditors] = useState<Record<string, ReplyEditor | undefined>>({});
-  const drafts = useRef(new Map<string, string>()).current;
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
 
@@ -147,6 +148,13 @@ export function ReviewsScreen(props: {
       setBusy(true);
       setFailure(null);
       try {
+        // On return, an earlier editor may still be publishing. Read the
+        // updated list and draft together before mounting any reply editors.
+        const pending = pendingReplies.get(salon);
+        if (!displayed.current && pending?.size) {
+          await Promise.allSettled(pending.values());
+          if (signal.aborted || request.current !== id) return;
+        }
         let pages = recentPages(salon);
         let cached = previous ? undefined : pages.get(key);
         let result: SalonReviews;
@@ -215,28 +223,32 @@ export function ReviewsScreen(props: {
     void load();
   }, [load]);
 
-  const edit = useCallback(
-    (id: string, editor?: ReplyEditor) => {
-      if (!editor) drafts.delete(id);
-      setEditors((current) => ({ ...current, [id]: editor }));
-    },
-    [drafts],
-  );
+  const edit = useCallback((id: string, editor?: ReplyEditor) => {
+    setEditors((current) => ({ ...current, [id]: editor }));
+  }, []);
   const screen = useScreenLifetime(salon);
-  const pendingReplies = useRef(new Set<string>());
   const reply = useCallback(
-    async (review: Review, value: string | null, editor: ReplyEditor) => {
-      if (pendingReplies.current.has(review.id)) return;
-      pendingReplies.current.add(review.id);
+    async (review: Review, value: string | null, editor: ReplyEditor, onSaved: () => void) => {
+      let pending = pendingReplies.get(salon);
+      if (pending?.has(review.id)) return;
+      if (!pending) {
+        pending = new Map();
+        pendingReplies.set(salon, pending);
+      }
       const signal = screen.current!.signal;
       edit(review.id, { ...editor, busy: true, error: undefined });
       try {
-        const saved = await withNetworkTimeout(
+        const write = withNetworkTimeout(
           value === null
             ? api.removeReviewReply(salon.orgId, salon.locationId, review.id)
             : api.replyToReview(salon.orgId, salon.locationId, review.id, value),
-        );
-        cacheReply(salon, saved);
+        ).then((saved) => {
+          cacheReply(salon, saved);
+          onSaved();
+          return saved;
+        });
+        pending.set(review.id, write);
+        const saved = await write;
         if (signal.aborted) return;
         edit(review.id);
         const current = displayed.current;
@@ -250,7 +262,7 @@ export function ReviewsScreen(props: {
       } catch (e) {
         if (!signal.aborted) edit(review.id, { ...editor, busy: false, error: errorText(e, t) });
       } finally {
-        pendingReplies.current.delete(review.id);
+        pending.delete(review.id);
       }
     },
     [api, salon, screen, edit, show, t],
@@ -272,13 +284,12 @@ export function ReviewsScreen(props: {
         t={t}
         locale={locale}
         timeZone={timeZone}
-        drafts={drafts}
         editor={editors[item.id]}
         edit={edit}
         reply={reply}
       />
     ),
-    [manager, t, locale, timeZone, drafts, editors, edit, reply],
+    [manager, t, locale, timeZone, editors, edit, reply],
   );
   const summary = page;
   const team = page?.staff ?? [];
@@ -464,27 +475,41 @@ const ReviewRow = memo(function ReviewRow(props: {
   t: Dictionary;
   locale: Locale;
   timeZone: string;
-  drafts: Map<string, string>;
   editor?: ReplyEditor;
   edit: (id: string, editor?: ReplyEditor) => void;
-  reply: (review: Review, value: string | null, editor: ReplyEditor) => Promise<void>;
+  reply: (
+    review: Review,
+    value: string | null,
+    editor: ReplyEditor,
+    onSaved: () => void,
+  ) => Promise<void>;
 }) {
   const { review, t } = props;
-  const editor = props.editor ?? { editing: false };
+  const [draft, setDraft] = useFormDraft<string | null>(`reviews.${review.id}.reply`, null);
+  const editor = props.editor ?? { editing: props.manager && draft !== null };
   const { editing, busy, error } = editor;
-  const draft = () => props.drafts.get(review.id) ?? review.reply ?? '';
+  const text = draft ?? review.reply ?? '';
   const r = t.reviews;
-  const line = reviewLine(review, t, props.locale, props.timeZone);
+  const line = useMemo(
+    () => reviewLine(review, t, props.locale, props.timeZone),
+    [review, t, props.locale, props.timeZone],
+  );
   const missingText = Boolean(editor.missingText);
   const fieldError = missingText ? r.reply : error;
   const errorId = `reply-error-${review.id}`;
+  function submit(value: string | null) {
+    void props.reply(review, value, editor, () => {
+      // A manager can leave and start a newer draft before this request finishes.
+      setDraft((current) => (current === draft ? null : current));
+    });
+  }
   function publish() {
-    const value = draft().trim();
+    const value = text.trim();
     if (!value) {
       props.edit(review.id, { ...editor, missingText: true, error: undefined });
       return;
     }
-    void props.reply(review, value, editor);
+    submit(value);
   }
   return (
     <View role="group" accessibilityLabel={line} style={styles.row}>
@@ -521,9 +546,9 @@ const ReviewRow = memo(function ReviewRow(props: {
             placeholder={r.replyLabel}
             placeholderTextColor={colors.placeholder}
             editable={!busy}
-            defaultValue={draft()}
+            value={text}
             onChangeText={(text) => {
-              props.drafts.set(review.id, text);
+              setDraft(text);
               if (error || (missingText && text.trim())) {
                 props.edit(review.id, {
                   ...editor,
@@ -548,6 +573,7 @@ const ReviewRow = memo(function ReviewRow(props: {
             disabled={busy}
             label={r.replyCancel}
             onPress={() => {
+              setDraft(null);
               props.edit(review.id);
             }}
           />
@@ -561,12 +587,7 @@ const ReviewRow = memo(function ReviewRow(props: {
             onPress={() => props.edit(review.id, { ...editor, editing: true })}
           />
           {review.reply ? (
-            <Button
-              kind="link"
-              label={r.replyRemove}
-              busy={busy}
-              onPress={() => void props.reply(review, null, editor)}
-            />
+            <Button kind="link" label={r.replyRemove} busy={busy} onPress={() => submit(null)} />
           ) : null}
         </View>
       ) : null}
