@@ -10,15 +10,25 @@ const INTL_LOCALE = { pl: 'pl-PL', uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as co
  * a specialist needs both "sees notes" and "edits notes" (the server checks the same).
  */
 export function canEditNotes(me: PermissionCatalog['me']): boolean {
-  if (me.role !== 'staff') return true;
-  return me.permissions.viewClientNotes && me.permissions.editClientNotes;
+  if (me?.role === 'owner' || me?.role === 'manager') return true;
+  return (
+    me?.role === 'staff' &&
+    me.permissions?.viewClientNotes === true &&
+    me.permissions?.editClientNotes === true
+  );
 }
 
 /** "vip, stały klient , vip" → ['vip', 'stały klient']: up to 10 tags of up to 30 characters. */
 export function parseTags(input: string): string[] {
   const tags = input
     .split(',')
-    .map((tag) => tag.trim().slice(0, 30))
+    // The API counts UTF-16 units. Drop a surrogate left at the cut so the tag stays readable.
+    .map((tag) =>
+      tag
+        .trim()
+        .slice(0, 30)
+        .replace(/[\uD800-\uDBFF]$/u, ''),
+    )
     .filter((tag) => tag.length > 0);
   return [...new Set(tags)].slice(0, 10);
 }
@@ -28,9 +38,19 @@ export function parseTags(input: string): string[] {
  * label is not typed in two ways ("broda" / "Broda"). In the order given (most used first).
  */
 export function suggestTags(input: string, known: string[], max = 8): string[] {
-  const have = new Set(parseTags(input).map((tag) => tag.toLocaleLowerCase()));
-  if (have.size >= 10) return [];
-  return known.filter((tag) => !have.has(tag.toLocaleLowerCase())).slice(0, max);
+  const current = parseTags(input);
+  if (current.length >= 10) return [];
+  const seen = new Set(current.map((tag) => tag.toLocaleLowerCase()));
+  const suggestions: string[] = [];
+  for (const tag of known) {
+    if (typeof tag !== 'string') continue;
+    const label = tag.trim();
+    const key = label.toLocaleLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    suggestions.push(label);
+  }
+  return suggestions.slice(0, Math.max(0, max));
 }
 
 /** "vip" + "broda" → "vip, broda" (the field stays as the person typed it otherwise). */
@@ -65,6 +85,8 @@ export function completedCount(visits: ClientVisit[], locationId: string): numbe
 
 /** "12.11.2026, 14:30" in the salon's time zone. */
 export function visitWhen(iso: string, timeZone: string, locale: DayLocale): string {
+  const instant = Date.parse(iso);
+  if (!Number.isFinite(instant)) return '—';
   return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     timeZone,
     day: '2-digit',
@@ -73,7 +95,7 @@ export function visitWhen(iso: string, timeZone: string, locale: DayLocale): str
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-  }).format(new Date(iso));
+  }).format(instant);
 }
 
 export type ClientCoupon = LoyaltyAccount['coupons'][number];
@@ -106,12 +128,14 @@ export function bonusSummary(
 
 /** "do 31.12.2026" — the last day of a coupon, in the salon's time zone. */
 export function dateIn(iso: string, timeZone: string, locale: DayLocale): string {
+  const instant = Date.parse(iso);
+  if (!Number.isFinite(instant)) return '—';
   return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     timeZone,
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(new Date(iso));
+  }).format(instant);
 }
 
 /**
@@ -124,18 +148,19 @@ export function birthdayText(
   timeZone: string,
   now = new Date(),
 ): string {
+  const [month, day] = typeof birthday === 'string' ? birthday.split('-') : [];
+  if (!day || !month || parseBirthday(day, month) !== birthday) return '—';
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     month: '2-digit',
     day: '2-digit',
   }).format(now);
   if (birthday === today) return todayWord;
-  const [month, day] = birthday.split('-').map(Number) as [number, number];
   return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     timeZone: 'UTC',
     day: 'numeric',
     month: 'long',
-  }).format(new Date(Date.UTC(2000, month - 1, day)));
+  }).format(new Date(Date.UTC(2000, Number(month) - 1, Number(day))));
 }
 
 const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];

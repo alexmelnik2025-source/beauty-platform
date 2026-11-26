@@ -65,7 +65,8 @@ export function messagesChanges(
   if (form.waitlistHoldMinutes !== location.waitlistHoldMinutes) {
     changes.waitlistHoldMinutes = form.waitlistHoldMinutes;
   }
-  if (days !== location.rebookReminderDays) changes.rebookReminderDays = days;
-  if ((text || null) !== location.rebookReminderText) changes.rebookReminderText = text || null;
+  if (days !== (location.rebookReminderDays ?? 0)) changes.rebookReminderDays = days;
+  if ((text || null) !== (location.rebookReminderText ?? null))
+    changes.rebookReminderText = text || null;
   return { changes };
 }

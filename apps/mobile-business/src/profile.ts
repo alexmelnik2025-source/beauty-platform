@@ -23,9 +23,16 @@ export function toggleLanguage(list: SpokenLanguage[], code: SpokenLanguage): Sp
   return SPOKEN.map((l) => l.code).filter((c) => next.includes(c));
 }
 
+/** Selections of checkboxes represent distinct values, regardless of order. */
+export function sameSelection(a: readonly string[], b: readonly string[]): boolean {
+  const left = new Set(a);
+  const right = new Set(b);
+  return left.size === right.size && [...left].every((value) => right.has(value));
+}
+
 /** Did anything change compared with what was saved? (Order does not matter.) */
 export function languagesChanged(saved: SpokenLanguage[], chosen: SpokenLanguage[]): boolean {
-  return saved.length !== chosen.length || saved.some((c) => !chosen.includes(c));
+  return !sameSelection(saved, chosen);
 }
 
 /** "🇵🇱 🇬🇧" for the profile line; "" when none is chosen. */

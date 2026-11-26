@@ -14,13 +14,15 @@ export const MAX_SALON_PHOTOS = 10;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 /**
- * The type a picked photo is sent as: its own when the API takes it, otherwise JPEG (the
+ * The type a picked photo is sent as: a supported picker or blob type, otherwise JPEG (the
  * phone's picker converts other formats, such as HEIC from an iPhone, to JPEG). The same as in
  * the client app (apps/mobile-client/src/wishes.ts).
  */
 export function photoType(mimeType: string | null | undefined, blobType: string): string {
-  const type = (mimeType || blobType || '').toLowerCase();
-  return PHOTO_TYPES.includes(type) ? type : 'image/jpeg';
+  const picked = mimeType?.trim().toLowerCase();
+  if (picked && PHOTO_TYPES.includes(picked)) return picked;
+  const uploaded = (blobType ?? '').trim().toLowerCase();
+  return PHOTO_TYPES.includes(uploaded) ? uploaded : 'image/jpeg';
 }
 
 /** How many more photos can be added now (0 = the gallery is full). */
