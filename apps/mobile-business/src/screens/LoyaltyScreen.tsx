@@ -31,7 +31,6 @@ import {
   rewardLimits,
   rewardToSave,
   rewardUpdate,
-  toggledService,
   type RewardFormFull,
 } from '../rewardEdit';
 import { BonusRulesSection } from './BonusRulesSection';
@@ -69,11 +68,30 @@ export function LoyaltyScreen(props: {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [askOff, setAskOff] = useState(false);
-  const [form, setForm] = useFormDraft<RewardFormFull | null>('loyalty.form', null);
-  /** Task 348: the reward being changed (null = the form adds a new one). */
-  const [editingId, setEditingId] = useFormDraft<string | null>('loyalty.editingId', null);
+  const [rewardDraft, setRewardDraft] = useFormDraft<{
+    rewardId: string | null;
+    session: symbol;
+    changes: Partial<Omit<RewardFormFull, 'serviceIds'>>;
+    serviceSelection?: Record<string, boolean>;
+  } | null>('loyalty.reward', null);
+  const editingId = rewardDraft?.rewardId ?? null;
+  const savedReward = rewards.find((reward) => reward.id === editingId);
+  const rewardDefaults = savedReward ? rewardForm(savedReward) : EMPTY_REWARD_FULL;
+  const serviceIds = new Set(rewardDefaults.serviceIds);
+  for (const [id, selected] of Object.entries(rewardDraft?.serviceSelection ?? {})) {
+    if (selected) serviceIds.add(id);
+    else serviceIds.delete(id);
+  }
+  const form =
+    rewardDraft && (editingId === null || savedReward)
+      ? { ...rewardDefaults, ...rewardDraft.changes, serviceIds: [...serviceIds] }
+      : null;
   const [removeId, setRemoveId] = useState<string | null>(null);
-  const [rules, setRules] = useFormDraft<RulesForm | null>('loyalty.rules', null);
+  const [ruleChanges, setRuleChanges] = useFormDraft<Partial<RulesForm> | null>(
+    'loyalty.rules',
+    null,
+  );
+  const rules = ruleChanges && program ? { ...rulesForm(program), ...ruleChanges } : null;
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -143,39 +161,63 @@ export function LoyaltyScreen(props: {
     if (!checked.ok) return setRulesProblem(checked.problem);
     void run(async () => {
       setProgram(await api.saveLoyaltyProgram(salon.orgId, checked.save));
-      setRules(null);
+      setRuleChanges((current) => (current === ruleChanges ? null : current));
     }, l.rulesSaved);
   }
 
+  function openReward(rewardId: string | null) {
+    setRewardDraft({ rewardId, session: Symbol(), changes: {} });
+    setRewardProblem(null);
+    setRemoveId(null);
+    setInfo('');
+    setError('');
+  }
+
   function closeForm() {
-    setForm(null);
-    setEditingId(null);
+    setRewardDraft(null);
+    setRewardProblem(null);
+  }
+
+  function changeReward(changes: Partial<Omit<RewardFormFull, 'serviceIds'>>) {
+    setRewardDraft((draft) => draft && { ...draft, changes: { ...draft.changes, ...changes } });
+  }
+
+  function changeRules(changes: Partial<RulesForm>) {
+    setRuleChanges((draft) => draft && { ...draft, ...changes });
   }
 
   /** Adds a reward, or with "Zmień" saves the changed one (task 348). */
   function saveReward() {
-    if (!form) return;
+    if (!form || !rewardDraft) return;
     const checked = rewardToSave(form);
     setRewardProblem(null);
     if (!checked.ok) return setRewardProblem(checked.problem);
-    const saved = editingId ? rewards.find((r) => r.id === editingId) : undefined;
     setBusy(true);
     void (async () => {
       try {
-        if (saved) {
-          await api.updateLoyaltyReward(salon.orgId, saved.id, rewardUpdate(saved, checked.reward));
-        } else {
-          await api.addLoyaltyReward(salon.orgId, checked.reward);
-        }
-        closeForm();
-        setInfo(saved ? l.updated : l.added);
+        const saved = savedReward
+          ? await api.updateLoyaltyReward(
+              salon.orgId,
+              savedReward.id,
+              rewardUpdate(savedReward, checked.reward),
+            )
+          : await api.addLoyaltyReward(salon.orgId, checked.reward);
+        setRewardDraft((current) => {
+          if (current === rewardDraft) return null;
+          // Further edits to a just-created reward must update it on the next save.
+          if (current?.session === rewardDraft.session && current.rewardId === null) {
+            return { ...current, rewardId: saved.id };
+          }
+          return current;
+        });
+        setInfo(savedReward ? l.updated : l.added);
         setError('');
         await load();
       } catch (e) {
         if (e instanceof ApiError && e.status === 409) {
           setInfo('');
           setError(l.rewardConflict);
-          closeForm();
+          setRewardDraft((current) => (current === rewardDraft ? null : current));
           await load();
         } else {
           setError(errorText(e, t));
@@ -207,19 +249,19 @@ export function LoyaltyScreen(props: {
         placeholder={l.name}
         placeholderTextColor={colors.placeholder}
         value={form.name}
-        onChangeText={(name) => setForm({ ...form, name })}
+        onChangeText={(name) => changeReward({ name })}
         style={styles.input}
       />
       <View style={styles.row}>
         <Chip
           label={l.kindDiscount}
           on={form.kind === 'discount_percent'}
-          onPress={() => setForm({ ...form, kind: 'discount_percent' })}
+          onPress={() => changeReward({ kind: 'discount_percent' })}
         />
         <Chip
           label={l.kindFree}
           on={form.kind === 'free_service'}
-          onPress={() => setForm({ ...form, kind: 'free_service' })}
+          onPress={() => changeReward({ kind: 'free_service' })}
         />
       </View>
       {form.kind === 'discount_percent' ? (
@@ -229,7 +271,7 @@ export function LoyaltyScreen(props: {
           placeholder={l.percent}
           placeholderTextColor={colors.placeholder}
           value={form.percent}
-          onChangeText={(percent) => setForm({ ...form, percent })}
+          onChangeText={(percent) => changeReward({ percent })}
           keyboardType="number-pad"
           style={styles.input}
         />
@@ -246,7 +288,7 @@ export function LoyaltyScreen(props: {
                   key={s.id}
                   label={s.name}
                   on={form.serviceId === s.id}
-                  onPress={() => setForm({ ...form, serviceId: s.id })}
+                  onPress={() => changeReward({ serviceId: s.id })}
                 />
               ))}
             </View>
@@ -259,7 +301,7 @@ export function LoyaltyScreen(props: {
         placeholder={mode === 'stamps' ? l.costStamps : l.costPoints}
         placeholderTextColor={colors.placeholder}
         value={form.cost}
-        onChangeText={(cost) => setForm({ ...form, cost })}
+        onChangeText={(cost) => changeReward({ cost })}
         keyboardType="number-pad"
         style={styles.input}
       />
@@ -269,7 +311,7 @@ export function LoyaltyScreen(props: {
         placeholder={l.couponValidityDays}
         placeholderTextColor={colors.placeholder}
         value={form.validityDays}
-        onChangeText={(validityDays) => setForm({ ...form, validityDays })}
+        onChangeText={(validityDays) => changeReward({ validityDays })}
         keyboardType="number-pad"
         style={styles.input}
       />
@@ -284,7 +326,16 @@ export function LoyaltyScreen(props: {
                 a11yLabel={fill(l.onlyOne, { service: s.name })}
                 on={form.serviceIds.includes(s.id)}
                 onPress={() =>
-                  setForm({ ...form, serviceIds: toggledService(form.serviceIds, s.id) })
+                  setRewardDraft(
+                    (draft) =>
+                      draft && {
+                        ...draft,
+                        serviceSelection: {
+                          ...draft.serviceSelection,
+                          [s.id]: !serviceIds.has(s.id),
+                        },
+                      },
+                  )
                 }
               />
             ))}
@@ -346,12 +397,12 @@ export function LoyaltyScreen(props: {
                 <Chip
                   label={l.modeStamps}
                   on={rules.mode === 'stamps'}
-                  onPress={() => setRules({ ...rules, mode: 'stamps' })}
+                  onPress={() => changeRules({ mode: 'stamps' })}
                 />
                 <Chip
                   label={l.modePoints}
                   on={rules.mode === 'points'}
-                  onPress={() => setRules({ ...rules, mode: 'points' })}
+                  onPress={() => changeRules({ mode: 'points' })}
                 />
               </View>
               <Text style={styles.muted}>
@@ -364,7 +415,7 @@ export function LoyaltyScreen(props: {
                   }
                   label={l.stampsPerVisit}
                   value={rules.stampsPerVisit}
-                  onChange={(stampsPerVisit) => setRules({ ...rules, stampsPerVisit })}
+                  onChange={(stampsPerVisit) => changeRules({ stampsPerVisit })}
                 />
               ) : (
                 <>
@@ -374,14 +425,14 @@ export function LoyaltyScreen(props: {
                     }
                     label={l.pointsPerUnit}
                     value={rules.pointsPerUnit}
-                    onChange={(pointsPerUnit) => setRules({ ...rules, pointsPerUnit })}
+                    onChange={(pointsPerUnit) => changeRules({ pointsPerUnit })}
                   />
                   <Field
                     error={rulesProblem === 'spendUnit' ? l.rulesProblem.spendUnit : undefined}
                     label={fill(l.spendUnit, { currency: salon.currency })}
                     value={rules.spendUnit}
                     decimal
-                    onChange={(spendUnit) => setRules({ ...rules, spendUnit })}
+                    onChange={(spendUnit) => changeRules({ spendUnit })}
                   />
                   <Field
                     error={
@@ -389,7 +440,7 @@ export function LoyaltyScreen(props: {
                     }
                     label={l.validityDays}
                     value={rules.validityDays}
-                    onChange={(validityDays) => setRules({ ...rules, validityDays })}
+                    onChange={(validityDays) => changeRules({ validityDays })}
                   />
                 </>
               )}
@@ -398,7 +449,7 @@ export function LoyaltyScreen(props: {
                 label={fill(l.minSpend, { currency: salon.currency })}
                 value={rules.minSpend}
                 decimal
-                onChange={(minSpend) => setRules({ ...rules, minSpend })}
+                onChange={(minSpend) => changeRules({ minSpend })}
               />
               <Field
                 error={
@@ -408,23 +459,23 @@ export function LoyaltyScreen(props: {
                 }
                 label={l.maxDiscount}
                 value={rules.maxDiscountPercent}
-                onChange={(maxDiscountPercent) => setRules({ ...rules, maxDiscountPercent })}
+                onChange={(maxDiscountPercent) => changeRules({ maxDiscountPercent })}
               />
               <View style={styles.row}>
                 <Chip
                   label={l.noStacking}
                   on={!rules.allowStacking}
-                  onPress={() => setRules({ ...rules, allowStacking: false })}
+                  onPress={() => changeRules({ allowStacking: false })}
                 />
                 <Chip
                   label={l.stacking}
                   on={rules.allowStacking}
-                  onPress={() => setRules({ ...rules, allowStacking: true })}
+                  onPress={() => changeRules({ allowStacking: true })}
                 />
               </View>
               <View style={styles.row}>
                 <Button label={l.rulesSave} busy={busy} onPress={saveRules} />
-                <Button kind="secondary" label={l.cancel} onPress={() => setRules(null)} />
+                <Button kind="secondary" label={l.cancel} onPress={() => setRuleChanges(null)} />
               </View>
             </Card>
           ) : (
@@ -449,7 +500,8 @@ export function LoyaltyScreen(props: {
                 kind="secondary"
                 label={l.rulesChange}
                 onPress={() => {
-                  setRules(rulesForm(program));
+                  setRulesProblem(null);
+                  setRuleChanges({});
                   setInfo('');
                   setError('');
                 }}
@@ -486,16 +538,7 @@ export function LoyaltyScreen(props: {
           {form && editingId === null ? (
             editor
           ) : (
-            <Button
-              kind="secondary"
-              label={l.add}
-              onPress={() => {
-                setEditingId(null);
-                setForm(EMPTY_REWARD_FULL);
-                setInfo('');
-                setError('');
-              }}
-            />
+            <Button kind="secondary" label={l.add} onPress={() => openReward(null)} />
           )}
           {rewards.length === 0 ? (
             <Text style={styles.muted}>{l.noRewards}</Text>
@@ -524,13 +567,7 @@ export function LoyaltyScreen(props: {
                         kind="link"
                         label={l.edit}
                         a11yLabel={fill(l.editOne, { name: reward.name })}
-                        onPress={() => {
-                          setRemoveId(null);
-                          setEditingId(reward.id);
-                          setForm(rewardForm(reward));
-                          setInfo('');
-                          setError('');
-                        }}
+                        onPress={() => openReward(reward.id)}
                       />
                       <Button
                         kind="link"
