@@ -74,59 +74,64 @@ export function ServicesScreen(props: {
     fieldError?.field === field && fieldError.staffId === staffId ? fieldError.message : undefined;
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [editId, setEditId] = useFormDraft<string | null>('services.editId', null);
-  const [form, setForm] = useFormDraft<{
-    name: string;
-    description: string;
-    buffer: string;
-    wishPhotos: boolean;
-    price: string;
-    duration: string;
-    active: boolean;
-    categoryId: string | null;
-    staffIds: string[];
-  }>('services.form', {
-    name: '',
-    description: '',
-    buffer: '0',
-    wishPhotos: false,
-    price: '',
-    duration: '',
-    active: true,
-    categoryId: null,
-    staffIds: [],
-  });
-  /** Task 318: the specialists' own prices and durations, and the ones typed in "Zmień". */
+  const [editDraft, setEditDraft, clearEdit] = useFormDraft<{
+    id: string;
+    fields: Partial<NewServiceForm>;
+    rates: Record<string, Partial<RatesForm[string]>>;
+  } | null>('services.edit', null);
+  const editId = editDraft?.id;
   const [rates, setRates] = useState<StaffPrices>({ prices: [], durations: [] });
-  const [rateForm, setRateForm] = useFormDraft<RatesForm>('services.rateForm', {});
+  const rateForm = editId ? ratesForm(rates, editId) : {};
+  for (const [staffId, overrides] of Object.entries(editDraft?.rates ?? {})) {
+    rateForm[staffId] = { price: '', duration: '', ...rateForm[staffId], ...overrides };
+  }
+
   /** Task 315: the service whose "Usuń" waits for a confirmation. */
   const [removeId, setRemoveId] = useState<string | null>(null);
   /** Task 316: the category being renamed (or deleted), with the name as typed. */
-  const [categoryEdit, setCategoryEdit] = useFormDraft<{ id: string; name: string } | null>(
-    'services.categoryEdit',
-    null,
-  );
+  const [categoryEdit, setCategoryEdit, clearCategoryEdit] = useFormDraft<{
+    id: string;
+    name?: string;
+  } | null>('services.categoryEdit', null);
   /** Task 313: the form of a new service; null = closed. */
-  const [fresh, setFresh] = useFormDraft<NewServiceForm | null>('services.fresh', null);
+  const [newDraft, setNewDraft, clearNew] = useFormDraft<{
+    fields: Partial<NewServiceForm>;
+    more: boolean;
+  } | null>('services.fresh', null);
   /** Task 312: the salon's specialists (who performs a service). */
   const [staff, setStaff] = useState<StaffList>([]);
   /** Task 311: the name of a new category, as typed. */
   const [query, setQuery] = useState('');
   const [activeOnly, setActiveOnly] = useState(false);
   const [options, setOptions] = useState(false);
-  const [serviceOptions, setServiceOptions] = useFormDraft('services.serviceOptions', false);
   const [rowOptions, setRowOptions] = useState<string | null>(null);
-  const [newCategory, setNewCategory] = useFormDraft('services.newCategory', '');
+  const [newCategory, setNewCategory, clearNewCategory] = useFormDraft('services.newCategory', '');
   const [busy, setBusy] = useState(false);
   /** Task 310: the service being copied, and the copy's name, price, duration, online. */
-  const [copyId, setCopyId] = useFormDraft<string | null>('services.copyId', null);
-  const [copy, setCopy] = useFormDraft<CopyForm>('services.copy', {
-    name: '',
-    price: '',
-    duration: '',
-    active: true,
-    categoryId: null,
-  });
+  const [copyDraft, setCopyDraft, clearCopy] = useFormDraft<{
+    id: string;
+    fields: Partial<CopyForm>;
+  } | null>('services.copy', null);
+  const copyId = copyDraft?.id;
+  const fresh =
+    newDraft && groups ? { ...newServiceForm(categories, staff), ...newDraft.fields } : null;
+  const serviceOptions = newDraft?.more ?? false;
+
+  function setServiceOptions(more: boolean) {
+    setNewDraft((draft) => draft && { ...draft, more });
+  }
+
+  function changeNew(fields: Partial<NewServiceForm>) {
+    setNewDraft((draft) => draft && { ...draft, fields: { ...draft.fields, ...fields } });
+  }
+
+  function changeEdit(fields: Partial<NewServiceForm>) {
+    setEditDraft((draft) => draft && { ...draft, fields: { ...draft.fields, ...fields } });
+  }
+
+  function changeCopy(fields: Partial<CopyForm>) {
+    setCopyDraft((draft) => draft && { ...draft, fields: { ...draft.fields, ...fields } });
+  }
 
   const load = useCallback(async () => {
     try {
@@ -160,31 +165,18 @@ export function ServicesScreen(props: {
   }, [onBack]);
 
   function edit(service: Service) {
-    setCopyId(null);
-    setFresh(null);
-    setEditId(service.id);
-    setForm({
-      name: service.name,
-      description: service.description ?? '',
-      buffer: String(service.bufferMinutes),
-      wishPhotos: service.wishPhotos,
-      price: priceInput(service.priceGrosze),
-      duration: String(service.durationMinutes),
-      active: service.active,
-      categoryId: service.categoryId,
-      staffIds: [...service.staffIds],
-    });
-    setRateForm(ratesForm(rates, service.id));
+    clearCopy();
+    clearNew();
+    setEditDraft({ id: service.id, fields: {}, rates: {} });
     setError('');
     setFieldError(null);
     setInfo('');
   }
 
-  async function save(service: Service) {
+  async function save(service: Service, form: NewServiceForm) {
     const checked = serviceChange(service, form);
     setFieldError(null);
     if (!checked.ok) {
-      if (checked.problem === 'buffer') setServiceOptions(true);
       return setFieldError({ field: checked.problem, message: u.problem[checked.problem] });
     }
     const people = staffChange(service, form.staffIds);
@@ -208,7 +200,7 @@ export function ServicesScreen(props: {
       });
     }
     if (!checked.change && !people && !own.prices && !own.durations) {
-      setEditId(null);
+      clearEdit();
       return setInfo(u.nothing);
     }
     setBusy(true);
@@ -225,16 +217,16 @@ export function ServicesScreen(props: {
       if (own.durations) {
         await api.saveStaffDurations(salon.orgId, salon.locationId, service.id, own.durations);
       }
-      setEditId(null);
+      clearEdit();
       setInfo(fill(u.saved, { name: checked.change?.name ?? service.name }));
       setError('');
       setFieldError(null);
       await load();
     } catch (e) {
       if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
-        setEditId(null);
-        setError(u.conflict);
+        clearEdit();
         await load();
+        setError(u.conflict);
       } else {
         setError(errorText(e, t));
       }
@@ -245,10 +237,9 @@ export function ServicesScreen(props: {
 
   /** Task 310: "Duplikuj" — the copy's form, filled as the service. Nothing is created yet. */
   function duplicate(service: Service) {
-    setEditId(null);
-    setFresh(null);
-    setCopyId(service.id);
-    setCopy(copyForm(service, u.copyName));
+    clearEdit();
+    clearNew();
+    setCopyDraft({ id: service.id, fields: {} });
     setError('');
     setFieldError(null);
     setInfo('');
@@ -258,7 +249,7 @@ export function ServicesScreen(props: {
    * Task 310: creates the copy (as the cabinet's "Duplikuj", task 251) with the specialists'
    * own prices and durations of the source; it lands at the end of its category.
    */
-  async function saveCopy(source: Service) {
+  async function saveCopy(source: Service, copy: CopyForm) {
     const checked = serviceCopy(source, copy);
     setFieldError(null);
     if (!checked.ok)
@@ -274,7 +265,7 @@ export function ServicesScreen(props: {
       if (own.durations.length > 0) {
         await api.saveStaffDurations(salon.orgId, salon.locationId, created.id, own.durations);
       }
-      setCopyId(null);
+      clearCopy();
       setInfo(fill(u.copied, { name: created.name }));
       setError('');
       setFieldError(null);
@@ -315,12 +306,12 @@ export function ServicesScreen(props: {
   async function renameCategory() {
     if (!categoryEdit) return;
     const category = categories.find((c) => c.id === categoryEdit.id);
-    const name = categoryName(categoryEdit.name);
-    if (!category) return setCategoryEdit(null);
+    if (!category) return clearCategoryEdit();
+    const name = categoryName(categoryEdit.name ?? category.name);
     setFieldError(null);
     if (!name) return setFieldError({ field: 'category', message: u.problem.category });
     if (name === category.name) {
-      setCategoryEdit(null);
+      clearCategoryEdit();
       return setInfo(u.nothing);
     }
     setBusy(true);
@@ -332,17 +323,19 @@ export function ServicesScreen(props: {
         name,
         category.version,
       );
-      setCategoryEdit(null);
+      clearCategoryEdit();
       setInfo(fill(u.saved, { name }));
       setError('');
       setFieldError(null);
       await load();
     } catch (e) {
-      setCategoryEdit(null);
-      setError(
-        e instanceof ApiError && e.code === 'VERSION_CONFLICT' ? u.conflict : errorText(e, t),
-      );
-      await load();
+      if (e instanceof ApiError && e.code === 'VERSION_CONFLICT') {
+        clearCategoryEdit();
+        await load();
+        setError(u.conflict);
+      } else {
+        setError(errorText(e, t));
+      }
     } finally {
       setBusy(false);
     }
@@ -353,7 +346,7 @@ export function ServicesScreen(props: {
     setBusy(true);
     try {
       await api.deleteServiceCategory(salon.orgId, salon.locationId, id);
-      setCategoryEdit(null);
+      clearCategoryEdit();
       setInfo(fill(u.categoryRemoved, { name }));
       setError('');
       setFieldError(null);
@@ -367,9 +360,9 @@ export function ServicesScreen(props: {
 
   /** Task 313: an empty form of a new service. */
   function startNew() {
-    setEditId(null);
-    setCopyId(null);
-    setFresh(newServiceForm(categories, staff));
+    clearEdit();
+    clearCopy();
+    setNewDraft({ fields: {}, more: false });
     setError('');
     setFieldError(null);
     setInfo('');
@@ -380,12 +373,14 @@ export function ServicesScreen(props: {
     if (!fresh) return;
     const checked = newService(fresh);
     setFieldError(null);
-    if (!checked.ok)
+    if (!checked.ok) {
+      if (checked.problem === 'buffer') setServiceOptions(true);
       return setFieldError({ field: checked.problem, message: u.problem[checked.problem] });
+    }
     setBusy(true);
     try {
       const created = await api.createService(salon.orgId, salon.locationId, checked.service);
-      setFresh(null);
+      clearNew();
       setInfo(fill(u.copied, { name: created.name }));
       setError('');
       setFieldError(null);
@@ -440,7 +435,13 @@ export function ServicesScreen(props: {
   function ownRates(service: Service, staffId: string, name: string) {
     const row = rateForm[staffId] ?? { price: '', duration: '' };
     const set = (change: { price?: string; duration?: string }) =>
-      setRateForm((r) => ({ ...r, [staffId]: { ...row, ...r[staffId], ...change } }));
+      setEditDraft(
+        (draft) =>
+          draft && {
+            ...draft,
+            rates: { ...draft.rates, [staffId]: { ...draft.rates[staffId], ...change } },
+          },
+      );
     const priceLabel = fill(u.ownPrice, { name, currency: salon.currency });
     const durationLabel = fill(u.ownDuration, { name });
     return (
@@ -546,7 +547,7 @@ export function ServicesScreen(props: {
     setBusy(true);
     try {
       await api.createServiceCategory(salon.orgId, salon.locationId, name);
-      setNewCategory('');
+      clearNewCategory();
       setInfo(fill(u.categoryAdded, { name }));
       setError('');
       setFieldError(null);
@@ -649,15 +650,7 @@ export function ServicesScreen(props: {
         <Button kind="link" label={u.back} onPress={onBack} />
       </View>
       <Heading>{u.title}</Heading>
-      {groups && !fresh ? (
-        <Button
-          label={u.addService}
-          onPress={() => {
-            setServiceOptions(false);
-            startNew();
-          }}
-        />
-      ) : null}
+      {groups && !fresh ? <Button label={u.addService} onPress={startNew} /> : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -668,13 +661,13 @@ export function ServicesScreen(props: {
       {fresh ? (
         <Card>
           <View style={{ gap: 10 }}>
-            {nameFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
+            {nameFields(fresh, changeNew)}
             <Text style={styles.label}>{fill(u.price, { currency: salon.currency })}</Text>
             <FormField
               error={problemAt('price')}
               accessibilityLabel={fill(u.price, { currency: salon.currency })}
               value={fresh.price}
-              onChangeText={(price) => setFresh((f) => (f ? { ...f, price } : f))}
+              onChangeText={(price) => changeNew({ price })}
               keyboardType="decimal-pad"
               placeholder="90"
               style={styles.input}
@@ -684,7 +677,7 @@ export function ServicesScreen(props: {
               error={problemAt('duration')}
               accessibilityLabel={u.duration}
               value={fresh.duration}
-              onChangeText={(duration) => setFresh((f) => (f ? { ...f, duration } : f))}
+              onChangeText={(duration) => changeNew({ duration })}
               keyboardType="number-pad"
               style={styles.input}
             />
@@ -696,13 +689,13 @@ export function ServicesScreen(props: {
             />
             {serviceOptions ? (
               <>
-                {extraFields(fresh, (change) => setFresh((f) => (f ? { ...f, ...change } : f)))}
+                {extraFields(fresh, changeNew)}
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityLabel={u.active}
                   accessibilityState={{ checked: fresh.active }}
                   aria-checked={fresh.active}
-                  onPress={() => setFresh((f) => (f ? { ...f, active: !f.active } : f))}
+                  onPress={() => changeNew({ active: !fresh.active })}
                   style={styles.check}
                 >
                   <Text style={[styles.box, fresh.active && styles.boxOn]}>
@@ -710,18 +703,14 @@ export function ServicesScreen(props: {
                   </Text>
                   <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
                 </Pressable>
-                {categoryPicker(fresh.categoryId, (categoryId) =>
-                  setFresh((f) => (f ? { ...f, categoryId } : f)),
-                )}
-                {performersPicker(fresh.staffIds, (staffIds) =>
-                  setFresh((f) => (f ? { ...f, staffIds } : f)),
-                )}
+                {categoryPicker(fresh.categoryId, (categoryId) => changeNew({ categoryId }))}
+                {performersPicker(fresh.staffIds, (staffIds) => changeNew({ staffIds }))}
                 <Text style={styles.muted}>{u.newServiceHint}</Text>
               </>
             ) : null}
             <View style={styles.row}>
               <Button label={u.save} busy={busy} onPress={() => void saveNew()} />
-              <Button kind="secondary" label={u.cancel} onPress={() => setFresh(null)} />
+              <Button kind="secondary" label={u.cancel} onPress={clearNew} />
             </View>
           </View>
         </Card>
@@ -806,7 +795,7 @@ export function ServicesScreen(props: {
                     label={u.edit}
                     a11yLabel={fill(u.categoryEdit, { name: group.name ?? '' })}
                     onPress={() => {
-                      setCategoryEdit({ id, name: group.name ?? '' });
+                      setCategoryEdit({ id });
                       setError('');
                       setFieldError(null);
                       setInfo('');
@@ -821,18 +810,14 @@ export function ServicesScreen(props: {
                     <FormField
                       error={problemAt('category')}
                       accessibilityLabel={u.categoryNameLabel}
-                      value={categoryEdit.name}
+                      value={categoryEdit.name ?? group.name ?? ''}
                       onChangeText={(name) => setCategoryEdit({ id, name })}
                       maxLength={60}
                       style={styles.input}
                     />
                     <View style={styles.row}>
                       <Button label={u.save} busy={busy} onPress={() => void renameCategory()} />
-                      <Button
-                        kind="secondary"
-                        label={u.cancel}
-                        onPress={() => setCategoryEdit(null)}
-                      />
+                      <Button kind="secondary" label={u.cancel} onPress={clearCategoryEdit} />
                     </View>
                     <Text style={styles.muted}>
                       {fill(u.categoryRemoveHint, { count: String(group.services.length) })}
@@ -851,8 +836,25 @@ export function ServicesScreen(props: {
               {group.services.map((service, index) => {
                 if (!visible(service)) return null;
                 const problem = bookingProblem(service);
-                const open = editId === service.id;
-                const copying = copyId === service.id;
+                const form =
+                  editDraft?.id === service.id
+                    ? {
+                        name: service.name,
+                        description: service.description ?? '',
+                        buffer: String(service.bufferMinutes),
+                        wishPhotos: service.wishPhotos,
+                        price: priceInput(service.priceGrosze),
+                        duration: String(service.durationMinutes),
+                        active: service.active,
+                        categoryId: service.categoryId,
+                        staffIds: service.staffIds,
+                        ...editDraft.fields,
+                      }
+                    : null;
+                const copy =
+                  copyDraft?.id === service.id
+                    ? { ...copyForm(service, u.copyName), ...copyDraft.fields }
+                    : null;
                 return (
                   <Card key={service.id}>
                     <Pressable
@@ -882,9 +884,9 @@ export function ServicesScreen(props: {
                     {problem ? (
                       <Text style={styles.warn}>{problem === 'hidden' ? u.hidden : u.nobody}</Text>
                     ) : null}
-                    {open ? (
+                    {form ? (
                       <View style={{ gap: 10, marginTop: 6 }}>
-                        {nameFields(form, (change) => setForm((f) => ({ ...f, ...change })))}
+                        {nameFields(form, changeEdit)}
                         <Text style={styles.label}>
                           {fill(u.price, { currency: salon.currency })}
                         </Text>
@@ -892,7 +894,7 @@ export function ServicesScreen(props: {
                           error={problemAt('price')}
                           accessibilityLabel={fill(u.price, { currency: salon.currency })}
                           value={form.price}
-                          onChangeText={(price) => setForm((f) => ({ ...f, price }))}
+                          onChangeText={(price) => changeEdit({ price })}
                           keyboardType="decimal-pad"
                           style={styles.input}
                         />
@@ -901,16 +903,16 @@ export function ServicesScreen(props: {
                           error={problemAt('duration')}
                           accessibilityLabel={u.duration}
                           value={form.duration}
-                          onChangeText={(duration) => setForm((f) => ({ ...f, duration }))}
+                          onChangeText={(duration) => changeEdit({ duration })}
                           keyboardType="number-pad"
                           style={styles.input}
                         />
-                        {extraFields(form, (change) => setForm((f) => ({ ...f, ...change })))}
+                        {extraFields(form, changeEdit)}
                         <Pressable
                           accessibilityRole="checkbox"
                           accessibilityLabel={u.active}
                           accessibilityState={{ checked: form.active }}
-                          onPress={() => setForm((f) => ({ ...f, active: !f.active }))}
+                          onPress={() => changeEdit({ active: !form.active })}
                           style={styles.check}
                         >
                           <Text style={[styles.box, form.active && styles.boxOn]}>
@@ -919,23 +921,23 @@ export function ServicesScreen(props: {
                           <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
                         </Pressable>
                         {categoryPicker(form.categoryId, (categoryId) =>
-                          setForm((f) => ({ ...f, categoryId })),
+                          changeEdit({ categoryId }),
                         )}
                         {performersPicker(
                           form.staffIds,
-                          (staffIds) => setForm((f) => ({ ...f, staffIds })),
+                          (staffIds) => changeEdit({ staffIds }),
                           (staffId, name) => ownRates(service, staffId, name),
                         )}
                         <View style={styles.row}>
-                          <Button label={u.save} busy={busy} onPress={() => void save(service)} />
                           <Button
-                            kind="secondary"
-                            label={u.cancel}
-                            onPress={() => setEditId(null)}
+                            label={u.save}
+                            busy={busy}
+                            onPress={() => void save(service, form)}
                           />
+                          <Button kind="secondary" label={u.cancel} onPress={clearEdit} />
                         </View>
                       </View>
-                    ) : copying ? (
+                    ) : copy ? (
                       <View style={{ gap: 10, marginTop: 6 }}>
                         <Text role="heading" aria-level={3} style={styles.label}>
                           {u.copyTitle}
@@ -946,7 +948,7 @@ export function ServicesScreen(props: {
                           error={problemAt('name')}
                           accessibilityLabel={u.name}
                           value={copy.name}
-                          onChangeText={(name) => setCopy((f) => ({ ...f, name }))}
+                          onChangeText={(name) => changeCopy({ name })}
                           maxLength={100}
                           style={styles.input}
                         />
@@ -957,7 +959,7 @@ export function ServicesScreen(props: {
                           error={problemAt('price')}
                           accessibilityLabel={fill(u.price, { currency: salon.currency })}
                           value={copy.price}
-                          onChangeText={(price) => setCopy((f) => ({ ...f, price }))}
+                          onChangeText={(price) => changeCopy({ price })}
                           keyboardType="decimal-pad"
                           style={styles.input}
                         />
@@ -966,7 +968,7 @@ export function ServicesScreen(props: {
                           error={problemAt('duration')}
                           accessibilityLabel={u.duration}
                           value={copy.duration}
-                          onChangeText={(duration) => setCopy((f) => ({ ...f, duration }))}
+                          onChangeText={(duration) => changeCopy({ duration })}
                           keyboardType="number-pad"
                           style={styles.input}
                         />
@@ -974,7 +976,7 @@ export function ServicesScreen(props: {
                           accessibilityRole="checkbox"
                           accessibilityLabel={u.active}
                           accessibilityState={{ checked: copy.active }}
-                          onPress={() => setCopy((f) => ({ ...f, active: !f.active }))}
+                          onPress={() => changeCopy({ active: !copy.active })}
                           style={styles.check}
                         >
                           <Text style={[styles.box, copy.active && styles.boxOn]}>
@@ -983,19 +985,15 @@ export function ServicesScreen(props: {
                           <Text style={[styles.text, { flexShrink: 1 }]}>{u.active}</Text>
                         </Pressable>
                         {categoryPicker(copy.categoryId, (categoryId) =>
-                          setCopy((f) => ({ ...f, categoryId })),
+                          changeCopy({ categoryId }),
                         )}
                         <View style={styles.row}>
                           <Button
                             label={u.save}
                             busy={busy}
-                            onPress={() => void saveCopy(service)}
+                            onPress={() => void saveCopy(service, copy)}
                           />
-                          <Button
-                            kind="secondary"
-                            label={u.cancel}
-                            onPress={() => setCopyId(null)}
-                          />
+                          <Button kind="secondary" label={u.cancel} onPress={clearCopy} />
                         </View>
                       </View>
                     ) : removeId === service.id ? (
@@ -1034,8 +1032,8 @@ export function ServicesScreen(props: {
                           label={u.remove}
                           a11yLabel={`${u.remove}: ${service.name}`}
                           onPress={() => {
-                            setEditId(null);
-                            setCopyId(null);
+                            clearEdit();
+                            clearCopy();
                             setRemoveId(service.id);
                             setError('');
                             setFieldError(null);
