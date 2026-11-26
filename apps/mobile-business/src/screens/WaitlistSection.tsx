@@ -47,6 +47,8 @@ function DayWaitlist(props: Props) {
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState('');
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   const past = date < props.today;
 
   const { orgId, locationId } = salon;
@@ -77,19 +79,20 @@ function DayWaitlist(props: Props) {
       (list) => {
         if (!active || pending.current !== request) return;
         pending.current = null;
+        setReadError('');
         const next = waitlistOfDay(list, date);
         setEntries((previous) => (previous?.length === 0 && !next.length ? previous : next));
       },
-      () => {
+      (cause: unknown) => {
         if (!active || pending.current !== request) return;
         pending.current = null;
-        // Keep the current list and any open confirmation on a failed refresh.
+        setReadError(errorText(cause, t));
       },
     );
     return () => {
       active = false;
     };
-  }, [api, salon, orgId, locationId, date, past, props.reload]);
+  }, [api, salon, orgId, locationId, date, past, props.reload, attempt, t]);
 
   async function remove(entry: WaitlistEntry) {
     const signal = scope.current?.signal;
@@ -114,20 +117,33 @@ function DayWaitlist(props: Props) {
     }
   }
 
-  if (!entries) return null;
+  if (!entries && !readError) return null;
 
   return (
     <View style={styles.wrap} accessibilityLabel={w.title}>
       <Text role="heading" style={styles.section}>
-        {w.title} ({entries.length})
+        {entries ? `${w.title} (${entries.length})` : w.title}
       </Text>
-      {entries.length > 0 ? <Text style={styles.muted}>{w.hint}</Text> : null}
+      {readError ? (
+        <>
+          <Text role="status" accessibilityLiveRegion="polite" style={styles.readError}>
+            {readError}
+          </Text>
+          <Button
+            kind="secondary"
+            label={t.day.refresh}
+            a11yLabel={`${t.day.refresh}: ${w.title}`}
+            onPress={() => setAttempt((n) => n + 1)}
+          />
+        </>
+      ) : null}
+      {entries?.length ? <Text style={styles.muted}>{w.hint}</Text> : null}
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
         </Text>
       ) : null}
-      {entries.map((e) => (
+      {entries?.map((e) => (
         <Card key={e.id}>
           <WaitlistDetails entry={e} timeZone={props.timeZone} w={w} />
           {confirm === e.id ? (
@@ -222,6 +238,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   muted: { color: colors.muted, fontSize: 15 },
+  readError: { color: colors.danger, fontSize: 15 },
   small: { color: colors.muted, fontSize: 13 },
   name: { maxWidth: '100%', flexShrink: 1, fontSize: 17, fontWeight: '600', color: colors.ink },
   info: { color: '#2e7d32', fontSize: 15 },

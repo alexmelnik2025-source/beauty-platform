@@ -25,7 +25,7 @@ export type SpecialistRow =
   | { staff: Specialist; state: 'none' };
 
 export interface Team {
-  /** The calendar's specialists (active ones), in the salon's order. */
+  /** Active specialists, plus inactive profiles with an account or pending invitation to manage. */
   specialists: SpecialistRow[];
   /** Owners and managers of this salon (people with access but no specialist profile here). */
   managers: Member[];
@@ -44,10 +44,12 @@ export function teamOf(
   invitations: InvitationList,
   locationId: string,
 ): Team {
-  const waiting = invitations.filter(pending);
-  const byUser = new Map(members.map((m) => [m.user.id, m]));
+  const salonMembers = members.filter(ofSalon(locationId));
+  const waiting = invitations.filter((i) => pending(i) && i.locationIds.includes(locationId));
+  const byUser = new Map(salonMembers.map((m) => [m.user.id, m]));
+  const invitedProfiles = new Set(waiting.map((invitation) => invitation.staffMemberId));
   const specialists: SpecialistRow[] = staff
-    .filter((s) => s.active)
+    .filter((s) => s.active || (s.userId && byUser.has(s.userId)) || invitedProfiles.has(s.id))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((s): SpecialistRow => {
       if (s.userId) return { staff: s, state: 'account', member: byUser.get(s.userId) ?? null };
@@ -59,17 +61,12 @@ export function teamOf(
   const roleOrder = { owner: 0, manager: 1, staff: 2 } as const;
   return {
     specialists,
-    managers: members
-      .filter(ofSalon(locationId))
+    managers: salonMembers
       .filter((m) => !linkedUsers.has(m.user.id))
       .sort(
         (a, b) => roleOrder[a.role] - roleOrder[b.role] || a.user.name.localeCompare(b.user.name),
       ),
-    invitations: waiting.filter(
-      (i) =>
-        i.locationIds.includes(locationId) &&
-        !(i.staffMemberId && tiedInvitations.has(i.staffMemberId)),
-    ),
+    invitations: waiting.filter((i) => !(i.staffMemberId && tiedInvitations.has(i.staffMemberId))),
   };
 }
 

@@ -7,6 +7,7 @@ import {
   type ServiceList,
   type StaffList,
 } from './api';
+import { localToIso } from './blocks';
 import { addDays } from './day';
 import { normalizePhone } from './phone';
 import type { PaymentMethod } from './payment';
@@ -88,34 +89,7 @@ export function freeTimes(
  * zone (not the phone's). Used for a walk-in entered afterwards; summer time is handled.
  */
 export function localToInstant(date: string, time: string, timeZone: string): string {
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
-  const [hh, mm] = time.split(':').map(Number) as [number, number];
-  const wanted = Date.UTC(y, m - 1, d, hh, mm);
-  // The zone's offset at that moment; once more in case the first guess crossed a DST change.
-  let instant = wanted - offsetMs(wanted, timeZone);
-  instant = wanted - offsetMs(instant, timeZone);
-  return new Date(instant).toISOString();
-}
-
-function offsetMs(instant: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(new Date(instant));
-  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
-  const local = Date.UTC(
-    part('year'),
-    part('month') - 1,
-    part('day'),
-    part('hour'),
-    part('minute'),
-  );
-  return local - Math.floor(instant / 60_000) * 60_000;
+  return new Date(localToIso(date, time, timeZone)).toISOString();
 }
 
 /** "9:5", "0935", "09.35" → "09:35"; null when it is not a time on a 5-minute mark. */

@@ -111,8 +111,8 @@ export function newReward(
   let discountPercent: number | null = null;
   let freeServiceId: string | null = null;
   if (form.kind === 'discount_percent') {
-    const percent = Number(form.percent.trim().replace(/%$/, ''));
-    if (!form.percent.trim() || !Number.isInteger(percent) || percent < 1 || percent > 100) {
+    const percent = whole(form.percent.trim().replace(/%$/, ''), 1, 100);
+    if (percent === null) {
       return { ok: false, problem: 'percent' };
     }
     discountPercent = percent;
@@ -120,8 +120,8 @@ export function newReward(
     if (!form.serviceId) return { ok: false, problem: 'service' };
     freeServiceId = form.serviceId;
   }
-  const cost = Number(form.cost.trim());
-  if (!form.cost.trim() || !Number.isInteger(cost) || cost < 1 || cost > 100_000) {
+  const cost = whole(form.cost, 1, 100_000);
+  if (cost === null) {
     return { ok: false, problem: 'cost' };
   }
   return { ok: true, reward: { name, kind: form.kind, discountPercent, freeServiceId, cost } };

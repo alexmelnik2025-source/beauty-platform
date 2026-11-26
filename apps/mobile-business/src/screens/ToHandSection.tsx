@@ -53,6 +53,8 @@ export function ToHandSection(props: {
   const { api, t, salon, appointmentId, canChange, completed, onHanded } = props;
   const p = t.products;
   const [data, setData] = useState<VisitReservations | null>(null);
+  const [readError, setReadError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ id: string; action: Action; message: string } | null>(null);
@@ -75,20 +77,23 @@ export function ToHandSection(props: {
     let reusable = false;
     setData(null);
     setError(null);
+    setReadError('');
     void load().then(
       (result) => {
         if (!active) return;
         reusable = hasVisibleReservations(result);
         setData(result);
       },
-      () => {},
+      (cause: unknown) => {
+        if (active) setReadError(errorText(cause, t));
+      },
     );
     return () => {
       active = false;
       // The client can reserve their first product while the visit is closed.
       if (!reusable) reservationCache.clear(salon);
     };
-  }, [load, salon]);
+  }, [load, salon, t, attempt]);
 
   const run = async (reservationId: string, action: Action) => {
     const signal = lifetime.current?.signal;
@@ -128,6 +133,24 @@ export function ToHandSection(props: {
     }
   };
 
+  if (readError) {
+    return (
+      <View style={styles.card} testID="visit-to-hand">
+        <Text style={styles.title} accessibilityRole="header">
+          {p.toHandTitle}
+        </Text>
+        <Text role="status" accessibilityLiveRegion="polite" style={styles.error}>
+          {readError}
+        </Text>
+        <Button
+          kind="secondary"
+          label={t.day.refresh}
+          a11yLabel={`${t.day.refresh}: ${p.toHandTitle}`}
+          onPress={() => setAttempt((n) => n + 1)}
+        />
+      </View>
+    );
+  }
   if (!data) return null;
   const waiting = data.reservations.filter((r) => r.status === 'reserved');
   const handed = data.reservations.filter((r) => r.status === 'handed');

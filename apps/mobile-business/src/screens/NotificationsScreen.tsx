@@ -41,6 +41,7 @@ export function NotificationsScreen(props: {
   const shown = useRef<Notice[]>(list ?? []);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const lifetime = useScreenLifetime(salon);
@@ -120,6 +121,7 @@ export function NotificationsScreen(props: {
       const key = id ?? 'all';
       if (marking.current.has(key) || marking.current.has('all')) return;
       marking.current.add(key);
+      if (!id) setMarkingAll(true);
       const signal = lifetime.current!.signal;
       try {
         await withNetworkTimeout(api.markNotificationsRead(id ? { ids: [id] } : { all: true }));
@@ -143,6 +145,7 @@ export function NotificationsScreen(props: {
         if (!signal.aborted) setError(errorText(e, t));
       } finally {
         marking.current.delete(key);
+        if (!id && !signal.aborted) setMarkingAll(false);
       }
     },
     [api, lifetime, salon, t],
@@ -196,7 +199,12 @@ export function NotificationsScreen(props: {
           <Heading>{n.title}</Heading>
           {unread ? (
             <View style={styles.row}>
-              <Button kind="secondary" label={n.readAll} onPress={() => void markRead()} />
+              <Button
+                kind="secondary"
+                label={n.readAll}
+                busy={markingAll}
+                onPress={() => void markRead()}
+              />
             </View>
           ) : null}
           {error ? <ErrorText>{error}</ErrorText> : null}

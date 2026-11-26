@@ -72,7 +72,7 @@ export function SignInScreen(props: {
       props.onSignedIn();
     } catch (e) {
       setError(
-        e instanceof ApiError && e.status !== 429 && e.status < 500
+        e instanceof ApiError && (e.status === 400 || e.status === 410)
           ? { field: 'badCode' }
           : { request: e },
       );
