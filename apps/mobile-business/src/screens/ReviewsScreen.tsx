@@ -608,6 +608,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
   const [saved, setSaved] = useState<ReviewSettings | null>(null);
   const [form, setForm] = useState<ReviewSettings | null>(null);
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   const lifetime = useScreenLifetime(salon);
@@ -646,7 +647,8 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
   }
 
   async function save() {
-    if (!form) return;
+    if (!form || saving.current) return;
+    saving.current = true;
     const signal = lifetime.current!.signal;
     setBusy(true);
     setNote(null);
@@ -671,6 +673,7 @@ const ReviewSettingsCard = memo(function ReviewSettingsCard(props: {
         setNote({ text: errorText(e, t), bad: true });
       }
     } finally {
+      saving.current = false;
       if (!signal.aborted) setBusy(false);
     }
   }

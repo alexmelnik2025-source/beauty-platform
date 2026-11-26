@@ -370,6 +370,8 @@ export function VouchersScreen(props: {
   const [sold, setSold] = useState<GiftVoucher | null>(null);
   const [selling, setSelling] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const cancellingRef = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
   const [info, setInfo] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvInfo, setCsvInfo] = useState('');
@@ -377,9 +379,9 @@ export function VouchersScreen(props: {
 
   const load = useCallback(async () => {
     if (!manager) return;
+    setListError('');
     try {
       setList(await api.giftVouchers(salon.orgId, salon.locationId));
-      setListError('');
     } catch (e) {
       setListError(voucherErrorText(e, t));
     }
@@ -448,7 +450,12 @@ export function VouchersScreen(props: {
   }, [api, salon.orgId, salon.locationId, lookup, clearLookup, t]);
 
   function check() {
-    if (!code.trim()) return;
+    if (!code.trim()) {
+      clearLookup();
+      setFound(null);
+      setCheckError(fill(t.salon.missing, { list: v.code }));
+      return;
+    }
     setCheckError('');
     setFound(null);
     setLookup({ code });
@@ -490,7 +497,11 @@ export function VouchersScreen(props: {
   }
 
   async function cancel(voucher: GiftVoucher) {
+    if (cancellingRef.current) return;
+    cancellingRef.current = true;
+    setCancelling(true);
     setInfo('');
+    setListError('');
     try {
       const cancelled = await api.cancelGiftVoucher(salon.orgId, salon.locationId, voucher.id);
       setFound((current) =>
@@ -498,9 +509,13 @@ export function VouchersScreen(props: {
       );
       setInfo(fill(v.cancelled, { code: voucher.code }));
       setConfirm(null);
+      setList(null);
       await load();
     } catch (e) {
       setListError(voucherErrorText(e, t));
+    } finally {
+      cancellingRef.current = false;
+      setCancelling(false);
     }
   }
 
@@ -517,7 +532,16 @@ export function VouchersScreen(props: {
       <Text role="heading" aria-level={2} style={styles.subheading}>
         {v.checkTitle}
       </Text>
-      <Input error={checkError} label={v.code} value={code} onChange={setCode} caps />
+      <Input
+        error={checkError}
+        label={v.code}
+        value={code}
+        onChange={(value) => {
+          setCode(value);
+          setCheckError('');
+        }}
+        caps
+      />
       <Button kind="secondary" label={v.check} busy={checking} onPress={check} />
 
       {found ? (
@@ -591,7 +615,9 @@ export function VouchersScreen(props: {
             </Text>
           ) : null}
           {list === null ? (
-            listError ? null : (
+            listError ? (
+              <Button kind="secondary" label={t.day.refresh} onPress={() => void load()} />
+            ) : (
               <Text style={styles.muted}>{t.loading}</Text>
             )
           ) : list.vouchers.length === 0 ? (
@@ -651,11 +677,13 @@ export function VouchersScreen(props: {
                             <Button
                               kind="secondary"
                               label={v.cancelYes}
+                              disabled={cancelling}
                               onPress={() => void cancel(x)}
                             />
                             <Button
                               kind="link"
                               label={v.cancelNo}
+                              disabled={cancelling}
                               onPress={() => setConfirm(null)}
                             />
                           </View>
@@ -664,6 +692,7 @@ export function VouchersScreen(props: {
                         <Button
                           kind="link"
                           label={v.cancel}
+                          disabled={cancelling}
                           a11yLabel={`${v.cancel} ${x.code}`}
                           onPress={() => {
                             setInfo('');

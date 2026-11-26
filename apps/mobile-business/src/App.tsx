@@ -8,7 +8,7 @@ import { API_URL } from './config';
 import { errorText } from './errors';
 import { DICTIONARIES, pickLocale } from './i18n';
 import { DayScreen } from './screens/DayScreen';
-import { NewSalonScreen } from './screens/NewSalonScreen';
+import { NewSalonScreen, type PendingOrganization } from './screens/NewSalonScreen';
 import { SalonsScreen, type SalonChoice } from './screens/SalonsScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { tokenStore } from './storage';
@@ -30,6 +30,7 @@ export default function App() {
   const api = useMemo(() => new BusinessApi(API_URL, tokenStore, undefined, deviceName), []);
   const [locale, setLocale] = useState<Locale>(deviceLocale);
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
+  const [pendingOrganization, setPendingOrganization] = useState<PendingOrganization | null>(null);
   const [timeZones, setTimeZones] = useState<Record<string, string>>({});
   const t = DICTIONARIES[locale];
 
@@ -95,8 +96,14 @@ export default function App() {
 
   const signOut = useCallback(async () => {
     await api.signOut();
+    setPendingOrganization(null);
     setStage({ kind: 'signIn' });
   }, [api]);
+
+  function openFreshSalonList() {
+    setPendingOrganization(null);
+    return openSalons();
+  }
 
   return (
     <SafeAreaProvider>
@@ -116,7 +123,7 @@ export default function App() {
               t={t}
               locale={locale}
               onLocale={setLocale}
-              onSignedIn={openSalons}
+              onSignedIn={openFreshSalonList}
             />
           ) : stage.kind === 'salons' ? (
             <SalonsScreen
@@ -138,7 +145,9 @@ export default function App() {
               api={api}
               t={t}
               locale={locale}
-              onCreated={openSalons}
+              organization={pendingOrganization}
+              onOrganizationCreated={setPendingOrganization}
+              onCreated={openFreshSalonList}
               onBack={openSalons}
             />
           ) : (
