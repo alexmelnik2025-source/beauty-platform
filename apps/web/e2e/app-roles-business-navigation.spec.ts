@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import { DICTIONARIES } from '../../mobile-business/src/i18n';
+import { freshAddress } from './addresses';
 import { createRoleSalon } from './app-roles-business-fixture';
 import { serveApp } from './mobile-app';
 
@@ -10,6 +11,7 @@ let app: Awaited<ReturnType<typeof serveApp>>;
 test.beforeAll(async ({ playwright }) => {
   api = await playwright.request.newContext({
     baseURL: process.env.API_URL ?? 'http://localhost:4000',
+    extraHTTPHeaders: freshAddress(),
   });
   salon = await createRoleSalon(api);
   app = await serveApp('mobile-business');
@@ -53,6 +55,15 @@ for (const locale of ['pl', 'en'] as const) {
         await ownVisit.click();
         await expect(page.getByText(t.visit.status.confirmed, { exact: true })).toBeVisible();
         await button(t.visit.back).click();
+        const addBlock = button('+ ' + t.blocks.add);
+        if (management) {
+          await addBlock.click();
+          await screen(t.blocks.add);
+          await expect(page.getByRole('group', { name: t.blocks.who })).toBeVisible();
+          await button(t.schedule.back).click();
+        } else {
+          await expect(addBlock).toHaveCount(0);
+        }
         await button(t.week.open).click();
         await screen(t.week.title);
         await button(t.week.back).click();
@@ -63,6 +74,20 @@ for (const locale of ['pl', 'en'] as const) {
           if (management) {
             await tab(section.open).click();
             await screen(section.title);
+            if (section === t.clients) {
+              const card = button(t.clients.card + ': EJ Own Client');
+              await card.click();
+              await screen('EJ Own Client');
+              await button(t.clients.edit).click();
+              const note = 'EJ ' + role + ' ' + locale;
+              await page.getByRole('textbox', { name: t.clients.note, exact: true }).fill(note);
+              await button(t.clients.save).click();
+              await expect(page.getByText(note, { exact: true })).toBeVisible();
+              await button(t.clients.back).click();
+              await card.click();
+              await expect(page.getByText(note, { exact: true })).toBeVisible();
+              await button(t.clients.back).click();
+            }
             if (section === t.shop) {
               await tab(t.navigation.integrations).click();
               await expect(tab(t.navigation.integrations)).toHaveAttribute('aria-selected', 'true');
@@ -105,6 +130,12 @@ for (const locale of ['pl', 'en'] as const) {
             }
             await button(section.open).click();
             await screen(section.title);
+            if (section === t.team) {
+              await button(t.navigation.more).click();
+              await button(t.rights.open).click();
+              await screen(t.rights.title);
+              await button(t.rights.back).click();
+            }
             if (section === t.vouchers) {
               await expect(button(t.vouchers.check)).toBeEnabled();
               if (management) await expect(button(t.vouchers.sell)).toBeEnabled();

@@ -37,7 +37,7 @@ export async function createRoleSalon(api: APIRequestContext) {
       api,
       base + '/locations',
       {
-        name: 'Studio EJ',
+        name: 'Studio EJ ' + suffix,
         city: 'Warszawa',
         addressLine: 'Testowa 1',
         postalCode: '00-001',
