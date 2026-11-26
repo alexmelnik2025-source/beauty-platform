@@ -1,6 +1,6 @@
 import { useClearFormDraft, useFormDraft } from '../formDrafts';
 import { FieldGroup, FormField } from '../formFields';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type {
   AppointmentDetail,
@@ -78,6 +78,8 @@ export function NewVisitScreen(props: {
   const clearDraft = useClearFormDraft(draftKey);
   const [services, setServices] = useState<ServiceList | null>(null);
   const [staff, setStaff] = useState<StaffList>([]);
+  const [servicesError, setServicesError] = useState('');
+  const [servicesRevision, setServicesRevision] = useState(0);
   const suggested =
     preset && services
       ? presetChoice(preset, services, (id) => staffForService(staff, id, me, mineId))
@@ -105,6 +107,8 @@ export function NewVisitScreen(props: {
   const [paidWith, setPaidWith] = useFormDraft<PaymentMethod | null>(`${draftKey}paidWith`, null);
   const [search, setSearch] = useFormDraft(`${draftKey}search`, '');
   const [found, setFound] = useState<CustomerList | null>(null);
+  const [searchError, setSearchError] = useState('');
+  const [searchRevision, setSearchRevision] = useState(0);
   const [clientId, setClientId] = useFormDraft<string | null>(
     `${draftKey}clientId`,
     preset?.customer?.id ?? null,
@@ -125,6 +129,7 @@ export function NewVisitScreen(props: {
   const [timeError, setTimeError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
   const searchable = maySearchClients(me);
   const restoreClientId = searchable && !client ? clientId : null;
   const mayMark =
@@ -134,6 +139,7 @@ export function NewVisitScreen(props: {
 
   useEffect(() => {
     let alive = true;
+    setServicesError('');
     void (async () => {
       try {
         const [list, team] = await Promise.all([
@@ -144,13 +150,13 @@ export function NewVisitScreen(props: {
         setServices(activeServices(list));
         setStaff(team);
       } catch (e) {
-        if (alive) setError(errorText(e, t));
+        if (alive) setServicesError(errorText(e, t));
       }
     })();
     return () => {
       alive = false;
     };
-  }, [api, salon, t]);
+  }, [api, salon, t, servicesRevision]);
 
   // Android "back" closes the form instead of the app.
   useEffect(() => {
@@ -199,24 +205,25 @@ export function NewVisitScreen(props: {
 
   // Clients of the salon as the owner or manager types (from 2 characters).
   useEffect(() => {
-    if (!searchable || search.trim().length < 2) {
-      setFound(null);
-      return;
-    }
+    setFound(null);
+    setSearchError('');
+    const query = search.trim();
+    if (!searchable || query.length < 2) return;
     let alive = true;
     const timer = setTimeout(() => {
-      void api
-        .customers(salon.orgId, search.trim(), 20)
-        .then((list) => alive && setFound(list))
-        .catch(() => alive && setFound([]));
+      void api.customers(salon.orgId, query, 20).then(
+        (list) => alive && setFound(list),
+        (e) => alive && setSearchError(errorText(e, t)),
+      );
     }, 300);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [api, salon, search, searchable]);
+  }, [api, salon.orgId, search, searchable, t, searchRevision]);
 
   async function save() {
+    if (saving.current) return;
     setProblem(null);
     setTimeError('');
     setError('');
@@ -237,6 +244,7 @@ export function NewVisitScreen(props: {
       if (!checked.ok) return setProblem(checked.problem);
       customer = checked.customer;
     }
+    saving.current = true;
     setBusy(true);
     try {
       const created = await api.createAppointment(
@@ -263,6 +271,7 @@ export function NewVisitScreen(props: {
       }
       if (kind === 'taken') setTimesRevision((revision) => revision + 1);
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -280,10 +289,17 @@ export function NewVisitScreen(props: {
 
       {/* 1. Service */}
       <Text style={styles.section}>{n.service}</Text>
-      {!services ? (
-        !error ? (
-          <Text style={styles.muted}>{t.loading}</Text>
-        ) : null
+      {servicesError ? (
+        <>
+          <ErrorText>{servicesError}</ErrorText>
+          <Button
+            kind="secondary"
+            label={t.day.refresh}
+            onPress={() => setServicesRevision((r) => r + 1)}
+          />
+        </>
+      ) : !services ? (
+        <Text style={styles.muted}>{t.loading}</Text>
       ) : service ? (
         <Chosen
           label={`${service.name} · ${service.durationMinutes} ${t.visit.minutes}`}
@@ -408,6 +424,7 @@ export function NewVisitScreen(props: {
                         accessibilityLabel={s.time}
                         key={s.start}
                         accessibilityRole="button"
+                        aria-pressed={start === s.start}
                         accessibilityState={{ selected: start === s.start }}
                         onPress={() => {
                           setProblem(null);
@@ -448,13 +465,21 @@ export function NewVisitScreen(props: {
             <>
               {searchable ? (
                 <>
-                  <TextInput
+                  <FormField
+                    error={searchError || undefined}
                     accessibilityLabel={n.search}
                     placeholder={n.search}
                     value={search}
                     onChangeText={setSearch}
                     style={styles.input}
                   />
+                  {searchError ? (
+                    <Button
+                      kind="secondary"
+                      label={t.day.refresh}
+                      onPress={() => setSearchRevision((r) => r + 1)}
+                    />
+                  ) : null}
                   {search.trim().length > 0 && search.trim().length < 2 ? (
                     <Text style={styles.muted}>{n.searchHint}</Text>
                   ) : null}
