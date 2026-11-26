@@ -44,7 +44,8 @@ function split(url: string): { path: string[]; query: URLSearchParams } | null {
   } else if (scheme === 'exp' || scheme === 'exps') {
     if (!path.shift()) return null;
     const marker = path.indexOf('--');
-    if (marker >= 0) path.splice(0, marker + 1);
+    if (marker < 0) return null;
+    path.splice(0, marker + 1);
   } else if (scheme === 'beauty-client') {
     // Both beauty-client://b/salon and beauty-client:///b/salon name the app route.
     if (path[0] === '') path.shift();

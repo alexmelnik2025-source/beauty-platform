@@ -5,6 +5,10 @@ import { parseRecent, type RecentSalon } from './recent';
 
 const KEY = 'beauty.client.session';
 
+function savedToken(value: string | null | undefined): string | null {
+  return value?.trim() ? value : null;
+}
+
 /**
  * The client's session token (90 days): in the iPhone Keychain / Android Keystore. The web
  * preview (used by the e2e test for screenshots) has no Keychain, so it keeps it in the browser.
@@ -14,7 +18,7 @@ export const tokenStore: TokenStore =
     ? {
         async get() {
           try {
-            return globalThis.localStorage?.getItem(KEY) ?? null;
+            return savedToken(globalThis.localStorage?.getItem(KEY));
           } catch {
             return null;
           }
@@ -29,7 +33,7 @@ export const tokenStore: TokenStore =
         },
       }
     : {
-        get: () => SecureStore.getItemAsync(KEY),
+        get: async () => savedToken(await SecureStore.getItemAsync(KEY)),
         set: (value) =>
           value ? SecureStore.setItemAsync(KEY, value) : SecureStore.deleteItemAsync(KEY),
       };

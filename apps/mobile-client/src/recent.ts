@@ -23,7 +23,8 @@ export function parseRecent(raw: string | null): RecentSalon[] {
         !entry ||
         typeof entry.slug !== 'string' ||
         !entry.slug.trim() ||
-        typeof entry.name !== 'string'
+        typeof entry.name !== 'string' ||
+        !entry.name.trim()
       )
         continue;
       if (salons.has(entry.slug)) continue;

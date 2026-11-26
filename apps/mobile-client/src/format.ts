@@ -12,19 +12,36 @@ export const LOCALE_TAGS: Record<Locale, string> = {
   sq: 'sq-AL',
 };
 
+/** A salon-local YYYY-MM-DD. Reject impossible days before Date can roll them forward. */
+function calendarDay(value: string): Date | null {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? date : null;
+}
+
+/** ISO instant from the API. A wall-clock time alone is ambiguous on the client's device. */
+export function parseInstant(iso: string): number {
+  const match =
+    typeof iso === 'string' && /^(\d{4}-\d{2}-\d{2})T.+(?:Z|[+-]\d{2}:?\d{2})$/i.exec(iso);
+  return match && calendarDay(match[1]!) ? Date.parse(iso) : NaN;
+}
+
 /** "wtorek, 10 listopada" for the salon-local date YYYY-MM-DD (no time zone shift). */
 export function formatDay(date: string, locale: Locale): string {
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const day = calendarDay(date);
+  if (!day) return '—';
   return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
     timeZone: 'UTC',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  }).format(day);
 }
 
 /** Prices come in hundredths of the salon's currency (ISO 4217, launch task L5). */
 export function formatPrice(hundredths: number, currency: string, locale: Locale): string {
+  if (!Number.isFinite(hundredths) || typeof currency !== 'string' || !/^[a-z]{3}$/i.test(currency))
+    return '—';
   return new Intl.NumberFormat(LOCALE_TAGS[locale], { style: 'currency', currency }).format(
     hundredths / 100,
   );
@@ -65,49 +82,61 @@ export function groupByDay(
   return groups;
 }
 
+/** A missing instant or an unknown salon time zone has no reliable display value. */
+export function formatInstant(
+  iso: string,
+  locale: Locale,
+  options: Intl.DateTimeFormatOptions,
+): string {
+  try {
+    return new Intl.DateTimeFormat(LOCALE_TAGS[locale], options).format(parseInstant(iso));
+  } catch (error) {
+    if (error instanceof RangeError) return '—';
+    throw error;
+  }
+}
+
 /** "10 listopada 15:30" — a moment (ISO) shown in the salon's time zone, not the phone's. */
 export function formatMoment(iso: string, timeZone: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+  return formatInstant(iso, locale, {
     timeZone,
     day: 'numeric',
     month: 'long',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(iso));
+  });
 }
 
 /** "10 lutego 2027" — the date of a moment (ISO) in the salon's time zone. */
-export function formatDate(iso: string, timeZone: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+export function formatDate(iso: string, timeZone: string | undefined, locale: Locale): string {
+  return formatInstant(iso, locale, {
     timeZone,
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date(iso));
+  });
 }
 
 /** "wt" + "10" for the day strip of "Change time" (salon-local date, no time zone shift). */
 export function dayChip(date: string, locale: Locale): { weekday: string; day: string } {
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const local = calendarDay(date);
+  if (!local) return { weekday: '', day: '—' };
   const weekday = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
     timeZone: 'UTC',
     weekday: 'short',
-  }).format(new Date(Date.UTC(y, m - 1, d)));
-  return { weekday, day: String(d) };
+  }).format(local);
+  return { weekday, day: String(local.getUTCDate()) };
 }
 
 function bookableSlots(slots: Slot[]): Slot[] {
   if (!Array.isArray(slots)) return [];
   return slots.filter((slot) => {
-    if (!slot || !/^\d{4}-\d{2}-\d{2}$/.test(slot.date)) return false;
-    const date = new Date(`${slot.date}T00:00:00Z`);
     return (
-      Number.isFinite(date.getTime()) &&
-      date.toISOString().slice(0, 10) === slot.date &&
+      slot &&
+      calendarDay(slot.date) &&
       typeof slot.time === 'string' &&
       /^([01]\d|2[0-3]):[0-5]\d$/.test(slot.time) &&
-      typeof slot.start === 'string' &&
-      Number.isFinite(Date.parse(slot.start)) &&
+      Number.isFinite(parseInstant(slot.start)) &&
       Array.isArray(slot.staffIds) &&
       slot.staffIds.length > 0 &&
       slot.staffIds.every((id) => typeof id === 'string' && id.trim().length > 0)
@@ -124,8 +153,9 @@ export function slotsByDay(
   current?: { start: string },
 ): { date: string; slots: Slot[] }[] {
   const days: { date: string; slots: Slot[] }[] = [];
+  const currentStart = current ? parseInstant(current.start) : NaN;
   for (const slot of bookableSlots(slots)) {
-    if (current && Date.parse(slot.start) === Date.parse(current.start)) continue;
+    if (current && Date.parse(slot.start) === currentStart) continue;
     const last = days.at(-1);
     if (last && last.date === slot.date) last.slots.push(slot);
     else days.push({ date: slot.date, slots: [slot] });
@@ -163,13 +193,14 @@ export function nearestText(
   if (!slot) return texts.nearestNone;
   if (slot.date === days.today) return fill(texts.nearestToday, { time: slot.time });
   if (slot.date === days.tomorrow) return fill(texts.nearestTomorrow, { time: slot.time });
-  const [y, m, d] = slot.date.split('-').map(Number) as [number, number, number];
+  const local = calendarDay(slot.date);
+  if (!local) return texts.nearestNone;
   const day = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
     timeZone: 'UTC',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  }).format(local);
   return fill(texts.nearestOn, { day, time: slot.time });
 }
 
@@ -185,7 +216,7 @@ export function visitActions(visit: ClientAppointment): {
   return {
     cancel: confirmed && visit.canChange,
     move: confirmed && visit.canChange,
-    tooLate: confirmed && !visit.canChange && Date.parse(visit.end) > Date.now(),
+    tooLate: confirmed && !visit.canChange && parseInstant(visit.end) > Date.now(),
   };
 }
 
@@ -233,12 +264,7 @@ export function visitSummaryLines(
   const parts = [fill(texts.summaryVisits, { n: String(summary.completed) })];
   if (summary.salons > 1) parts.push(fill(texts.summarySalons, { n: String(summary.salons) }));
   if (summary.firstVisitAt) {
-    const date = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
-      ...(timeZone ? { timeZone } : {}),
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date(summary.firstVisitAt));
+    const date = formatDate(summary.firstVisitAt, timeZone, locale);
     parts.push(fill(texts.summarySince, { date }));
   }
   const spent = summary.spent.map((s) => formatPrice(s.amountGrosze, s.currency, locale));

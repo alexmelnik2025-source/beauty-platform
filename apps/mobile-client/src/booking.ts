@@ -1,4 +1,5 @@
 import { ApiError, parseEmail, type BookingContact, type PublicLocation, type Slot } from './api';
+import { parseInstant } from './format';
 import { normalizePhone } from './phone';
 
 /**
@@ -206,7 +207,7 @@ export function afterBookingError(error: unknown): 'pickTimeAgain' | 'reloadTime
 
 /** "4:59" left of the 10 minutes a time is held. */
 export function countdown(expiresAt: string, now: number = Date.now()): string {
-  const seconds = Math.max(0, Math.floor((Date.parse(expiresAt) - now) / 1000));
+  const seconds = Math.max(0, Math.floor((parseInstant(expiresAt) - now) / 1000));
   if (!Number.isFinite(seconds)) return '0:00';
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }

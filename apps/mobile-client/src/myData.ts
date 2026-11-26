@@ -14,14 +14,17 @@ interface BrowserDocument {
 export async function saveMyData(json: string, fileName: string, title: string): Promise<void> {
   if (Platform.OS === 'web') {
     const doc = (globalThis as unknown as { document: BrowserDocument }).document;
-    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
     const a = doc.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    doc.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    try {
+      a.href = url;
+      a.download = fileName;
+      doc.body.append(a);
+      a.click();
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      a.remove();
+    }
     return;
   }
   await Share.share({ title, message: json }, { subject: fileName, dialogTitle: title });
