@@ -195,15 +195,22 @@ test('permission drafts restore a category and keep member exceptions separate',
     return route.fulfill({ json: [] });
   });
 
+  // Task 844: after PR #127 (DI) "Uprawnienia" sits under the team screen's "Więcej ▸".
+  const openRights = async () => {
+    const more = button(page, pl.navigation.more);
+    await expect(more).toBeVisible();
+    if ((await more.getAttribute('aria-expanded')) !== 'true') await more.click();
+    await button(page, r.open).click();
+  };
   await openBusinessMenu(page, pl.team.open);
-  await button(page, r.open).click();
+  await openRights();
   await button(page, r.addCategory).click();
   const field = page.getByRole('textbox', { name: r.categoryName });
   const contacts = page.getByRole('checkbox', { name: r.names.viewClientContacts });
   await field.fill(name);
   await contacts.click();
   await button(page, r.back).click();
-  await button(page, r.open).click();
+  await openRights();
   await expect(field).toHaveValue(name);
   await expect(contacts).toBeChecked();
   await button(page, r.save).click();
@@ -218,7 +225,7 @@ test('permission drafts restore a category and keep member exceptions separate',
   await edit('Anna').click();
   await allow.click();
   await button(page, r.back).click();
-  await button(page, r.open).click();
+  await openRights();
   await expect(allow).toBeChecked();
   await edit('Ola').click();
   await expect(allow).not.toBeChecked();
