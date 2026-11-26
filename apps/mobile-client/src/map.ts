@@ -93,7 +93,7 @@ export function mapLayout<T extends MapPoint>(
   margin = 32,
   fixedZoom?: number,
 ): { zoom: number; tiles: MapTile[]; markers: MapMarker<T>[] } | null {
-  if (width <= 0 || height <= 0) return null;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
   const located = points.filter(
     (point) =>
       Number.isFinite(point?.latitude) &&

@@ -74,7 +74,8 @@ export function openingRows(
 export function addressText(
   s: Pick<DirectorySalon, 'addressLine' | 'postalCode' | 'city'>,
 ): string {
-  return `${s.addressLine}, ${`${s.postalCode} ${s.city}`.trim()}`;
+  const place = [s.postalCode?.trim(), s.city?.trim()].filter(Boolean).join(' ');
+  return [s.addressLine?.trim(), place].filter(Boolean).join(', ');
 }
 
 /**
@@ -86,7 +87,7 @@ export function directionsUrl(
   s: Pick<DirectorySalon, 'name' | 'addressLine' | 'postalCode' | 'city'>,
   platform: 'ios' | 'android' | 'web' | string,
 ): string {
-  const destination = encodeURIComponent(`${s.name}, ${addressText(s)}`);
+  const destination = encodeURIComponent([s.name, addressText(s)].filter(Boolean).join(', '));
   return platform === 'ios'
     ? `https://maps.apple.com/?daddr=${destination}`
     : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;

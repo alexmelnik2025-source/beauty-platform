@@ -1,5 +1,5 @@
 import type { Locale, PublicReviews } from './api';
-import { LOCALE_TAGS } from './format';
+import { formatInstant, LOCALE_TAGS, parseInstant } from './format';
 import { fill, type Dictionary } from './i18n';
 
 /**
@@ -39,11 +39,11 @@ export function staffChip(staff: PublicReviews['staff'][number], locale: Locale)
 
 /** "Kasia · Strzyżenie · 5 lis 2026" — with whom, what and when the review was written. */
 export function salonReviewLine(review: SalonReview, locale: Locale): string {
-  const day = new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+  const day = formatInstant(review.createdAt, locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(review.createdAt));
+  });
   return [review.staffName?.trim(), review.serviceName?.trim(), day].filter(Boolean).join(' · ');
 }
 
@@ -56,7 +56,11 @@ export function appendSalonReviews(shown: SalonReview[], page: SalonReview[]): S
     result.push(review);
     seen.add(review.id);
   }
-  return result.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  const timestamp = (review: SalonReview) => {
+    const time = parseInstant(review.createdAt);
+    return Number.isNaN(time) ? -Infinity : time;
+  };
+  return result.sort((a, b) => timestamp(b) - timestamp(a));
 }
 
 /** "★★★★☆" for 4 of 5. */

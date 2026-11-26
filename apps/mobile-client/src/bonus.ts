@@ -1,5 +1,5 @@
 import type { ClientLoyaltyCard, Locale } from './api';
-import { formatPrice, LOCALE_TAGS } from './format';
+import { formatInstant, formatPrice, LOCALE_TAGS } from './format';
 import { fill, type Dictionary } from './i18n';
 
 /**
@@ -105,11 +105,11 @@ export function progress(t: Dictionary, card: ClientLoyaltyCard): Progress {
 
 /** "4 lis 2026" — dates of coupons and history. */
 export function formatDate(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(LOCALE_TAGS[locale], {
+  return formatInstant(iso, locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(iso));
+  });
 }
 
 /** "+1" / "−3" for the history. */
