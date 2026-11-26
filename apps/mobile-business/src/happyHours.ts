@@ -52,7 +52,12 @@ export function newRule(form: {
   percent: string;
   staffIds: string[];
 }): { ok: true; rule: HappyHourRule } | { ok: false; problem: RuleProblem } {
-  if (form.weekdays.length === 0) return { ok: false, problem: 'days' };
+  if (
+    form.weekdays.length === 0 ||
+    form.weekdays.some((day) => !Number.isInteger(day) || day < 1 || day > 7)
+  ) {
+    return { ok: false, problem: 'days' };
+  }
   const start = parseClock(form.start);
   const end = parseClock(form.end);
   if (!start || !end) return { ok: false, problem: 'clock' };

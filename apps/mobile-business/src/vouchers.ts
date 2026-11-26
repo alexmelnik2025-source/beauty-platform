@@ -121,22 +121,31 @@ export function voucherCheckLink(bookingPage: string, code: string): string {
   return `${bookingPage}?bon=${encodeURIComponent(code)}`;
 }
 
-/**
- * Task 542: what the amount field of "Zapłać bonem" in the visit card starts with — what is left to
- * pay for the visit ("90" or "49,50"); empty when the price is hidden or all is paid.
- */
+function voucherRemainder(toPayGrosze: number | null, paidGrosze: number): number | null {
+  if (
+    toPayGrosze === null ||
+    !Number.isSafeInteger(toPayGrosze) ||
+    !Number.isSafeInteger(paidGrosze) ||
+    paidGrosze < 0
+  )
+    return null;
+  return Math.max(0, toPayGrosze - paidGrosze);
+}
+
 /**
  * Task 545: what the client still pays for the visit after the gift vouchers (0 = the vouchers
  * covered it); null when there is nothing to say — no voucher payment or no visit price.
  */
 export function visitVoucherLeft(toPayGrosze: number | null, paidGrosze: number): number | null {
-  if (toPayGrosze === null || paidGrosze <= 0) return null;
-  return Math.max(0, toPayGrosze - paidGrosze);
+  return paidGrosze === 0 ? null : voucherRemainder(toPayGrosze, paidGrosze);
 }
 
+/**
+ * Task 542: what the amount field of "Zapłać bonem" in the visit card starts with — what is left to
+ * pay for the visit ("90" or "49,50"); empty when the price is hidden or all is paid.
+ */
 export function visitVoucherAmount(toPayGrosze: number | null, paidGrosze: number): string {
-  if (toPayGrosze === null) return '';
-  const left = toPayGrosze - paidGrosze;
-  if (left <= 0) return '';
+  const left = voucherRemainder(toPayGrosze, paidGrosze);
+  if (left === null || left === 0) return '';
   return left % 100 === 0 ? String(left / 100) : (left / 100).toFixed(2).replace('.', ',');
 }

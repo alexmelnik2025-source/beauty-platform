@@ -1,4 +1,5 @@
 import type { StaffList, WorkingHours } from './api';
+import { daysOff, isScheduleDate } from './day';
 
 /**
  * Task 95: "Grafik zespołu" — the owner or a manager changes a specialist's weekly hours in the
@@ -109,11 +110,10 @@ export function hoursOff(date: string, text: string): { start: string; end: stri
   if (!intervals || intervals.length !== 1) return null;
   const [only] = intervals as [Interval];
   // "24:00" is the end of the day: the next day's midnight.
-  const end = only.end === '24:00' ? `${nextDay(date)}T00:00` : `${date}T${only.end}`;
-  return { start: `${date}T${only.start}`, end };
-}
-
-function nextDay(date: string): string {
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+  if (only.end === '24:00') {
+    const wholeDay = daysOff(date, date);
+    return wholeDay && { start: `${date}T${only.start}`, end: wholeDay.end };
+  }
+  if (!isScheduleDate(date)) return null;
+  return { start: `${date}T${only.start}`, end: `${date}T${only.end}` };
 }
