@@ -15,7 +15,16 @@ import {
   type Member,
   type Team,
 } from '../team';
-import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import {
+  Button,
+  Card,
+  colors,
+  Disclosure,
+  ErrorText,
+  Heading,
+  LoadingCards,
+  Pressable,
+} from '../ui';
 import { PermissionsScreen } from './PermissionsScreen';
 import type { SalonChoice } from './SalonsScreen';
 
@@ -183,16 +192,18 @@ export function TeamScreen(props: {
         <Button kind="link" label={z.back} onPress={onBack} />
       </View>
       <Heading>{z.title}</Heading>
-      <View style={styles.row}>
-        <Button
-          kind="secondary"
-          label={t.rights.open}
-          onPress={() => {
-            setInfo('');
-            setRights(true);
-          }}
-        />
-      </View>
+      <Disclosure label={t.navigation.more}>
+        <View style={styles.row}>
+          <Button
+            kind="secondary"
+            label={t.rights.open}
+            onPress={() => {
+              setInfo('');
+              setRights(true);
+            }}
+          />
+        </View>
+      </Disclosure>
       {info ? (
         <Text role="status" style={styles.info}>
           {info}
@@ -254,16 +265,12 @@ export function TeamScreen(props: {
           </View>
         </Card>
       ) : roles.length > 0 ? (
-        <Button
-          kind="secondary"
-          label={z.newPerson}
-          onPress={() => openForm({ staffMemberId: null, name: null })}
-        />
+        <Button label={z.newPerson} onPress={() => openForm({ staffMemberId: null, name: null })} />
       ) : null}
 
       {team === null ? (
         !error ? (
-          <Text style={styles.muted}>{t.loading}</Text>
+          <LoadingCards label={t.loading} />
         ) : null
       ) : (
         <>
@@ -271,85 +278,101 @@ export function TeamScreen(props: {
             {z.specialists}
           </Text>
           {team.specialists.length === 0 ? <Text style={styles.muted}>{z.none}</Text> : null}
-          {team.specialists.map((row) => (
-            <Card key={row.staff.id}>
-              <Text style={styles.name}>{row.staff.displayName}</Text>
-              {row.state === 'account' ? (
-                <>
-                  <Text style={styles.ok}>
-                    {row.member ? `${z.hasAccount} · ${row.member.user.email}` : z.hasAccount}
-                  </Text>
-                  {row.member ? removeButtons(row.member, row.staff.displayName) : null}
-                </>
-              ) : row.state === 'invited' ? (
-                <>
-                  <Text style={styles.waiting}>
-                    {[z.invited, row.invitation.email, row.invitation.phone]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                  <Button
-                    kind="link"
-                    label={z.cancelInvitation}
-                    a11yLabel={`${z.cancelInvitation}: ${row.staff.displayName}`}
-                    onPress={() =>
-                      void act(
-                        () => api.cancelInvitation(salon.orgId, row.invitation.id),
-                        z.cancelled,
-                      )
-                    }
-                  />
-                </>
-              ) : (
-                <>
-                  <Text style={styles.muted}>{z.noAccount}</Text>
-                  {roles.includes('staff') ? (
-                    <Button
-                      kind="link"
-                      label={z.invite}
-                      a11yLabel={`${z.invite}: ${row.staff.displayName}`}
-                      onPress={() =>
-                        openForm({ staffMemberId: row.staff.id, name: row.staff.displayName })
-                      }
-                    />
-                  ) : null}
-                </>
-              )}
+          {team.specialists.length > 0 ? (
+            <Card>
+              {team.specialists.map((row, index) => (
+                <View
+                  key={row.staff.id}
+                  style={[styles.tableRow, index > 0 && styles.tableDivider]}
+                >
+                  <Text style={styles.name}>{row.staff.displayName}</Text>
+                  {row.state === 'account' ? (
+                    <>
+                      <Text style={styles.ok}>
+                        {row.member ? `${z.hasAccount} · ${row.member.user.email}` : z.hasAccount}
+                      </Text>
+                      {row.member ? removeButtons(row.member, row.staff.displayName) : null}
+                    </>
+                  ) : row.state === 'invited' ? (
+                    <>
+                      <Text style={styles.waiting}>
+                        {[z.invited, row.invitation.email, row.invitation.phone]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                      <Button
+                        kind="link"
+                        label={z.cancelInvitation}
+                        a11yLabel={`${z.cancelInvitation}: ${row.staff.displayName}`}
+                        onPress={() =>
+                          void act(
+                            () => api.cancelInvitation(salon.orgId, row.invitation.id),
+                            z.cancelled,
+                          )
+                        }
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.muted}>{z.noAccount}</Text>
+                      {roles.includes('staff') ? (
+                        <Button
+                          kind="link"
+                          label={z.invite}
+                          a11yLabel={`${z.invite}: ${row.staff.displayName}`}
+                          onPress={() =>
+                            openForm({ staffMemberId: row.staff.id, name: row.staff.displayName })
+                          }
+                        />
+                      ) : null}
+                    </>
+                  )}
+                </View>
+              ))}
             </Card>
-          ))}
+          ) : null}
 
           <Text role="heading" aria-level={2} style={styles.section}>
             {z.managers}
           </Text>
-          {team.managers.map((m) => (
-            <Card key={m.membershipId}>
-              <Text style={styles.name}>{m.user.name}</Text>
-              <Text style={styles.muted}>{`${roleName(m.role)} · ${m.user.email}`}</Text>
-              {removeButtons(m, m.user.name)}
+          {team.managers.length > 0 ? (
+            <Card>
+              {team.managers.map((m, index) => (
+                <View
+                  key={m.membershipId}
+                  style={[styles.tableRow, index > 0 && styles.tableDivider]}
+                >
+                  <Text style={styles.name}>{m.user.name}</Text>
+                  <Text style={styles.muted}>{`${roleName(m.role)} · ${m.user.email}`}</Text>
+                  {removeButtons(m, m.user.name)}
+                </View>
+              ))}
             </Card>
-          ))}
+          ) : null}
 
           {team.invitations.length > 0 ? (
             <>
               <Text role="heading" aria-level={2} style={styles.section}>
                 {z.invitations}
               </Text>
-              {team.invitations.map((i) => (
-                <Card key={i.id}>
-                  <Text style={styles.name}>{i.email}</Text>
-                  <Text style={styles.waiting}>
-                    {[roleName(i.role), i.phone].filter(Boolean).join(' · ')}
-                  </Text>
-                  <Button
-                    kind="link"
-                    label={z.cancelInvitation}
-                    a11yLabel={`${z.cancelInvitation}: ${i.email}`}
-                    onPress={() =>
-                      void act(() => api.cancelInvitation(salon.orgId, i.id), z.cancelled)
-                    }
-                  />
-                </Card>
-              ))}
+              <Card>
+                {team.invitations.map((i, index) => (
+                  <View key={i.id} style={[styles.tableRow, index > 0 && styles.tableDivider]}>
+                    <Text style={styles.name}>{i.email}</Text>
+                    <Text style={styles.waiting}>
+                      {[roleName(i.role), i.phone].filter(Boolean).join(' · ')}
+                    </Text>
+                    <Button
+                      kind="link"
+                      label={z.cancelInvitation}
+                      a11yLabel={`${z.cancelInvitation}: ${i.email}`}
+                      onPress={() =>
+                        void act(() => api.cancelInvitation(salon.orgId, i.id), z.cancelled)
+                      }
+                    />
+                  </View>
+                ))}
+              </Card>
             </>
           ) : null}
         </>
@@ -360,6 +383,8 @@ export function TeamScreen(props: {
 
 const styles = StyleSheet.create({
   screen: { padding: 20, gap: 12 },
+  tableRow: { gap: 4 },
+  tableDivider: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   input: {
     backgroundColor: colors.card,

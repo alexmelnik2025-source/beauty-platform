@@ -26,7 +26,16 @@ import { favoriteSpecialists, type FavoriteSpecialist } from '../favorite';
 import { fill, type Dictionary } from '../i18n';
 import { LanguageRow } from '../LanguageRow';
 import { saveMyData } from '../myData';
-import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
+import {
+  Button,
+  Card,
+  colors,
+  Disclosure,
+  ErrorText,
+  Heading,
+  LoadingCards,
+  Pressable,
+} from '../ui';
 import { BonusesView } from './BonusesView';
 import { FavoritesView } from './FavoritesView';
 import { VisitScreen } from './VisitScreen';
@@ -208,7 +217,13 @@ export function VisitsScreen(props: {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={styles.header}>
-        <Heading>{t.visits.title}</Heading>
+        <Heading>
+          {tab === 'bonuses'
+            ? t.bonuses.tab
+            : tab === 'favorites'
+              ? t.favorites.tab
+              : t.visits.title}
+        </Heading>
         <Text style={styles.muted}>{fill(t.visits.signedInAs, { email: props.person.email })}</Text>
       </View>
 
@@ -248,6 +263,15 @@ export function VisitsScreen(props: {
           <ErrorText>{error}</ErrorText>
           <Button kind="secondary" label={t.visits.refresh} onPress={load} />
         </View>
+      ) : null}
+
+      {!error &&
+      (tab === 'bonuses'
+        ? bonuses === null
+        : tab === 'favorites'
+          ? favorites === null
+          : items === null) ? (
+        <LoadingCards label={t.loading} />
       ) : null}
 
       {tab === 'bonuses' && bonuses ? (
@@ -377,7 +401,7 @@ export function VisitsScreen(props: {
           ))
         : null}
 
-      <Button kind="secondary" label={t.catalog.title} onPress={() => props.onFindSalon()} />
+      <Button label={t.catalog.title} onPress={() => props.onFindSalon()} />
       <Button kind="link" label={t.shop.entry} onPress={props.onShop} />
       <RecentSalons
         t={t}
@@ -385,15 +409,17 @@ export function VisitsScreen(props: {
         onOpen={(salon) => props.onOpenSalon(salon.slug, salon.name)}
         onClear={() => props.onClearRecent?.()}
       />
-      <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
-      <Button
-        kind="link"
-        label={t.visits.downloadData}
-        busy={downloading}
-        onPress={() => void downloadData()}
-      />
-      <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
-      <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
+      <Disclosure label={t.visits.profile}>
+        <Text style={styles.muted}>{t.visits.downloadDataHint}</Text>
+        <Button
+          kind="link"
+          label={t.visits.downloadData}
+          busy={downloading}
+          onPress={() => void downloadData()}
+        />
+        <Button kind="link" label={t.visits.signOut} onPress={props.onSignOut} />
+        <LanguageRow label={t.language} locale={locale} onLocale={props.onLocale} />
+      </Disclosure>
     </ScrollView>
   );
 }
@@ -511,7 +537,7 @@ const styles = StyleSheet.create({
   },
   notified: { color: '#1e6b3a', fontSize: 14, lineHeight: 20, fontWeight: '600' },
   waitActions: { flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
-  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
+  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 12 },
   day: {
     color: colors.muted,
     fontSize: 13,

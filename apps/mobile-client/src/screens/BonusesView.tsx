@@ -14,7 +14,7 @@ import {
   tierText,
 } from '../bonus';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors } from '../ui';
+import { Button, Card, colors, Disclosure } from '../ui';
 
 /** "My bonuses": a card per salon — stamps or points, rewards, coupons and history. */
 export function BonusesView(props: {
@@ -123,54 +123,59 @@ function BonusCard({
               </Text>
             ) : null}
             {next ? <Text style={styles.text}>{next}</Text> : null}
-            <Text style={styles.muted}>{earningText(t, card, locale)}</Text>
+            <Disclosure label={t.catalog.more}>
+              <Text style={styles.muted}>{earningText(t, card, locale)}</Text>
 
-            {card.bonuses.length ? (
-              <View style={{ gap: 6, marginTop: 6 }}>
-                <Text role="heading" aria-level={3} style={styles.section}>
-                  {t.bonuses.extraTitle}
-                </Text>
-                <View role="list" aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}>
-                  {card.bonuses.map((b, i) => (
-                    <View key={i} role="listitem" style={styles.row}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.strong}>{b.name}</Text>
-                        <Text style={styles.muted}>{extraText(t, b, locale)}</Text>
+              {card.bonuses.length ? (
+                <View style={{ gap: 6, marginTop: 6 }}>
+                  <Text role="heading" aria-level={3} style={styles.section}>
+                    {t.bonuses.extraTitle}
+                  </Text>
+                  <View
+                    role="list"
+                    aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}
+                  >
+                    {card.bonuses.map((b, i) => (
+                      <View key={i} role="listitem" style={styles.row}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.strong}>{b.name}</Text>
+                          <Text style={styles.muted}>{extraText(t, b, locale)}</Text>
+                        </View>
+                        <Text style={[styles.chip, styles.chipReady]}>{extraBadge(b)}</Text>
                       </View>
-                      <Text style={[styles.chip, styles.chipReady]}>{extraBadge(b)}</Text>
-                    </View>
-                  ))}
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ) : null}
+              ) : null}
 
-            {card.rewards.length ? (
-              <View style={{ gap: 6, marginTop: 6 }}>
-                <Text role="heading" aria-level={3} style={styles.section}>
-                  {t.bonuses.rewards}
-                </Text>
-                <View role="list" aria-label={`${t.bonuses.rewards}: ${card.organization.name}`}>
-                  {card.rewards.map((r) => (
-                    <View key={r.id} role="listitem" style={styles.row}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.strong}>{r.name}</Text>
-                        <Text style={styles.muted}>
-                          {rewardText(t, r)} · {count(r.cost)}
-                          {r.serviceNames.length
-                            ? ` · ${fill(t.bonuses.onlyFor, { services: r.serviceNames.join(', ') })}`
-                            : ''}
+              {card.rewards.length ? (
+                <View style={{ gap: 6, marginTop: 6 }}>
+                  <Text role="heading" aria-level={3} style={styles.section}>
+                    {t.bonuses.rewards}
+                  </Text>
+                  <View role="list" aria-label={`${t.bonuses.rewards}: ${card.organization.name}`}>
+                    {card.rewards.map((r) => (
+                      <View key={r.id} role="listitem" style={styles.row}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.strong}>{r.name}</Text>
+                          <Text style={styles.muted}>
+                            {rewardText(t, r)} · {count(r.cost)}
+                            {r.serviceNames.length
+                              ? ` · ${fill(t.bonuses.onlyFor, { services: r.serviceNames.join(', ') })}`
+                              : ''}
+                          </Text>
+                        </View>
+                        <Text style={[styles.chip, r.missing === 0 && styles.chipReady]}>
+                          {r.missing === 0
+                            ? t.bonuses.available
+                            : fill(t.bonuses.left, { count: String(r.missing) })}
                         </Text>
                       </View>
-                      <Text style={[styles.chip, r.missing === 0 && styles.chipReady]}>
-                        {r.missing === 0
-                          ? t.bonuses.available
-                          : fill(t.bonuses.left, { count: String(r.missing) })}
-                      </Text>
-                    </View>
-                  ))}
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ) : null}
+              ) : null}
+            </Disclosure>
           </View>
         ) : null}
 
@@ -251,7 +256,6 @@ function BonusCard({
         {card.bookingSlug ? (
           <View style={{ marginTop: 10 }}>
             <Button
-              kind="secondary"
               label={t.bonuses.book}
               onPress={() => onBook(card.bookingSlug as string, card.organization.name)}
             />
@@ -263,7 +267,7 @@ function BonusCard({
 }
 
 const styles = StyleSheet.create({
-  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
+  empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 12 },
   salon: { fontSize: 19, fontWeight: '700', color: colors.ink },
   balance: { fontSize: 17, fontWeight: '700', color: colors.ink },
   section: { fontSize: 15, fontWeight: '700', color: colors.ink },
