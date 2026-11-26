@@ -26,10 +26,13 @@ export function baseCardState(status: BaseIntegration): BaseCardState {
   return { kind: 'on' };
 }
 
-/** "przed chwilą", "12 min temu", "3 godz. temu", "2 dni temu" — no time zone needed. */
-export function agoText(iso: string, t: Dictionary, now = new Date()): string {
+/** Time elapsed since a saved timestamp, or an empty string if the date is unavailable. */
+export function agoText(iso: string | null, t: Dictionary, now = new Date()): string {
   const s = t.shop.base;
-  const minutes = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000));
+  if (typeof iso !== 'string') return '';
+  const elapsed = now.getTime() - Date.parse(iso);
+  if (!Number.isFinite(elapsed)) return '';
+  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
   if (minutes < 1) return s.justNow;
   if (minutes < 60) return fill(s.minutesAgo, { n: String(minutes) });
   const hours = Math.floor(minutes / 60);
@@ -56,12 +59,13 @@ export function baseErrorText(code: string, t: Dictionary): string {
 /** The line under the products: when it was renewed last, or that it failed. */
 export function lastSyncLine(status: BaseIntegration, t: Dictionary, now = new Date()): string {
   const s = t.shop.base;
-  const at = status.lastSyncAt ?? status.lastImportAt;
-  if (!at) return s.neverSynced;
-  const when = agoText(at, t, now);
-  return status.lastErrorCode
-    ? fill(s.failedAt, { when, why: baseErrorText(status.lastErrorCode, t) })
-    : fill(s.syncedAt, { when });
+  const when = agoText(status.lastSyncAt ?? status.lastImportAt, t, now);
+  if (status.lastErrorCode) {
+    const why = baseErrorText(status.lastErrorCode, t);
+    return when ? fill(s.failedAt, { when, why }) : why;
+  }
+  const lastKnown = when || agoText(status.lastImportAt, t, now);
+  return lastKnown ? fill(s.syncedAt, { when: lastKnown }) : s.neverSynced;
 }
 
 /** What "Synchronizuj teraz" did: "Sprawdzono 12 · zmieniono 2 · brak w Base: 1". */

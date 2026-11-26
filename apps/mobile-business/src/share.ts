@@ -75,6 +75,13 @@ export interface ShareTools {
 
 /** Shares with what the platform has: share sheet → browser menu → copying the link. */
 export async function shareLink(content: ShareMessage, tools: ShareTools): Promise<ShareResult> {
+  // URL alone repairs "https:/pl/b/..." by turning the language into the host.
+  if (!/^https?:\/\/[^/\\\s]/i.test(content.url)) return 'failed';
+  try {
+    new URL(content.url);
+  } catch {
+    return 'failed';
+  }
   if (tools.native) {
     try {
       const result = await tools.native(content);

@@ -1,6 +1,6 @@
 import { ApiError, type Location } from './api';
 import { dialForTimeZone, normalizePhone } from './phone';
-import { languagesChanged, type SpokenLanguage } from './profile';
+import { sameSelection, type SpokenLanguage } from './profile';
 import { OFFERED_DRINKS, type OfferedDrink } from './wishes';
 
 /**
@@ -77,10 +77,10 @@ export function salonForm(location: Location): SalonForm {
     slotStepMinutes: location.slotStepMinutes,
     askMood: location.askMood,
     askDrink: location.askDrink,
-    drinks: [...location.drinks],
+    drinks: Array.isArray(location.drinks) ? [...location.drinks] : [],
     askNote: location.askNote,
     coordinates: formatCoordinates(location.latitude, location.longitude),
-    languages: [...location.languages],
+    languages: Array.isArray(location.languages) ? [...location.languages] : [],
     timezone: location.timezone,
     currency: location.currency,
     bookingTerms: location.bookingTerms ?? '',
@@ -178,7 +178,10 @@ export function salonChanges(
   const typed = form.phone.trim();
   const phone = typed ? normalizePhone(typed, dialForTimeZone(form.timezone)) : null;
   if (phone !== null && !/^\+[1-9]\d{6,14}$/.test(phone)) return { problem: 'phone' };
-  const description = form.description.trim().slice(0, 1000);
+  const description = form.description
+    .trim()
+    .slice(0, 1000)
+    .replace(/[\uD800-\uDBFF]$/u, '');
   const minLeadMinutes = whole(form.minLeadMinutes, 0, WEEK_MINUTES);
   if (minLeadMinutes === null) return { problem: 'lead' };
   const bookingHorizonDays = whole(form.bookingHorizonDays, 1, 365);
@@ -214,16 +217,17 @@ export function salonChanges(
   if (form.askMood !== location.askMood) changes.askMood = form.askMood;
   if (form.askDrink !== location.askDrink) changes.askDrink = form.askDrink;
   if (form.askNote !== location.askNote) changes.askNote = form.askNote;
-  const same = (a: readonly string[], b: readonly string[]) =>
-    a.length === b.length && a.every((d) => b.includes(d));
-  if (!same(form.drinks, location.drinks)) changes.drinks = form.drinks;
+  const savedDrinks = Array.isArray(location.drinks) ? location.drinks : [];
+  if (!sameSelection(form.drinks, savedDrinks)) changes.drinks = [...new Set(form.drinks)];
   const latitude = point?.latitude ?? null;
   const longitude = point?.longitude ?? null;
   if (latitude !== location.latitude || longitude !== location.longitude) {
     changes.latitude = latitude;
     changes.longitude = longitude;
   }
-  if (languagesChanged(location.languages, form.languages)) changes.languages = form.languages;
+  const savedLanguages = Array.isArray(location.languages) ? location.languages : [];
+  if (!sameSelection(form.languages, savedLanguages))
+    changes.languages = [...new Set(form.languages)];
   if (form.timezone !== location.timezone) changes.timezone = form.timezone;
   if (form.currency !== location.currency) changes.currency = form.currency;
   // Only when changed: a salon that took bookings before the texts existed still saves the rest.

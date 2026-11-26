@@ -15,8 +15,12 @@ const INTL_LOCALE = { pl: 'pl-PL', uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as co
 
 /** An older page is added below; a review already shown is not repeated. */
 export function appendReviews(shown: Review[], page: Review[]): Review[] {
-  const seen = new Set(shown.map((r) => r.id));
-  return [...shown, ...page.filter((r) => !seen.has(r.id))];
+  const seen = new Set<string>();
+  return [...shown, ...page].filter((review) => {
+    if (seen.has(review.id)) return false;
+    seen.add(review.id);
+    return true;
+  });
 }
 
 /** "★★★★☆" for 4 of 5. */
@@ -49,17 +53,22 @@ export function reviewLine(
   locale: DayLocale,
   timeZone: string,
 ): string {
-  const day = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
-    timeZone,
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(review.visitStartAt));
-  return [
+  const parts = [
     review.customerName ?? t.reviews.removedClient,
     fill(t.reviews.service, { service: review.serviceName, staff: review.staffName }),
-    day,
-  ].join(' · ');
+  ];
+  const instant = Date.parse(review.visitStartAt);
+  if (Number.isFinite(instant)) {
+    parts.push(
+      new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+        timeZone,
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(instant)),
+    );
+  }
+  return parts.join(' · ');
 }
 
 /** Task 341: when the client is asked, hours after the visit ends (as in the cabinet). */
