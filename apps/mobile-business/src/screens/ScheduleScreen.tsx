@@ -41,6 +41,8 @@ export function ScheduleScreen(props: {
   const [hours, setHours] = useState<WorkingHours | null>(null);
   const [offs, setOffs] = useState<TimeOffList>([]);
   const [error, setError] = useState('');
+  // The profile reads staff and services separately and must also reload after an offline opening.
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
   /** Time off being added; task 338: `part` = the hours of one day ("12:00–15:00"), null = whole days. */
@@ -85,7 +87,7 @@ export function ScheduleScreen(props: {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, loadAttempt]);
 
   // Android "back" closes the schedule instead of the app.
   useEffect(() => {
@@ -192,6 +194,7 @@ export function ScheduleScreen(props: {
       <Text style={styles.muted}>{salon.locationName}</Text>
       {props.staffName && canEdit ? (
         <StaffProfileSection
+          key={loadAttempt}
           api={api}
           t={t}
           salon={salon}
@@ -201,7 +204,19 @@ export function ScheduleScreen(props: {
         />
       ) : null}
       {error && error !== s.badOffHours && error !== s.badRange ? (
-        <ErrorText>{error}</ErrorText>
+        <>
+          <ErrorText>{error}</ErrorText>
+          {hours === null ? (
+            <Button
+              kind="secondary"
+              label={t.day.refresh}
+              onPress={() => {
+                setError('');
+                setLoadAttempt((attempt) => attempt + 1);
+              }}
+            />
+          ) : null}
+        </>
       ) : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
 

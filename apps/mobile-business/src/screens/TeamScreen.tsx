@@ -1,6 +1,6 @@
 import { useFormDraft } from '../formDrafts';
 import { FormField } from '../formFields';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Locale } from '../api';
 import { errorText } from '../errors';
@@ -48,6 +48,8 @@ export function TeamScreen(props: {
   const { api, t, salon, onBack } = props;
   const z = t.team;
   const [team, setTeam] = useState<Team | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const reads = useRef(0);
   const [inviteProblem, setInviteProblem] = useState<'email' | 'phone' | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -62,21 +64,25 @@ export function TeamScreen(props: {
   const roles = rolesToInvite(salon.role);
 
   const load = useCallback(async () => {
+    const read = ++reads.current;
+    setLoadError('');
     try {
       const [staff, members, invitations] = await Promise.all([
         api.staff(salon.orgId, salon.locationId),
         api.members(salon.orgId),
         api.invitations(salon.orgId),
       ]);
-      setTeam(teamOf(staff, members, invitations, salon.locationId));
-      setError('');
+      if (read === reads.current) setTeam(teamOf(staff, members, invitations, salon.locationId));
     } catch (e) {
-      setError(errorText(e, t));
+      if (read === reads.current) setLoadError(errorText(e, t));
     }
   }, [api, salon, t]);
 
   useEffect(() => {
     void load();
+    return () => {
+      reads.current++;
+    };
   }, [load]);
 
   useEffect(() => {
@@ -210,6 +216,12 @@ export function TeamScreen(props: {
         </Text>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
+      {loadError ? (
+        <>
+          <ErrorText>{loadError}</ErrorText>
+          <Button kind="secondary" label={t.day.refresh} onPress={load} />
+        </>
+      ) : null}
 
       {form ? (
         <Card>
@@ -260,7 +272,7 @@ export function TeamScreen(props: {
           ) : null}
           <Text style={styles.muted}>{z.hint}</Text>
           <View style={styles.row}>
-            <Button label={z.send} busy={busy} onPress={() => void send()} />
+            <Button label={z.send} busy={busy} onPress={send} />
             <Button kind="secondary" label={z.cancel} onPress={() => setForm(null)} />
           </View>
         </Card>
@@ -269,7 +281,7 @@ export function TeamScreen(props: {
       ) : null}
 
       {team === null ? (
-        !error ? (
+        !loadError ? (
           <LoadingCards label={t.loading} />
         ) : null
       ) : (
