@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { BackHandler, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import type { BusinessApi, Location, StaffList } from '../api';
 import { WEB_URL } from '../config';
@@ -77,6 +77,8 @@ function BookingLinks(props: Props) {
   const [info, setInfo] = useState('');
   const [shortInfo, setShortInfo] = useState('');
   const [embedInfo, setEmbedInfo] = useState('');
+  const sharing = useRef(false);
+  const [sharePending, setSharePending] = useState(false);
 
   const { orgId, locationId } = salon;
   useEffect(() => {
@@ -144,6 +146,18 @@ function BookingLinks(props: Props) {
     setQrStaff((current) => (current === id ? '' : id));
     setStaffInfo('');
   }, []);
+
+  async function shareOnce(action: () => Promise<void>) {
+    if (sharing.current) return;
+    sharing.current = true;
+    setSharePending(true);
+    try {
+      await action();
+    } finally {
+      sharing.current = false;
+      setSharePending(false);
+    }
+  }
 
   const share = async () => {
     if (!location || !links) return;
@@ -214,7 +228,8 @@ function BookingLinks(props: Props) {
           <Button
             label={b.share}
             a11yLabel={`${b.share}: ${location.name}`}
-            onPress={() => void share()}
+            disabled={sharePending}
+            onPress={() => void shareOnce(share)}
           />
           {info ? (
             <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
@@ -237,7 +252,8 @@ function BookingLinks(props: Props) {
               kind="secondary"
               label={b.shortShare}
               a11yLabel={`${b.shortShare}: ${location.name}`}
-              onPress={() => void shareShort()}
+              disabled={sharePending}
+              onPress={() => void shareOnce(shareShort)}
             />
             {shortInfo ? (
               <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
@@ -279,7 +295,8 @@ function BookingLinks(props: Props) {
                   <Button
                     kind="secondary"
                     label={b.staffQrShare}
-                    onPress={() => void shareStaff()}
+                    disabled={sharePending}
+                    onPress={() => void shareOnce(shareStaff)}
                   />
                   {staffInfo ? (
                     <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
@@ -303,7 +320,8 @@ function BookingLinks(props: Props) {
               kind="secondary"
               label={b.embedCopy}
               a11yLabel={`${b.embedCopy}: ${b.embedTitle}`}
-              onPress={() => void shareEmbed()}
+              disabled={sharePending}
+              onPress={() => void shareOnce(shareEmbed)}
             />
             {embedInfo ? (
               <Text role="status" accessibilityLiveRegion="polite" style={styles.info}>
