@@ -4,6 +4,7 @@ import type { Location } from '../api';
 import { salonForm, type SalonForm, type LegalKey } from '../salon';
 
 type Values = SalonForm & { email: string };
+export type SalonEdits = Partial<Values>;
 type TextKey =
   | 'name'
   | 'addressLine'
@@ -29,8 +30,18 @@ export class SalonDraft {
   private changed = new Set<keyof Values>();
 
   public values: Values;
-  constructor(private readonly saved: Values) {
-    this.values = saved;
+  constructor(
+    private readonly saved: Values,
+    edits?: SalonEdits | null,
+  ) {
+    this.values = { ...saved, ...edits };
+    if (edits) {
+      for (const key of Object.keys(edits) as (keyof Values)[]) this.track(key);
+    }
+  }
+
+  get edits(): SalonEdits {
+    return Object.fromEntries(Array.from(this.changed, (key) => [key, this.values[key]]));
   }
 
   afterSave(submitted: Values, location: Location) {
