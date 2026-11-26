@@ -94,6 +94,12 @@ describe('BusinessApi response boundaries', () => {
     await expect(api.cancelInvitation('org', 'invitation')).resolves.toBeUndefined();
   });
 
+  it('accepts 204 when removing a waitlist entry', async () => {
+    fetchFn.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(api.removeFromWaitlist('org', 'salon', 'entry')).resolves.toBeUndefined();
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects 204 when the list of salons is required', async () => {
     fetchFn.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await expect(api.locations('org')).rejects.toMatchObject({ name: 'ApiError', status: 204 });

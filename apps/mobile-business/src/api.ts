@@ -1721,10 +1721,11 @@ export class BusinessApi {
 
   /** "Usuń z listy": the client gets no message; removing twice is fine. */
   removeFromWaitlist(orgId: string, locationId: string, entryId: string): Promise<unknown> {
-    return this.authed<unknown>(
-      'POST',
-      `${waitlistPath(orgId, locationId)}/${enc(entryId)}/remove`,
-    );
+    const path = `${waitlistPath(orgId, locationId)}/${enc(entryId)}/remove`;
+    return this.withSession(async () => {
+      const res = await this.request('POST', path, undefined, true);
+      return res.status === 204 ? undefined : readJson<unknown>(res);
+    });
   }
 
   /** The salon's services (with who performs each); inactive ones are left out on the screen. */
