@@ -286,9 +286,20 @@ export interface CsvFile {
 
 type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
+interface ApiSession {
+  // A rotation can issue the same access token. The object identifies the credentials used.
+  credentials?: Pick<Tokens, 'accessToken'>;
+  refreshing?: Promise<boolean>;
+}
+
 export class BusinessApi {
-  private accessToken: string | null = null;
+  private session: ApiSession = {};
+  private tokenWrite: Promise<void> = Promise.resolve();
   private locale = pickLocale(Intl.DateTimeFormat().resolvedOptions().locale);
+
+  private get accessToken(): string | null {
+    return this.session.credentials?.accessToken ?? null;
+  }
 
   private get requestLocale(): Locale {
     // The web app updates the document language when the user switches languages.
@@ -315,9 +326,9 @@ export class BusinessApi {
 
   /** Signs in; an invited person gets their account and salon role on the first sign-in. */
   async verifyCode(contact: Contact, code: string, locale: Locale): Promise<Tokens> {
+    const previous = this.session;
     this.locale = locale;
-    const tokens = await this.call<Tokens>(
-      'POST',
+    const tokens = await this.requestTokens(
       '/v1/auth/code/verify',
       {
         ...contact,
@@ -326,10 +337,13 @@ export class BusinessApi {
         clientType: 'mobile',
         deviceName: this.deviceName,
       },
-      false,
       locale,
     );
-    await this.keep(tokens);
+    if (this.session !== previous) throw new ApiError(401, 'Session changed');
+    const session: ApiSession = { credentials: { accessToken: tokens.accessToken } };
+    this.session = session;
+    await this.writeRefreshToken(tokens.refreshToken ?? null);
+    if (this.session !== session) throw new ApiError(401, 'Session changed');
     return tokens;
   }
 
@@ -339,13 +353,12 @@ export class BusinessApi {
   }
 
   async signOut(): Promise<void> {
-    try {
-      if (this.accessToken) await this.call<void>('POST', '/v1/auth/logout', undefined, true);
-    } catch {
-      // Signed out on this phone in any case; the session ends on the server when it expires.
-    }
-    this.accessToken = null;
-    await this.store.set(null);
+    // Send the old credentials, then invalidate this session even if the server is unreachable.
+    const logout = this.accessToken
+      ? this.request('POST', '/v1/auth/logout', undefined, true).catch(() => {})
+      : undefined;
+    this.session = {};
+    await Promise.all([logout, this.writeRefreshToken(null)]);
   }
 
   me(): Promise<Me> {
@@ -440,13 +453,12 @@ export class BusinessApi {
 
   /** Task 339: removes the specialist's photo (clients see the initials again). */
   removeStaffPhoto(orgId: string, locationId: string, staffId: string): Promise<void> {
-    return this.authed<void>('DELETE', `${staffPath(orgId, locationId, staffId)}/photo`);
+    return this.remove(`${staffPath(orgId, locationId, staffId)}/photo`);
   }
 
   /** Task 325: removes one photo of the salon at once (owner or manager). */
   removeSalonPhoto(orgId: string, locationId: string, photoId: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
+    return this.remove(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/photos/${enc(photoId)}`,
     );
   }
@@ -613,8 +625,7 @@ export class BusinessApi {
     staffId: string,
     date: string,
   ): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
+    return this.remove(
       `${staffPath(orgId, locationId, staffId)}/working-hours/overrides/${enc(date)}`,
     );
   }
@@ -635,10 +646,7 @@ export class BusinessApi {
   }
 
   removeTimeOff(orgId: string, locationId: string, staffId: string, id: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
-      `${staffPath(orgId, locationId, staffId)}/time-off/${enc(id)}`,
-    );
+    return this.remove(`${staffPath(orgId, locationId, staffId)}/time-off/${enc(id)}`);
   }
 
   /** One visit with its history; client contacts only when the person may see them. */
@@ -896,9 +904,8 @@ export class BusinessApi {
   }
 
   /** Task 397: removes a product from the list; its past sales stay in the reports. */
-  async removeProduct(orgId: string, locationId: string, productId: string): Promise<void> {
-    await this.authed<void>(
-      'DELETE',
+  removeProduct(orgId: string, locationId: string, productId: string): Promise<void> {
+    return this.remove(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/products/${enc(productId)}`,
     );
   }
@@ -1227,11 +1234,11 @@ export class BusinessApi {
 
   /** Task 342: "Usuń całą serię" — every block made together as "every week". */
   removeTimeBlockSeries(orgId: string, locationId: string, seriesId: string): Promise<void> {
-    return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/series/${enc(seriesId)}`);
+    return this.remove(`${blocksPath(orgId, locationId)}/series/${enc(seriesId)}`);
   }
 
   removeTimeBlock(orgId: string, locationId: string, id: string): Promise<void> {
-    return this.authed<void>('DELETE', `${blocksPath(orgId, locationId)}/${enc(id)}`);
+    return this.remove(`${blocksPath(orgId, locationId)}/${enc(id)}`);
   }
 
   /** Owner only (the server checks): the change log, newest first; `before` = the page's `next`. */
@@ -1344,7 +1351,7 @@ export class BusinessApi {
 
   /** The invitation link stops working. */
   cancelInvitation(orgId: string, id: string): Promise<void> {
-    return this.authed<void>('DELETE', `/v1/organizations/${enc(orgId)}/invitations/${enc(id)}`);
+    return this.remove(`/v1/organizations/${enc(orgId)}/invitations/${enc(id)}`);
   }
 
   /** Task 331: owner or manager — categories of specialists ("Starszy barber") and their rights. */
@@ -1383,10 +1390,7 @@ export class BusinessApi {
 
   /** Task 331: owner only — its people fall back to the default rights. */
   deleteStaffCategory(orgId: string, id: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
-      `/v1/organizations/${enc(orgId)}/staff-categories/${enc(id)}`,
-    );
+    return this.remove(`/v1/organizations/${enc(orgId)}/staff-categories/${enc(id)}`);
   }
 
   /**
@@ -1407,10 +1411,7 @@ export class BusinessApi {
 
   /** Owner only: access ends at once; the profile and visits stay in the calendar. */
   removeMember(orgId: string, membershipId: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
-      `/v1/organizations/${enc(orgId)}/members/${enc(membershipId)}`,
-    );
+    return this.remove(`/v1/organizations/${enc(orgId)}/members/${enc(membershipId)}`);
   }
 
   /** Owner or manager only (the server checks): clients by name, phone, email or tag. */
@@ -1641,7 +1642,7 @@ export class BusinessApi {
 
   /** "Usuń z katalogu": coupons clients already took stay valid. */
   removeLoyaltyReward(orgId: string, rewardId: string): Promise<void> {
-    return this.authed<void>('DELETE', `${loyaltyPath(orgId)}/rewards/${enc(rewardId)}`);
+    return this.remove(`${loyaltyPath(orgId)}/rewards/${enc(rewardId)}`);
   }
 
   /** The salon's latest stamps and points operations, newest first. */
@@ -1814,8 +1815,7 @@ export class BusinessApi {
    * when it has visits or is in a reward or coupon (hide it instead).
    */
   deleteService(orgId: string, locationId: string, serviceId: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
+    return this.remove(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/services/${enc(serviceId)}`,
     );
   }
@@ -1837,8 +1837,7 @@ export class BusinessApi {
 
   /** Task 316: owner or manager — deletes a category; its services stay, without a category. */
   deleteServiceCategory(orgId: string, locationId: string, categoryId: string): Promise<void> {
-    return this.authed<void>(
-      'DELETE',
+    return this.remove(
       `/v1/organizations/${enc(orgId)}/locations/${enc(locationId)}/service-categories/${enc(categoryId)}`,
     );
   }
@@ -2185,12 +2184,7 @@ export class BusinessApi {
   }
 
   private async csvFile(path: string, fallbackName: string, locale: Locale): Promise<CsvFile> {
-    if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
-    let res = await this.fetchCsv(path, locale);
-    if (res.status === 401 && (await this.refresh())) res = await this.fetchCsv(path, locale);
-    if (!res.ok) {
-      throw apiError(res.status, await res.json().catch(() => null));
-    }
+    const res = await this.withSession(() => this.fetchCsv(path, locale));
     const disposition = res.headers.get('content-disposition') ?? '';
     const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
     // Spreadsheet programs need the byte order mark to read UTF-8 (fetch may drop it).
@@ -2198,8 +2192,8 @@ export class BusinessApi {
     return { fileName, csv: csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}` };
   }
 
-  private fetchCsv(path: string, locale: Locale): Promise<Response> {
-    return this.fetchFn(`${this.baseUrl}${path}`, {
+  private async fetchCsv(path: string, locale: Locale): Promise<Response> {
+    const res = await this.fetchFn(`${this.baseUrl}${path}`, {
       method: 'GET',
       headers: {
         accept: 'text/csv',
@@ -2207,63 +2201,117 @@ export class BusinessApi {
         ...(this.accessToken ? { authorization: `Bearer ${this.accessToken}` } : {}),
       },
     });
+    return checkedResponse(res);
   }
 
-  private async keep(tokens: Tokens): Promise<void> {
-    this.accessToken = tokens.accessToken;
-    if (tokens.refreshToken) await this.store.set(tokens.refreshToken);
+  private writeRefreshToken(value: string | null): Promise<void> {
+    // A slower write from the previous account must finish before sign-out or a new sign-in.
+    const write = this.tokenWrite.then(() => this.store.set(value));
+    this.tokenWrite = write.catch(() => {});
+    return write;
   }
 
-  private async refresh(): Promise<boolean> {
+  private refresh(signal?: AbortSignal): Promise<boolean> {
+    const session = this.session;
+    session.refreshing ??= this.renew(session).finally(() => {
+      delete session.refreshing;
+    });
+    if (!signal) return session.refreshing;
+    // Stopping one screen must leave the token rotation running for the other screens.
+    const refreshing = session.refreshing;
+    return new Promise<boolean>((resolve, reject) => {
+      const cancel = () => reject(abortReason(signal));
+      signal.addEventListener('abort', cancel, { once: true });
+      if (signal.aborted) cancel();
+      refreshing.then(resolve, reject).finally(() => signal.removeEventListener('abort', cancel));
+    });
+  }
+
+  private async renew(session: ApiSession): Promise<boolean> {
+    await this.tokenWrite;
     const refreshToken = await this.store.get();
-    if (!refreshToken) return false;
+    if (this.session !== session || !refreshToken) return false;
     try {
-      await this.keep(await this.call<Tokens>('POST', '/v1/auth/refresh', { refreshToken }));
-      return true;
+      const tokens = await this.requestTokens('/v1/auth/refresh', { refreshToken });
+      if (this.session !== session) return false;
+      session.credentials = { accessToken: tokens.accessToken };
+      if (tokens.refreshToken) await this.writeRefreshToken(tokens.refreshToken);
+      return this.session === session;
     } catch (error) {
+      if (this.session !== session) return false;
       if (error instanceof ApiError && error.status === 401) {
-        this.accessToken = null;
-        await this.store.set(null);
+        delete session.credentials;
+        await this.writeRefreshToken(null);
         return false;
       }
       throw error;
     }
   }
 
-  /** A signed-in call; an expired access token is renewed once and the call repeated. */
-  private async authed<T>(
+  /** Repeat a 401 once with this account's renewed credentials, including late 401 responses. */
+  private async withSession<T>(send: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    if (signal?.aborted) throw abortReason(signal);
+    const session = this.session;
+    if (!session.credentials) {
+      if (!(await this.refresh(signal)) || this.session !== session)
+        throw new ApiError(401, 'Not signed in');
+      if (signal?.aborted) throw abortReason(signal);
+    }
+    const credentials = session.credentials;
+    try {
+      return await send();
+    } catch (error) {
+      if (signal?.aborted) throw abortReason(signal);
+      if (!(error instanceof ApiError) || error.status !== 401 || this.session !== session)
+        throw error;
+      if (session.credentials === credentials && !(await this.refresh(signal))) throw error;
+      if (signal?.aborted) throw abortReason(signal);
+      if (this.session !== session || !session.credentials) throw error;
+      return send();
+    }
+  }
+
+  private authed<T>(
     method: string,
     path: string,
     body?: unknown,
     signal?: AbortSignal,
   ): Promise<T> {
-    if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
-    const send = () => this.call<T>(method, path, body, true, this.requestLocale, signal);
-    try {
-      return await send();
-    } catch (error) {
-      if (signal?.aborted || !(error instanceof ApiError) || error.status !== 401) throw error;
-      if (!(await this.refresh())) throw error;
-      return send();
-    }
+    return this.withSession(
+      () => this.call<T>(method, path, body, true, this.requestLocale, signal),
+      signal,
+    );
   }
 
-  /** Task 337: a file (not JSON), signed in, with one retry after a refresh (339: PUT too). */
-  private async authedUpload<T>(
+  private authedUpload<T>(
     method: 'POST' | 'PUT',
     path: string,
     file: Blob,
     contentType: string,
   ): Promise<T> {
-    if (!this.accessToken && !(await this.refresh())) throw new ApiError(401, 'Not signed in');
-    const send = () => this.call<T>(method, path, new Upload(file, contentType), true);
-    try {
-      return await send();
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) throw error;
-      if (!(await this.refresh())) throw error;
-      return send();
+    return this.authed<T>(method, path, new Upload(file, contentType));
+  }
+
+  private async remove(path: string): Promise<void> {
+    await this.withSession(() => this.request('DELETE', path, undefined, true));
+  }
+
+  private async requestTokens(
+    path: string,
+    body: unknown,
+    locale = this.requestLocale,
+  ): Promise<Tokens> {
+    const response = await this.request('POST', path, body, false, locale);
+    const tokens = await readJson<Tokens>(response);
+    if (
+      typeof tokens.accessToken !== 'string' ||
+      !tokens.accessToken.trim() ||
+      (tokens.refreshToken !== undefined &&
+        (typeof tokens.refreshToken !== 'string' || !tokens.refreshToken.trim()))
+    ) {
+      throw new ApiError(response.status, 'Invalid session response');
     }
+    return tokens;
   }
 
   private async call<T>(
@@ -2274,6 +2322,17 @@ export class BusinessApi {
     locale = this.requestLocale,
     signal?: AbortSignal,
   ): Promise<T> {
+    return readJson<T>(await this.request(method, path, body, auth, locale, signal));
+  }
+
+  private async request(
+    method: string,
+    path: string,
+    body?: unknown,
+    auth = false,
+    locale = this.requestLocale,
+    signal?: AbortSignal,
+  ): Promise<Response> {
     const headers: Record<string, string> = {
       accept: 'application/json',
       'accept-language': locale,
@@ -2288,10 +2347,29 @@ export class BusinessApi {
       signal,
       body: upload ? upload.file : body === undefined ? undefined : JSON.stringify(body),
     });
-    if (res.status === 204) return undefined as T;
-    if (!res.ok) throw apiError(res.status, await res.json().catch(() => null));
-    return res.json() as Promise<T>;
+    return checkedResponse(res);
   }
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason === undefined
+    ? Object.assign(new Error('Request aborted'), { name: 'AbortError' })
+    : signal.reason;
+}
+
+async function checkedResponse(res: Response): Promise<Response> {
+  if (!res.ok) throw apiError(res.status, await res.json().catch(() => null));
+  return res;
+}
+
+async function readJson<T>(res: Response): Promise<T> {
+  try {
+    const data: unknown = await res.json();
+    if (data !== null && typeof data === 'object') return data as T;
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+  }
+  throw new ApiError(res.status, 'Invalid JSON response');
 }
 
 function apiError(status: number, data: unknown): ApiError {
