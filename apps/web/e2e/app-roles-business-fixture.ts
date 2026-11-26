@@ -46,9 +46,59 @@ export async function createRoleSalon(api: APIRequestContext) {
     )
   ).json();
   const location = base + '/locations/' + salon.id;
-  const employee = await (
-    await post(api, location + '/staff', { displayName: 'EJ Staff' }, owner)
+  const service = await (
+    await post(
+      api,
+      location + '/services',
+      {
+        name: 'EJ Cut',
+        durationMinutes: 30,
+        priceGrosze: 8000,
+      },
+      owner,
+    )
   ).json();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(new Date());
+  const tomorrow = new Date(today + 'T12:00:00Z');
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const date = tomorrow.toISOString().slice(0, 10);
+  async function book(staffName: string, customerName: string, phone: string) {
+    const employee = await (
+      await post(
+        api,
+        location + '/staff',
+        {
+          displayName: staffName,
+          serviceIds: [service.id],
+        },
+        owner,
+      )
+    ).json();
+    await expect(
+      await api.put(location + '/staff/' + employee.id + '/working-hours', {
+        headers: { Authorization: 'Bearer ' + owner },
+        data: {
+          days: [
+            { weekday: tomorrow.getUTCDay() || 7, intervals: [{ start: '09:00', end: '17:00' }] },
+          ],
+        },
+      }),
+    ).toBeOK();
+    await post(
+      api,
+      location + '/appointments',
+      {
+        staffId: employee.id,
+        serviceId: service.id,
+        start: date + 'T10:00:00Z',
+        customer: { name: customerName, phone },
+      },
+      owner,
+    );
+    return employee.id as string;
+  }
+  const employeeId = await book('EJ Staff', 'EJ Own Client', '+48500600931');
+  await book('EJ Colleague', 'EJ Other Client', '+48500600932');
   for (const role of ['manager', 'staff'] as const) {
     await post(
       api,
@@ -57,7 +107,7 @@ export async function createRoleSalon(api: APIRequestContext) {
         role,
         email: accounts[role].email,
         locationIds: [salon.id],
-        ...(role === 'staff' ? { staffMemberId: employee.id } : {}),
+        ...(role === 'staff' ? { staffMemberId: employeeId } : {}),
       },
       owner,
     );
@@ -66,5 +116,5 @@ export async function createRoleSalon(api: APIRequestContext) {
     expect(token).toBeTruthy();
     await post(api, '/v1/invitations/' + token + '/accept', {}, (await login(role)).accessToken);
   }
-  return { login, base };
+  return { login, base, today };
 }

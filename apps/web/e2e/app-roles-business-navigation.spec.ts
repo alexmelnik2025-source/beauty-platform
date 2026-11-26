@@ -35,6 +35,8 @@ for (const locale of ['pl', 'en'] as const) {
           (token) => localStorage.setItem('beauty.business.refreshToken', token),
           tokens.refreshToken,
         );
+        // Keep the calendar on the fixture day even if the run crosses midnight in Warsaw.
+        await page.clock.setFixedTime(new Date(salon.today + 'T12:00:00Z'));
         await page.goto(app.url);
         const button = (name: string) => page.getByRole('button', { name, exact: true });
         const tab = (name: string) => page.getByRole('tab', { name, exact: true });
@@ -42,6 +44,15 @@ for (const locale of ['pl', 'en'] as const) {
           await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
           expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
         }
+        await button(t.day.next).click();
+        const ownVisit = page.getByRole('button', { name: /EJ Own Client · EJ Cut$/ });
+        const otherVisit = page.getByRole('button', { name: /EJ Other Client · EJ Cut$/ });
+        await expect(ownVisit).toBeVisible();
+        if (management) await expect(otherVisit).toBeVisible();
+        else await expect(otherVisit).toHaveCount(0);
+        await ownVisit.click();
+        await expect(page.getByText(t.visit.status.confirmed, { exact: true })).toBeVisible();
+        await button(t.visit.back).click();
         await button(t.week.open).click();
         await screen(t.week.title);
         await button(t.week.back).click();
