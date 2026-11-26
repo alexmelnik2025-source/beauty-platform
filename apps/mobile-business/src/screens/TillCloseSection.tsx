@@ -1,8 +1,8 @@
 import { useFormDraft } from '../formDrafts';
 import { FormField } from '../formFields';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import type { BusinessApi, Locale, TillClose } from '../api';
+import { ApiError, type BusinessApi, type Locale, type TillClose } from '../api';
 import { dayTitle, formatPrice } from '../day';
 import { errorText } from '../errors';
 import { fill, type Dictionary } from '../i18n';
@@ -17,6 +17,72 @@ import {
 } from '../tillClose';
 import { Button, colors, Disclosure, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
+
+/** Keep the last successful report while refreshing the same salon and date. */
+function TillReport(props: {
+  api: BusinessApi;
+  t: Dictionary;
+  salon: SalonChoice;
+  date: string;
+  reloads: number;
+  showError?: boolean;
+  children: (view: TillClose, onChange: (view: TillClose) => void) => ReactNode;
+}) {
+  const { api, t, salon, date, reloads } = props;
+  const [view, setView] = useState<TillClose | null>(null);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const latest = useRef(0);
+
+  useEffect(() => {
+    const request = ++latest.current;
+    setError('');
+    api.tillClose(salon.orgId, salon.locationId, date).then(
+      (next) => {
+        if (request === latest.current) setView(next);
+      },
+      (e: unknown) => {
+        if (request !== latest.current) return;
+        if (e instanceof ApiError && [401, 403, 404].includes(e.status)) {
+          setView(null);
+        } else {
+          setError(errorText(e, t));
+        }
+      },
+    );
+    return () => {
+      latest.current++;
+    };
+  }, [api, salon.orgId, salon.locationId, date, reloads, attempt, t]);
+
+  function acceptChange(next: TillClose) {
+    // A read started before a cash count or movement must not undo the saved report.
+    latest.current++;
+    setError('');
+    setView(next);
+  }
+
+  return (
+    <>
+      {error && props.showError ? (
+        <View style={styles.box}>
+          <ErrorText>{error}</ErrorText>
+          <Button
+            kind="link"
+            label={t.day.refresh}
+            a11yLabel={`${t.day.refresh}: ${t.day.tillClose}`}
+            onPress={() => setAttempt((n) => n + 1)}
+          />
+        </View>
+      ) : null}
+      {view?.date === date ? props.children(view, acceptChange) : null}
+    </>
+  );
+}
+
+function reportKey(salon: SalonChoice, date: string) {
+  return `${salon.orgId}/${salon.locationId}/${date}`;
+}
 
 /**
  * Task 232: "Zamknij kasę" under "Kasa dnia" — the owner or a manager types the cash counted in
@@ -36,33 +102,18 @@ export function TillCloseSection(props: {
   /** Changes whenever the day is reloaded, so a later cash payment shows at once. */
   reloads: number;
 }) {
-  const { api, salon, date } = props;
-  const [view, setView] = useState<TillClose | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .tillClose(salon.orgId, salon.locationId, date)
-      .then((v) => {
-        if (alive) setView(v);
-      })
-      .catch(() => {
-        if (alive) setView(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [api, salon, date, props.reloads]);
-
-  if (!view || view.date !== date) return null;
   return (
-    <View style={styles.box}>
-      <TillCount {...props} view={view} onChange={setView} />
-      <Disclosure label={props.t.navigation.more}>
-        <TillMovements {...props} view={view} onChange={setView} />
-      </Disclosure>
-      <OtherPayments {...props} view={view} onChange={setView} />
-    </View>
+    <TillReport {...props} key={reportKey(props.salon, props.date)} showError>
+      {(view, onChange) => (
+        <View style={styles.box}>
+          <TillCount {...props} view={view} onChange={onChange} />
+          <Disclosure label={props.t.navigation.more}>
+            <TillMovements {...props} view={view} onChange={onChange} />
+          </Disclosure>
+          <OtherPayments {...props} view={view} onChange={onChange} />
+        </View>
+      )}
+    </TillReport>
   );
 }
 
@@ -80,32 +131,24 @@ export function TillReminder(props: {
   reloads: number;
   onOpen: (date: string) => void;
 }) {
-  const { api, salon, today, t } = props;
-  const [day, setDay] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .tillClose(salon.orgId, salon.locationId, today)
-      .then((v) => {
-        if (alive) setDay(v.unclosedDay);
-      })
-      .catch(() => {
-        if (alive) setDay(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [api, salon, today, props.reloads]);
-
-  if (!day) return null;
+  const { salon, today, t } = props;
   return (
-    <View style={styles.reminder} testID="till-reminder">
-      <Text role="status" style={styles.diff}>
-        {fill(t.day.tillUnclosed, { day: dayTitle(day, props.locale) })}
-      </Text>
-      <Button kind="link" label={t.day.tillUnclosedOpen} onPress={() => props.onOpen(day)} />
-    </View>
+    <TillReport {...props} key={reportKey(salon, today)} date={today}>
+      {({ unclosedDay }) =>
+        unclosedDay ? (
+          <View style={styles.reminder} testID="till-reminder">
+            <Text role="status" style={styles.diff}>
+              {fill(t.day.tillUnclosed, { day: dayTitle(unclosedDay, props.locale) })}
+            </Text>
+            <Button
+              kind="link"
+              label={t.day.tillUnclosedOpen}
+              onPress={() => props.onOpen(unclosedDay)}
+            />
+          </View>
+        ) : null
+      }
+    </TillReport>
   );
 }
 
