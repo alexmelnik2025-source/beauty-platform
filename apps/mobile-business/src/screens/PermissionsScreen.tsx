@@ -8,6 +8,7 @@ import {
   type StaffCategoryList,
 } from '../api';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import {
   categoryBody,
@@ -18,7 +19,6 @@ import {
   memberUnchanged,
   specialistsWithAccess,
   withException,
-  type CategoryForm,
   type Exception,
   type PermissionMap,
   type PermissionKey,
@@ -30,6 +30,24 @@ import type { SalonChoice } from './SalonsScreen';
 
 type Category = StaffCategoryList[number];
 type Member = MemberList[number];
+type Editor = { kind: 'member' | 'category'; id: string };
+type MemberDraft = {
+  categoryId?: string | null;
+  exceptions?: Partial<Record<PermissionKey, Exception>>;
+};
+type CategoryDraft = { name?: string; permissions?: PermissionMap };
+
+function permissionChange<T>(
+  changes: Partial<Record<PermissionKey, T>> | undefined,
+  key: PermissionKey,
+  value: T,
+  saved: T,
+) {
+  const next = { ...changes };
+  if (value === saved) delete next[key];
+  else next[key] = value;
+  return next;
+}
 
 interface Directory {
   categories: StaffCategoryList;
@@ -70,22 +88,46 @@ function SalonPermissions(props: Props) {
   const [info, setInfo] = useState('');
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
-  /** The person being changed: their chosen category and exceptions. */
-  const [editing, setEditing] = useState<{
-    id: string;
-    categoryId: string | null;
-    overrides: PermissionMap;
-  } | null>(null);
-  /** The category being written ("new" or its id) and the one waiting for "delete?". */
-  const [catForm, setCatForm] = useState<{
-    id: string;
-    form: CategoryForm;
-    nameError?: string;
-  } | null>(null);
+  const { orgId, locationId } = salon;
+  const prefix = `permissions.${orgId}.${locationId}`;
+  const [editor, setEditor] = useFormDraft<Editor | null>(`${prefix}.editor`, null);
+  const memberId = isOwner && editor?.kind === 'member' ? editor.id : null;
+  const categoryId = isOwner && editor?.kind === 'category' ? editor.id : null;
+  const [memberDraft, setMemberDraft] = useFormDraft<MemberDraft | null>(
+    `${prefix}.member.${memberId}`,
+    null,
+  );
+  const [categoryDraft, setCategoryDraft] = useFormDraft<CategoryDraft | null>(
+    `${prefix}.category.${categoryId}`,
+    null,
+  );
+  const [nameError, setNameError] = useState<string>();
   const categoryNameInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  const { orgId, locationId } = salon;
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const member = people.find((person) => person.membershipId === memberId);
+  const selectedCategory = memberDraft?.categoryId;
+  const editing = member && {
+    id: member.membershipId,
+    categoryId:
+      selectedCategory === null || (selectedCategory && categoriesById.has(selectedCategory))
+        ? selectedCategory
+        : member.staffCategoryId,
+    overrides: (catalog ?? []).reduce((overrides, { key }) => {
+      const change = memberDraft?.exceptions?.[key];
+      return change ? withException(overrides, key, change) : overrides;
+    }, member.overrides),
+  };
+  const savedCategory = useMemo(() => {
+    if (!catalog || !categoryId) return null;
+    const existing = categoriesById.get(categoryId);
+    return categoryId === 'new' || existing ? categoryForm(existing ?? null, catalog) : null;
+  }, [catalog, categoryId, categoriesById]);
+  const catForm = savedCategory && {
+    name: categoryDraft?.name ?? savedCategory.name,
+    permissions: { ...savedCategory.permissions, ...categoryDraft?.permissions },
+  };
   const active = useRef<AbortController | null>(null);
   const [loadFailure, setLoadFailure] = useState<{ cause: unknown } | null>(null);
   const load = useCallback(
@@ -103,12 +145,14 @@ function SalonPermissions(props: Props) {
             return { categories, people: specialistsWithAccess(members, locationId) };
           }),
         ]);
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
         if (perms) setCatalog(perms.permissions);
         setDirectory(directory);
         setLoadFailure(null);
+        return true;
       } catch (cause) {
         if (!signal.aborted) setLoadFailure({ cause });
+        return false;
       }
     },
     [api, salon, orgId, locationId],
@@ -132,6 +176,7 @@ function SalonPermissions(props: Props) {
   async function run(
     action: () => Promise<Directory>,
     done: string,
+    onSaved?: () => void,
     onFieldError?: (err: unknown) => boolean,
   ): Promise<boolean> {
     const signal = active.current?.signal;
@@ -146,6 +191,7 @@ function SalonPermissions(props: Props) {
       // to this salon during the save waits for the same authoritative result.
       directoryCache = new SalonReadCache<Directory>();
       const updated = await directoryCache.read(salon, action);
+      onSaved?.();
       if (signal.aborted) return false;
       setInfo(done);
       setDirectory(updated);
@@ -154,9 +200,7 @@ function SalonPermissions(props: Props) {
       if (signal.aborted) return false;
       if (changedMeanwhile(e)) {
         setError(r.changedMeanwhile);
-        setEditing(null);
-        setCatForm(null);
-        await load(signal, false);
+        if (await load(signal, false)) closeEditor();
       } else if (!onFieldError?.(e)) setError(errorText(e, t));
       return false;
     } finally {
@@ -165,49 +209,59 @@ function SalonPermissions(props: Props) {
     }
   }
 
+  function closeEditor() {
+    if (editor?.kind === 'member') setMemberDraft(null);
+    if (editor?.kind === 'category') setCategoryDraft(null);
+    setEditor((current) => (current === editor ? null : current));
+    setNameError(undefined);
+  }
+
   async function saveMember(member: Member) {
     if (!editing) return;
     if (memberUnchanged(member, editing.categoryId, editing.overrides)) {
-      setEditing(null);
+      closeEditor();
       setInfo(r.nothing);
       return;
     }
-    const ok = await run(async () => {
-      const saved = await api.setMemberPermissions(salon.orgId, member.membershipId, {
-        version: member.version,
-        staffCategoryId: editing.categoryId,
-        overrides: editing.overrides,
-      });
-      return {
-        people: people.map((person) =>
-          person.membershipId === saved.membershipId ? saved : person,
-        ),
-        categories:
-          member.staffCategoryId === saved.staffCategoryId
-            ? categories
-            : categories.map((category) => {
-                if (category.id === member.staffCategoryId)
-                  return { ...category, memberCount: category.memberCount - 1 };
-                if (category.id === saved.staffCategoryId)
-                  return { ...category, memberCount: category.memberCount + 1 };
-                return category;
-              }),
-      };
-    }, r.saved);
-    if (ok) setEditing(null);
+    await run(
+      async () => {
+        const saved = await api.setMemberPermissions(salon.orgId, member.membershipId, {
+          version: member.version,
+          staffCategoryId: editing.categoryId,
+          overrides: editing.overrides,
+        });
+        return {
+          people: people.map((person) =>
+            person.membershipId === saved.membershipId ? saved : person,
+          ),
+          categories:
+            member.staffCategoryId === saved.staffCategoryId
+              ? categories
+              : categories.map((category) => {
+                  if (category.id === member.staffCategoryId)
+                    return { ...category, memberCount: category.memberCount - 1 };
+                  if (category.id === saved.staffCategoryId)
+                    return { ...category, memberCount: category.memberCount + 1 };
+                  return category;
+                }),
+        };
+      },
+      r.saved,
+      closeEditor,
+    );
   }
 
   async function saveCategory() {
-    if (!catForm) return;
-    const body = categoryBody(catForm.form);
+    if (!catForm || !categoryId) return;
+    const body = categoryBody(catForm);
     if (!body.ok) {
       setError('');
-      setCatForm({ ...catForm, nameError: r.noName });
+      setNameError(r.noName);
       categoryNameInput.current?.focus();
       return;
     }
-    const existing = categoriesById.get(catForm.id);
-    const ok = await run(
+    const existing = categoriesById.get(categoryId);
+    await run(
       async () => {
         const saved = existing
           ? await api.updateStaffCategory(salon.orgId, existing.id, existing.version, {
@@ -223,52 +277,65 @@ function SalonPermissions(props: Props) {
         return { people, categories: next.sort((a, b) => a.name.localeCompare(b.name)) };
       },
       r.categorySaved,
+      closeEditor,
       (err) => {
         if (
           !(err instanceof ApiError) ||
           (err.code !== 'CATEGORY_NAME_TAKEN' && !err.details.some(({ path }) => path === 'name'))
         )
           return false;
-        setCatForm({ ...catForm, nameError: errorText(err, t) });
+        setNameError(errorText(err, t));
         return true;
       },
     );
-    if (ok) setCatForm(null);
   }
 
-  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const categoryName = (id: string | null) =>
     (id === null ? undefined : categoriesById.get(id)?.name) ?? r.defaultPerms;
   const label = (key: string) => (r.names as Record<string, string>)[key] ?? key;
 
-  const editMember = useCallback((member: Member) => {
-    setInfo('');
-    setError('');
-    setCatForm(null);
-    setEditing({
-      id: member.membershipId,
-      categoryId: member.staffCategoryId,
-      overrides: { ...member.overrides },
-    });
-  }, []);
+  const editMember = useCallback(
+    (member: Member) => {
+      setInfo('');
+      setError('');
+      setNameError(undefined);
+      setEditor({ kind: 'member', id: member.membershipId });
+    },
+    [setEditor],
+  );
 
-  const changeException = useCallback((permission: PermissionKey, value: Exception) => {
-    setEditing(
-      (current) =>
-        current && { ...current, overrides: withException(current.overrides, permission, value) },
-    );
-  }, []);
-
-  const toggleCategoryPermission = useCallback((key: PermissionKey) => {
-    setCatForm((current) => {
-      if (!current) return current;
-      const { form } = current;
-      return {
+  const changeException = useCallback(
+    (permission: PermissionKey, value: Exception) => {
+      if (!member) return;
+      setMemberDraft((current) => ({
         ...current,
-        form: { ...form, permissions: { ...form.permissions, [key]: !form.permissions[key] } },
-      };
-    });
-  }, []);
+        exceptions: permissionChange(
+          current?.exceptions,
+          permission,
+          value,
+          exceptionOf(member.overrides, permission),
+        ),
+      }));
+    },
+    [member, setMemberDraft],
+  );
+
+  const toggleCategoryPermission = useCallback(
+    (key: PermissionKey) => {
+      if (!savedCategory) return;
+      const saved = savedCategory.permissions[key];
+      setCategoryDraft((current) => ({
+        ...current,
+        permissions: permissionChange(
+          current?.permissions,
+          key,
+          !(current?.permissions?.[key] ?? saved),
+          saved,
+        ),
+      }));
+    },
+    [savedCategory, setCategoryDraft],
+  );
 
   function memberCard(member: Member) {
     const open = editing?.id === member.membershipId ? editing : null;
@@ -301,7 +368,12 @@ function SalonPermissions(props: Props) {
                 aria-pressed={on}
                 disabled={busy}
                 accessibilityState={{ selected: on, disabled: busy }}
-                onPress={() => setEditing({ ...open, categoryId: id })}
+                onPress={() =>
+                  setMemberDraft((current) => ({
+                    ...current,
+                    categoryId: id === member.staffCategoryId ? undefined : id,
+                  }))
+                }
                 style={[styles.chip, on && styles.chipOn]}
               >
                 <Text style={[styles.chipText, on && { color: '#fff' }]}>{categoryName(id)}</Text>
@@ -330,19 +402,17 @@ function SalonPermissions(props: Props) {
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
           <Button label={r.save} busy={busy} onPress={() => void saveMember(member)} />
-          <Button kind="link" disabled={busy} label={r.cancel} onPress={() => setEditing(null)} />
+          <Button kind="link" disabled={busy} label={r.cancel} onPress={closeEditor} />
         </View>
       </Card>
     );
   }
 
   function categoryEditor() {
-    if (!catForm || !catalog) return null;
-    const { form } = catForm;
-    const saved = categoryForm(categoriesById.get(catForm.id) ?? null, catalog);
+    if (!catForm || !catalog || !savedCategory) return null;
     const dirty =
-      saved.name !== form.name ||
-      catalog.some(({ key }) => saved.permissions[key] !== form.permissions[key]);
+      savedCategory.name !== catForm.name ||
+      catalog.some(({ key }) => savedCategory.permissions[key] !== catForm.permissions[key]);
     return (
       <Card>
         <Text nativeID="category-name-label" style={styles.label}>
@@ -353,24 +423,28 @@ function SalonPermissions(props: Props) {
           editable={!busy}
           accessibilityLabel={r.categoryName}
           aria-labelledby="category-name-label"
-          accessibilityHint={catForm.nameError}
-          aria-invalid={!!catForm.nameError}
-          aria-describedby={catForm.nameError ? 'category-name-error' : undefined}
-          value={form.name}
+          accessibilityHint={nameError}
+          aria-invalid={!!nameError}
+          aria-describedby={nameError ? 'category-name-error' : undefined}
+          value={catForm.name}
           maxLength={60}
-          onChangeText={(name) =>
-            setCatForm({ ...catForm, nameError: undefined, form: { ...form, name } })
-          }
-          style={[styles.input, catForm.nameError && styles.invalid]}
+          onChangeText={(name) => {
+            setNameError(undefined);
+            setCategoryDraft((current) => ({
+              ...current,
+              name: name === savedCategory.name ? undefined : name,
+            }));
+          }}
+          style={[styles.input, nameError && styles.invalid]}
         />
-        {catForm.nameError ? (
+        {nameError ? (
           <Text
             nativeID="category-name-error"
             role="alert"
             accessibilityLiveRegion="assertive"
             style={styles.fieldError}
           >
-            ! {catForm.nameError}
+            ! {nameError}
           </Text>
         ) : null}
         {catalog.map(({ key }) => (
@@ -378,7 +452,7 @@ function SalonPermissions(props: Props) {
             key={key}
             permission={key}
             label={label(key)}
-            on={form.permissions[key]}
+            on={catForm.permissions[key]}
             busy={busy}
             onChange={toggleCategoryPermission}
           />
@@ -391,21 +465,20 @@ function SalonPermissions(props: Props) {
         {error ? <ErrorText>{error}</ErrorText> : null}
         <View style={styles.row}>
           <Button label={r.save} busy={busy} onPress={() => void saveCategory()} />
-          <Button kind="link" disabled={busy} label={r.cancel} onPress={() => setCatForm(null)} />
+          <Button kind="link" disabled={busy} label={r.cancel} onPress={closeEditor} />
         </View>
       </Card>
     );
   }
 
   const editCategory = useCallback(
-    (category: Category) => {
-      if (!catalog) return;
+    (id: string) => {
       setInfo('');
       setError('');
-      setEditing(null);
-      setCatForm({ id: category.id, form: categoryForm(category, catalog) });
+      setNameError(undefined);
+      setEditor({ kind: 'category', id });
     },
-    [catalog],
+    [setEditor],
   );
 
   function removeCategory(category: Category) {
@@ -423,7 +496,7 @@ function SalonPermissions(props: Props) {
   }
 
   function categoryCard(category: Category) {
-    if (catForm?.id === category.id) return <View key={category.id}>{categoryEditor()}</View>;
+    if (categoryId === category.id) return <View key={category.id}>{categoryEditor()}</View>;
     return (
       <CategorySummary
         key={category.id}
@@ -486,18 +559,13 @@ function SalonPermissions(props: Props) {
           <Text style={styles.small}>{r.categoriesHint}</Text>
           {categories.length === 0 ? <Text style={styles.muted}>{r.noCategories}</Text> : null}
           {categories.map(categoryCard)}
-          {catForm?.id === 'new' ? categoryEditor() : null}
+          {categoryId === 'new' ? categoryEditor() : null}
           {isOwner && !catForm ? (
             <Button
               kind="secondary"
               disabled={busy}
               label={r.addCategory}
-              onPress={() => {
-                setInfo('');
-                setError('');
-                setEditing(null);
-                setCatForm({ id: 'new', form: categoryForm(null, catalog) });
-              }}
+              onPress={() => editCategory('new')}
             />
           ) : null}
         </>
@@ -517,7 +585,7 @@ const CategorySummary = memo(function CategorySummary({
   category: Category;
   r: Dictionary['rights'];
   busy: boolean;
-  onEdit?: (category: Category) => void;
+  onEdit?: (id: string) => void;
   onRemove: (id: string | null) => void;
   confirm?: (category: Category) => void;
 }) {
@@ -540,7 +608,7 @@ const CategorySummary = memo(function CategorySummary({
             disabled={busy}
             label={r.change}
             a11yLabel={`${r.change}: ${category.name}`}
-            onPress={() => onEdit(category)}
+            onPress={() => onEdit(category.id)}
           />
           <Button
             kind="link"

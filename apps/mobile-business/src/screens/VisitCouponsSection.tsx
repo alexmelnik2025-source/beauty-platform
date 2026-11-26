@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { AppointmentDetail, BusinessApi, Locale, VisitCoupons } from '../api';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { couponCode, couponErrorText, hasCoupons } from '../visitCoupons';
 import { Button, Card, colors, ErrorText } from '../ui';
@@ -10,6 +11,7 @@ import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, withNetworkTimeout } from './HistoryScreen';
 
 const couponCache = new SalonReadCache<VisitCoupons>();
+const completedWhileAway = new WeakMap<SalonChoice, Map<string, AppointmentDetail>>();
 
 interface Props {
   api: BusinessApi;
@@ -34,6 +36,9 @@ function VisitCouponsCard(props: Props) {
   const { api, t, salon, visit } = props;
   const c = t.visit.coupons;
   const [coupons, setCoupons] = useState<VisitCoupons | null>(null);
+  const draftKey = `visitCoupons.${visit.id}.code`;
+  // The field handles typing locally. A successful list or code action clears the matching input.
+  const [, setCode] = useFormDraft(draftKey, '');
   const [codeReset, setCodeReset] = useState(0);
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -57,24 +62,31 @@ function VisitCouponsCard(props: Props) {
     visit.tierDiscount,
     visit.coupons,
   ]);
+  const syncVisit = useEffectEvent(() => {
+    const updates = completedWhileAway.get(salon);
+    const updated = updates?.get(visit.id);
+    updates?.delete(visit.id);
+    if (updated && updated.version > visit.version) props.onVisit(updated);
+  });
   useEffect(() => {
     let alive = true;
     let reusable = false;
-    couponCache
-      .read(
-        salon,
-        () => withNetworkTimeout(api.visitCoupons(orgId, locationId, visit.id)),
-        offersKey,
-      )
-      .then(
-        (data) => {
-          if (!alive) return;
-          reusable = hasCoupons(data);
-          setCoupons(data);
-        },
-        // Without the list the visit still works; coupons simply are not offered.
-        () => undefined,
-      );
+    pendingCouponWrites
+      .waitFor(salon, visit.id)
+      .then(async () => {
+        if (!alive) return;
+        syncVisit();
+        const data = await couponCache.read(
+          salon,
+          () => withNetworkTimeout(api.visitCoupons(orgId, locationId, visit.id)),
+          offersKey,
+        );
+        if (!alive) return;
+        reusable = hasCoupons(data);
+        setCoupons(data);
+      })
+      // Without the list the visit still works; coupons simply are not offered.
+      .catch(() => undefined);
     return () => {
       alive = false;
       // A client can claim their first coupon elsewhere without changing this visit.
@@ -87,7 +99,7 @@ function VisitCouponsCard(props: Props) {
   async function run(
     action: () => Promise<AppointmentDetail>,
     done: string,
-    onCodeError?: (text: string) => void,
+    applied?: { code: string; onError?: (text: string) => void },
   ) {
     const signal = scope.current?.signal;
     if (!signal || signal.aborted || submitting.current) return;
@@ -95,8 +107,21 @@ function VisitCouponsCard(props: Props) {
     setBusy(true);
     setNote(null);
     try {
-      const next = await action();
-      couponCache.clear(salon);
+      const next = await pendingCouponWrites.track(
+        salon,
+        visit.id,
+        action().then((updated) => {
+          couponCache.clear(salon);
+          if (applied) setCode((current) => (couponCode(current) === applied.code ? '' : current));
+          // A reopened card may have loaded the previous visit version while this write was pending.
+          if (signal.aborted) {
+            const updates = completedWhileAway.get(salon) ?? new Map<string, AppointmentDetail>();
+            updates.set(visit.id, updated);
+            completedWhileAway.set(salon, updates);
+          }
+          return updated;
+        }),
+      );
       if (signal.aborted) return;
       props.onVisit(next);
       setNote({ text: done, bad: false });
@@ -104,7 +129,7 @@ function VisitCouponsCard(props: Props) {
     } catch (e) {
       if (signal.aborted) return;
       const message = couponErrorText(e, t) ?? errorText(e, t);
-      if (onCodeError) onCodeError(message);
+      if (applied?.onError) applied.onError(message);
       else setNote({ text: message, bad: true });
     } finally {
       submitting.current = false;
@@ -198,7 +223,9 @@ function VisitCouponsCard(props: Props) {
                 a11yLabel={fill(c.useOne, { code: coupon.code })}
                 busy={busy}
                 onPress={() =>
-                  void run(() => api.applyVisitCoupon(...at, { couponId: coupon.id }), c.applied)
+                  void run(() => api.applyVisitCoupon(...at, { couponId: coupon.id }), c.applied, {
+                    code: coupon.code,
+                  })
                 }
               />
             </View>
@@ -210,8 +237,9 @@ function VisitCouponsCard(props: Props) {
         key={codeReset}
         c={c}
         busy={busy}
+        draftKey={draftKey}
         onApply={(code, onError) =>
-          void run(() => api.applyVisitCoupon(...at, { code }), c.applied, onError)
+          void run(() => api.applyVisitCoupon(...at, { code }), c.applied, { code, onError })
         }
       />
 
@@ -237,13 +265,15 @@ function VisitCouponsCard(props: Props) {
 function CouponCodeForm({
   c,
   busy,
+  draftKey,
   onApply,
 }: {
   c: Dictionary['visit']['coupons'];
   busy: boolean;
+  draftKey: string;
   onApply: (code: string, onError: (text: string) => void) => void;
 }) {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useFormDraft(draftKey, '');
   const [error, setError] = useState('');
   function apply() {
     const typed = couponCode(code);
@@ -286,6 +316,27 @@ function CouponCodeForm({
     </View>
   );
 }
+
+/** A reopened section waits for this visit's in-flight writes before reading its data and draft. */
+export class PendingVisitWrites {
+  private bySalon = new WeakMap<SalonChoice, Map<string, Promise<void>>>();
+
+  waitFor(salon: SalonChoice, visitId: string): Promise<void> {
+    return this.bySalon.get(salon)?.get(visitId) ?? Promise.resolve();
+  }
+
+  track<T>(salon: SalonChoice, visitId: string, operation: Promise<T>): Promise<T> {
+    const visits = this.bySalon.get(salon) ?? new Map<string, Promise<void>>();
+    this.bySalon.set(salon, visits);
+    const finished = Promise.allSettled([visits.get(visitId), operation]).then(() => {
+      if (visits.get(visitId) === finished) visits.delete(visitId);
+    });
+    visits.set(visitId, finished);
+    return operation;
+  }
+}
+
+const pendingCouponWrites = new PendingVisitWrites();
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },

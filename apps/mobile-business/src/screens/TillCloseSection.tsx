@@ -15,7 +15,7 @@ import {
   parseCash,
   tillDifference,
 } from '../tillClose';
-import { Button, colors, ErrorText, Pressable } from '../ui';
+import { Button, colors, Disclosure, ErrorText, Pressable } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 
 /**
@@ -23,7 +23,7 @@ import type { SalonChoice } from './SalonsScreen';
  * the till; the app puts it beside what the day's cash visits brought and says what is missing
  * or extra. Counting again replaces it. The server lets only owners and managers in, so the day
  * screen shows it only for the whole salon's till.
- * Task 236: "Wpłata / wypłata" above it — cash put in or taken out with the reason; the till
+ * Task 236: "Wpłata / wypłata" under "Więcej" — cash put in or taken out with the reason; the till
  * should then hold the cash visits plus what was put in minus what was taken out.
  */
 export function TillCloseSection(props: {
@@ -57,8 +57,10 @@ export function TillCloseSection(props: {
   if (!view || view.date !== date) return null;
   return (
     <View style={styles.box}>
-      <TillMovements {...props} view={view} onChange={setView} />
       <TillCount {...props} view={view} onChange={setView} />
+      <Disclosure label={props.t.navigation.more}>
+        <TillMovements {...props} view={view} onChange={setView} />
+      </Disclosure>
       <OtherPayments {...props} view={view} onChange={setView} />
     </View>
   );
@@ -420,7 +422,7 @@ function TillCount(props: PartProps) {
   if (!close) {
     return (
       <View style={styles.row}>
-        <Button kind="secondary" label={d.tillClose} onPress={start} />
+        <Button label={d.tillClose} onPress={start} />
       </View>
     );
   }
@@ -464,7 +466,7 @@ function TillCount(props: PartProps) {
         </Text>
       ) : null}
       <View style={styles.row}>
-        <Button kind="link" label={d.tillRecount} onPress={start} />
+        <Button label={d.tillRecount} onPress={start} />
       </View>
     </View>
   );

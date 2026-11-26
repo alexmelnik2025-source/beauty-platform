@@ -99,7 +99,7 @@ export function TeamHoursScreen(props: {
         sortOrder: nextSortOrder(team),
         serviceIds: services.filter((x) => x.active).map((x) => x.id),
       });
-      setNewName(null);
+      setNewName((current) => (current === newName ? null : current));
       // Straight to their page: the working hours come next.
       setOpen({ id: created.id, name: created.displayName, notice: p.created });
     } catch (e) {
@@ -119,7 +119,9 @@ export function TeamHoursScreen(props: {
         staffId={open.id}
         staffName={open.name}
         notice={open.notice}
-        onRenamed={(name) => setOpen({ ...open, name })}
+        onRenamed={(name) =>
+          setOpen((current) => (current?.id === open.id ? { ...current, name } : current))
+        }
         // Task 372: "‹ Wróć" pressed while the profile was still saving must not leave the old list.
         onSaved={() => void load()}
         today={props.today}
@@ -208,13 +210,14 @@ export function TeamHoursScreen(props: {
             value={newName}
             maxLength={80}
             autoFocus
+            editable={!busy}
             onChangeText={setNewName}
             style={styles.input}
           />
           <Text style={styles.small}>{p.newHint}</Text>
           <View style={styles.row}>
             <Button label={p.create} busy={busy} onPress={() => void create()} />
-            <Button kind="link" label={p.cancel} onPress={() => setNewName(null)} />
+            <Button kind="link" label={p.cancel} disabled={busy} onPress={() => setNewName(null)} />
           </View>
         </Card>
       ) : null}

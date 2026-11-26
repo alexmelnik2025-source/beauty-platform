@@ -10,13 +10,16 @@ import {
 import { parseBarcode } from '../barcode';
 import { formatPrice } from '../day';
 import { errorText } from '../errors';
+import { useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import { Button, colors, ErrorText } from '../ui';
 import type { SalonChoice } from './SalonsScreen';
 import { SalonReadCache, useScreenLifetime, withNetworkTimeout } from './HistoryScreen';
+import { PendingVisitWrites } from './VisitCouponsSection';
 
 const catalogueCache = new SalonReadCache<ProductList['products']>();
 const salesCache = new SalonReadCache<VisitProductSales>();
+const salesWrites = new PendingVisitWrites();
 
 export function invalidateSaleStock(salon: SalonChoice, salesChanged: boolean) {
   catalogueCache.clear(salon);
@@ -59,23 +62,24 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      canChange ? readCatalogue(api, salon) : [],
-      salesCache.read(
-        salon,
-        () => withNetworkTimeout(api.productSales(salon.orgId, salon.locationId, appointmentId)),
-        appointmentId,
-      ),
-    ]).then(
-      ([list, sold]) => {
-        if (!active) return;
-        setProducts(list);
-        setSales(sold);
-      },
-      (e) => {
-        if (active) setError(errorText(e, t));
-      },
-    );
+    async function load() {
+      await salesWrites.waitFor(salon, appointmentId);
+      if (!active) return;
+      const [list, sold] = await Promise.all([
+        canChange ? readCatalogue(api, salon) : [],
+        salesCache.read(
+          salon,
+          () => withNetworkTimeout(api.productSales(salon.orgId, salon.locationId, appointmentId)),
+          appointmentId,
+        ),
+      ]);
+      if (!active) return;
+      setProducts(list);
+      setSales(sold);
+    }
+    void load().catch((e) => {
+      if (active) setError(errorText(e, t));
+    });
     return () => {
       active = false;
     };
@@ -92,22 +96,25 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
     setBusy(true);
     setCodeError('');
     setError('');
-    try {
-      let sold: VisitProductSales;
+    const updateSales = async () => {
       try {
-        sold = await action();
+        const sold = await action();
+        catalogueCache.clear(salon);
+        salesCache.set(salon, sold, appointmentId);
+        onSold?.();
+        return sold;
       } catch (e) {
         const message =
           e instanceof ApiError && e.code === 'OUT_OF_STOCK' ? p.outOfStock : errorText(e, t);
         invalidateSaleStock(salon, true);
         if (!signal.aborted) onFailure(message);
-        return;
+        return null;
       }
-      catalogueCache.clear(salon);
-      salesCache.set(salon, sold, appointmentId);
-      if (signal.aborted) return;
+    };
+    try {
+      const sold = await salesWrites.track(salon, appointmentId, updateSales());
+      if (!sold || signal.aborted) return;
       setSales(sold);
-      onSold?.();
       if (canChange) {
         const list = await readCatalogue(api, salon);
         if (!signal.aborted) setProducts(list);
@@ -153,6 +160,7 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
       ))}
       {canChange && withCodes ? (
         <BarcodeForm
+          appointmentId={appointmentId}
           products={products}
           p={p}
           busy={busy}
@@ -201,6 +209,7 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
 });
 
 function BarcodeForm({
+  appointmentId,
   products,
   p,
   busy,
@@ -209,6 +218,7 @@ function BarcodeForm({
   clearError,
   onSell,
 }: {
+  appointmentId: string;
   products: ProductList['products'];
   p: Dictionary['products'];
   busy: boolean;
@@ -217,7 +227,7 @@ function BarcodeForm({
   clearError: () => void;
   onSell: (id: string, onSold: () => void) => void;
 }) {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useFormDraft(`visitProductSales.${appointmentId}.barcode`, '');
   const wanted = parseBarcode(code);
   const codeHint = wanted === undefined ? p.barcodeInvalid : codeError;
   /** Task 524: one piece of the product with this code, or "no such product". */
@@ -229,7 +239,7 @@ function BarcodeForm({
       setCodeError(fill(p.codeUnknown, { code: wanted }));
       return;
     }
-    onSell(found.id, () => setCode(''));
+    onSell(found.id, () => setCode((current) => (current === code ? '' : current)));
   };
   return (
     <View style={styles.codeRow}>

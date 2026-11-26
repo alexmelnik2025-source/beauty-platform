@@ -21,6 +21,7 @@ import {
 } from '../api';
 import { addDays, dayTitle, formatPrice, timeIn, todayIn, visitActions } from '../day';
 import { errorText } from '../errors';
+import { useClearFormDraft, useFormDraft } from '../formDrafts';
 import { fill, type Dictionary } from '../i18n';
 import {
   cancelReason,
@@ -61,13 +62,20 @@ type VisitProps = {
 
 export function VisitScreen(props: VisitProps) {
   const { orgId, locationId, role } = props.salon;
-  return <VisitCard key={JSON.stringify([orgId, locationId, role, props.id])} {...props} />;
+  const draftKey = `visit.${JSON.stringify([orgId, locationId, role, props.id])}`;
+  return <VisitCard key={draftKey} {...props} draftKey={draftKey} />;
 }
 
 type VisitAction = 'approve' | 'status' | 'payment' | 'tip' | 'move' | 'cancel';
+type MoveDraft = { date: string; start: string | null };
+type PendingAction = VisitAction | 'refresh' | null;
 
-function VisitCard(props: VisitProps) {
-  const { api, t, salon, id, onBack } = props;
+function isDraftSave(action: PendingAction) {
+  return action === 'move' || action === 'cancel';
+}
+
+function VisitCard(props: VisitProps & { draftKey: string }) {
+  const { api, t, salon, id, onBack, draftKey } = props;
   const [visit, setVisit] = useState<AppointmentDetail | null>(null);
   /** Task 80b: the client's example photos ("Pokaż, co chcesz"). */
   const [photos, setPhotos] = useState<VisitPhotoList | null>(null);
@@ -76,8 +84,10 @@ function VisitCard(props: VisitProps) {
   const [actionError, setActionError] = useState<{ action: VisitAction; message: string } | null>(
     null,
   );
-  const locked = useRef(false);
-  const [busy, setBusy] = useState(false);
+  const locked = useRef<PendingAction>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const busy = pendingAction !== null;
+  const savingDraft = isDraftSave(pendingAction);
   // Task Q3 (screen D): a product handed over is a new sale — "Produkty" reloads.
   const [salesKey, setSalesKey] = useState(0);
   const [clientOpen, setClientOpen] = useState(false);
@@ -87,12 +97,17 @@ function VisitCard(props: VisitProps) {
   const [tipText, setTipText] = useState<string | null>(null);
   // Move / cancel (task 17b).
   const [mode, setMode] = useState<'move' | 'cancel' | null>(null);
-  const [moveDate, setMoveDate] = useState('');
+  const [moveDraft, setMoveDraft] = useFormDraft<MoveDraft | null>(`${draftKey}.move`, null);
+  const clearMove = useClearFormDraft(`${draftKey}.move`);
+  const today = mode === 'move' ? todayIn(props.timeZone) : '';
+  const chosenDate = moveDraft?.date ?? visit?.date ?? '';
+  const moveDate = chosenDate < today ? today : chosenDate;
   const [times, setTimes] = useState<{ time: string; start: string }[] | null>(null);
   const [timesError, setTimesError] = useState('');
   const [timesAttempt, setTimesAttempt] = useState(0);
-  const [ask, setAsk] = useState<{ time: string; start: string } | null>(null);
-  const [reason, setReason] = useState('');
+  const ask = times?.find((slot) => slot.start === moveDraft?.start);
+  const [reason, setReason] = useFormDraft(`${draftKey}.cancelReason`, '');
+  const clearReason = useClearFormDraft(`${draftKey}.cancelReason`);
   const [reasonSubmitted, setReasonSubmitted] = useState(false);
   const badReason = reasonSubmitted && !cancelReason(reason);
   const [askCancel, setAskCancel] = useState(false);
@@ -145,7 +160,7 @@ function VisitCard(props: VisitProps) {
   useEffect(() => {
     if (clientOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
+      if (!isDraftSave(locked.current)) onBack();
       return true;
     });
     return () => sub.remove();
@@ -154,16 +169,18 @@ function VisitCard(props: VisitProps) {
   async function run(
     name: VisitAction,
     action: (v: AppointmentDetail) => Promise<AppointmentDetail>,
+    onSaved?: () => void,
   ): Promise<boolean> {
     const signal = scope.current?.signal;
     if (!visit || locked.current || !signal || signal.aborted) return false;
-    locked.current = true;
-    setBusy(true);
+    locked.current = name;
+    setPendingAction(name);
     setLoadFailure(null);
     setActionError(null);
     setNotice('');
     try {
       const updated = await action(visit);
+      onSaved?.();
       if (signal.aborted) return false;
       setVisit(updated);
       props.onChanged();
@@ -181,8 +198,8 @@ function VisitCard(props: VisitProps) {
       }
       return false;
     } finally {
-      locked.current = false;
-      if (!signal.aborted) setBusy(false);
+      locked.current = null;
+      if (!signal.aborted) setPendingAction(null);
     }
   }
 
@@ -203,6 +220,11 @@ function VisitCard(props: VisitProps) {
     };
   }, [api, orgId, locationId, mode, moveDate, serviceId, staffId, t, timesAttempt]);
 
+  function chooseMoveDate(date: string) {
+    setTimes(null);
+    setMoveDraft({ date, start: null });
+  }
+
   const v = t.visit;
   const inlineError = (name: VisitAction) =>
     actionError?.action === name ? <ErrorText>{actionError.message}</ErrorText> : null;
@@ -216,19 +238,19 @@ function VisitCard(props: VisitProps) {
         onPress={async () => {
           const signal = scope.current?.signal;
           if (!signal || signal.aborted || locked.current) return;
-          locked.current = true;
-          setBusy(true);
+          locked.current = 'refresh';
+          setPendingAction('refresh');
           try {
             await loadDetail(signal, loadFailure.afterConflict);
           } finally {
-            locked.current = false;
-            if (!signal.aborted) setBusy(false);
+            locked.current = null;
+            if (!signal.aborted) setPendingAction(null);
           }
         }}
       />
     </>
   );
-  const back = <Button kind="link" label={v.back} onPress={onBack} />;
+  const back = <Button kind="link" label={v.back} disabled={savingDraft} onPress={onBack} />;
   if (!visit) {
     return (
       <View style={styles.screen}>
@@ -313,6 +335,7 @@ function VisitCard(props: VisitProps) {
               <Button
                 kind="link"
                 label={v.bookAgain}
+                disabled={savingDraft}
                 onPress={() => {
                   const preset = presetFromVisit(visit, todayIn(props.timeZone));
                   if (preset) props.onBookAgain?.(preset);
@@ -575,10 +598,8 @@ function VisitCard(props: VisitProps) {
             disabled={busy}
             onPress={() => {
               setActionError(null);
+              setTimes(null);
               setMode('move');
-              setAsk(null);
-              const today = todayIn(props.timeZone);
-              setMoveDate(visit.date < today ? today : visit.date);
             }}
           />
           <Button
@@ -603,11 +624,8 @@ function VisitCard(props: VisitProps) {
               kind="secondary"
               label="‹"
               a11yLabel={v.previousDay}
-              disabled={busy || moveDate <= todayIn(props.timeZone)}
-              onPress={() => {
-                setMoveDate(addDays(moveDate, -1));
-                setAsk(null);
-              }}
+              disabled={busy || moveDate <= today}
+              onPress={() => chooseMoveDate(addDays(moveDate, -1))}
             />
             <Text style={styles.dayName}>{dayTitle(moveDate, props.locale)}</Text>
             <Button
@@ -615,10 +633,7 @@ function VisitCard(props: VisitProps) {
               label="›"
               a11yLabel={v.nextDay}
               disabled={busy}
-              onPress={() => {
-                setMoveDate(addDays(moveDate, 1));
-                setAsk(null);
-              }}
+              onPress={() => chooseMoveDate(addDays(moveDate, 1))}
             />
           </View>
           {ask ? (
@@ -632,8 +647,11 @@ function VisitCard(props: VisitProps) {
                   label={v.yes}
                   busy={busy}
                   onPress={() =>
-                    void run('move', (a) =>
-                      api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
+                    void run(
+                      'move',
+                      (a) =>
+                        api.reschedule(salon.orgId, salon.locationId, a.id, a.version, ask.start),
+                      clearMove,
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -645,7 +663,7 @@ function VisitCard(props: VisitProps) {
                   kind="secondary"
                   label={v.no}
                   disabled={busy}
-                  onPress={() => setAsk(null)}
+                  onPress={() => setMoveDraft({ date: moveDate, start: null })}
                 />
               </View>
             </>
@@ -671,7 +689,7 @@ function VisitCard(props: VisitProps) {
                   accessibilityRole="button"
                   onPress={() => {
                     setActionError(null);
-                    setAsk(s);
+                    setMoveDraft({ date: moveDate, start: s.start });
                   }}
                   style={styles.time}
                 >
@@ -680,7 +698,15 @@ function VisitCard(props: VisitProps) {
               ))}
             </View>
           )}
-          <Button kind="link" label={v.close} disabled={busy} onPress={() => setMode(null)} />
+          <Button
+            kind="link"
+            label={v.close}
+            disabled={busy}
+            onPress={() => {
+              clearMove();
+              setMode(null);
+            }}
+          />
         </Card>
       ) : null}
 
@@ -715,14 +741,17 @@ function VisitCard(props: VisitProps) {
                   label={v.cancelYes}
                   busy={busy}
                   onPress={() =>
-                    void run('cancel', (a) =>
-                      api.cancel(
-                        salon.orgId,
-                        salon.locationId,
-                        a.id,
-                        a.version,
-                        cancelReason(reason) ?? '',
-                      ),
+                    void run(
+                      'cancel',
+                      (a) =>
+                        api.cancel(
+                          salon.orgId,
+                          salon.locationId,
+                          a.id,
+                          a.version,
+                          cancelReason(reason) ?? '',
+                        ),
+                      clearReason,
                     ).then((ok) => {
                       if (!ok) return;
                       setMode(null);
@@ -748,7 +777,15 @@ function VisitCard(props: VisitProps) {
                   if (cancelReason(reason)) setAskCancel(true);
                 }}
               />
-              <Button kind="link" label={v.close} disabled={busy} onPress={() => setMode(null)} />
+              <Button
+                kind="link"
+                label={v.close}
+                disabled={busy}
+                onPress={() => {
+                  clearReason();
+                  setMode(null);
+                }}
+              />
             </View>
           )}
         </Card>

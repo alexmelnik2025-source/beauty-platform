@@ -44,23 +44,29 @@ export function ScheduleScreen(props: {
   const [info, setInfo] = useState(props.notice ?? '');
   const [busy, setBusy] = useState(false);
   /** Time off being added; task 338: `part` = the hours of one day ("12:00–15:00"), null = whole days. */
-  const [form, setForm] = useFormDraft<{
+  const [form, setForm, resetForm] = useFormDraft<{
     from: string;
     to: string;
     note: string;
     part: string | null;
   } | null>(`schedule.${staffId}.form`, null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const [week, setWeek] = useFormDraft<Record<number, string> | null>(
+  const [weekEdits, setWeekEdits, resetWeek] = useFormDraft<Record<number, string> | null>(
     `schedule.${staffId}.week`,
     null,
   );
+  const week = weekEdits && hours ? { ...weekInputs(hours), ...weekEdits } : null;
   const [badDay, setBadDay] = useState<number | null>(null);
   /** Task 335: "Dzień specjalny" — the date and the hours being typed, and what to fix. */
-  const [special, setSpecial] = useFormDraft<{ date: string; text: string } | null>(
-    `schedule.${staffId}.special`,
-    null,
-  );
+  const [special, setSpecial, resetSpecial] = useFormDraft<{
+    date: string;
+    text?: string;
+    carryFromDate?: string;
+  } | null>(`schedule.${staffId}.special`, null);
+  const savedHours = special && hours ? specialInput(hours, special.date) : '';
+  const carriedHours =
+    special?.carryFromDate && hours ? specialInput(hours, special.carryFromDate) : '';
+  const specialText = special?.text ?? (savedHours || carriedHours);
   const [specialProblem, setSpecialProblem] = useState<'empty' | 'bad' | null>(null);
   const [removingSpecial, setRemovingSpecial] = useState<string | null>(null);
 
@@ -90,18 +96,17 @@ export function ScheduleScreen(props: {
     return () => sub.remove();
   }, [onBack]);
 
-  async function run(action: () => Promise<unknown>, done: string): Promise<boolean> {
+  async function run(action: () => Promise<unknown>, done: string, onSuccess?: () => void) {
     setBusy(true);
     setError('');
     setInfo('');
     try {
       await action();
+      onSuccess?.();
       setInfo(done);
       await load();
-      return true;
     } catch (e) {
       setError(errorText(e, t));
-      return false;
     } finally {
       setBusy(false);
     }
@@ -115,15 +120,15 @@ export function ScheduleScreen(props: {
       return;
     }
     const note = form.note.trim();
-    const ok = await run(
+    await run(
       () =>
         api.addTimeOff(salon.orgId, salon.locationId, staffId, {
           ...range,
           ...(note ? { note } : {}),
         }),
       s.added,
+      resetForm,
     );
-    if (ok) setForm(null);
   }
 
   async function saveWeek() {
@@ -131,23 +136,26 @@ export function ScheduleScreen(props: {
     const body = weeklyBody(week);
     if (!body.ok) return setBadDay(body.weekday);
     setBadDay(null);
-    const ok = await run(
-      () => api.setWorkingHours(salon.orgId, salon.locationId, staffId, body.days),
+    await run(
+      () => api.setWorkingHours(salon.orgId, salon.locationId, staffId, body.days).then(setHours),
       s.weekSaved,
+      resetWeek,
     );
-    if (ok) setWeek(null);
   }
 
   async function saveSpecial() {
     if (!special) return;
-    const body = specialBody(special.text);
+    const body = specialBody(specialText);
     if (!body.ok) return setSpecialProblem(body.problem);
     setSpecialProblem(null);
-    const ok = await run(
-      () => api.setSpecialDay(salon.orgId, salon.locationId, staffId, special.date, body.intervals),
+    await run(
+      () =>
+        api
+          .setSpecialDay(salon.orgId, salon.locationId, staffId, special.date, body.intervals)
+          .then(setHours),
       s.specialSaved,
+      resetSpecial,
     );
-    if (ok) setSpecial(null);
   }
 
   /** ‹ › move the special day; never before today. The field shows that day's hours, if any. */
@@ -155,7 +163,15 @@ export function ScheduleScreen(props: {
     if (!special || !hours) return;
     let date = addDays(special.date, days);
     if (date < props.today) date = props.today;
-    setSpecial({ date, text: specialInput(hours, date) || special.text });
+    if (date === special.date) return;
+    if (specialInput(hours, date)) {
+      setSpecial({ date });
+    } else if (special.text === undefined && savedHours) {
+      // Carry the previous hours by date so a return to the editor reads their latest value.
+      setSpecial({ date, carryFromDate: special.date });
+    } else {
+      setSpecial({ ...special, date });
+    }
   };
 
   const shift = (key: 'from' | 'to', days: number) => {
@@ -204,7 +220,7 @@ export function ScheduleScreen(props: {
                     placeholder={s.dayOff}
                     value={week[d.weekday] ?? ''}
                     maxLength={80}
-                    onChangeText={(text) => setWeek({ ...week, [d.weekday]: text })}
+                    onChangeText={(text) => setWeekEdits({ ...weekEdits, [d.weekday]: text })}
                     style={styles.input}
                   />
                 </View>
@@ -215,7 +231,7 @@ export function ScheduleScreen(props: {
                   kind="link"
                   label={s.cancel}
                   onPress={() => {
-                    setWeek(null);
+                    resetWeek();
                     setBadDay(null);
                   }}
                 />
@@ -239,7 +255,7 @@ export function ScheduleScreen(props: {
               label={s.editWeek}
               onPress={() => {
                 setInfo('');
-                setWeek(weekInputs(hours));
+                setWeekEdits({});
               }}
             />
           ) : null}
@@ -304,7 +320,7 @@ export function ScheduleScreen(props: {
               onPress={() => {
                 setInfo('');
                 setSpecialProblem(null);
-                setSpecial({ date: props.today, text: specialInput(hours, props.today) });
+                setSpecial({ date: props.today });
               }}
             />
           ) : null}
@@ -341,9 +357,9 @@ export function ScheduleScreen(props: {
                   }
                   accessibilityLabel={s.specialHours}
                   placeholder="10:00–14:00"
-                  value={special.text}
+                  value={specialText}
                   maxLength={80}
-                  onChangeText={(text) => setSpecial({ ...special, text })}
+                  onChangeText={(text) => setSpecial({ date: special.date, text })}
                   style={styles.input}
                 />
                 <Text style={styles.small}>{s.specialHint}</Text>
@@ -354,7 +370,7 @@ export function ScheduleScreen(props: {
                   kind="link"
                   label={s.cancel}
                   onPress={() => {
-                    setSpecial(null);
+                    resetSpecial();
                     setSpecialProblem(null);
                   }}
                 />
@@ -465,7 +481,14 @@ export function ScheduleScreen(props: {
               />
               <View style={styles.row}>
                 <Button label={s.save} busy={busy} onPress={() => void save()} />
-                <Button kind="link" label={s.cancel} onPress={() => setForm(null)} />
+                <Button
+                  kind="link"
+                  label={s.cancel}
+                  onPress={() => {
+                    resetForm();
+                    setError('');
+                  }}
+                />
               </View>
             </Card>
           ) : null}

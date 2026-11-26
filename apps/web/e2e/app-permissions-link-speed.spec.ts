@@ -70,6 +70,11 @@ async function openApp(page: Page) {
   return calls;
 }
 
+async function openPermissions(page: Page) {
+  await button(page, pl.navigation.more).click();
+  await button(page, pl.rights.open).click();
+}
+
 test('reopening permissions reuses the lists and saving an exception needs one request', async ({
   page,
 }) => {
@@ -77,7 +82,7 @@ test('reopening permissions reuses the lists and saving an exception needs one r
   await openBusinessMenu(page, pl.team.open);
   await expect(page.getByText('Kasia', { exact: true }).first()).toBeVisible();
   calls.length = 0;
-  await button(page, pl.rights.open).click();
+  await openPermissions(page);
   const edit = button(page, pl.rights.change + ': Kasia');
   await expect(edit).toBeVisible();
   expect([...calls].sort()).toEqual(
@@ -120,7 +125,7 @@ test('reopening permissions reuses the lists and saving an exception needs one r
     )
     .toBe(3);
   calls.length = 0;
-  await button(page, pl.rights.open).click();
+  await openPermissions(page);
   await edit.click();
   await expect(allow).toBeChecked();
   expect(calls).toEqual([]);
@@ -193,11 +198,11 @@ test('a delayed read from the previous permissions visit cannot replace the newe
     await route.fulfill({ json: [{ ...category, name: first ? 'Previous' : 'Current' }] });
   });
 
-  await button(page, pl.rights.open).click();
+  await openPermissions(page);
   try {
     await expect.poll(() => reads).toBe(1);
     await button(page, pl.rights.back).click();
-    await button(page, pl.rights.open).click();
+    await openPermissions(page);
     await expect(button(page, pl.rights.change + ': Current')).toBeVisible();
   } finally {
     const finished = page.waitForEvent('requestfinished', (request) => request === previous);
@@ -205,7 +210,7 @@ test('a delayed read from the previous permissions visit cannot replace the newe
     await finished;
   }
   await button(page, pl.rights.back).click();
-  await button(page, pl.rights.open).click();
+  await openPermissions(page);
   await expect(button(page, pl.rights.change + ': Current')).toBeVisible();
   await expect(button(page, pl.rights.change + ': Previous')).toHaveCount(0);
   expect(reads).toBe(2);
@@ -222,7 +227,7 @@ test('saving a category flag keeps the confirmed version and does not reread the
     return route.fulfill({ json: [category] });
   });
   await openBusinessMenu(page, pl.team.open);
-  await button(page, pl.rights.open).click();
+  await openPermissions(page);
   const edit = button(page, pl.rights.change + ': Senior');
   await edit.click();
   const contacts = page.getByRole('checkbox', { name: pl.rights.names.viewClientContacts });

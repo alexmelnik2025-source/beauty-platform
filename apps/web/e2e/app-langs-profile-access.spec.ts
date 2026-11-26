@@ -205,6 +205,7 @@ for (const [locale, t] of Object.entries({ en, uk, ru })) {
 
         await more(page).click();
         await button(page, t.team.open).click();
+        await button(page, t.navigation.more).click();
         await button(page, t.rights.open).click();
         await button(page, t.rights.addCategory).click();
         await button(page, t.rights.save).click();

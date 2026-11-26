@@ -139,6 +139,7 @@ test('Q9: the owner sets a personal rule in the business app and the client conf
     await app.getByRole('button', { name: 'Zaloguj się' }).click();
     await app.getByRole('tab', { name: 'Klienci' }).click();
     await app.getByRole('button', { name: /Ola Nowak/ }).click();
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     const rule = app.getByRole('button', { name: 'Zasady dla klienta' });
     await expect(rule).toHaveAttribute('aria-expanded', 'false');
     await rule.click();

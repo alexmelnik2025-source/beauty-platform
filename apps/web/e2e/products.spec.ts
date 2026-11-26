@@ -997,6 +997,7 @@ test('the owner sells a product at a visit; the report counts it apart', async (
     await expect(appBySupplier).toContainText(/bez dostawcy\s*4 szt\./);
     await appBySupplier.scrollIntoViewIfNeeded();
     await shot(app, '468-business-app-deliveries-suppliers');
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     // Task 455: "CSV historii magazynu" from the phone (saved in the web preview).
     const [appHistoryCsv] = await Promise.all([
       app.waitForEvent('download'),

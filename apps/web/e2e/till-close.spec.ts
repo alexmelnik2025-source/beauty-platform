@@ -289,6 +289,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await shot(app, '232-b-business-app-till-close');
 
     // Task 236 in the business app: 10 zł put into the till, then removed as a mistake.
+    await appTill.getByRole('button', { name: 'Więcej', exact: true }).click();
     await appTill.getByRole('button', { name: 'Wpłata / wypłata' }).click();
     const appMove = app.getByTestId('till-move-form');
     await appMove.getByRole('radio', { name: 'Wpłata do kasy' }).click();
@@ -312,6 +313,7 @@ test('the owner closes the till: counted cash beside the cash visits of the day'
     await expect(appCloses).toContainText(/policzono 100,00\s*zł · powinno być 90,00\s*zł/);
     await shot(app, '235-business-app-report-till-closes');
     // Task 238: "CSV kasy" in the app — the till's cash journal of the period.
+    await app.getByRole('button', { name: 'Więcej', exact: true }).click();
     const [appTillFile] = await Promise.all([
       app.waitForEvent('download'),
       app.getByRole('button', { name: 'CSV kasy' }).click(),

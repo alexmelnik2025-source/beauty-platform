@@ -69,19 +69,21 @@ function VoucherCard(props: {
   const v = t.vouchers;
   const { voucher, uses } = details;
   const money = (n: number) => formatPrice(n, salon.currency, locale);
-  const [amount, setAmount] = useFormDraft(`voucher.${voucher.id}.amount`, '');
-  const [note, setNote] = useFormDraft(`voucher.${voucher.id}.note`, '');
+  const [amount, setAmount, clearAmount] = useFormDraft(`voucher.${voucher.id}.amount`, '');
+  const [note, setNote, clearNote] = useFormDraft(`voucher.${voucher.id}.note`, '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [editing, setEditing] = useFormDraft(`voucher.${voucher.id}.editing`, false);
-  const [editUntil, setEditUntil] = useFormDraft(`voucher.${voucher.id}.editUntil`, '');
-  const [editRecipient, setEditRecipient] = useFormDraft(`voucher.${voucher.id}.editRecipient`, '');
-  const [editNote, setEditNote] = useFormDraft(`voucher.${voucher.id}.editNote`, '');
-  const [editPayment, setEditPayment] = useFormDraft<PaymentMethod | null>(
-    `voucher.${voucher.id}.editPayment`,
-    null,
-  );
+  const [editDraft, setEditDraft, clearEdit] = useFormDraft<{
+    until?: string;
+    recipient?: string;
+    note?: string;
+    payment?: PaymentMethod | null;
+  } | null>(`voucher.${voucher.id}.edit`, null);
+  const editUntil = editDraft?.until ?? voucher.validUntil ?? '';
+  const editRecipient = editDraft?.recipient ?? voucher.recipient ?? '';
+  const editNote = editDraft?.note ?? voucher.note ?? '';
+  const editPayment = editDraft?.payment === undefined ? voucher.paymentMethod : editDraft.payment;
   // Task 532: the payment the owner or a manager is asked about before undoing it.
   const [undoing, setUndoing] = useState<string | null>(null);
   // Task 539: while the salon page is public, "Wyślij bon" adds the link that shows what is left.
@@ -125,11 +127,7 @@ function VoucherCard(props: {
   function startEdit() {
     setError('');
     setInfo('');
-    setEditUntil(voucher.validUntil ?? '');
-    setEditRecipient(voucher.recipient ?? '');
-    setEditNote(voucher.note ?? '');
-    setEditPayment(voucher.paymentMethod);
-    setEditing(true);
+    setEditDraft({});
   }
 
   /** Task 500: "Zmień bon" — owners and managers; the amount stays (the server checks). */
@@ -146,7 +144,7 @@ function VoucherCard(props: {
         note: editNote.trim() || null,
         paymentMethod: editPayment,
       });
-      setEditing(false);
+      clearEdit();
       props.onChange({ ...details, voucher: updated });
       setInfo(fill(v.edited, { code: updated.code }));
     } catch (e) {
@@ -171,8 +169,8 @@ function VoucherCard(props: {
         note,
       );
       props.onChange(next);
-      setAmount('');
-      setNote('');
+      clearAmount();
+      clearNote();
       setInfo(fill(v.paid, { amount: money(grosze), left: money(next.voucher.balanceGrosze) }));
     } catch (e) {
       setError(voucherErrorText(e, t));
@@ -236,7 +234,7 @@ function VoucherCard(props: {
         </>
       ) : null}
       {manager && voucher.status !== 'cancelled' ? (
-        editing ? (
+        editDraft ? (
           <View style={styles.confirm}>
             <Text style={styles.subheading}>{v.edit}</Text>
             <Text style={styles.muted}>{v.editHint}</Text>
@@ -244,20 +242,35 @@ function VoucherCard(props: {
               error={error === v.wrongDate ? error : undefined}
               label={v.validUntilField}
               value={editUntil}
-              onChange={setEditUntil}
+              onChange={(until) => setEditDraft((draft) => draft && { ...draft, until })}
             />
-            <Input label={v.recipient} value={editRecipient} onChange={setEditRecipient} />
-            <Input label={v.note} value={editNote} onChange={setEditNote} />
+            <Input
+              label={v.recipient}
+              value={editRecipient}
+              onChange={(recipient) => setEditDraft((draft) => draft && { ...draft, recipient })}
+            />
+            <Input
+              label={v.note}
+              value={editNote}
+              onChange={(note) => setEditDraft((draft) => draft && { ...draft, note })}
+            />
             <PaymentMethodPicker
               t={t}
               label={v.paymentLabel}
               value={editPayment}
-              onChange={setEditPayment}
+              onChange={(payment) => setEditDraft((draft) => draft && { ...draft, payment })}
               disabled={busy}
             />
             <View style={styles.buttons}>
               <Button label={v.editSave} busy={busy} onPress={() => void saveEdit()} />
-              <Button kind="link" label={v.editCancel} onPress={() => setEditing(false)} />
+              <Button
+                kind="link"
+                label={v.editCancel}
+                onPress={() => {
+                  clearEdit();
+                  setError('');
+                }}
+              />
             </View>
           </View>
         ) : (
@@ -336,16 +349,23 @@ export function VouchersScreen(props: {
   const manager = salon.role !== 'staff';
   const money = (n: number) => formatPrice(n, salon.currency, locale);
   const [code, setCode] = useFormDraft('vouchers.code', '');
-  const [found, setFound] = useFormDraft<GiftVoucherDetails | null>('vouchers.found', null);
+  const [lookup, setLookup, clearLookup] = useFormDraft<{ id: string } | { code: string } | null>(
+    'vouchers.lookup',
+    null,
+  );
+  const [found, setFound] = useState<GiftVoucherDetails | null>(null);
   const [checkError, setCheckError] = useState('');
   const [checking, setChecking] = useState(false);
   const [list, setList] = useState<GiftVoucherList | null>(null);
   const [listError, setListError] = useState('');
-  const [amount, setAmount] = useFormDraft('vouchers.amount', '');
-  const [validUntil, setValidUntil] = useFormDraft('vouchers.validUntil', '');
-  const [recipient, setRecipient] = useFormDraft('vouchers.recipient', '');
-  const [payment, setPayment] = useFormDraft<PaymentMethod | null>('vouchers.payment', null);
-  const [note, setNote] = useFormDraft('vouchers.note', '');
+  const [sale, setSale, clearSale] = useFormDraft<{
+    amount?: string;
+    validUntil?: string;
+    recipient?: string;
+    note?: string;
+    payment?: PaymentMethod | null;
+  }>('vouchers.sale', {});
+  const { amount = '', validUntil = '', recipient = '', note = '', payment = null } = sale;
   const [sellError, setSellError] = useState('');
   const [sold, setSold] = useState<GiftVoucher | null>(null);
   const [selling, setSelling] = useState(false);
@@ -399,18 +419,39 @@ export function VouchersScreen(props: {
     }
   }
 
-  async function check() {
+  useEffect(() => {
+    if (!lookup) return;
+    let live = true;
+    setChecking(true);
+    const request =
+      'code' in lookup
+        ? api.giftVoucherByCode(salon.orgId, salon.locationId, lookup.code)
+        : api.giftVoucher(salon.orgId, salon.locationId, lookup.id);
+    request.then(
+      (details) => {
+        if (!live) return;
+        setFound(details);
+        setChecking(false);
+      },
+      (e) => {
+        if (!live) return;
+        const message = voucherErrorText(e, t);
+        if ('code' in lookup) setCheckError(message);
+        else setListError(message);
+        setChecking(false);
+        clearLookup();
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, salon.orgId, salon.locationId, lookup, clearLookup, t]);
+
+  function check() {
     if (!code.trim()) return;
     setCheckError('');
     setFound(null);
-    setChecking(true);
-    try {
-      setFound(await api.giftVoucherByCode(salon.orgId, salon.locationId, code));
-    } catch (e) {
-      setCheckError(voucherErrorText(e, t));
-    } finally {
-      setChecking(false);
-    }
+    setLookup({ code });
   }
 
   async function sell() {
@@ -430,11 +471,7 @@ export function VouchersScreen(props: {
         ...(payment ? { paymentMethod: payment } : {}),
       });
       setSold(voucher);
-      setAmount('');
-      setValidUntil('');
-      setRecipient('');
-      setNote('');
-      setPayment(null);
+      clearSale();
       await load();
     } catch (e) {
       setSellError(voucherErrorText(e, t));
@@ -444,21 +481,21 @@ export function VouchersScreen(props: {
   }
 
   /** Task 503: "Pokaż" — the voucher's card from the list, without typing the code. */
-  async function show(voucher: GiftVoucher) {
+  function show(voucher: GiftVoucher) {
     setCheckError('');
-    try {
-      setFound(await api.giftVoucher(salon.orgId, salon.locationId, voucher.id));
-      setCode(voucher.code);
-      scroll.current?.scrollTo({ y: 0, animated: true });
-    } catch (e) {
-      setListError(voucherErrorText(e, t));
-    }
+    setFound(null);
+    setLookup({ id: voucher.id });
+    setCode(voucher.code);
+    scroll.current?.scrollTo({ y: 0, animated: true });
   }
 
   async function cancel(voucher: GiftVoucher) {
     setInfo('');
     try {
-      await api.cancelGiftVoucher(salon.orgId, salon.locationId, voucher.id);
+      const cancelled = await api.cancelGiftVoucher(salon.orgId, salon.locationId, voucher.id);
+      setFound((current) =>
+        current?.voucher.id === voucher.id ? { ...current, voucher: cancelled } : current,
+      );
       setInfo(fill(v.cancelled, { code: voucher.code }));
       setConfirm(null);
       await load();
@@ -481,17 +518,18 @@ export function VouchersScreen(props: {
         {v.checkTitle}
       </Text>
       <Input error={checkError} label={v.code} value={code} onChange={setCode} caps />
-      <Button kind="secondary" label={v.check} busy={checking} onPress={() => void check()} />
+      <Button kind="secondary" label={v.check} busy={checking} onPress={check} />
 
       {found ? (
         <VoucherCard
+          key={found.voucher.id}
           api={api}
           t={t}
           locale={locale}
           salon={salon}
           details={found}
           onChange={(next) => {
-            setFound(next);
+            setFound((current) => (current?.voucher.id === next.voucher.id ? next : current));
             void load();
           }}
         />
@@ -506,22 +544,30 @@ export function VouchersScreen(props: {
             error={sellError === v.wrongAmount ? sellError : undefined}
             label={v.amount}
             value={amount}
-            onChange={setAmount}
+            onChange={(amount) => setSale((draft) => ({ ...draft, amount }))}
             numeric
           />
           <Input
             error={sellError === v.wrongDate ? sellError : undefined}
             label={v.validUntilField}
             value={validUntil}
-            onChange={setValidUntil}
+            onChange={(validUntil) => setSale((draft) => ({ ...draft, validUntil }))}
           />
-          <Input label={v.recipient} value={recipient} onChange={setRecipient} />
-          <Input label={v.note} value={note} onChange={setNote} />
+          <Input
+            label={v.recipient}
+            value={recipient}
+            onChange={(recipient) => setSale((draft) => ({ ...draft, recipient }))}
+          />
+          <Input
+            label={v.note}
+            value={note}
+            onChange={(note) => setSale((draft) => ({ ...draft, note }))}
+          />
           <PaymentMethodPicker
             t={t}
             label={v.paymentLabel}
             value={payment}
-            onChange={setPayment}
+            onChange={(payment) => setSale((draft) => ({ ...draft, payment }))}
             disabled={selling}
           />
           <Text style={styles.muted}>{v.paymentHint}</Text>
@@ -595,7 +641,7 @@ export function VouchersScreen(props: {
                       kind="link"
                       label={v.show}
                       a11yLabel={`${v.show} ${x.code}`}
-                      onPress={() => void show(x)}
+                      onPress={() => show(x)}
                     />
                     {x.status === 'active' ? (
                       confirm === x.id ? (
