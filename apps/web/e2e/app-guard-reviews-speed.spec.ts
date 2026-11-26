@@ -213,6 +213,8 @@ test('typing and publishing touch only the chosen review, and returning reuses t
   const typing = await work();
   await row.getByRole('button', { name: pl.reviews.replySave }).click();
   await expect(row.getByText(draft, { exact: true })).toBeVisible();
+  // The reply text can show before the saved review replaces the row; wait for that render.
+  await expect.poll(async () => (await work()).rows.length).toBeGreaterThan(0);
   const saved = await work();
   await expect(unanswered).toHaveText(/6/);
   await button(page, pl.reviews.back).click();
