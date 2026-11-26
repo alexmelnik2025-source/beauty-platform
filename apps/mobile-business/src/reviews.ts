@@ -65,7 +65,7 @@ export function reviewLine(
         day: 'numeric',
         month: 'short',
         year: 'numeric',
-      }).format(instant),
+      }).format(new Date(instant)),
     );
   }
   return parts.join(' · ');

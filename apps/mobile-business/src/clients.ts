@@ -95,7 +95,7 @@ export function visitWhen(iso: string, timeZone: string, locale: DayLocale): str
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-  }).format(instant);
+  }).format(new Date(instant));
 }
 
 export type ClientCoupon = LoyaltyAccount['coupons'][number];
@@ -135,7 +135,7 @@ export function dateIn(iso: string, timeZone: string, locale: DayLocale): string
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(instant);
+  }).format(new Date(instant));
 }
 
 /**
