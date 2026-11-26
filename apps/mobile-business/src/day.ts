@@ -17,6 +17,16 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
+/** A real YYYY-MM-DD in the year range accepted by the scheduling API. */
+export function isScheduleDate(date: string): boolean {
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+    date >= '1000-01-01' &&
+    date <= '9000-12-31' &&
+    addDays(date, 0) === date
+  );
+}
+
 const INTL_LOCALE = { pl: 'pl-PL', uk: 'uk-UA', ru: 'ru-RU', en: 'en-GB' } as const;
 export type DayLocale = keyof typeof INTL_LOCALE;
 
@@ -193,6 +203,8 @@ export function timeOffText(off: Pick<TimeOff, 'start' | 'end'>, locale: DayLoca
 
 /** Whole days off from `from` to `to` (both included) as the API wants them. */
 export function daysOff(from: string, to: string): { start: string; end: string } | null {
-  if (to < from) return null;
-  return { start: `${from}T00:00`, end: `${addDays(to, 1)}T00:00` };
+  if (to < from || !isScheduleDate(from) || !isScheduleDate(to)) return null;
+  const endDate = addDays(to, 1);
+  if (!isScheduleDate(endDate)) return null;
+  return { start: `${from}T00:00`, end: `${endDate}T00:00` };
 }

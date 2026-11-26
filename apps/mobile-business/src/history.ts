@@ -20,7 +20,13 @@ export function mayViewHistory(role: 'owner' | 'manager' | 'staff'): boolean {
 /** An older page is added below; an entry already shown is not repeated. */
 export function appendPage(shown: HistoryEntry[], page: HistoryEntry[]): HistoryEntry[] {
   const seen = new Set(shown.map((e) => e.id));
-  return [...shown, ...page.filter((e) => !seen.has(e.id))];
+  const entries = [...shown];
+  for (const entry of page) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    entries.push(entry);
+  }
+  return entries;
 }
 
 /** "Zmieniono usługę: Strzyżenie" — an action we do not know yet is shown as it is. */

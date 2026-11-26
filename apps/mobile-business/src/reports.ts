@@ -30,7 +30,7 @@ export function onlineShare(totals: {
 export function change(now: number, before: number): string | null {
   if (before <= 0) return null;
   const percent = Math.round(((now - before) / before) * 100);
-  if (percent === 0) return null;
+  if (!Number.isFinite(percent) || percent === 0) return null;
   return `${percent > 0 ? '+' : '−'}${Math.abs(percent)}%`;
 }
 

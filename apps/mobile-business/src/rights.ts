@@ -29,12 +29,12 @@ export function categoryForm(
   return { name: category?.name ?? '', permissions };
 }
 
-/** What POST/PATCH …/staff-categories takes; the name may not be empty. */
+/** What POST/PATCH …/staff-categories takes, including the 1–60 character name. */
 export function categoryBody(
   form: CategoryForm,
 ): { ok: true; name: string; permissions: PermissionMap } | { ok: false } {
   const name = form.name.trim();
-  if (!name) return { ok: false };
+  if (!name || name.length > 60) return { ok: false };
   return { ok: true, name, permissions: { ...form.permissions } };
 }
 
