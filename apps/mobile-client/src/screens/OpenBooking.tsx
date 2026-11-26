@@ -4,6 +4,23 @@ import type { ClientApi, PublicLocation } from '../api';
 import { errorText } from '../errors';
 import type { Dictionary } from '../i18n';
 import { Button, colors, ErrorText, Heading } from '../ui';
+import { withNetworkTimeout } from '../withNetworkTimeout';
+
+// Returning to the same booking while its public salon data is loading can reuse the GET.
+const pendingByApi = new WeakMap<ClientApi, Map<string, Promise<PublicLocation>>>();
+
+function loadSalon(api: ClientApi, slug: string) {
+  let requests = pendingByApi.get(api);
+  if (!requests) {
+    requests = new Map();
+    pendingByApi.set(api, requests);
+  }
+  const pending = requests.get(slug);
+  if (pending) return pending;
+  const request = withNetworkTimeout(api.salon(slug)).finally(() => requests.delete(slug));
+  requests.set(slug, request);
+  return request;
+}
 
 /**
  * "Book again" and "Book" on a loyalty card: loads the salon's booking page data (services,
@@ -25,7 +42,7 @@ export function OpenBooking(props: {
 
   useEffect(() => {
     let live = true;
-    api.salon(slug).then(
+    loadSalon(api, slug).then(
       (salon) => {
         if (live) loaded(salon);
       },
@@ -58,7 +75,7 @@ export function OpenBooking(props: {
         <ActivityIndicator
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel={props.t.book.title}
+          accessibilityLabel={props.t.loading}
           style={{ marginTop: 24 }}
           color={colors.ink}
         />

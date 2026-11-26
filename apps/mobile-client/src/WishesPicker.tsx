@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { WishField } from './errors';
 import { FieldGroup } from './FormFeedback';
 import type { Dictionary } from './i18n';
-import { Chip, colors, FieldInput } from './ui';
+import { colors, FieldInput, Pressable } from './ui';
 import {
   DRINK_ICON,
   drinkChoices,
@@ -89,7 +89,7 @@ export function WishesPicker(props: {
             error={invalid === 'note' ? w.badNote : undefined}
             accessibilityLabel={w.noteQ}
             placeholder={w.notePlaceholder}
-            placeholderTextColor={colors.placeholder}
+            placeholderTextColor={colors.muted}
             value={value.note ?? ''}
             onChangeText={(text) => onChange({ ...value, note: text || null })}
             maxLength={NOTE_MAX}
@@ -113,11 +113,16 @@ const WishChoice = memo(function WishChoice(props: {
   toggle: (field: 'mood' | 'drink', choice: NonNullable<VisitWishes['mood' | 'drink']>) => void;
 }) {
   return (
-    <Chip
-      label={props.label}
-      pressed={props.pressed}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ selected: props.pressed }}
+      aria-pressed={props.pressed}
       onPress={() => props.toggle(props.field, props.choice)}
-    />
+      style={[styles.choice, props.pressed && styles.choiceOn]}
+    >
+      <Text style={[styles.choiceText, props.pressed && styles.choiceTextOn]}>{props.label}</Text>
+    </Pressable>
   );
 });
 
@@ -134,6 +139,19 @@ const styles = StyleSheet.create({
   group: { gap: 8 },
   question: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  choice: {
+    maxWidth: '100%',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  choiceOn: { borderColor: colors.ink, backgroundColor: colors.ink },
+  choiceText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
+  choiceTextOn: { color: colors.card },
   input: {
     minHeight: 56,
     borderWidth: 1,

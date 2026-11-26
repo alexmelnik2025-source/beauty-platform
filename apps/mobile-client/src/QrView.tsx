@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { encodeQr, qrRuns } from './qr';
 
 /** Light border around the code (4 modules, as the standard asks) — scanners need it. */
@@ -13,22 +13,43 @@ function buildGraphic(text: string) {
   const runs = qrRuns(qr);
   const modules = qr.size + QUIET * 2;
   const percent = (count: number): `${number}%` => `${(count / modules) * 100}%`;
-  const squares = runs.map((r) => ({
-    key: `${r.x}-${r.y}`,
-    style: {
-      left: percent(r.x + QUIET),
-      top: percent(r.y + QUIET),
-      width: percent(r.length),
-      height: percent(1),
-    },
-  }));
-  return { text, modules, squares };
+  const content =
+    Platform.OS === 'web' ? (
+      <svg
+        viewBox={`0 0 ${modules} ${modules}`}
+        width="100%"
+        height="100%"
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          fill="#000"
+          d={runs
+            .map(({ x, y, length }) => `M${x + QUIET} ${y + QUIET}h${length}v1h-${length}z`)
+            .join('')}
+        />
+      </svg>
+    ) : (
+      runs.map(({ x, y, length }) => (
+        <View
+          key={`${x}-${y}`}
+          style={[
+            styles.module,
+            {
+              left: percent(x + QUIET),
+              top: percent(y + QUIET),
+              width: percent(length),
+              height: percent(1),
+            },
+          ]}
+        />
+      ))
+    );
+  return { text, modules, content };
 }
 
-/**
- * Task 357: a QR code drawn with plain Views — one per horizontal run of dark modules, so no
- * react-native-svg is needed. `module` is the preferred size of one square in pixels.
- */
+/** One vector path on the web. The native app draws the same horizontal runs with Views. */
 export const QrView = memo(function QrView(props: {
   text: string;
   label: string;
@@ -37,7 +58,7 @@ export const QrView = memo(function QrView(props: {
   const { text, label } = props;
   const module = props.module ?? 6;
   if (lastGraphic?.text !== text) lastGraphic = buildGraphic(text);
-  const { modules, squares } = lastGraphic;
+  const { modules, content } = lastGraphic;
   return (
     <View
       accessible
@@ -46,9 +67,7 @@ export const QrView = memo(function QrView(props: {
       testID="salon-qr"
       style={[styles.qr, { width: modules * module, maxWidth: '100%', aspectRatio: 1 }]}
     >
-      {squares.map((square) => (
-        <View key={square.key} style={[styles.module, square.style]} />
-      ))}
+      {content}
     </View>
   );
 });

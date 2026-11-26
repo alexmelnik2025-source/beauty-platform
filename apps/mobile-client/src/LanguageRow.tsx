@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Locale } from './api';
 import { formFailure, validationField, type FormFailure } from './errors';
@@ -17,18 +17,31 @@ export const LanguageRow = memo(function LanguageRow(props: {
   const [invalid, setInvalid] = useState(false);
   const [failure, setFailure] = useState<FormFailure | null>(null);
 
+  const saving = useRef(false);
+  const lastSaved = useRef<Locale | null>(null);
+  useEffect(() => {
+    // The language can also change in another mounted picker.
+    if (props.locale !== lastSaved.current) lastSaved.current = null;
+  }, [props.locale]);
+
   async function choose(locale: Locale) {
-    if (busy) return;
+    if (saving.current) return;
+    setOpen(false);
+    // The parent changes the interface before the PATCH succeeds. Only skip a confirmed save.
+    if (locale === props.locale && locale === lastSaved.current) return;
+    saving.current = true;
+    lastSaved.current = null;
     setBusy(true);
     setInvalid(false);
     setFailure(null);
-    setOpen(false);
     try {
       await props.onLocale(locale);
+      lastSaved.current = locale;
     } catch (error) {
       if (validationField(error, ['locale'])) setInvalid(true);
       else setFailure(formFailure(error, DICTIONARIES[locale], () => void choose(locale)));
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }

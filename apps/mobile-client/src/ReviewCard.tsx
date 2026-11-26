@@ -1,12 +1,12 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { memo, useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiError, type ClientApi, type Locale, type VisitReview } from './api';
 import { formFailure, isNetworkError, validationField, type FormFailure } from './errors';
 import { FieldGroup, FormFeedback } from './FormFeedback';
 import { fill, type Dictionary } from './i18n';
 import { recentReads } from './shop';
 import { withNetworkTimeout } from './withNetworkTimeout';
-import { Button, colors, FieldInput, Pressable } from './ui';
+import { Button, colors, FieldInput } from './ui';
 
 const visitReviews = recentReads<VisitReview>();
 const saving = new WeakMap<ClientApi, Map<string, Promise<VisitReview>>>();
@@ -41,12 +41,13 @@ export const ReviewCard = memo(function ReviewCard(props: {
 
   useEffect(() => {
     let live = true;
-    let reading = false;
     const pending = saving.get(api)?.get(visitId);
     const read = () =>
-      visitReviews.read(api, visitId, () => {
-        reading = true;
-        return withNetworkTimeout(api.visitReview(visitId));
+      visitReviews.read(api, visitId, async () => {
+        const res = await withNetworkTimeout(api.visitReview(visitId));
+        // Published reviews may receive a salon reply before the next visit to this screen.
+        if (res.review) visitReviews.clear(api, visitId);
+        return res;
       });
     const result = pending
       ? pending.catch((error: unknown) => {
@@ -56,17 +57,13 @@ export const ReviewCard = memo(function ReviewCard(props: {
       : read();
     result
       .then((res) => {
-        reading = false;
         if (!live) return;
-        // The salon can reply outside this app as soon as the review is published.
-        if (res.review) visitReviews.clear(api, visitId);
         setState(res);
         setEditing(res.canReview && !res.review);
         setRating(res.review?.rating ?? 0);
         setText(res.review?.text ?? '');
       })
       .catch((error: unknown) => {
-        reading = false;
         if (live && isNetworkError(error)) {
           setFailure(
             formFailure(error, tRef.current, () => {
@@ -78,9 +75,14 @@ export const ReviewCard = memo(function ReviewCard(props: {
       });
     return () => {
       live = false;
-      if (reading) visitReviews.clear(api, visitId);
     };
   }, [api, visitId, loadAttempt]);
+
+  const chooseRating = useCallback((value: number) => {
+    setRating(value);
+    setFailure(null);
+    setField((current) => (current === 'rating' ? undefined : current));
+  }, []);
 
   if (!state) return <FormFeedback failure={failure} retryLabel={t.retry} />;
   if (!state.canReview && !state.review) return null;
@@ -125,7 +127,9 @@ export const ReviewCard = memo(function ReviewCard(props: {
 
   return (
     <View style={styles.box} aria-label={r.title} role="region">
-      <Text style={styles.title}>{r.title}</Text>
+      <Text role="heading" aria-level={2} style={styles.title}>
+        {r.title}
+      </Text>
       {thanks ? (
         <Text role="status" style={styles.thanks}>
           {r.thanks}
@@ -135,39 +139,20 @@ export const ReviewCard = memo(function ReviewCard(props: {
         <>
           <Text style={styles.ask}>{fill(r.ask, { staff: props.staffName })}</Text>
           <FieldGroup error={field === 'rating' ? r.badRating : undefined}>
-            <View
-              style={styles.stars}
-              role="radiogroup"
-              aria-label={r.rating}
-              aria-invalid={field === 'rating'}
-            >
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Pressable
-                  key={n}
-                  role="radio"
-                  aria-checked={rating === n}
-                  accessibilityLabel={fill(r.outOf, { n: String(n) })}
-                  disabled={busy}
-                  onPress={() => {
-                    setRating(n);
-                    setFailure(null);
-                    if (field === 'rating') setField(undefined);
-                  }}
-                  style={styles.starButton}
-                >
-                  <Text style={[styles.star, n <= rating && styles.starOn]}>
-                    {n <= rating ? '★' : '☆'}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <RatingPicker
+              rating={rating}
+              invalid={field === 'rating'}
+              busy={busy}
+              r={r}
+              chooseRating={chooseRating}
+            />
           </FieldGroup>
           <FieldInput
             error={field === 'text' ? r.badText : undefined}
             editable={!busy}
             accessibilityLabel={r.text}
             placeholder={r.text}
-            placeholderTextColor={colors.placeholder}
+            placeholderTextColor={colors.muted}
             value={text}
             onChangeText={(value) => {
               setText(value);
@@ -183,9 +168,13 @@ export const ReviewCard = memo(function ReviewCard(props: {
         </>
       ) : state.review ? (
         <>
-          <Text style={styles.given} aria-label={fill(r.outOf, { n: String(state.review.rating) })}>
+          <Text
+            role="img"
+            style={styles.given}
+            aria-label={fill(r.outOf, { n: String(state.review.rating) })}
+          >
             {'★'.repeat(state.review.rating)}
-            <Text style={styles.off}>{'★'.repeat(5 - state.review.rating)}</Text>
+            <Text style={styles.off}>{'☆'.repeat(5 - state.review.rating)}</Text>
           </Text>
           {state.review.text ? <Text style={styles.text}>{state.review.text}</Text> : null}
           {state.review.reply ? (
@@ -212,6 +201,56 @@ export const ReviewCard = memo(function ReviewCard(props: {
   );
 });
 
+// Typing a review leaves the rating controls and their current keyboard focus intact.
+const RatingPicker = memo(function RatingPicker({
+  rating,
+  invalid,
+  busy,
+  r,
+  chooseRating,
+}: {
+  rating: number;
+  invalid: boolean;
+  busy: boolean;
+  r: Dictionary['review'];
+  chooseRating: (rating: number) => void;
+}) {
+  const stars = useRef<(ComponentRef<typeof Pressable> | null)[]>([]);
+  return (
+    <View style={styles.stars} role="radiogroup" aria-label={r.rating} aria-invalid={invalid}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Pressable
+          key={n}
+          role="radio"
+          accessibilityState={{ checked: rating === n, disabled: busy }}
+          aria-checked={rating === n}
+          accessibilityLabel={fill(r.outOf, { n: String(n) })}
+          disabled={busy}
+          ref={(node) => {
+            stars.current[n - 1] = node;
+          }}
+          tabIndex={Platform.OS === 'web' ? (!busy && n === (rating || 1) ? 0 : -1) : undefined}
+          onKeyDown={(event) => {
+            if (busy || Platform.OS !== 'web') return;
+            const key = event.nativeEvent.key;
+            let next = n;
+            if (key === 'ArrowRight' || key === 'ArrowDown') next = n === 5 ? 1 : n + 1;
+            else if (key === 'ArrowLeft' || key === 'ArrowUp') next = n === 1 ? 5 : n - 1;
+            else if (key !== ' ') return;
+            event.preventDefault();
+            chooseRating(next);
+            stars.current[next - 1]?.focus();
+          }}
+          onPress={() => chooseRating(n)}
+          style={styles.starButton}
+        >
+          <Text style={[styles.star, n <= rating && styles.starOn]}>{n <= rating ? '★' : '☆'}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
   box: {
     gap: 10,
@@ -229,7 +268,7 @@ const styles = StyleSheet.create({
   star: { fontSize: 32, color: colors.muted },
   starOn: { color: colors.accent },
   given: { fontSize: 22, color: colors.accent, letterSpacing: 2 },
-  off: { color: colors.line },
+  off: { color: colors.muted },
   text: { fontSize: 15, color: colors.ink, lineHeight: 21 },
   muted: { color: colors.muted, fontSize: 13 },
   // Task 211: the salon's public answer under the client's review.

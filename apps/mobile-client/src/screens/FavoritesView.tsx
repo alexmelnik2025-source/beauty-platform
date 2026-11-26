@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { FavoriteSalon, Locale } from '../api';
 import type { Dictionary } from '../i18n';
@@ -11,7 +11,7 @@ import { Button, Card, colors, Disclosure } from '../ui';
  * take it off the list. A salon that paused online booking stays, greyed out.
  * Task 367: "Otwarte · do 20:00" on each bookable salon — today's real hours, as in the catalogue.
  */
-export function FavoritesView(props: {
+export const FavoritesView = memo(function FavoritesView(props: {
   t: Dictionary;
   locale: Locale;
   items: FavoriteSalon[];
@@ -21,14 +21,18 @@ export function FavoritesView(props: {
   onRemove: (slug: string) => Promise<void>;
 }) {
   const { t, items } = props;
+  const removalPending = useRef(false);
   const [removing, setRemoving] = useState<string | null>(null);
   if (items.length === 0) return <Text style={styles.empty}>{t.favorites.empty}</Text>;
 
   const remove = async (slug: string) => {
+    if (removalPending.current) return;
+    removalPending.current = true;
     setRemoving(slug);
     try {
       await props.onRemove(slug);
     } finally {
+      removalPending.current = false;
       setRemoving(null);
     }
   };
@@ -49,6 +53,7 @@ export function FavoritesView(props: {
           {salon.bookable ? (
             <Button
               label={t.salon.book}
+              a11yLabel={`${t.salon.book}: ${salon.name}`}
               onPress={() => props.onBook(salon.slug, salon.name)}
               disabled={removing !== null}
             />
@@ -77,7 +82,7 @@ export function FavoritesView(props: {
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   empty: { color: colors.muted, fontSize: 16, textAlign: 'center', paddingVertical: 12 },

@@ -40,9 +40,9 @@ type CachedReviews = {
 };
 const recent = new Map<string, CachedReviews>();
 
-export function SalonReviews(props: ReviewsProps) {
+export const SalonReviews = memo(function SalonReviews(props: ReviewsProps) {
   return <ReviewsList key={props.slug} {...props} />;
-}
+});
 
 function ReviewFilter({
   label,
@@ -60,6 +60,7 @@ function ReviewFilter({
     <Pressable
       role="radio"
       aria-checked={selected}
+      accessibilityState={{ checked: selected }}
       accessibilityLabel={label}
       accessibilityHint={description}
       aria-describedby={description ? descriptionId : undefined}
@@ -123,7 +124,8 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
   const [next, setNext] = useState<string | null>(null);
   const [loading, setLoading] = useState<'page' | 'more' | null>('page');
   const reader = useRef<ClientApi | null>(null);
-  const active = useRef<{ key: string } | null>(null);
+  const active = useRef<{ key: string; before?: string } | null>(null);
+  const reads = useRef(new Map<string, Promise<PublicReviews>>());
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
@@ -133,7 +135,7 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
       const client = reader.current;
       const key = JSON.stringify([who, withStars, before]);
       if (!client || active.current?.key === key) return;
-      const current = { key };
+      const current = { key, before };
       active.current = current;
       setLoading(before ? 'more' : 'page');
       setFailure(null);
@@ -144,15 +146,22 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
         const fresh = cache && cache.expires > Date.now() ? cache : undefined;
         const cached =
           unfiltered && before ? fresh?.more.get(before) : reuse ? fresh?.first : undefined;
-        const page =
-          cached ??
-          (await withNetworkTimeout(
-            client.salonReviews(slug, {
-              ...(who ? { staffId: who } : {}),
-              ...(withStars ? { rating: withStars } : {}),
-              ...(before ? { before } : {}),
-            }),
-          ));
+        let page = cached;
+        if (!page) {
+          const requests = reads.current;
+          let pending = requests.get(key);
+          if (!pending) {
+            pending = withNetworkTimeout(
+              client.salonReviews(slug, {
+                ...(who ? { staffId: who } : {}),
+                ...(withStars ? { rating: withStars } : {}),
+                ...(before ? { before } : {}),
+              }),
+            ).finally(() => requests.delete(key));
+            requests.set(key, pending);
+          }
+          page = await pending;
+        }
         if (active.current !== current) return;
         if (!page.enabled || first) setAll(page);
         if (!page.enabled || (first && !page.items.length)) recent.delete(slug);
@@ -194,11 +203,24 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
     return () => {
       active.current = null;
       reader.current = null;
+      reads.current = new Map();
       controller.abort();
     };
   }, [api, load]);
 
   if (all && !all.enabled) return null;
+  function selectFilter(who: string | null, withStars: number | null) {
+    if (!failure && who === staffId && withStars === rating) {
+      // Keep pagination for the displayed filter. Reselecting it cancels a pending filter change.
+      if (active.current && !active.current.before) {
+        active.current = null;
+        setLoading(null);
+      }
+      return;
+    }
+    void load(who, withStars);
+  }
+
   const summary = all ? salonReviewSummary(all, t, locale) : null;
   const filters = starChips(stars, rating);
   const ratingLabel = (n: string) => fill(t.review.outOf, { n });
@@ -240,9 +262,7 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
                 label={chip.label}
                 selected={staffId === chip.id}
                 description={chip.description}
-                onPress={() => {
-                  void load(chip.id, null);
-                }}
+                onPress={() => selectFilter(chip.id, null)}
               />
             ))}
           </View>
@@ -259,9 +279,7 @@ function ReviewsList({ api, t, locale, slug }: ReviewsProps) {
                     ? undefined
                     : `${ratingLabel(String(chip.rating))}, ${reviewCount(stars[chip.rating - 1] ?? 0)}`
                 }
-                onPress={() => {
-                  void load(staffId, chip.rating);
-                }}
+                onPress={() => selectFilter(staffId, chip.rating)}
               />
             ))}
           </View>

@@ -7,6 +7,7 @@ import { formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { visitProductLists, invalidateProductLists, type recentReads } from '../shop';
 import { Button, colors, ErrorText } from '../ui';
+import { withNetworkTimeout } from '../withNetworkTimeout';
 
 // Keep the last successful list on screen if a refresh fails.
 export function useVisitProductList<T>(
@@ -17,32 +18,32 @@ export function useVisitProductList<T>(
   read: (this: ClientApi, id: string) => Promise<T>,
 ) {
   const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<{ cause: unknown } | null>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
-    setError('');
+    setFailure(null);
     cache
-      .read(api, visitId, () => read.call(api, visitId))
+      .read(api, visitId, () => withNetworkTimeout(read.call(api, visitId)))
       .then(
         (items) => {
           if (live) setData(items);
         },
         (e) => {
-          if (live) setError(errorText(e, t));
+          if (live) setFailure({ cause: e });
         },
       );
     return () => {
       live = false;
     };
-  }, [api, visitId, cache, read, t, attempt]);
-  const feedback = error ? (
+  }, [api, visitId, cache, read, attempt]);
+  const feedback = failure ? (
     <View>
-      <ErrorText>{error}</ErrorText>
+      <ErrorText>{errorText(failure.cause, t)}</ErrorText>
       <Button kind="secondary" label={t.retry} onPress={() => setAttempt((n) => n + 1)} />
     </View>
   ) : null;
-  const refresh = async () => setData(await read.call(api, visitId));
+  const refresh = async () => setData(await withNetworkTimeout(read.call(api, visitId)));
   return { data, setData, feedback, refresh };
 }
 
@@ -121,14 +122,11 @@ export function reserveOne(
   return async (retry: boolean) => {
     if (!before) before = await api.visitProducts(visitId);
     else if (retry) {
-      const previous = before.reservations;
+      const previousIds = new Set(before.reservations.map((r) => r.id));
       const current = await api.visitProducts(visitId);
       if (
         current.reservations.some(
-          (r) =>
-            r.productId === productId &&
-            r.status === 'reserved' &&
-            !previous.some((old) => old.id === r.id),
+          (r) => r.productId === productId && r.status === 'reserved' && !previousIds.has(r.id),
         )
       )
         return current;
@@ -149,9 +147,9 @@ type Props = {
   locale: Locale;
   visitId: string;
 };
-export function VisitProductsCard(props: Props) {
+export const VisitProductsCard = memo(function VisitProductsCard(props: Props) {
   return <VisitProductsContent key={props.visitId} {...props} />;
-}
+});
 
 function VisitProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;

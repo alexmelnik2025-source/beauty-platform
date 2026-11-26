@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ApiError, todayIn, type ClientApi, type Locale, type PublicLocation } from '../api';
 import { BOOKING_DAYS } from '../booking';
@@ -45,9 +45,16 @@ export function WaitlistPanel(props: {
   const [phone, setPhone] = useState('');
   const [invalidPhone, setInvalidPhone] = useState(false);
   const submitting = useRef(false);
+  useEffect(
+    () => () => {
+      submitting.current = false;
+    },
+    [],
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [nameError, setNameError] = useState('');
-  const [joined, setJoined] = useState<{ date: string; auto: boolean } | null>(null);
+  const [joinedDates, setJoinedDates] = useState<Record<string, boolean>>({});
+  const [lastDate, setLastDate] = useState<string | null>(null);
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const [dateError, setDateError] = useState('');
 
@@ -73,6 +80,10 @@ export function WaitlistPanel(props: {
     setDateError('');
     setNameError('');
     setInvalidPhone(false);
+    if (date in joinedDates) {
+      setLastDate(date);
+      return;
+    }
     if (!name.trim()) {
       setNameError(w.nameNeeded);
       return;
@@ -93,10 +104,12 @@ export function WaitlistPanel(props: {
         locale,
         ...(autoBook ? { autoBook: true, phone: normalized } : {}),
       });
+      if (!submitting.current) return;
       // Joining twice leaves the original preference in place, even if the switch changed.
       let auto = autoBook;
       if (result.alreadyWaiting) {
         const { items } = await api.waitlist();
+        if (!submitting.current) return;
         auto = items.some(
           (entry) =>
             entry.salon.slug === salon.slug &&
@@ -107,8 +120,10 @@ export function WaitlistPanel(props: {
             entry.autoBook,
         );
       }
-      setJoined({ date, auto });
+      setJoinedDates((dates) => ({ ...dates, [date]: auto }));
+      setLastDate(date);
     } catch (e) {
+      if (!submitting.current) return;
       const field = validationField(e, ['name', 'phone', 'date']);
       if (field === 'name') setNameError(w.nameNeeded);
       else if (field === 'phone') setInvalidPhone(true);
@@ -119,8 +134,10 @@ export function WaitlistPanel(props: {
         setDateError(field === 'date' ? w.badDay : waitlistErrorText(e, t));
       } else setFailure(formFailure(e, t, () => void join(date), waitlistErrorText(e, t)));
     } finally {
-      submitting.current = false;
-      setBusy(null);
+      if (submitting.current) {
+        submitting.current = false;
+        setBusy(null);
+      }
     }
   };
 
@@ -135,6 +152,8 @@ export function WaitlistPanel(props: {
       ) : (
         <>
           <FieldInput
+            autoFocus
+            placeholderTextColor={colors.muted}
             error={nameError}
             accessibilityLabel={t.book.name}
             placeholder={t.book.name}
@@ -166,6 +185,7 @@ export function WaitlistPanel(props: {
           </View>
           {autoBook ? (
             <FieldInput
+              placeholderTextColor={colors.muted}
               accessibilityLabel={t.book.phone}
               error={invalidPhone ? w.phoneForAuto : undefined}
               placeholder={t.book.phone}
@@ -188,14 +208,14 @@ export function WaitlistPanel(props: {
               contentContainerStyle={styles.days}
             >
               {days.map(({ date, chip, label }) => {
-                const on = date === joined?.date;
+                const on = date in joinedDates;
                 return (
                   <Pressable
                     key={date}
                     accessibilityRole="button"
                     accessibilityLabel={`${w.wait}: ${label}`}
                     aria-pressed={on}
-                    accessibilityState={{ disabled: busy !== null }}
+                    accessibilityState={{ selected: on, disabled: busy !== null }}
                     disabled={busy !== null}
                     onPress={() => void join(date)}
                     style={[styles.day, on && styles.dayOn, busy === date && { opacity: 0.6 }]}
@@ -209,9 +229,11 @@ export function WaitlistPanel(props: {
           </FieldGroup>
         </>
       )}
-      {joined ? (
+      {lastDate ? (
         <Text role="status" style={styles.ok}>
-          {fill(joined.auto ? w.joinedAuto : w.joined, { day: formatDay(joined.date, locale) })}
+          {fill(joinedDates[lastDate] ? w.joinedAuto : w.joined, {
+            day: formatDay(lastDate, locale),
+          })}
         </Text>
       ) : null}
       <FormFeedback failure={failure} retryLabel={t.retry} busy={busy !== null} />

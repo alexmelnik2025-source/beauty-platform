@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ClientLoyaltyCard, Locale } from '../api';
 import {
@@ -14,10 +14,10 @@ import {
   tierText,
 } from '../bonus';
 import { fill, type Dictionary } from '../i18n';
-import { Button, Card, colors, Disclosure } from '../ui';
+import { Button, Card, colors } from '../ui';
 
 /** "My bonuses": a card per salon — stamps or points, rewards, coupons and history. */
-export function BonusesView(props: {
+export const BonusesView = memo(function BonusesView(props: {
   t: Dictionary;
   locale: Locale;
   items: ClientLoyaltyCard[];
@@ -39,7 +39,7 @@ export function BonusesView(props: {
       ))}
     </View>
   );
-}
+});
 
 function BonusCard({
   t,
@@ -58,8 +58,6 @@ function BonusCard({
   const next = nextText(t, card);
   const bar = progress(t, card);
   const tier = tierText(t, card, locale);
-  const count = (n: number) =>
-    fill(stamps ? t.bonuses.stampsCount : t.bonuses.pointsCount, { count: String(n) });
 
   return (
     <View role="region" aria-label={card.organization.name}>
@@ -123,59 +121,7 @@ function BonusCard({
               </Text>
             ) : null}
             {next ? <Text style={styles.text}>{next}</Text> : null}
-            <Disclosure label={t.catalog.more}>
-              <Text style={styles.muted}>{earningText(t, card, locale)}</Text>
-
-              {card.bonuses.length ? (
-                <View style={{ gap: 6, marginTop: 6 }}>
-                  <Text role="heading" aria-level={3} style={styles.section}>
-                    {t.bonuses.extraTitle}
-                  </Text>
-                  <View
-                    role="list"
-                    aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}
-                  >
-                    {card.bonuses.map((b, i) => (
-                      <View key={i} role="listitem" style={styles.row}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.strong}>{b.name}</Text>
-                          <Text style={styles.muted}>{extraText(t, b, locale)}</Text>
-                        </View>
-                        <Text style={[styles.chip, styles.chipReady]}>{extraBadge(b)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-
-              {card.rewards.length ? (
-                <View style={{ gap: 6, marginTop: 6 }}>
-                  <Text role="heading" aria-level={3} style={styles.section}>
-                    {t.bonuses.rewards}
-                  </Text>
-                  <View role="list" aria-label={`${t.bonuses.rewards}: ${card.organization.name}`}>
-                    {card.rewards.map((r) => (
-                      <View key={r.id} role="listitem" style={styles.row}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.strong}>{r.name}</Text>
-                          <Text style={styles.muted}>
-                            {rewardText(t, r)} · {count(r.cost)}
-                            {r.serviceNames.length
-                              ? ` · ${fill(t.bonuses.onlyFor, { services: r.serviceNames.join(', ') })}`
-                              : ''}
-                          </Text>
-                        </View>
-                        <Text style={[styles.chip, r.missing === 0 && styles.chipReady]}>
-                          {r.missing === 0
-                            ? t.bonuses.available
-                            : fill(t.bonuses.left, { count: String(r.missing) })}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </Disclosure>
+            <BonusDetails t={t} card={card} locale={locale} />
           </View>
         ) : null}
 
@@ -188,7 +134,7 @@ function BonusCard({
             <View role="list" aria-label={t.bonuses.coupons}>
               {card.coupons.map((c) => (
                 <View key={c.id} role="listitem" style={styles.row}>
-                  <View style={{ flex: 1, opacity: c.status === 'active' ? 1 : 0.55 }}>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.strong}>
                       <Text selectable style={styles.code}>
                         {c.code}
@@ -257,11 +203,91 @@ function BonusCard({
           <View style={{ marginTop: 10 }}>
             <Button
               label={t.bonuses.book}
+              a11yLabel={`${t.bonuses.book}: ${card.organization.name}`}
               onPress={() => onBook(card.bookingSlug as string, card.organization.name)}
             />
           </View>
         ) : null}
       </Card>
+    </View>
+  );
+}
+
+function BonusDetails({
+  t,
+  card,
+  locale,
+}: {
+  t: Dictionary;
+  card: ClientLoyaltyCard;
+  locale: Locale;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View style={{ gap: 8 }}>
+      <Button
+        kind="link"
+        label={`${t.catalog.more} ${expanded ? '▾' : '▸'}`}
+        a11yLabel={t.catalog.more}
+        expanded={expanded}
+        onPress={() => setExpanded((open) => !open)}
+      />
+      {expanded ? (
+        <View style={{ gap: 8 }}>
+          <Text style={styles.muted}>{earningText(t, card, locale)}</Text>
+
+          {card.bonuses.length ? (
+            <View style={{ gap: 6, marginTop: 6 }}>
+              <Text role="heading" aria-level={3} style={styles.section}>
+                {t.bonuses.extraTitle}
+              </Text>
+              <View role="list" aria-label={`${t.bonuses.extraTitle}: ${card.organization.name}`}>
+                {card.bonuses.map((b, i) => (
+                  <View key={i} role="listitem" style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.strong}>{b.name}</Text>
+                      <Text style={styles.muted}>{extraText(t, b, locale)}</Text>
+                    </View>
+                    <Text style={[styles.chip, styles.chipReady]}>{extraBadge(b)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {card.rewards.length ? (
+            <View style={{ gap: 6, marginTop: 6 }}>
+              <Text role="heading" aria-level={3} style={styles.section}>
+                {t.bonuses.rewards}
+              </Text>
+              <View role="list" aria-label={`${t.bonuses.rewards}: ${card.organization.name}`}>
+                {card.rewards.map((r) => (
+                  <View key={r.id} role="listitem" style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.strong}>{r.name}</Text>
+                      <Text style={styles.muted}>
+                        {rewardText(t, r)} ·{' '}
+                        {fill(
+                          card.mode === 'stamps' ? t.bonuses.stampsCount : t.bonuses.pointsCount,
+                          { count: String(r.cost) },
+                        )}
+                        {r.serviceNames.length
+                          ? ` · ${fill(t.bonuses.onlyFor, { services: r.serviceNames.join(', ') })}`
+                          : ''}
+                      </Text>
+                    </View>
+                    <Text style={[styles.chip, r.missing === 0 && styles.chipReady]}>
+                      {r.missing === 0
+                        ? t.bonuses.available
+                        : fill(t.bonuses.left, { count: String(r.missing) })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -307,6 +333,7 @@ const styles = StyleSheet.create({
   },
   code: { fontFamily: 'monospace', fontWeight: '700', letterSpacing: 1 },
   chip: {
+    maxWidth: '45%',
     fontSize: 12,
     fontWeight: '700',
     color: colors.muted,

@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { View } from 'react-native';
 import type { FormFailure } from './errors';
 import { Button, colors, ErrorText } from './ui';
 
-export function FormFeedback(props: {
+export const FormFeedback = memo(function FormFeedback(props: {
   failure: FormFailure | null;
   retryLabel: string;
   busy?: boolean;
@@ -17,7 +18,7 @@ export function FormFeedback(props: {
       ) : null}
     </View>
   );
-}
+});
 
 export function FieldGroup(props: { error?: string; children: React.ReactNode }) {
   return (

@@ -5,6 +5,22 @@ import type { Dictionary } from './i18n';
 import { openStatus, openStatusText, salonNow } from './salon';
 import { colors } from './ui';
 
+// A page of salons often shares one local clock. Only today's hours differ between cards.
+const zoneClocks = new Map<string, ReturnType<typeof salonNow>>();
+let clockMinute = -1;
+
+function localClock(minute: number, timezone: string) {
+  if (clockMinute !== minute) {
+    zoneClocks.clear();
+    clockMinute = minute;
+  }
+  const clock = zoneClocks.get(timezone);
+  if (clock) return clock;
+  const now = salonNow(minute * 60_000, timezone);
+  zoneClocks.set(timezone, now);
+  return now;
+}
+
 /**
  * Tasks 363–364: "Otwarte · do 20:00" / "Zamknięte · otwarcie o 10:00" / "Zamknięte" on a salon
  * card (catalogue, map) — today's real hours of the salon, in its time zone.
@@ -18,7 +34,7 @@ export function OpenNow(props: {
   const { timezone, todayHours } = salon;
   const minute = Math.floor(Date.now() / 60_000);
   return useMemo(() => {
-    const now = salonNow(minute * 60_000, timezone);
+    const now = localClock(minute, timezone);
     const status = openStatus(
       { openingHours: [], todayHours: { date: now.date, intervals: todayHours } },
       now,
