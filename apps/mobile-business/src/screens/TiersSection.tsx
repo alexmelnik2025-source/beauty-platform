@@ -35,6 +35,7 @@ export function TiersSection(props: {
     ReturnType<typeof tiersToSave>,
     { ok: false }
   > | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
@@ -47,9 +48,23 @@ export function TiersSection(props: {
     return () => {
       alive = false;
     };
-  }, [api, salon, t]);
+  }, [api, salon, t, loadAttempt]);
 
-  if (!data) return note ? <ErrorText>{note.text}</ErrorText> : null;
+  if (!data) {
+    return note ? (
+      <Card>
+        <ErrorText>{note.text}</ErrorText>
+        <Button
+          kind="secondary"
+          label={t.day.refresh}
+          onPress={() => {
+            setNote(null);
+            setLoadAttempt((attempt) => attempt + 1);
+          }}
+        />
+      </Card>
+    ) : null;
+  }
   const money = (grosze: number) => formatPrice(grosze, salon.currency, props.locale);
 
   const errorAt = (problem: NonNullable<typeof invalid>['problem'], row?: number) =>
@@ -123,7 +138,6 @@ export function TiersSection(props: {
     setInvalid(null);
     if (!checked.ok) return setInvalid(checked);
     setBusy(true);
-    setNote(null);
     try {
       setData(await api.saveLoyaltyTiers(salon.orgId, checked.save));
       setDraft((current) => (current?.session === session ? null : current));
@@ -218,7 +232,7 @@ export function TiersSection(props: {
       <FieldError message={errorAt('tooMany')} />
       {message}
       <View style={styles.row}>
-        <Button label={l.tiersSave} busy={busy} onPress={() => void save()} />
+        <Button label={l.tiersSave} busy={busy} onPress={save} />
         <Button
           kind="secondary"
           label={l.cancel}

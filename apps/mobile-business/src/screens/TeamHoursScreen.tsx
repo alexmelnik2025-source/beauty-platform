@@ -10,6 +10,10 @@ import { Button, Card, colors, ErrorText, Heading, Pressable } from '../ui';
 import { ScheduleScreen } from './ScheduleScreen';
 import type { SalonChoice } from './SalonsScreen';
 
+function canMove(team: StaffList, index: number, delta: -1 | 1) {
+  return team[index + delta]?.active === team[index]!.active;
+}
+
 /**
  * Task 95: "Grafik zespołu" — owner or manager: the salon's specialists → one of them →
  * their profile (task 326–327), weekly hours and time off (ScheduleScreen; the server checks the
@@ -29,6 +33,7 @@ export function TeamHoursScreen(props: {
   const s = t.schedule;
   const p = t.staffProfile;
   const [team, setTeam] = useState<StaffList | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -40,16 +45,20 @@ export function TeamHoursScreen(props: {
   const reads = useRef(0);
   const load = useCallback(async () => {
     const n = ++reads.current;
+    setLoadError('');
     try {
       const staff = await api.staff(salon.orgId, salon.locationId);
       if (n === reads.current) setTeam(teamForProfiles(staff));
     } catch (e) {
-      if (n === reads.current) setError(errorText(e, t));
+      if (n === reads.current) setLoadError(errorText(e, t));
     }
   }, [api, salon, t]);
 
   useEffect(() => {
     void load();
+    return () => {
+      reads.current++;
+    };
   }, [load]);
 
   // Android "back" goes to the day, unless a specialist's schedule is open (it handles it).
@@ -62,9 +71,9 @@ export function TeamHoursScreen(props: {
     return () => sub.remove();
   }, [onBack, open]);
 
-  async function move(id: string, delta: -1 | 1) {
-    if (!team || busy) return;
-    const order = movedOrder(team, id, delta);
+  async function move(index: number, delta: -1 | 1) {
+    if (!team || busy || !canMove(team, index, delta)) return;
+    const order = movedOrder(team, team[index]!.id, delta);
     if (!order) return;
     setBusy(true);
     setError('');
@@ -142,9 +151,15 @@ export function TeamHoursScreen(props: {
       <Heading>{s.teamTitle}</Heading>
       <Text style={styles.muted}>{s.teamHint}</Text>
       {error && error !== p.noName ? <ErrorText>{error}</ErrorText> : null}
+      {loadError ? (
+        <>
+          <ErrorText>{loadError}</ErrorText>
+          <Button kind="secondary" label={t.day.refresh} onPress={load} />
+        </>
+      ) : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
       {!team ? (
-        !error ? (
+        !loadError ? (
           <Text style={styles.muted}>{t.loading}</Text>
         ) : null
       ) : team.length === 0 ? (
@@ -173,15 +188,15 @@ export function TeamHoursScreen(props: {
                     kind="secondary"
                     label="↑"
                     a11yLabel={fill(p.up, { name: member.displayName })}
-                    disabled={i === 0 || busy}
-                    onPress={() => void move(member.id, -1)}
+                    disabled={busy || !canMove(team, i, -1)}
+                    onPress={() => move(i, -1)}
                   />
                   <Button
                     kind="secondary"
                     label="↓"
                     a11yLabel={fill(p.down, { name: member.displayName })}
-                    disabled={i === team.length - 1 || busy}
-                    onPress={() => void move(member.id, 1)}
+                    disabled={busy || !canMove(team, i, 1)}
+                    onPress={() => move(i, 1)}
                   />
                 </View>
               ) : null}
@@ -216,7 +231,7 @@ export function TeamHoursScreen(props: {
           />
           <Text style={styles.small}>{p.newHint}</Text>
           <View style={styles.row}>
-            <Button label={p.create} busy={busy} onPress={() => void create()} />
+            <Button label={p.create} busy={busy} onPress={create} />
             <Button kind="link" label={p.cancel} disabled={busy} onPress={() => setNewName(null)} />
           </View>
         </Card>

@@ -134,6 +134,7 @@ export function ServicesScreen(props: {
   }
 
   const load = useCallback(async () => {
+    setError('');
     try {
       const [services, categories, staff, rates] = await Promise.all([
         api.services(salon.orgId, salon.locationId),
@@ -145,7 +146,6 @@ export function ServicesScreen(props: {
       setCategories(categories);
       setStaff(staff);
       setRates(rates);
-      setError('');
       setFieldError(null);
     } catch (e) {
       setError(errorText(e, t));
@@ -656,7 +656,14 @@ export function ServicesScreen(props: {
           {info}
         </Text>
       ) : null}
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error ? (
+        <>
+          <ErrorText>{error}</ErrorText>
+          {groups === null ? (
+            <Button kind="secondary" label={t.day.refresh} onPress={load} />
+          ) : null}
+        </>
+      ) : null}
 
       {fresh ? (
         <Card>

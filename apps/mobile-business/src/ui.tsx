@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -46,7 +46,7 @@ export function Button(props: {
   label: string;
   /** What a screen reader says when the visible label is a symbol (‹ ›). */
   a11yLabel?: string;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   kind?: 'primary' | 'secondary' | 'link';
   disabled?: boolean;
   busy?: boolean;
@@ -55,19 +55,36 @@ export function Button(props: {
   selected?: boolean;
 }) {
   const kind = props.kind ?? 'primary';
+  const submitting = useRef(false);
+
+  async function handlePress() {
+    if (submitting.current || props.busy || props.disabled) return;
+    // The next press can arrive before the parent renders its busy state.
+    submitting.current = true;
+    try {
+      const action = props.onPress();
+      // Busy-aware callbacks that return void still need the lock until this event ends.
+      if (action !== undefined || props.busy !== undefined) await action;
+    } finally {
+      submitting.current = false;
+    }
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.a11yLabel ?? props.label}
       accessibilityState={{
+        busy: props.busy,
         disabled: props.disabled || props.busy,
         expanded: props.expanded,
         selected: props.selected,
       }}
+      aria-busy={props.busy}
       aria-expanded={props.expanded}
       aria-selected={props.selected}
       disabled={props.disabled || props.busy}
-      onPress={props.onPress}
+      onPress={handlePress}
       style={({ pressed }) => [
         styles.button,
         kind === 'secondary' && styles.secondary,
@@ -77,18 +94,21 @@ export function Button(props: {
         (props.disabled || pressed) && { opacity: 0.6 },
       ]}
     >
-      {props.busy ? (
-        <ActivityIndicator color={kind === 'primary' ? '#fff' : colors.ink} />
-      ) : (
-        <Text
-          style={[
-            styles.buttonText,
-            props.compact && styles.compactText,
-            kind !== 'primary' && { color: colors.ink },
-          ]}
-        >
-          {props.label}
-        </Text>
+      <Text
+        style={[
+          styles.buttonText,
+          props.compact && styles.compactText,
+          kind !== 'primary' && { color: colors.ink },
+          props.busy && { opacity: 0 },
+        ]}
+      >
+        {props.label}
+      </Text>
+      {props.busy && (
+        <ActivityIndicator
+          style={StyleSheet.absoluteFill}
+          color={kind === 'primary' ? '#fff' : colors.ink}
+        />
       )}
     </Pressable>
   );
