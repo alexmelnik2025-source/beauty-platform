@@ -142,6 +142,7 @@ function validBody(route: Route): object {
   if (p.endsWith('/appointments/:appointmentId/tip')) return { version: 1, tipGrosze: 1000 };
   if (p.endsWith('/reports/till-close')) return { date: DATE, countedCashGrosze: 1000 };
   if (p.endsWith('/reports/commissions/:staffId')) return { commissionPercent: 99 };
+  if (p.endsWith('/appointments/:appointmentId/used-products/:productId')) return { used: true };
   if (p.endsWith('/appointments/:appointmentId/products')) {
     return { productId: currentIds?.productId };
   }
@@ -649,6 +650,9 @@ async function snapshotOf(ids: Ids) {
       where: { locationId: ids.locationId },
     }),
     products: await ctx.prisma.product.findMany({ where: { locationId: ids.locationId } }),
+    usedProducts: await ctx.prisma.visitUsedProduct.findMany({
+      where: { appointment: { locationId: ids.locationId } },
+    }),
     productReservations: await ctx.prisma.productReservation.findMany({
       where: { locationId: ids.locationId },
     }),
