@@ -46,7 +46,6 @@ export function AppointmentSheet({
   const session = useSession();
   const tz = session.location.timezone;
   const manager = session.role !== 'staff';
-  const canChange = manager || session.permissions.changeOwnAppointments === true;
   const canOutside = manager || session.permissions.bookOutsideHours === true;
 
   const [a, setA] = useState<AppointmentDetail | null>(null);
@@ -136,6 +135,13 @@ export function AppointmentSheet({
       </Sheet>
     );
   }
+
+  const ownStaffId = staffList.find((staff) => staff.userId === session.me.user.id)?.id;
+  const canChange =
+    manager ||
+    (a.staff.id === ownStaffId
+      ? session.permissions.changeOwnAppointments === true
+      : session.permissions.manageAllAppointments === true);
 
   const end = minutesToClock(clockToMinutes(a.time) + a.durationMinutes);
   /** Task 695: editing a field takes its error away; the props tie it to the error under it. */
