@@ -74,6 +74,7 @@ function UsedProductsContent(props: Props) {
             locale={locale}
             status={!p.available && !p.reservedForNext && !p.pickupStatus ? s.unavailable : ''}
           />
+          {p.description && <Text style={styles.muted}>{p.description}</Text>}
           {p.pickupStatus ? (
             <Text role="status" style={styles.saved}>
               {p.pickupStatus === 'handed' ? s.pickupHanded : s.pickupOrdered}

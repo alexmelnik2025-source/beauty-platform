@@ -104,15 +104,22 @@ async function owner(api: APIRequestContext) {
 
 test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ browser, request }) => {
   const salon = await owner(request);
-  const product = async (name: string, priceGrosze: number) =>
+  const description = 'Matowe wykończenie do krótkich włosów.';
+  const card = await json<{ id: string }>(
+    await request.post(`${salon.base}/shop/catalog`, {
+      headers: salon.auth,
+      data: { name: 'Wosk matowy', description },
+    }),
+  );
+  const product = async (name: string, priceGrosze: number, catalogProductId?: string) =>
     json<{ id: string }>(
       await request.post(`${salon.base}/products`, {
         headers: salon.auth,
-        data: { name, priceGrosze, stockQuantity: 5, inSalonShop: true },
+        data: { name, priceGrosze, catalogProductId, stockQuantity: 5, inSalonShop: true },
       }),
     );
   await product('Pomada Reuzel różowa', 5900);
-  await product('Wosk matowy', 4500);
+  await product('Wosk matowy', 4500, card.id);
   const cut = await json<{ id: string }>(
     await request.post(`${salon.base}/services`, {
       headers: salon.auth,
@@ -249,6 +256,7 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
     const used = app.getByRole('region', { name: 'Na wizycie użyto' });
     await expect(used.getByText('Pomada Reuzel różowa')).toBeVisible();
     await expect(used.getByText('Wosk matowy')).toBeVisible();
+    await expect(used.getByText(description)).toBeVisible();
     await expect(used.getByText(/Nie masz jeszcze kolejnej wizyty/)).toBeVisible();
     await used.getByRole('button', { name: 'Kup: Wosk matowy' }).click();
     await used.getByRole('button', { name: /Zamów z płatnością przy odbiorze w salonie/ }).click();

@@ -128,6 +128,11 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
                 </span>
               </span>
             </span>
+            {p.description && (
+              <p className="small muted" style={{ overflowWrap: 'anywhere' }}>
+                {p.description}
+              </p>
+            )}
             {p.pickupStatus ? (
               <p role="status">{p.pickupStatus === 'handed' ? s.pickupHanded : s.pickupOrdered}</p>
             ) : p.available ? (

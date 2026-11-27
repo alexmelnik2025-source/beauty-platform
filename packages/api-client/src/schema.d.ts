@@ -8398,6 +8398,7 @@ export interface components {
                 photoId: string | null;
                 /** @description false = none left to put aside right now */
                 available: boolean;
+                description?: string;
                 /** @enum {string} */
                 pickupStatus?: "reserved" | "handed";
                 /** @description Already waiting for the client on their next visit */

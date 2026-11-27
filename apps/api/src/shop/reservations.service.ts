@@ -208,7 +208,9 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
         ? await this.prisma.product.findMany({
             where: { locationId: location.id, visitUses: { some: { appointmentId: visit.id } } },
             include: {
-              catalogProduct: { select: { brand: true, photo: { select: { id: true } } } },
+              catalogProduct: {
+                select: { brand: true, description: true, photo: { select: { id: true } } },
+              },
             },
             orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }],
           })
@@ -241,6 +243,7 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       id: p.id,
       name: p.name,
       brand: p.catalogProduct?.brand ?? null,
+      ...(p.catalogProduct?.description ? { description: p.catalogProduct.description } : {}),
       priceGrosze: p.priceGrosze,
       photoId: p.catalogProduct?.photo?.id ?? null,
       available:

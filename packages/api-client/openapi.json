@@ -32178,6 +32178,9 @@
                   "type": "boolean",
                   "description": "false = none left to put aside right now"
                 },
+                "description": {
+                  "type": "string"
+                },
                 "pickupStatus": {
                   "type": "string",
                   "enum": [

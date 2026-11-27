@@ -250,6 +250,7 @@ export const usedProductsSchema = responseSchema(
           priceGrosze: money('Price of one now'),
           photoId: z.string().nullable(),
           available: z.boolean().describe('false = none left to put aside right now'),
+          description: z.string().optional(),
           pickupStatus: z.enum(['reserved', 'handed']).optional(),
           reservedForNext: z
             .boolean()
