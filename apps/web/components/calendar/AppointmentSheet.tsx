@@ -352,9 +352,10 @@ export function AppointmentSheet({
           onHanded={() => setSalesKey((k) => k + 1)}
         />
       ) : null}
-      {mode === 'view' && a.status === 'completed' ? (
+      {mode === 'view' && (a.status === 'completed' || (canChange && a.status === 'confirmed')) ? (
         // Task 395: products the client bought at the visit.
         <ProductSales
+          completed={a.status === 'completed'}
           key={salesKey}
           base={base}
           appointmentId={a.id}

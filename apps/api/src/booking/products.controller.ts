@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Put,
   Patch,
   Post,
   Query,
@@ -46,6 +47,7 @@ import {
   stocktakeSchema,
   stockCsvQuerySchema,
   updateProductSchema,
+  setUsedProductSchema,
   visitProductSalesSchema,
   writeOffProductSchema,
   type AddProductSaleInput,
@@ -269,6 +271,30 @@ export class ProductsController {
     @Param('appointmentId', uuid('Appointment')) appointmentId: string,
   ): Promise<VisitProductSalesResponse> {
     return this.products.sales(m, auth.userId, locationId, appointmentId);
+  }
+
+  @Put('appointments/:appointmentId/used-products/:productId')
+  @ApiOperation({
+    summary: 'Mark or unmark a product used during a confirmed or completed appointment',
+  })
+  @ApiZodBody(setUsedProductSchema)
+  @ApiZodResponse(visitProductSalesSchema)
+  setUsedProduct(
+    @CurrentAuth() auth: AuthContext,
+    @CurrentMembership() m: MembershipContext,
+    @Param('locationId', uuid('Location')) locationId: string,
+    @Param('appointmentId', uuid('Appointment')) appointmentId: string,
+    @Param('productId', uuid('Product')) productId: string,
+    @Body(new ZodValidationPipe(setUsedProductSchema)) body: { used: boolean },
+  ): Promise<VisitProductSalesResponse> {
+    return this.products.setUsedProduct(
+      m,
+      auth.userId,
+      locationId,
+      appointmentId,
+      productId,
+      body.used,
+    );
   }
 
   @Post('appointments/:appointmentId/products')

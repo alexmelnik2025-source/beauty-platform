@@ -250,13 +250,14 @@ export const usedProductsSchema = responseSchema(
           priceGrosze: money('Price of one now'),
           photoId: z.string().nullable(),
           available: z.boolean().describe('false = none left to put aside right now'),
+          pickupStatus: z.enum(['reserved', 'handed']).optional(),
           reservedForNext: z
             .boolean()
             .describe('Already waiting for the client on their next visit'),
         }),
       )
       .describe(
-        'Products sold at this visit that the salon still shows to clients; empty before the visit took place',
+        'Products the specialist marked as used at this visit; empty before the visit took place',
       ),
     nextVisit: z
       .strictObject({

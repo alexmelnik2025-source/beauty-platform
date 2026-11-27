@@ -2093,6 +2093,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/used-products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark or unmark a product used during a confirmed or completed appointment */
+        put: operations["ProductsController_setUsedProduct"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products/{saleId}": {
         parameters: {
             query?: never;
@@ -2942,6 +2959,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/client/appointments/{id}/products/pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order a product used at my visit for collection and payment at the salon */
+        post: operations["ClientShopController_pickup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/client/appointments/{id}/products/next": {
         parameters: {
             query?: never;
@@ -2953,7 +2987,7 @@ export interface paths {
         put?: never;
         /**
          * "Odłóż na następną wizytę": put a product used at my visit aside for my next one
-         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.
+         * @description Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.
          */
         post: operations["ClientShopController_reserveForNext"];
         delete?: never;
@@ -3415,11 +3449,28 @@ export interface paths {
         };
         /**
          * "Jak było?": products the specialist used at this visit, to put aside for the next
-         * @description Task Q3 (screen C). Products sold at this visit that the salon still shows to clients, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers "Umów kolejną wizytę" with `rebook`).
+         * @description Task Q3 (screen C). Products the specialist marked as used, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers "Umów kolejną wizytę" with `rebook`).
          */
         get: operations["PublicShopController_usedProducts"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/products/pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order a product used at this visit for collection and payment at the salon */
+        post: operations["PublicShopController_pickup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3437,7 +3488,7 @@ export interface paths {
         put?: never;
         /**
          * "Odłóż na następną wizytę": put a product used at this visit aside for the next one
-         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.
+         * @description Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.
          */
         post: operations["PublicShopController_reserveForNext"];
         delete?: never;
@@ -8337,7 +8388,7 @@ export interface components {
         };
         UsedProducts: {
             currency: string;
-            /** @description Products sold at this visit that the salon still shows to clients; empty before the visit took place */
+            /** @description Products the specialist marked as used at this visit; empty before the visit took place */
             products: {
                 id: string;
                 name: string;
@@ -8347,6 +8398,8 @@ export interface components {
                 photoId: string | null;
                 /** @description false = none left to put aside right now */
                 available: boolean;
+                /** @enum {string} */
+                pickupStatus?: "reserved" | "handed";
                 /** @description Already waiting for the client on their next visit */
                 reservedForNext: boolean;
             }[];
@@ -8438,6 +8491,7 @@ export interface components {
             deleteAfter: string | null;
         };
         VisitProductSales: {
+            usedProductIds?: string[];
             sales: {
                 id: string;
                 /** @description null when the product was removed later */
@@ -12462,6 +12516,35 @@ export interface operations {
             };
         };
     };
+    ProductsController_setUsedProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+                appointmentId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    used: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitProductSales"];
+                };
+            };
+        };
+    };
     ProductsController_removeSale: {
         parameters: {
             query?: never;
@@ -13853,6 +13936,36 @@ export interface operations {
             };
         };
     };
+    ClientShopController_pickup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
+                };
+            };
+        };
+    };
     ClientShopController_reserveForNext: {
         parameters: {
             query?: never;
@@ -14641,6 +14754,36 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_pickup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    productId: string;
+                    /** @default 1 */
+                    quantity?: number;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {

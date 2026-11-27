@@ -918,6 +918,20 @@ export class BusinessApi {
     );
   }
 
+  setUsedProduct(
+    orgId: string,
+    locationId: string,
+    id: string,
+    productId: string,
+    used: boolean,
+  ): Promise<VisitProductSales> {
+    return this.authed(
+      'PUT',
+      `${appointmentPath(orgId, locationId, id)}/used-products/${enc(productId)}`,
+      { used },
+    );
+  }
+
   /** Task 396: notes a product sold at a visit that took place. */
   addProductSale(
     orgId: string,

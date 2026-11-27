@@ -23,11 +23,13 @@ export function ProductSales({
   appointmentId,
   currency,
   canChange,
+  completed,
 }: {
   base: string;
   appointmentId: string;
   currency: string;
   canChange: boolean;
+  completed: boolean;
 }) {
   const { t, locale } = useI18n();
   const p = t.products;
@@ -105,6 +107,32 @@ export function ProductSales({
     }
   }
 
+  async function markUsed(productId: string, used: boolean) {
+    if (!sales || busy) return;
+    const previous = sales;
+    const ids = sales.usedProductIds ?? [];
+    setSales({
+      ...sales,
+      usedProductIds: used ? [...ids, productId] : ids.filter((id) => id !== productId),
+    });
+    setBusy(true);
+    setActionError(null);
+    try {
+      setSales(
+        await api<VisitProductSales>(
+          `${base}/appointments/${appointmentId}/used-products/${productId}`,
+          { method: 'PUT', body: { used } },
+        ),
+      );
+    } catch (err) {
+      setSales(previous);
+      setActionError({ at: 'used-' + productId, text: errorText(t, err) });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   /** Task 524: one piece of the product with this code, or "no such product". */
   function sellByCode() {
     const wanted = parseBarcode(code);
@@ -163,163 +191,192 @@ export function ProductSales({
       style={{ gap: 6 }}
       data-testid="visit-products"
     >
-      <span className="small muted">
-        {p.sold}
-        {sales.totalGrosze > 0 ? `: ${money(sales.totalGrosze)}` : null}
-      </span>
-      {sales.sales.length > 0 ? (
-        <ul className="commission-list">
-          {sales.sales.map((s) => (
-            <li key={s.id} className="commission-row">
-              <span style={{ flex: '1 1 10rem' }}>
-                {s.name}
-                {s.quantity > 1 ? ` × ${s.quantity}` : null}
-              </span>
-              <span>{money(s.totalGrosze)}</span>
-              {canChange ? (
-                <button
-                  type="button"
-                  className="link-btn small"
-                  aria-label={`${p.removeSale} — ${s.name}`}
-                  disabled={busy}
-                  aria-describedby={describedBy(`remove:${s.id}`)}
-                  onClick={() =>
-                    void run(
-                      () => api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }),
-                      `remove:${s.id}`,
-                    ).catch(() => undefined)
-                  }
-                >
-                  {p.removeSale}
-                </button>
-              ) : null}
-              {actionFieldError(`remove:${s.id}`)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {canChange && withCodes ? (
-        <form
-          className="row"
-          style={{ gap: 8, alignItems: 'center' }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            sellByCode();
-          }}
-        >
-          <input
-            aria-label={p.saleByCode}
-            placeholder={p.saleByCode}
-            value={code}
-            maxLength={40}
-            autoComplete="off"
-            {...invalid('code')}
-            onChange={(e) => {
-              setCode(e.target.value);
-              clear('code');
-            }}
-            style={{ flex: '1 1 12rem' }}
-            data-testid="visit-products-code"
-          />
-          <button
-            type="submit"
-            className="btn btn--quiet btn--small"
-            disabled={busy}
-            aria-describedby={describedBy('code-add')}
-          >
-            + {p.addSale}
-          </button>
-        </form>
-      ) : null}
-      {/* Under the row, so "+ Dodaj" stays level with the field. */}
-      {fieldError('code')}
-      {actionFieldError('code-add')}
-      {canChange && products.length > 0 ? (
-        <form
-          noValidate
-          className="row"
-          style={{ gap: 8, alignItems: 'center' }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!productId) {
-              setError('');
-              setProblem({ field: 'product', text: t.onboarding.fieldRequired });
-              return;
-            }
-            run(
-              () => api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
-              'add',
-              'quantity',
-            ).then(
-              () => {
-                setProductId('');
-                setQuantity(1);
-              },
-              () => undefined,
+      {canChange && (
+        <fieldset className="stack">
+          <legend>{p.usedDuringService}</legend>
+          {products.map((product) => {
+            const checked = !!sales.usedProductIds?.includes(product.id);
+            const at = 'used-' + product.id;
+            return (
+              <div key={product.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={busy}
+                    aria-describedby={describedBy(at)}
+                    onChange={(e) => void markUsed(product.id, e.currentTarget.checked)}
+                  />{' '}
+                  {product.name}
+                </label>
+                {actionFieldError(at)}
+              </div>
             );
-          }}
-        >
-          <select
-            aria-label={p.choose}
-            value={productId}
-            {...invalid('product')}
-            onChange={(e) => {
-              setProductId(e.target.value);
-              clear('product');
-              clear('quantity');
-            }}
-            style={{ flex: '1 1 12rem' }}
-          >
-            <option value="">{p.choose}</option>
-            {products.map((x) => (
-              <option
-                key={x.id}
-                value={x.id}
-                disabled={x.stockQuantity !== null && x.stockQuantity < 1}
+          })}
+        </fieldset>
+      )}
+      {completed && (
+        <>
+          <span className="small muted">
+            {p.sold}
+            {sales.totalGrosze > 0 ? `: ${money(sales.totalGrosze)}` : null}
+          </span>
+          {sales.sales.length > 0 ? (
+            <ul className="commission-list">
+              {sales.sales.map((s) => (
+                <li key={s.id} className="commission-row">
+                  <span style={{ flex: '1 1 10rem' }}>
+                    {s.name}
+                    {s.quantity > 1 ? ` × ${s.quantity}` : null}
+                  </span>
+                  <span>{money(s.totalGrosze)}</span>
+                  {canChange ? (
+                    <button
+                      type="button"
+                      className="link-btn small"
+                      aria-label={`${p.removeSale} — ${s.name}`}
+                      disabled={busy}
+                      aria-describedby={describedBy(`remove:${s.id}`)}
+                      onClick={() =>
+                        void run(
+                          () => api<VisitProductSales>(`${url}/${s.id}`, { method: 'DELETE' }),
+                          `remove:${s.id}`,
+                        ).catch(() => undefined)
+                      }
+                    >
+                      {p.removeSale}
+                    </button>
+                  ) : null}
+                  {actionFieldError(`remove:${s.id}`)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {canChange && withCodes ? (
+            <form
+              className="row"
+              style={{ gap: 8, alignItems: 'center' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                sellByCode();
+              }}
+            >
+              <input
+                aria-label={p.saleByCode}
+                placeholder={p.saleByCode}
+                value={code}
+                maxLength={40}
+                autoComplete="off"
+                {...invalid('code')}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  clear('code');
+                }}
+                style={{ flex: '1 1 12rem' }}
+                data-testid="visit-products-code"
+              />
+              <button
+                type="submit"
+                className="btn btn--quiet btn--small"
+                disabled={busy}
+                aria-describedby={describedBy('code-add')}
               >
-                {x.name} · {money(x.priceGrosze)}
-                {x.stockQuantity === null
-                  ? ''
-                  : ` · ${
-                      x.stockQuantity > 0
-                        ? p.stockLeft.replace('{n}', String(x.stockQuantity))
-                        : p.stockNone
-                    }`}
-                {x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}
-              </option>
-            ))}
-          </select>
-          <input
-            aria-label={p.quantity}
-            type="number"
-            min={1}
-            max={99}
-            step={1}
-            inputMode="numeric"
-            value={quantity}
-            {...invalid('quantity')}
-            onChange={(e) => {
-              // Task 703: whole pieces only — "2,5" becomes 2 instead of the browser's own
-              // "enter a valid value" bubble on "+ Dodaj".
-              setQuantity(Math.min(99, Math.max(1, Math.floor(Number(e.target.value)) || 1)));
-              clear('quantity');
-            }}
-            style={{ maxWidth: 70 }}
-          />
-          <button
-            type="submit"
-            className="btn btn--quiet btn--small"
-            disabled={busy}
-            aria-describedby={describedBy('add')}
-          >
-            + {p.addSale}
-          </button>
-        </form>
-      ) : null}
-      {fieldError('product')}
-      {fieldError('quantity')}
-      {actionFieldError('add')}
-      <span className="small muted">{p.soldHint}</span>
+                + {p.addSale}
+              </button>
+            </form>
+          ) : null}
+          {/* Under the row, so "+ Dodaj" stays level with the field. */}
+          {fieldError('code')}
+          {actionFieldError('code-add')}
+          {canChange && products.length > 0 ? (
+            <form
+              noValidate
+              className="row"
+              style={{ gap: 8, alignItems: 'center' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!productId) {
+                  setError('');
+                  setProblem({ field: 'product', text: t.onboarding.fieldRequired });
+                  return;
+                }
+                run(
+                  () =>
+                    api<VisitProductSales>(url, { method: 'POST', body: { productId, quantity } }),
+                  'add',
+                  'quantity',
+                ).then(
+                  () => {
+                    setProductId('');
+                    setQuantity(1);
+                  },
+                  () => undefined,
+                );
+              }}
+            >
+              <select
+                aria-label={p.choose}
+                value={productId}
+                {...invalid('product')}
+                onChange={(e) => {
+                  setProductId(e.target.value);
+                  clear('product');
+                  clear('quantity');
+                }}
+                style={{ flex: '1 1 12rem' }}
+              >
+                <option value="">{p.choose}</option>
+                {products.map((x) => (
+                  <option
+                    key={x.id}
+                    value={x.id}
+                    disabled={x.stockQuantity !== null && x.stockQuantity < 1}
+                  >
+                    {x.name} · {money(x.priceGrosze)}
+                    {x.stockQuantity === null
+                      ? ''
+                      : ` · ${
+                          x.stockQuantity > 0
+                            ? p.stockLeft.replace('{n}', String(x.stockQuantity))
+                            : p.stockNone
+                        }`}
+                    {x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label={p.quantity}
+                type="number"
+                min={1}
+                max={99}
+                step={1}
+                inputMode="numeric"
+                value={quantity}
+                {...invalid('quantity')}
+                onChange={(e) => {
+                  // Task 703: whole pieces only — "2,5" becomes 2 instead of the browser's own
+                  // "enter a valid value" bubble on "+ Dodaj".
+                  setQuantity(Math.min(99, Math.max(1, Math.floor(Number(e.target.value)) || 1)));
+                  clear('quantity');
+                }}
+                style={{ maxWidth: 70 }}
+              />
+              <button
+                type="submit"
+                className="btn btn--quiet btn--small"
+                disabled={busy}
+                aria-describedby={describedBy('add')}
+              >
+                + {p.addSale}
+              </button>
+            </form>
+          ) : null}
+          {fieldError('product')}
+          {fieldError('quantity')}
+          {actionFieldError('add')}
+          <span className="small muted">{p.soldHint}</span>
+        </>
+      )}
       <ErrorBox>{error}</ErrorBox>
     </div>
   );

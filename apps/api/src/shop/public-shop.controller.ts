@@ -158,7 +158,7 @@ export class PublicShopController {
   @ApiOperation({
     summary: '"Jak było?": products the specialist used at this visit, to put aside for the next',
     description:
-      'Task Q3 (screen C). Products sold at this visit that the salon still shows to clients, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers "Umów kolejną wizytę" with `rebook`).',
+      'Task Q3 (screen C). Products the specialist marked as used, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers "Umów kolejną wizytę" with `rebook`).',
   })
   @ApiZodResponse(usedProductsSchema)
   usedProducts(
@@ -169,12 +169,28 @@ export class PublicShopController {
     return this.reservations.usedByToken(token);
   }
 
+  @Post('appointments/:token/products/pickup')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Order a product used at this visit for collection and payment at the salon',
+  })
+  @ApiZodBody(reserveProductSchema)
+  @ApiZodResponse(usedProductsSchema)
+  pickup(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Body(new ZodValidationPipe(reserveProductSchema)) body: ReserveProductInput,
+  ): Promise<UsedProductsResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
+    return this.reservations.pickupByToken(token, body);
+  }
+
   @Post('appointments/:token/products/next')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '"Odłóż na następną wizytę": put a product used at this visit aside for the next one',
     description:
-      'Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.',
+      'Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.',
   })
   @ApiZodBody(reserveProductSchema)
   @ApiZodResponse(usedProductsSchema)

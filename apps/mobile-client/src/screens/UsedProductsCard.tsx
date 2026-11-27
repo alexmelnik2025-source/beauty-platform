@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { ClientApi, Locale } from '../api';
 import type { BookingPreset } from '../booking';
@@ -7,14 +7,10 @@ import { formatDay, formatPrice } from '../format';
 import { fill, type Dictionary } from '../i18n';
 import { usedProductLists } from '../shop';
 import { ProductActionButton, useProductLock, useVisitProductList } from './VisitProductsCard';
-import { Button, colors } from '../ui';
+import { Button, Chip, colors } from '../ui';
 
-/**
- * Task Q3 (screen C in the app): in the card of a visit that took place — what the specialist
- * used ("Na wizycie użyto"). With my next visit in that salon booked: "Odłóż na następną wizytę"
- * on each. Without one: "Umów kolejną wizytę" opens the booking with the same specialist and the
- * products come along (put aside right after booking). Nothing when nothing was used.
- */
+/** Products marked by the specialist. Pickup orders use the completed visit;
+ * only products selected for a future visit accompany a new booking. */
 type Props = {
   api: ClientApi;
   t: Dictionary;
@@ -29,6 +25,12 @@ export function UsedProductsCard(props: Props) {
 function UsedProductsContent(props: Props) {
   const { api, t, locale, visitId } = props;
   const s = t.visitProducts;
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (id: string) =>
+    setSelected((previous) =>
+      previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id],
+    );
+  const [buying, setBuying] = useState<string | null>(null);
   const lock = useProductLock();
   const { data, setData, feedback, refresh } = useVisitProductList(
     api,
@@ -51,7 +53,9 @@ function UsedProductsContent(props: Props) {
   if (!data.products.length) return null;
   const next = data.nextVisit;
   const when = next ? `${next.time} · ${formatDay(next.date, locale)}` : '';
-  const toBring = data.products.filter((p) => p.available).map((p) => p.id);
+  const toBring = data.products
+    .filter((p) => p.available && selected.includes(p.id))
+    .map((p) => p.id);
 
   return (
     <View role="region" aria-label={s.usedTitle} style={styles.card} testID="used-products">
@@ -68,8 +72,41 @@ function UsedProductsContent(props: Props) {
             amount={p.priceGrosze}
             currency={data.currency}
             locale={locale}
-            status={!p.available && !p.reservedForNext ? s.unavailable : ''}
+            status={!p.available && !p.reservedForNext && !p.pickupStatus ? s.unavailable : ''}
           />
+          {p.pickupStatus ? (
+            <Text role="status" style={styles.saved}>
+              {p.pickupStatus === 'handed' ? s.pickupHanded : s.pickupOrdered}
+            </Text>
+          ) : p.available ? (
+            <>
+              <Button
+                kind="secondary"
+                label={s.buy}
+                a11yLabel={`${s.buy}: ${p.name}`}
+                onPress={() => setBuying(buying === p.id ? null : p.id)}
+              />
+              {buying === p.id && (
+                <ProductActionButton
+                  lock={lock}
+                  refresh={refresh}
+                  t={t}
+                  api={api}
+                  label={s.orderForPickup}
+                  a11yLabel={`${s.orderForPickup}: ${p.name}`}
+                  action={async () => setData(await api.orderPickup(visitId, p.id))}
+                />
+              )}
+            </>
+          ) : null}
+          {!next && p.available && (
+            <Chip
+              label={s.saveForNext}
+              a11yLabel={`${s.saveForNext}: ${p.name}`}
+              pressed={selected.includes(p.id)}
+              onPress={() => toggle(p.id)}
+            />
+          )}
           {next && p.reservedForNext ? (
             <Text role="status" style={styles.saved}>
               ✓ {fill(s.savedForNext, { when })}

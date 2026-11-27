@@ -8895,6 +8895,77 @@
         ]
       }
     },
+    "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/used-products/{productId}": {
+      "put": {
+        "operationId": "ProductsController_setUsedProduct",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "used": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "used"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitProductSales"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark or unmark a product used during a confirmed or completed appointment",
+        "tags": [
+          "products"
+        ]
+      }
+    },
     "/v1/organizations/{orgId}/locations/{locationId}/appointments/{appointmentId}/products/{saleId}": {
       "delete": {
         "operationId": "ProductsController_removeSale",
@@ -11802,9 +11873,71 @@
         ]
       }
     },
+    "/v1/client/appointments/{id}/products/pickup": {
+      "post": {
+        "operationId": "ClientShopController_pickup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Order a product used at my visit for collection and payment at the salon",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
     "/v1/client/appointments/{id}/products/next": {
       "post": {
-        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.",
+        "description": "Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.",
         "operationId": "ClientShopController_reserveForNext",
         "parameters": [
           {
@@ -13437,7 +13570,7 @@
     },
     "/v1/public/appointments/{token}/products/used": {
       "get": {
-        "description": "Task Q3 (screen C). Products sold at this visit that the salon still shows to clients, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers \"Umów kolejną wizytę\" with `rebook`).",
+        "description": "Task Q3 (screen C). Products the specialist marked as used, at today’s price; `nextVisit` is the client’s next confirmed visit in this salon (null = none — the page offers \"Umów kolejną wizytę\" with `rebook`).",
         "operationId": "PublicShopController_usedProducts",
         "parameters": [
           {
@@ -13467,9 +13600,66 @@
         ]
       }
     },
+    "/v1/public/appointments/{token}/products/pickup": {
+      "post": {
+        "operationId": "PublicShopController_pickup",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": [
+                  "productId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Order a product used at this visit for collection and payment at the salon",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/v1/public/appointments/{token}/products/next": {
       "post": {
-        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.",
+        "description": "Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.",
         "operationId": "PublicShopController_reserveForNext",
         "parameters": [
           {
@@ -31988,6 +32178,13 @@
                   "type": "boolean",
                   "description": "false = none left to put aside right now"
                 },
+                "pickupStatus": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "handed"
+                  ]
+                },
                 "reservedForNext": {
                   "type": "boolean",
                   "description": "Already waiting for the client on their next visit"
@@ -32004,7 +32201,7 @@
               ],
               "additionalProperties": false
             },
-            "description": "Products sold at this visit that the salon still shows to clients; empty before the visit took place"
+            "description": "Products the specialist marked as used at this visit; empty before the visit took place"
           },
           "nextVisit": {
             "nullable": true,
@@ -32351,6 +32548,14 @@
       "VisitProductSales": {
         "type": "object",
         "properties": {
+          "usedProductIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
           "sales": {
             "type": "array",
             "items": {

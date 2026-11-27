@@ -21,7 +21,8 @@ const PASSWORD = 'e2e-password-123';
 const run = Date.now().toString(36);
 const OWNER = `after-visit-app-${run}@example.com`;
 const CLIENT = `after-visit-app-client-${run}@example.com`;
-const PHONE = { width: 390, height: 844 };
+const SPECIALIST = `after-visit-staff-${run}@example.com`;
+const PHONE = { width: 320, height: 844 };
 
 const shot = (page: Page, name: string) =>
   page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true });
@@ -51,14 +52,14 @@ async function nextCode(before: number): Promise<string> {
 const codeCount = async () =>
   (await listTo(CLIENT)).filter((m) => /Kod potwierdzenia/.test(m.Subject)).length;
 
-async function owner(api: APIRequestContext) {
+async function verifiedUser(api: APIRequestContext, email: string, name: string) {
   await json(
     await api.post('/v1/auth/register', {
       headers: freshAddress(),
-      data: { email: OWNER, password: PASSWORD, name: 'Właściciel' },
+      data: { email, password: PASSWORD, name },
     }),
   );
-  const mail = await waitForEmail(OWNER, /Potwierdź adres/);
+  const mail = await waitForEmail(email, /Potwierdź adres/);
   const token = /token=([^\s&]+)/.exec(mail.text)?.[1];
   await json(
     await api.post('/v1/auth/verify-email', { data: { token: decodeURIComponent(token!) } }),
@@ -66,10 +67,14 @@ async function owner(api: APIRequestContext) {
   const login = await json<{ accessToken: string }>(
     await api.post('/v1/auth/login', {
       headers: freshAddress(),
-      data: { email: OWNER, password: PASSWORD, clientType: 'mobile' },
+      data: { email, password: PASSWORD, clientType: 'mobile' },
     }),
   );
-  const auth = { Authorization: `Bearer ${login.accessToken}` };
+  return { Authorization: `Bearer ${login.accessToken}` };
+}
+
+async function owner(api: APIRequestContext) {
+  const auth = await verifiedUser(api, OWNER, 'Właściciel');
   const name = `Po Wizycie Apka ${run}`;
   const org = await json<{ id: string }>(
     await api.post('/v1/organizations', { headers: auth, data: { name } }),
@@ -92,6 +97,8 @@ async function owner(api: APIRequestContext) {
     auth,
     base: `/v1/organizations/${org.id}/locations/${location.id}`,
     slug: location.slug,
+    orgId: org.id,
+    locationId: location.id,
   };
 }
 
@@ -104,8 +111,8 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
         data: { name, priceGrosze, stockQuantity: 5, inSalonShop: true },
       }),
     );
-  const pomade = await product('Pomada Reuzel różowa', 5900);
-  const wax = await product('Wosk matowy', 4500);
+  await product('Pomada Reuzel różowa', 5900);
+  await product('Wosk matowy', 4500);
   const cut = await json<{ id: string }>(
     await request.post(`${salon.base}/services`, {
       headers: salon.auth,
@@ -130,7 +137,7 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
     }),
   );
 
-  // The first visit, booked online, took place; Ilya sold the pomade and the wax at it.
+  // The first visit, booked online, took place; Ilya used the pomade and the wax at it.
   const ip = freshAddress();
   const from = new Date().toISOString().slice(0, 10);
   const to = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
@@ -166,19 +173,59 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
     }),
   );
   const id = first.appointment.id;
+  await json(
+    await request.post(`/v1/organizations/${salon.orgId}/invitations`, {
+      headers: salon.auth,
+      data: {
+        email: SPECIALIST,
+        role: 'staff',
+        locationIds: [salon.locationId],
+        staffMemberId: ilya.id,
+      },
+    }),
+  );
+  const invitation = await waitForEmail(SPECIALIST, /Zaproszenie/);
+  const inviteToken = /\/invite\/(\S+)/.exec(invitation.text)![1]!;
+  const staffAuth = await verifiedUser(request, SPECIALIST, 'Ilya');
+  await json(await request.post(`/v1/invitations/${inviteToken}/accept`, { headers: staffAuth }));
+  const businessApp = await serveApp('mobile-business');
+  try {
+    const phone = await browser.newPage({
+      viewport: PHONE,
+      isMobile: true,
+      locale: 'pl-PL',
+      timezoneId: 'Europe/Warsaw',
+      extraHTTPHeaders: freshAddress(),
+    });
+    await phone.goto(businessApp.url);
+    await phone.getByLabel('E-mail lub telefon').fill(SPECIALIST);
+    await phone.getByRole('button', { name: 'Wyślij kod' }).click();
+    const signin = await waitForEmail(SPECIALIST, /Kod logowania do aplikacji salonu/);
+    await phone.getByLabel('Kod', { exact: true }).fill(/\b(\d{6})\b/.exec(signin.text)![1]!);
+    await phone.getByRole('button', { name: 'Zaloguj się' }).click();
+    await expect(phone.getByRole('button', { name: 'Dziś' })).toBeVisible();
+    const localDate = (date: Date) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(date);
+    if (localDate(new Date(free.slots[0]!.start)) !== localDate(new Date()))
+      await phone.getByRole('button', { name: 'Następny dzień' }).click();
+    await phone
+      .getByRole('button', { name: /Anna Kowalska/ })
+      .first()
+      .click();
+    const used = phone.getByTestId('visit-products');
+    for (const name of ['Pomada Reuzel różowa', 'Wosk matowy']) {
+      await used.getByRole('button', { name, exact: true }).click();
+      await expect(used.getByRole('button', { name: '✓ ' + name, exact: true })).toBeVisible();
+    }
+    await phone.close();
+  } finally {
+    businessApp.server.close();
+  }
+
   sql(
     `UPDATE appointment SET status = 'completed', start_at = start_at - interval '4 days', end_at = end_at - interval '4 days', blocked_until = blocked_until - interval '4 days' WHERE id = '${id}';
      UPDATE appointment_access_token SET expires_at = now() + interval '7 days' WHERE appointment_id = '${id}'`,
   );
-  for (const productId of [pomade.id, wax.id]) {
-    await json(
-      await request.post(`${salon.base}/appointments/${id}/products`, {
-        headers: salon.auth,
-        data: { productId, quantity: 1 },
-      }),
-    );
-  }
-
   const clientApp = await serveApp('mobile-client');
   try {
     const phone = await browser.newContext({
@@ -203,6 +250,11 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
     await expect(used.getByText('Pomada Reuzel różowa')).toBeVisible();
     await expect(used.getByText('Wosk matowy')).toBeVisible();
     await expect(used.getByText(/Nie masz jeszcze kolejnej wizyty/)).toBeVisible();
+    await used.getByRole('button', { name: 'Kup: Wosk matowy' }).click();
+    await used.getByRole('button', { name: /Zamów z płatnością przy odbiorze w salonie/ }).click();
+    await expect(used.getByText('Zamówiono. Odbiór i płatność w salonie.')).toBeVisible();
+    await used.getByRole('button', { name: /Odłóż na następną wizytę: Pomada/ }).click();
+    await used.getByRole('button', { name: /Odłóż na następną wizytę: Wosk/ }).click();
     await used.scrollIntoViewIfNeeded();
     await shot(app, 'Q3-C-app');
 

@@ -697,6 +697,7 @@ export const en: Dictionary = {
     add: '+ Add product',
     sold: 'Products',
     soldTotal: 'PRODUCTS: {amount}',
+    usedDuringService: 'Products used during the service',
     soldHint:
       'Not part of the visit price, points or discounts. The list of products is kept in the cabinet ("Services").',
     removeSale: 'Remove',

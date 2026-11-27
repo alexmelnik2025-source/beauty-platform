@@ -110,8 +110,8 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
         data: { name, priceGrosze, stockQuantity: 5, inSalonShop: true },
       }),
     );
-  const pomade = await product('Pomada Reuzel różowa', 5900);
-  const wax = await product('Wosk matowy', 4500);
+  await product('Pomada Reuzel różowa', 5900);
+  await product('Wosk matowy', 4500);
   const cut = await json<{ id: string }>(
     await request.post(`${salon.base}/services`, {
       headers: salon.auth,
@@ -136,7 +136,7 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
     }),
   );
 
-  // The first visit, booked online, took place; Ilya sold the pomade and the wax at it.
+  // The first visit, booked online, took place; Ilya used the pomade and the wax at it.
   const ip = freshAddress();
   const from = new Date().toISOString().slice(0, 10);
   const to = new Date(Date.now() + 6 * 86_400_000).toISOString().slice(0, 10);
@@ -176,14 +176,28 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
     `UPDATE appointment SET status = 'completed', start_at = start_at - interval '4 days', end_at = end_at - interval '4 days', blocked_until = blocked_until - interval '4 days' WHERE id = '${id}';
      UPDATE appointment_access_token SET expires_at = now() + interval '7 days' WHERE appointment_id = '${id}'`,
   );
-  for (const productId of [pomade.id, wax.id]) {
-    await json(
-      await request.post(`${salon.base}/appointments/${id}/products`, {
-        headers: salon.auth,
-        data: { productId, quantity: 1 },
-      }),
-    );
+  const desk = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await desk.goto('/pl/login');
+  await desk.getByLabel('E-mail').fill(OWNER);
+  await desk.getByLabel('Hasło').fill(PASSWORD);
+  await desk.getByRole('button', { name: 'Zaloguj się' }).click();
+  await desk.waitForURL(/\/pl\/app\/calendar/);
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' }).format(
+    new Date(Date.parse(free.slots[0]!.start) - 4 * 86400000),
+  );
+  const openVisit = async () => {
+    await desk.goto(`/pl/app/calendar?date=${date}`);
+    await desk.getByRole('button', { name: /Anna Kowalska/ }).click();
+  };
+  await openVisit();
+  const picker = desk.getByRole('group', { name: 'Produkty użyte podczas usługi' });
+  for (const name of ['Pomada Reuzel różowa', 'Wosk matowy']) {
+    await picker.getByLabel(name).check();
+    await expect(picker.getByLabel(name)).toBeChecked();
+    await expect(picker.getByLabel(name)).toBeEnabled();
   }
+  await openVisit();
+  await expect(picker.getByLabel('Wosk matowy')).toBeChecked();
 
   const context = await browser.newContext({
     viewport: PHONE,
@@ -198,8 +212,23 @@ test('"Na wizycie użyto": put aside for the next visit (task Q3, screen C)', as
   await expect(used.getByText('Pomada Reuzel różowa')).toBeVisible();
   await expect(used.getByText('Wosk matowy')).toBeVisible();
   await expect(used.getByText(/Nie masz jeszcze kolejnej wizyty/)).toBeVisible();
+  await used.getByRole('button', { name: 'Kup: Wosk matowy' }).click();
+  await used.getByRole('button', { name: 'Zamów z płatnością przy odbiorze w salonie' }).click();
+  await expect(used.getByText('Zamówiono. Odbiór i płatność w salonie.')).toBeVisible();
+  await page.reload();
+  await expect(used.getByText('Zamówiono. Odbiór i płatność w salonie.')).toBeVisible();
+  await openVisit();
+  const handover = desk.getByTestId('visit-to-hand');
+  await expect(handover.getByText(/Wosk matowy/).first()).toBeVisible();
+  await handover.getByRole('button', { name: /Wydaj i dolicz/ }).click();
+  await expect(handover.getByText(/Wydano/)).toBeVisible();
+  await page.reload();
+  await expect(used.getByText('Produkt odebrany')).toBeVisible();
+  await desk.close();
   // No next visit yet: nothing to put aside on, one main button.
   await expect(used.getByRole('button', { name: /^Odłóż na następną wizytę/ })).toHaveCount(0);
+  await used.getByRole('checkbox', { name: /Odłóż na następną wizytę: Pomada/ }).check();
+  await used.getByRole('checkbox', { name: /Odłóż na następną wizytę: Wosk/ }).check();
   await used.scrollIntoViewIfNeeded();
   await shot(page, 'Q3-C-used');
 
