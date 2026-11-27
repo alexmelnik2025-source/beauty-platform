@@ -95,12 +95,29 @@ export class ClientShopController {
     return this.reservations.used(visit, visit.location);
   }
 
+  @Post('pickup')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Order a product used at my visit for collection and payment at the salon',
+  })
+  @ApiZodBody(reserveProductSchema)
+  @ApiZodResponse(usedProductsSchema)
+  async pickup(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Body(new ZodValidationPipe(reserveProductSchema)) body: ReserveProductInput,
+  ): Promise<UsedProductsResponse> {
+    const visit = await this.clients.myVisit(client, id);
+    await this.reservations.orderPickup(visit, visit.location, body);
+    return this.reservations.used(visit, visit.location);
+  }
+
   @Post('next')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '"Odłóż na następną wizytę": put a product used at my visit aside for my next one',
     description:
-      'Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.',
+      'Task Q3 (screen C). Only a product marked as used at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.',
   })
   @ApiZodBody(reserveProductSchema)
   @ApiZodResponse(usedProductsSchema)

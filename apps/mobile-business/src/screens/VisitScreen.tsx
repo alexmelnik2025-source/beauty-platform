@@ -555,9 +555,10 @@ function VisitCard(props: VisitProps & { draftKey: string }) {
           onHanded={() => setSalesKey((k) => k + 1)}
         />
       ) : null}
-      {visit.status === 'completed' ? (
+      {visit.status === 'completed' || (props.canChange && visit.status === 'confirmed') ? (
         // Task 396: products the client bought at the visit.
         <ProductSalesSection
+          completed={visit.status === 'completed'}
           key={salesKey}
           api={api}
           t={t}

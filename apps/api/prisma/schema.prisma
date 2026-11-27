@@ -937,6 +937,7 @@ model Appointment {
   loyaltyEntries      LoyaltyTransaction[]
   wishPhotos          VisitPhoto[]
   review              VisitReview?
+  usedProducts        VisitUsedProduct[]
   productSales        ProductSale[]
   productReservations ProductReservation[]
   voucherUses         GiftVoucherUse[]
@@ -1585,6 +1586,7 @@ model Product {
 
   location       Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
   catalogProduct CatalogProduct?      @relation(fields: [catalogProductId], references: [id], onDelete: SetNull)
+  visitUses      VisitUsedProduct[]
   sales          ProductSale[]
   reservations   ProductReservation[]
   stockMovements StockMovement[]
@@ -1737,27 +1739,28 @@ enum ProductReservationStatus {
 /// for at a visit. Keeps the name and price of that moment; while `reserved` on a live visit it
 /// is taken from what clients see as available (the stock itself changes only at the sale).
 model ProductReservation {
-  id              String                   @id @default(uuid(7)) @db.Uuid
-  locationId      String                   @map("location_id") @db.Uuid
-  appointmentId   String                   @map("appointment_id") @db.Uuid
+  afterVisitPickup Boolean                  @default(false) @map("after_visit_pickup")
+  id               String                   @id @default(uuid(7)) @db.Uuid
+  locationId       String                   @map("location_id") @db.Uuid
+  appointmentId    String                   @map("appointment_id") @db.Uuid
   /// null when the product was removed from the list later.
-  productId       String?                  @map("product_id") @db.Uuid
-  name            String
-  quantity        Int
-  unitPriceGrosze Int                      @map("unit_price_grosze")
-  status          ProductReservationStatus @default(reserved)
+  productId        String?                  @map("product_id") @db.Uuid
+  name             String
+  quantity         Int
+  unitPriceGrosze  Int                      @map("unit_price_grosze")
+  status           ProductReservationStatus @default(reserved)
   /// The sale made when it was handed over; null until then.
-  saleId          String?                  @unique @map("sale_id") @db.Uuid
+  saleId           String?                  @unique @map("sale_id") @db.Uuid
   /// Task Q4 (part 5): the order made for it in the seller's Base (product imported from Base,
   /// "Zamówienia do Base" on); null = not sent (yet).
-  baseOrderId     String?                  @map("base_order_id")
+  baseOrderId      String?                  @map("base_order_id")
   /// Which state of the reservation Base last got: reserved / handed / cancelled; null = none.
-  baseOrderState  String?                  @map("base_order_state")
+  baseOrderState   String?                  @map("base_order_state")
   /// Failed attempts to send it in a row (after 5 it waits for "Synchronizuj teraz").
-  baseOrderFails  Int                      @default(0) @map("base_order_fails")
-  baseOrderError  String?                  @map("base_order_error")
-  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  baseOrderFails   Int                      @default(0) @map("base_order_fails")
+  baseOrderError   String?                  @map("base_order_error")
+  createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   location    Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   appointment Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
@@ -1936,4 +1939,15 @@ model ShopFeedUpload {
 
   @@index([locationId, createdAt])
   @@map("shop_feed_upload")
+}
+
+model VisitUsedProduct {
+  appointmentId String      @map("appointment_id") @db.Uuid
+  productId     String      @map("product_id") @db.Uuid
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([appointmentId, productId])
+  @@index([productId])
+  @@map("visit_used_product")
 }

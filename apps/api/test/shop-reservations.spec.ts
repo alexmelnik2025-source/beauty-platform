@@ -548,13 +548,13 @@ describe('"Produkty do odbioru" in the client app (task Q3)', () => {
 });
 
 describe('"Jak było?": put aside for the next visit what was used (task Q3, screen C)', () => {
-  const sell = (visitId: string, productId: string) =>
+  const markUsed = (visitId: string, productId: string) =>
     ctx
       .http()
-      .post(`${base}/appointments/${visitId}/products`)
+      .put(`${base}/appointments/${visitId}/used-products/${productId}`)
       .set(owner.auth)
-      .send({ productId, quantity: 1 })
-      .expect(201);
+      .send({ used: true })
+      .expect(200);
 
   it('lists what was used at the visit and puts it aside on the next visit, once', async () => {
     const pomade = await product({
@@ -567,7 +567,8 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
     const other = await product({ name: 'Olejek', priceGrosze: 4000, inSalonShop: true });
     const visit = await book(10);
 
-    // Before the visit took place nothing was used.
+    // The stylist can mark the product during the service. It appears to the client only after completion.
+    await markUsed(visit.id, pomade.id);
     const ahead = await ctx
       .http()
       .get(`/v1/public/appointments/${visit.token}/products/used`)
@@ -575,16 +576,33 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
     expect(ahead.body.products).toEqual([]);
 
     await came(visit.id);
-    await sell(visit.id, pomade.id);
-    await sell(visit.id, wax.id);
-    await sell(visit.id, pomade.id);
+    await markUsed(visit.id, pomade.id);
+    await markUsed(visit.id, wax.id);
+    await ctx
+      .http()
+      .put(`${base}/appointments/${visit.id}/used-products/${wax.id}`)
+      .set(owner.auth)
+      .send({ used: false })
+      .expect(200);
+    await ctx
+      .http()
+      .post(`${base}/appointments/${visit.id}/products`)
+      .set(owner.auth)
+      .send({ productId: other.id, quantity: 1 })
+      .expect(201);
+    expect(
+      (await ctx.http().get(`${base}/products`).set(owner.auth).expect(200)).body.products.find(
+        (p: { id: string }) => p.id === pomade.id,
+      ).stockQuantity,
+    ).toBe(3);
+    await markUsed(visit.id, pomade.id);
 
     const used = await ctx
       .http()
       .get(`/v1/public/appointments/${visit.token}/products/used`)
       .expect(200);
     shape('UsedProducts', used.body);
-    // Once each, only what the salon shows to clients, at today's price.
+    // Once each, only what was marked, at today's price.
     expect(used.body).toEqual({
       currency: 'PLN',
       products: [
@@ -646,11 +664,64 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
     }
   });
 
+  it('orders for salon pickup without another visit, once even on concurrent retries, and collects at the agreed price', async () => {
+    const item = await product({
+      name: 'Glina',
+      priceGrosze: 7000,
+      stockQuantity: 2,
+      inSalonShop: true,
+    });
+    const visit = await book(10);
+    await markUsed(visit.id, item.id);
+    const pickup = () =>
+      ctx
+        .http()
+        .post(`/v1/public/appointments/${visit.token}/products/pickup`)
+        .send({ productId: item.id });
+    await pickup().expect(404);
+    await came(visit.id);
+    const results = await Promise.all([pickup().expect(200), pickup().expect(200)]);
+    for (const result of results) expect(result.body.products[0].pickupStatus).toBe('reserved');
+    const baseVisit = `${base}/appointments/${visit.id}`;
+    const waiting = await ctx.http().get(`${baseVisit}/reservations`).set(owner.auth).expect(200);
+    expect(waiting.body.reservations).toHaveLength(1);
+    const reservation = waiting.body.reservations[0];
+    await ctx
+      .http()
+      .patch(`${base}/products/${item.id}`)
+      .set(owner.auth)
+      .send({ priceGrosze: 8500 })
+      .expect(200);
+    const hand = () =>
+      ctx.http().post(`${baseVisit}/reservations/${reservation.id}/hand-over`).set(owner.auth);
+    const handed = await Promise.all([hand(), hand()]);
+    expect(handed.map((r) => r.status).sort()).toEqual([200, 409]);
+    const sales = await ctx.http().get(`${baseVisit}/products`).set(owner.auth).expect(200);
+    expect(sales.body.sales).toEqual([
+      expect.objectContaining({ productId: item.id, quantity: 1, unitPriceGrosze: 7000 }),
+    ]);
+    const me = await signIn(CLIENT.email);
+    const again = await ctx
+      .http()
+      .post(`/v1/client/appointments/${visit.id}/products/pickup`)
+      .set(me)
+      .send({ productId: item.id })
+      .expect(200);
+    expect(again.body.products[0].pickupStatus).toBe('handed');
+    const stranger = await signIn('stranger@example.com');
+    await ctx
+      .http()
+      .post(`/v1/client/appointments/${visit.id}/products/pickup`)
+      .set(stranger)
+      .send({ productId: item.id })
+      .expect(404);
+  });
+
   it("another client's visit is not 'the next one'", async () => {
     const pomade = await product({ name: 'Pomada', priceGrosze: 5900, inSalonShop: true });
     const visit = await book(10);
     await came(visit.id);
-    await sell(visit.id, pomade.id);
+    await markUsed(visit.id, pomade.id);
     const h = await ctx
       .http()
       .post(`/v1/public/locations/${slug}/holds`)
@@ -688,10 +759,10 @@ describe('"Na wizycie użyto" in the client app (task Q3, screen C)', () => {
     await came(visit.id);
     await ctx
       .http()
-      .post(`${base}/appointments/${visit.id}/products`)
+      .put(`${base}/appointments/${visit.id}/used-products/${pomade.id}`)
       .set(owner.auth)
-      .send({ productId: pomade.id, quantity: 1 })
-      .expect(201);
+      .send({ used: true })
+      .expect(200);
     const next = await book(12);
     const me = await signIn(CLIENT.email);
     const url = `/v1/client/appointments/${visit.id}/products`;

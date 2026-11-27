@@ -196,27 +196,35 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Task Q3 (screen C): "{specialist} used on you:" — products sold at this visit (the salon's
-   * own sale at the visit, so only once the client came) that the salon still shows to clients,
+   * Task Q3 (screen C): "{specialist} used on you:" — products marked as used by the specialist,
    * with the current price; and the client's next visit to put them aside for.
    */
   async used(
     visit: Appointment,
     location: Pick<Location, 'id' | 'currency' | 'timezone'>,
   ): Promise<UsedProductsResponse> {
-    const sales = await this.prisma.productSale.findMany({
-      where: { appointmentId: visit.id, productId: { not: null } },
-      select: { productId: true },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    const rows =
+      visit.status === 'completed'
+        ? await this.prisma.product.findMany({
+            where: { locationId: location.id, visitUses: { some: { appointmentId: visit.id } } },
+            include: {
+              catalogProduct: {
+                select: { brand: true, description: true, photo: { select: { id: true } } },
+              },
+            },
+            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+          })
+        : [];
+    const pickups = await this.prisma.productReservation.findMany({
+      where: {
+        appointmentId: visit.id,
+        afterVisitPickup: true,
+        status: { in: ['reserved', 'handed'] },
+      },
+      select: { productId: true, status: true },
+      orderBy: { createdAt: 'asc' },
     });
-    const ids = Array.from(new Set(sales.map((s) => s.productId as string)));
-    const rows = ids.length
-      ? await this.prisma.product.findMany({
-          where: { id: { in: ids }, locationId: location.id, active: true, inSalonShop: true },
-          include: { catalogProduct: { select: { brand: true, photo: { select: { id: true } } } } },
-        })
-      : [];
-    const byId = new Map(rows.map((p) => [p.id, p]));
+    const pickupByProduct = new Map(pickups.map((r) => [r.productId, r.status]));
     const next = rows.length ? await this.nextVisit(visit) : null;
     const waiting = next
       ? await this.prisma.productReservation.findMany({
@@ -226,18 +234,22 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       : [];
     const waitingIds = new Set(waiting.map((r) => r.productId));
     const held = await this.heldByProduct(rows.map((p) => p.id));
-    const products = ids
-      .map((id) => byId.get(id))
-      .filter((p): p is NonNullable<typeof p> => p !== undefined)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.catalogProduct?.brand ?? null,
-        priceGrosze: p.priceGrosze,
-        photoId: p.catalogProduct?.photo?.id ?? null,
-        available: ReservationsService.free(p.stockQuantity, held.get(p.id)),
-        reservedForNext: waitingIds.has(p.id),
-      }));
+    const products = rows.map((p) => ({
+      ...(pickupByProduct.get(p.id) === 'reserved'
+        ? { pickupStatus: 'reserved' as const }
+        : pickupByProduct.get(p.id) === 'handed'
+          ? { pickupStatus: 'handed' as const }
+          : {}),
+      id: p.id,
+      name: p.name,
+      brand: p.catalogProduct?.brand ?? null,
+      ...(p.catalogProduct?.description ? { description: p.catalogProduct.description } : {}),
+      priceGrosze: p.priceGrosze,
+      photoId: p.catalogProduct?.photo?.id ?? null,
+      available:
+        p.active && p.inSalonShop && ReservationsService.free(p.stockQuantity, held.get(p.id)),
+      reservedForNext: waitingIds.has(p.id),
+    }));
     const local = next ? instantToLocal(next.startAt.getTime(), location.timezone) : null;
     return {
       currency: location.currency,
@@ -256,20 +268,33 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     location: Pick<Location, 'id'>,
     input: ReserveProductInput,
   ): Promise<void> {
-    const used = await this.prisma.productSale.findFirst({
-      where: { appointmentId: visit.id, productId: input.productId },
-      select: { id: true },
+    const used = await this.prisma.visitUsedProduct.findFirst({
+      where: {
+        appointmentId: visit.id,
+        productId: input.productId,
+        appointment: { status: 'completed' },
+        product: { active: true, inSalonShop: true },
+      },
+      select: { productId: true },
     });
     if (!used) throw notFound('Product');
     const next = await this.nextVisit(visit);
     if (!next) throw noNextVisit();
-    // A second tap (or a retry) does not put a second piece aside.
-    const already = await this.prisma.productReservation.findFirst({
-      where: { appointmentId: next.id, productId: input.productId, status: 'reserved' },
-      select: { id: true },
-    });
-    if (already) return;
-    await this.reserve(next, location, input);
+    await this.reserveProduct(next, location, input, 'next');
+  }
+
+  async pickupByToken(token: string, input: ReserveProductInput): Promise<UsedProductsResponse> {
+    const visit = await this.booking.appointmentByToken(token);
+    await this.orderPickup(visit, visit.location, input);
+    return this.used(visit, visit.location);
+  }
+
+  async orderPickup(
+    visit: Appointment,
+    location: Pick<Location, 'id'>,
+    input: ReserveProductInput,
+  ): Promise<void> {
+    await this.reserveProduct(visit, location, input, 'pickup');
   }
 
   /** The same for the client app ("Moje wizyty"); the caller checked the visit is theirs. */
@@ -320,23 +345,48 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     location: Pick<Location, 'id'>,
     input: ReserveProductInput,
   ): Promise<ProductReservation> {
-    if (!this.canChange(visit)) throw tooLate();
-    const product = await this.prisma.product.findFirst({
-      where: { id: input.productId, locationId: location.id, active: true, inSalonShop: true },
-    });
-    if (!product) throw notFound('Product');
+    return this.reserveProduct(visit, location, input, 'visit');
+  }
+
+  private async reserveProduct(
+    visit: Appointment,
+    location: Pick<Location, 'id'>,
+    input: ReserveProductInput,
+    mode: 'visit' | 'next' | 'pickup',
+  ): Promise<ProductReservation> {
     const reservation = await this.prisma.$transaction(async (tx) => {
-      // Lock the product row so two clients cannot both take the last piece.
-      await tx.$queryRaw`SELECT id FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
-      // Read the stock and the price again under the lock: the salon may have changed them, or
-      // sold the last piece at a visit, while this request was on its way.
-      const fresh = await tx.product.findUniqueOrThrow({
-        where: { id: product.id },
-        select: { stockQuantity: true, priceGrosze: true, name: true },
+      await tx.$queryRaw`SELECT id FROM appointment WHERE id = ${visit.id}::uuid FOR UPDATE`;
+      const current = await tx.appointment.findUniqueOrThrow({ where: { id: visit.id } });
+      if (mode === 'pickup') {
+        if (
+          current.status !== 'completed' ||
+          !(await tx.visitUsedProduct.findUnique({
+            where: {
+              appointmentId_productId: { appointmentId: visit.id, productId: input.productId },
+            },
+          }))
+        )
+          throw notFound('Product');
+      } else if (!this.canChange(current)) throw tooLate();
+      await tx.$queryRaw`SELECT id FROM product WHERE id = ${input.productId}::uuid FOR UPDATE`;
+      const fresh = await tx.product.findFirst({
+        where: { id: input.productId, locationId: location.id, active: true, inSalonShop: true },
       });
+      if (!fresh) throw notFound('Product');
+      if (mode !== 'visit') {
+        const existing = await tx.productReservation.findFirst({
+          where: {
+            appointmentId: visit.id,
+            productId: fresh.id,
+            afterVisitPickup: mode === 'pickup',
+            status: { in: mode === 'pickup' ? ['reserved', 'handed'] : ['reserved'] },
+          },
+        });
+        if (existing) return existing;
+      }
       if (fresh.stockQuantity !== null) {
         const held = await tx.productReservation.aggregate({
-          where: holdingWhere(product.id),
+          where: holdingWhere(fresh.id),
           _sum: { quantity: true },
         });
         const left = fresh.stockQuantity - (held._sum.quantity ?? 0);
@@ -346,19 +396,20 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
         data: {
           locationId: location.id,
           appointmentId: visit.id,
-          productId: product.id,
+          productId: fresh.id,
           name: fresh.name,
           quantity: input.quantity,
           unitPriceGrosze: fresh.priceGrosze,
+          afterVisitPickup: mode === 'pickup',
         },
       });
       // "Przenieść produkty na nowy termin?": the same product waiting on a cancelled visit of this
       // client is now moved here — the old reservation is settled, so neither the client's old
       // visit page nor the salon's card of the cancelled visit offers it again (task 605).
-      if (visit.customerId) {
+      if (mode !== 'pickup' && visit.customerId) {
         await tx.productReservation.updateMany({
           where: {
-            productId: product.id,
+            productId: fresh.id,
             status: 'reserved',
             appointment: {
               id: { not: visit.id },
@@ -426,23 +477,17 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     if (!reservation) throw notFound('Reservation');
     if (reservation.status !== 'reserved') throw notReserved();
     if (!reservation.productId) throw notFound('Product');
-    const before = await this.prisma.productSale.findMany({
-      where: { appointmentId },
-      select: { id: true },
-    });
-    await this.products.addSale(m, userId, locationId, appointmentId, {
-      productId: reservation.productId,
-      quantity: reservation.quantity,
-    });
-    const sale = await this.prisma.productSale.findFirst({
-      where: { appointmentId, id: { notIn: before.map((s) => s.id) } },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
-    });
-    await this.prisma.productReservation.update({
-      where: { id: reservationId },
-      data: { status: 'handed', saleId: sale?.id ?? null },
-    });
+    await this.products.addSale(
+      m,
+      userId,
+      locationId,
+      appointmentId,
+      {
+        productId: reservation.productId,
+        quantity: reservation.quantity,
+      },
+      reservationId,
+    );
     this.baseOrders.soon(locationId);
     return this.forVisit(m, userId, locationId, appointmentId);
   }
@@ -474,6 +519,8 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       where: { status: 'reserved', appointment: { startAt: { lt: now } } },
       select: {
         id: true,
+        createdAt: true,
+        afterVisitPickup: true,
         appointment: { select: { startAt: true } },
         location: { select: { shopReservationDays: true } },
       },
@@ -482,7 +529,9 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     const overdue = waiting
       .filter(
         (r) =>
-          r.appointment.startAt.getTime() + r.location.shopReservationDays * DAY <= now.getTime(),
+          (r.afterVisitPickup ? r.createdAt : r.appointment.startAt).getTime() +
+            r.location.shopReservationDays * DAY <=
+          now.getTime(),
       )
       .map((r) => r.id);
     if (overdue.length === 0) return 0;

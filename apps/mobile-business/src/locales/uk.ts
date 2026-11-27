@@ -693,6 +693,7 @@ export const uk: Dictionary = {
     add: '+ Додати товар',
     sold: 'Товари',
     soldTotal: 'ТОВАРИ: {amount}',
+    usedDuringService: 'Засоби, використані під час послуги',
     soldHint:
       'Не входять у ціну візиту, бали і знижки. Список товарів ведеться в кабінеті («Послуги»).',
     removeSale: 'Видалити',

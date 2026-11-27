@@ -693,6 +693,7 @@ export const pl = {
     add: '+ Dodaj produkt',
     sold: 'Produkty',
     soldTotal: 'PRODUKTY: {amount}',
+    usedDuringService: 'Produkty użyte podczas usługi',
     soldHint:
       'Nie wchodzą do ceny wizyty, punktów ani rabatów. Listę produktów prowadzi się w kabinecie („Usługi”).',
     removeSale: 'Usuń',

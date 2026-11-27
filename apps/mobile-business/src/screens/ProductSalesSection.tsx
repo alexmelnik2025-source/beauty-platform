@@ -47,6 +47,7 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   salon: SalonChoice;
   appointmentId: string;
   canChange: boolean;
+  completed: boolean;
 }) {
   const { api, t, salon, appointmentId, canChange } = props;
   const p = t.products;
@@ -58,6 +59,7 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [usedError, setUsedError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   const lifetime = useScreenLifetime(salon, appointmentId);
@@ -149,78 +151,119 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
-    <View style={{ gap: 6 }} testID="visit-products">
-      <Text role="heading" aria-level={3} style={styles.label}>
-        {sales.totalGrosze > 0
-          ? fill(p.soldTotal, { amount: money(sales.totalGrosze) })
-          : p.sold.toUpperCase()}
-      </Text>
-      {sales.sales.map((s) => (
-        <View key={s.id} style={styles.row}>
-          <Text style={styles.name}>{s.quantity > 1 ? `${s.name} × ${s.quantity}` : s.name}</Text>
-          <Text style={styles.muted}>{money(s.totalGrosze)}</Text>
-          {canChange ? (
-            <Button
-              kind="link"
-              label={p.removeSale}
-              a11yLabel={fill(p.removeSaleFor, { name: s.name })}
-              disabled={busy}
-              onPress={() =>
-                void run(() =>
-                  api.removeProductSale(salon.orgId, salon.locationId, appointmentId, s.id),
+    <>
+      {canChange && (
+        <View style={{ gap: 6 }} testID="visit-used-products">
+          <Text role="heading" style={styles.label}>
+            {p.usedDuringService}
+          </Text>
+          {products.map((product) => {
+            const checked = !!sales.usedProductIds?.includes(product.id);
+            return (
+              <Button
+                key={product.id}
+                kind="secondary"
+                label={checked ? '✓ ' + product.name : product.name}
+                selected={checked}
+                disabled={busy}
+                onPress={() => {
+                  setUsedError('');
+                  void run(
+                    () =>
+                      api.setUsedProduct(
+                        salon.orgId,
+                        salon.locationId,
+                        appointmentId,
+                        product.id,
+                        !checked,
+                      ),
+                    undefined,
+                    setUsedError,
+                  );
+                }}
+              />
+            );
+          })}
+          {usedError ? <ErrorText>{usedError}</ErrorText> : null}
+        </View>
+      )}
+      {props.completed && (
+        <View style={{ gap: 6 }} testID="visit-products">
+          <Text role="heading" aria-level={3} style={styles.label}>
+            {sales.totalGrosze > 0
+              ? fill(p.soldTotal, { amount: money(sales.totalGrosze) })
+              : p.sold.toUpperCase()}
+          </Text>
+          {sales.sales.map((s) => (
+            <View key={s.id} style={styles.row}>
+              <Text style={styles.name}>
+                {s.quantity > 1 ? `${s.name} × ${s.quantity}` : s.name}
+              </Text>
+              <Text style={styles.muted}>{money(s.totalGrosze)}</Text>
+              {canChange ? (
+                <Button
+                  kind="link"
+                  label={p.removeSale}
+                  a11yLabel={fill(p.removeSaleFor, { name: s.name })}
+                  disabled={busy}
+                  onPress={() =>
+                    void run(() =>
+                      api.removeProductSale(salon.orgId, salon.locationId, appointmentId, s.id),
+                    )
+                  }
+                />
+              ) : null}
+            </View>
+          ))}
+          {canChange && withCodes ? (
+            <BarcodeForm
+              appointmentId={appointmentId}
+              products={products}
+              p={p}
+              busy={busy}
+              codeError={codeError}
+              setCodeError={setCodeError}
+              clearError={() => setError('')}
+              onSell={(id, onSold) =>
+                void run(
+                  () => api.addProductSale(salon.orgId, salon.locationId, appointmentId, id),
+                  onSold,
+                  setCodeError,
                 )
               }
             />
           ) : null}
+          {canChange && products.length > 0 ? (
+            <View style={styles.chips}>
+              {products.map((x) => (
+                <Button
+                  key={x.id}
+                  kind="secondary"
+                  label={`+ ${x.name} · ${money(x.priceGrosze)}${
+                    x.stockQuantity === null
+                      ? ''
+                      : ` · ${
+                          x.stockQuantity > 0
+                            ? fill(p.stockLeft, { n: String(x.stockQuantity) })
+                            : p.stockNone
+                        }`
+                  }${x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}`}
+                  a11yLabel={fill(p.addSaleFor, { name: x.name })}
+                  disabled={busy || (x.stockQuantity !== null && x.stockQuantity < 1)}
+                  onPress={() =>
+                    void run(() =>
+                      api.addProductSale(salon.orgId, salon.locationId, appointmentId, x.id),
+                    )
+                  }
+                />
+              ))}
+            </View>
+          ) : null}
+          <Text style={styles.muted}>{p.soldHint}</Text>
+          {error ? <ErrorText>{error}</ErrorText> : null}
         </View>
-      ))}
-      {canChange && withCodes ? (
-        <BarcodeForm
-          appointmentId={appointmentId}
-          products={products}
-          p={p}
-          busy={busy}
-          codeError={codeError}
-          setCodeError={setCodeError}
-          clearError={() => setError('')}
-          onSell={(id, onSold) =>
-            void run(
-              () => api.addProductSale(salon.orgId, salon.locationId, appointmentId, id),
-              onSold,
-              setCodeError,
-            )
-          }
-        />
-      ) : null}
-      {canChange && products.length > 0 ? (
-        <View style={styles.chips}>
-          {products.map((x) => (
-            <Button
-              key={x.id}
-              kind="secondary"
-              label={`+ ${x.name} · ${money(x.priceGrosze)}${
-                x.stockQuantity === null
-                  ? ''
-                  : ` · ${
-                      x.stockQuantity > 0
-                        ? fill(p.stockLeft, { n: String(x.stockQuantity) })
-                        : p.stockNone
-                    }`
-              }${x.lowStock && x.stockQuantity !== 0 ? ` · ${p.lowBadge}` : ''}`}
-              a11yLabel={fill(p.addSaleFor, { name: x.name })}
-              disabled={busy || (x.stockQuantity !== null && x.stockQuantity < 1)}
-              onPress={() =>
-                void run(() =>
-                  api.addProductSale(salon.orgId, salon.locationId, appointmentId, x.id),
-                )
-              }
-            />
-          ))}
-        </View>
-      ) : null}
-      <Text style={styles.muted}>{p.soldHint}</Text>
-      {error ? <ErrorText>{error}</ErrorText> : null}
-    </View>
+      )}
+    </>
   );
 });
 

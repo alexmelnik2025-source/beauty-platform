@@ -174,6 +174,54 @@ test('reopening checks for newly issued coupons and newly reserved products afte
   }
 });
 
+test('a specialist cannot mark products on another specialist visit without manage-all permission', async ({
+  page,
+}) => {
+  const app = await serveApp('mobile-business');
+  try {
+    await mockSalon(page, 'confirmed');
+    await page.route('**/v1/me', (route) =>
+      route.fulfill({
+        json: {
+          user: { id: 'signed-in-staff' },
+          organizations: [{ id: 'org', role: 'staff' }],
+        },
+      }),
+    );
+    await page.route('**/v1/organizations/org/permissions', (route) =>
+      route.fulfill({
+        json: {
+          me: {
+            role: 'staff',
+            permissions: {
+              changeOwnAppointments: true,
+              manageAllAppointments: false,
+              viewAllAppointments: true,
+            },
+          },
+        },
+      }),
+    );
+    await page.route('**' + base + '/staff', (route) =>
+      route.fulfill({
+        json: [
+          {
+            id: 'own-staff-profile',
+            userId: 'signed-in-staff',
+            displayName: 'Signed in specialist',
+            active: true,
+          },
+        ],
+      }),
+    );
+    await page.goto(app.url);
+    await page.getByRole('button', { name: /Ewa · Strzyżenie/ }).click();
+    await expect(page.getByTestId('visit-used-products')).toHaveCount(0);
+  } finally {
+    app.server.close();
+  }
+});
+
 test('a late catalogue cannot replace the barcode list refreshed after handing over a reservation', async ({
   page,
 }) => {

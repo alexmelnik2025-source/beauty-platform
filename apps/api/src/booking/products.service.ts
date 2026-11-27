@@ -529,12 +529,49 @@ export class ProductsService {
     return this.view(appointmentId);
   }
 
+  async setUsedProduct(
+    m: MembershipContext,
+    userId: string,
+    locationId: string,
+    appointmentId: string,
+    productId: string,
+    used: boolean,
+  ): Promise<VisitProductSalesResponse> {
+    await this.appointments.changeable(m, userId, locationId, appointmentId);
+    await this.prisma.$transaction(async (tx) => {
+      const [visit] = await tx.$queryRaw<
+        { status: string }[]
+      >`SELECT status::text FROM appointment WHERE id=${appointmentId}::uuid AND location_id=${locationId}::uuid FOR UPDATE`;
+      if (visit?.status !== 'completed' && visit?.status !== 'confirmed')
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          'NOT_COMPLETED',
+          'Products can only be marked on confirmed or completed visits',
+        );
+      if (used) {
+        const product = await tx.product.findFirst({
+          where: { id: productId, locationId, active: true },
+          select: { id: true },
+        });
+        if (!product) throw notFound('Product');
+        await tx.visitUsedProduct.createMany({
+          data: [{ appointmentId, productId }],
+          skipDuplicates: true,
+        });
+      } else {
+        await tx.visitUsedProduct.deleteMany({ where: { appointmentId, productId } });
+      }
+    });
+    return this.view(appointmentId);
+  }
+
   async addSale(
     m: MembershipContext,
     userId: string,
     locationId: string,
     appointmentId: string,
     input: AddProductSaleInput,
+    reservationId?: string,
   ): Promise<VisitProductSalesResponse> {
     const visit = await this.appointments.changeable(m, userId, locationId, appointmentId);
     if (visit.status !== 'completed') {
@@ -560,6 +597,30 @@ export class ProductsService {
           'Products can be sold only at a visit marked as "came"',
         );
       }
+      let pickupPrice: number | undefined;
+      if (reservationId) {
+        const claim = await tx.productReservation.updateMany({
+          where: {
+            id: reservationId,
+            appointmentId,
+            locationId,
+            productId: product.id,
+            status: 'reserved',
+            quantity: input.quantity,
+          },
+          data: { status: 'handed' },
+        });
+        if (claim.count !== 1)
+          throw new AppException(
+            HttpStatus.CONFLICT,
+            'NOT_RESERVED',
+            'This product is no longer waiting for the client',
+          );
+        const reservation = await tx.productReservation.findUniqueOrThrow({
+          where: { id: reservationId },
+        });
+        if (reservation.afterVisitPickup) pickupPrice = reservation.unitPriceGrosze;
+      }
       const [counted] = await tx.$queryRaw<{ stock_quantity: number | null }[]>`
         SELECT stock_quantity FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
       const stockTaken = counted !== undefined && counted.stock_quantity !== null;
@@ -579,19 +640,24 @@ export class ProductsService {
         const left = await tx.product.findUniqueOrThrow({ where: { id: product.id } });
         await movement(tx, product.id, 'sale', -input.quantity, left.stockQuantity, userId);
       }
-      await tx.productSale.create({
+      const sale = await tx.productSale.create({
         data: {
           locationId,
           appointmentId,
           productId: product.id,
           name: product.name,
           quantity: input.quantity,
-          unitPriceGrosze: product.priceGrosze,
+          unitPriceGrosze: pickupPrice ?? product.priceGrosze,
           unitCostGrosze: product.purchasePriceGrosze,
           stockTaken,
           createdByUserId: userId,
         },
       });
+      if (reservationId)
+        await tx.productReservation.update({
+          where: { id: reservationId },
+          data: { saleId: sale.id },
+        });
     });
     return this.view(appointmentId);
   }
@@ -648,6 +714,15 @@ export class ProductsService {
       unitPriceGrosze: s.unitPriceGrosze,
       totalGrosze: s.quantity * s.unitPriceGrosze,
     }));
-    return { sales: rows, totalGrosze: rows.reduce((sum, r) => sum + r.totalGrosze, 0) };
+    const used = await this.prisma.visitUsedProduct.findMany({
+      where: { appointmentId },
+      select: { productId: true },
+      orderBy: { productId: 'asc' },
+    });
+    return {
+      ...(used.length ? { usedProductIds: used.map((p) => p.productId) } : {}),
+      sales: rows,
+      totalGrosze: rows.reduce((sum, r) => sum + r.totalGrosze, 0),
+    };
   }
 }

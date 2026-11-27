@@ -290,6 +290,14 @@ export class ClientApi {
     );
   }
 
+  orderPickup(id: string, productId: string): Promise<UsedProducts> {
+    return this.authed<UsedProducts>(
+      'POST',
+      `/v1/client/appointments/${encodeURIComponent(id)}/products/pickup`,
+      { productId, quantity: 1 },
+    );
+  }
+
   /** Task Q3 (screen C): "Odłóż na następną wizytę" — one piece on my next visit. */
   reserveForNext(id: string, productId: string): Promise<UsedProducts> {
     return this.authed<UsedProducts>(

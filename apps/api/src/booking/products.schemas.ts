@@ -23,6 +23,8 @@ const barcode = z
       .regex(/^[0-9A-Z-]+$/),
   );
 
+export const setUsedProductSchema = z.strictObject({ used: z.boolean() });
+
 /** Task 394: a product of the salon's list. */
 export const createProductSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -213,6 +215,7 @@ export const productSchema = responseSchema('Product', product);
 export const visitProductSalesSchema = responseSchema(
   'VisitProductSales',
   z.strictObject({
+    usedProductIds: z.array(z.uuid()).optional(),
     sales: z.array(
       z.strictObject({
         id: z.string(),

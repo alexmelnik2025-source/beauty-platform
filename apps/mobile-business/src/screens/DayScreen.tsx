@@ -576,6 +576,14 @@ export function DayScreen(props: {
   }
 
   if (openId) {
+    const openVisit = calendar?.appointments.find((visit) => visit.id === openId);
+    const mayChangeOpenVisit =
+      salon.role !== 'staff' ||
+      (!!myPerms &&
+        !!openVisit &&
+        (openVisit.staff.id === mineId
+          ? myPerms.permissions.changeOwnAppointments
+          : myPerms.permissions.manageAllAppointments));
     return (
       <VisitScreen
         api={api}
@@ -584,7 +592,7 @@ export function DayScreen(props: {
         salon={salon}
         id={openId}
         timeZone={props.timeZone}
-        canChange={canChange}
+        canChange={mayChangeOpenVisit}
         onBack={() => setOpenId(null)}
         onChanged={() => void load()}
         onBookAgain={

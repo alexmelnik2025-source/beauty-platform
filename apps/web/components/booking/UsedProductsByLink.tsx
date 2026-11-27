@@ -8,19 +8,20 @@ import { formatDay, formatPrice } from '@/lib/time';
 import type { UsedProducts } from '@/lib/types';
 import { FieldError } from '../ui';
 
-/**
- * Task Q3 (screen C): under "Jak było?" on the visit link page, once the visit took place —
- * what the specialist used ("Na wizycie użyto"), with "Odłóż na następną wizytę" when the client
- * already has their next visit in this salon. Without one: a single "Umów kolejną wizytę" that
- * opens the booking at the times of the same specialist; the products come along in the link
- * (`?product=…`) and are put aside for the new visit right after booking. Nothing is shown when
- * nothing the salon sells to clients was used. Paid at the salon, at pick-up.
- */
+/** Products marked by the specialist. Pickup orders use the completed visit;
+ * only products selected for a future visit accompany a new booking. */
 export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug: string }) {
   const { t, locale } = useI18n();
   const tag = LOCALE_TAGS[locale];
   const s = t.visitProducts;
   const [data, setData] = useState<UsedProducts | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (id: string) =>
+    setSelected((previous) =>
+      previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id],
+    );
+  const [buying, setBuying] = useState<string | null>(null);
+  const [readError, setReadError] = useState('');
   const [busy, setBusy] = useState(false);
   /**
    * Task 760 (owner's rule: errors where the action is): a refused "Odłóż na następną wizytę" is
@@ -31,32 +32,51 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
   const load = useCallback(
     () =>
       api<UsedProducts>(`${endpoint}/products/used`, { auth: false })
-        .then(setData)
-        .catch(() => setData(null)),
-    [endpoint],
+        .then((result) => {
+          setData(result);
+          setReadError('');
+          return result;
+        })
+        .catch((err) => {
+          setReadError(errorText(t, err));
+          return null;
+        }),
+    [endpoint, t],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  if (!data || data.products.length === 0) return null;
+  if (!data)
+    return readError ? (
+      <section className="section stack" aria-label={s.usedTitle}>
+        <h2 className="h3">{s.usedTitle}</h2>
+        <p role="alert">{readError}</p>
+        <button className="btn btn--quiet" type="button" onClick={() => void load()}>
+          {t.common.retry}
+        </button>
+      </section>
+    ) : null;
+  if (data.products.length === 0) return null;
   const next = data.nextVisit;
   const money = (n: number) => formatPrice(n, data.currency, tag);
   const when = next ? `${next.time} · ${formatDay(next.date, tag, { short: true })}` : '';
-  const toBring = data.products.filter((p) => p.available).map((p) => p.id);
+  const toBring = data.products
+    .filter((p) => p.available && selected.includes(p.id))
+    .map((p) => p.id);
   const query = new URLSearchParams({
     service: data.rebook.serviceId,
     staff: data.rebook.staffId,
     ...(toBring.length ? { product: toBring.join(',') } : {}),
   });
 
-  async function save(productId: string) {
+  async function save(productId: string, action: 'next' | 'pickup' = 'next') {
     setBusy(true);
     setError(null);
     try {
       setData(
-        await api<UsedProducts>(`${endpoint}/products/next`, {
+        await api<UsedProducts>(`${endpoint}/products/${action}`, {
           method: 'POST',
           auth: false,
           body: { productId, quantity: 1 },
@@ -64,7 +84,9 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
       );
     } catch (e) {
       setError({ id: productId, text: errorText(t, e) });
-      await load();
+      const refreshed = await load();
+      const item = refreshed?.products.find((p) => p.id === productId);
+      if (action === 'pickup' ? item?.pickupStatus : item?.reservedForNext) setError(null);
     } finally {
       setBusy(false);
     }
@@ -100,10 +122,53 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
                 </span>
                 <span className="small muted">
                   {money(p.priceGrosze)}
-                  {!p.available && !p.reservedForNext ? ` · ${s.unavailable}` : ''}
+                  {!p.available && !p.reservedForNext && !p.pickupStatus
+                    ? ` · ${s.unavailable}`
+                    : ''}
                 </span>
               </span>
             </span>
+            {p.description && (
+              <p className="small muted" style={{ overflowWrap: 'anywhere' }}>
+                {p.description}
+              </p>
+            )}
+            {p.pickupStatus ? (
+              <p role="status">{p.pickupStatus === 'handed' ? s.pickupHanded : s.pickupOrdered}</p>
+            ) : p.available ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  aria-expanded={buying === p.id}
+                  aria-label={`${s.buy}: ${p.name}`}
+                  onClick={() => setBuying(buying === p.id ? null : p.id)}
+                >
+                  {s.buy}
+                </button>
+                {buying === p.id && (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy}
+                    onClick={() => void save(p.id, 'pickup')}
+                  >
+                    {s.orderForPickup}
+                  </button>
+                )}
+              </>
+            ) : null}
+            {!next && p.available && (
+              <label>
+                <input
+                  type="checkbox"
+                  aria-label={`${s.saveForNext}: ${p.name}`}
+                  checked={selected.includes(p.id)}
+                  onChange={() => toggle(p.id)}
+                />{' '}
+                {s.saveForNext}
+              </label>
+            )}
             {next && p.reservedForNext ? (
               <p className="small" role="status">
                 <strong>✓ {fill(s.savedForNext, { when })}</strong>
