@@ -219,7 +219,7 @@ test('"Na wizycie użyto" in the client app (task Q3, screen C)', async ({ brows
       .getByRole('button', { name: /Anna Kowalska/ })
       .first()
       .click();
-    const used = phone.getByTestId('visit-products');
+    const used = phone.getByTestId('visit-used-products');
     for (const name of ['Pomada Reuzel różowa', 'Wosk matowy']) {
       await used.getByRole('button', { name, exact: true }).click();
       await expect(used.getByRole('button', { name: '✓ ' + name, exact: true })).toBeVisible();

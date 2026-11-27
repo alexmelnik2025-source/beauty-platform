@@ -59,6 +59,7 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [usedError, setUsedError] = useState('');
   const money = (hundredths: number) => formatPrice(hundredths, salon.currency, props.locale);
 
   const lifetime = useScreenLifetime(salon, appointmentId);
@@ -150,9 +151,9 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
-    <View style={{ gap: 6 }} testID="visit-products">
+    <>
       {canChange && (
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: 6 }} testID="visit-used-products">
           <Text role="heading" style={styles.label}>
             {p.usedDuringService}
           </Text>
@@ -165,25 +166,29 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
                 label={checked ? '✓ ' + product.name : product.name}
                 selected={checked}
                 disabled={busy}
-                onPress={() =>
-                  void run(() =>
-                    api.setUsedProduct(
-                      salon.orgId,
-                      salon.locationId,
-                      appointmentId,
-                      product.id,
-                      !checked,
-                    ),
-                  )
-                }
+                onPress={() => {
+                  setUsedError('');
+                  void run(
+                    () =>
+                      api.setUsedProduct(
+                        salon.orgId,
+                        salon.locationId,
+                        appointmentId,
+                        product.id,
+                        !checked,
+                      ),
+                    undefined,
+                    setUsedError,
+                  );
+                }}
               />
             );
           })}
+          {usedError ? <ErrorText>{usedError}</ErrorText> : null}
         </View>
       )}
       {props.completed && (
-        <>
-          {' '}
+        <View style={{ gap: 6 }} testID="visit-products">
           <Text role="heading" aria-level={3} style={styles.label}>
             {sales.totalGrosze > 0
               ? fill(p.soldTotal, { amount: money(sales.totalGrosze) })
@@ -255,10 +260,10 @@ export const ProductSalesSection = memo(function ProductSalesSection(props: {
             </View>
           ) : null}
           <Text style={styles.muted}>{p.soldHint}</Text>
-        </>
+          {error ? <ErrorText>{error}</ErrorText> : null}
+        </View>
       )}
-      {error ? <ErrorText>{error}</ErrorText> : null}
-    </View>
+    </>
   );
 });
 

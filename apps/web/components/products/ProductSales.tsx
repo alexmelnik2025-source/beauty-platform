@@ -185,14 +185,9 @@ export function ProductSales({
   if (sales.sales.length === 0 && (!canChange || products.length === 0)) return null;
 
   return (
-    <div
-      className="stack visit-products"
-      ref={boxRef}
-      style={{ gap: 6 }}
-      data-testid="visit-products"
-    >
+    <>
       {canChange && (
-        <fieldset className="stack">
+        <fieldset className="stack" data-testid="visit-used-products">
           <legend>{p.usedDuringService}</legend>
           {products.map((product) => {
             const checked = !!sales.usedProductIds?.includes(product.id);
@@ -216,7 +211,12 @@ export function ProductSales({
         </fieldset>
       )}
       {completed && (
-        <>
+        <div
+          className="stack visit-products"
+          ref={boxRef}
+          style={{ gap: 6 }}
+          data-testid="visit-products"
+        >
           <span className="small muted">
             {p.sold}
             {sales.totalGrosze > 0 ? `: ${money(sales.totalGrosze)}` : null}
@@ -375,9 +375,9 @@ export function ProductSales({
           {fieldError('quantity')}
           {actionFieldError('add')}
           <span className="small muted">{p.soldHint}</span>
-        </>
+          <ErrorBox>{error}</ErrorBox>
+        </div>
       )}
-      <ErrorBox>{error}</ErrorBox>
-    </div>
+    </>
   );
 }
