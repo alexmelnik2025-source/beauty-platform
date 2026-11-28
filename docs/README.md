@@ -4477,6 +4477,20 @@ wizycie» откладывает товар к этому визиту (тот �
 OUT_OF_STOCK). Следующая запись — та же карточка клиента (`customerId`) в том же салоне. Тесты в
 `shop-reservations.spec.ts`, e2e `shop-after-visit.spec.ts` (скриншоты Q3-C-used, Q3-C-booked, Q3-C-saved).
 
+**Исправление после аудита EJ (одобрено 28.11.2026).** Записи ещё нет — у каждого товара тоже кнопка «Odłóż na
+następną wizytę»: выбор хранится на сервере (таблица `next_visit_product`: визит, на котором выбрали, + товар), поэтому
+не пропадает при обновлении страницы; у товара «✓ Odłożymy na Twoją następną wizytę» и «Zrezygnuj»
+(`DELETE …/products/next/{productId}`, в приложении `DELETE /v1/client/appointments/{id}/products/next/{productId}`).
+`POST …/products/next` без записи больше не отвечает 409 NO_NEXT_VISIT (только если у визита нет карточки клиента), а
+возвращает `reservedForNext: true` при `nextVisit: null`. «Umów kolejną wizytę» несёт в ссылке только выбранные
+товары; на шаге «Twoje dane» до подтверждения видно «Odłożymy na tę wizytę: Pomada, 59,00 zł» (`BringingProducts`).
+Как только у клиента (та же карточка `customerId`) в этом салоне появляется подтверждённая будущая запись — онлайн
+(`confirm`) или внесённая салоном — сервер в той же транзакции откладывает выбранные товары к ней
+(`shop/put-aside.ts` → `moveChosenToVisit`, по 1 шт.) и удаляет выбор; товар появляется в «Do wydania klientowi».
+Нет штук — запись проходит, выбор ждёт дальше. Выбор не держит штуки, пока записи нет. Тесты в
+`shop-reservations.spec.ts` («without a next visit yet»), e2e `shop-after-visit.spec.ts` (скриншоты
+EJ-fix-used-chosen, EJ-fix-booking-bringing).
+
 ## «Na wizycie użyto» в клиентском приложении (задача Q3, экран C)
 
 В карточке состоявшегося визита («Moje wizyty» → «Historia») — карточка «Na wizycie użyto» (`screens/UsedProductsCard.tsx`):

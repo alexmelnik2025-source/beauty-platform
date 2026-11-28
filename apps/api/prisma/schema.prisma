@@ -939,6 +939,7 @@ model Appointment {
   review              VisitReview?
   productSales        ProductSale[]
   productReservations ProductReservation[]
+  nextVisitProducts   NextVisitProduct[]
   voucherUses         GiftVoucherUse[]
 
   @@index([locationId, startAt])
@@ -1587,6 +1588,7 @@ model Product {
   catalogProduct CatalogProduct?      @relation(fields: [catalogProductId], references: [id], onDelete: SetNull)
   sales          ProductSale[]
   reservations   ProductReservation[]
+  nextVisits     NextVisitProduct[]
   stockMovements StockMovement[]
 
   @@unique([locationId, barcode])
@@ -1768,6 +1770,25 @@ model ProductReservation {
   @@index([productId, status])
   @@index([locationId])
   @@map("product_reservation")
+}
+
+/// Audit EJ fix (28.11.2026): "Odłóż na następną wizytę" chosen on a visit's page while the client
+/// has no next visit in this salon yet. The choice is kept here (it survives a reload of the page)
+/// and becomes a ProductReservation on the client's next visit as soon as it is booked; the row is
+/// then removed.
+model NextVisitProduct {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  /// The visit the product was used at (and chosen on).
+  appointmentId String   @map("appointment_id") @db.Uuid
+  productId     String   @map("product_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, productId])
+  @@index([productId])
+  @@map("next_visit_product")
 }
 
 /// Task 490: "Bon podarunkowy" — a gift voucher the salon sold (at its own till, no payment

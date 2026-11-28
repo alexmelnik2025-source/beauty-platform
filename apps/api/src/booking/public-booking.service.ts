@@ -26,6 +26,7 @@ import { OutboxService } from './outbox.service';
 import type { HoldResponse, PublicAppointmentResponse } from './public-booking.responses';
 import { acceptedWishes, toWishes, wishQuestions, type VisitWishesInput } from './visit-wishes';
 import { offerFor } from '../scheduling/staff-prices';
+import { moveChosenToVisit } from '../shop/put-aside';
 
 export const HOLD_MINUTES = 10;
 const CODE_MINUTES = 10;
@@ -795,6 +796,8 @@ export class PublicBookingService {
       ...(needsApproval ? { awaitingApproval: true } : {}),
       ...(owedGrosze !== null ? { payNotice: true, owedGrosze } : {}),
     });
+    // Audit EJ fix: "Odłóż na następną wizytę" chosen on an earlier visit comes to this one.
+    await moveChosenToVisit(tx, appointment);
     if (needsApproval) {
       // Task 161b: "the salon will confirm" to the client, "please confirm" to the salon; the
       // confirmation and the reminder follow when the salon accepts the visit.

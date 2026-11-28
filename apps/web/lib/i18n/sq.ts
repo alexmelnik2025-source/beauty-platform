@@ -416,6 +416,8 @@ export const sq: Dict = {
     usedTitle: 'Përdorur në vizitën tuaj',
     saveForNext: 'Ruaje për vizitën e radhës',
     savedForNext: 'Ruajtur për vizitën {when}',
+    chosenForNext: 'Do ta ruajmë për vizitën tuaj të radhës',
+    bringing: 'Do ta ruajmë për këtë vizitë: {items}',
     noNext: 'Ende nuk keni vizitën e radhës.',
     bookNextHint: 'Produktin do ta ruajmë për vizitën e re.',
     bookNext: 'Rezervo vizitën e radhës',

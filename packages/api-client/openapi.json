@@ -11804,7 +11804,7 @@
     },
     "/v1/client/appointments/{id}/products/next": {
       "post": {
-        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.",
+        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. No next confirmed visit in this salon yet → the choice is kept and moves to the next visit when it is booked (audit EJ fix).",
         "operationId": "ClientShopController_reserveForNext",
         "parameters": [
           {
@@ -11860,6 +11860,51 @@
           }
         ],
         "summary": "\"Odłóż na następną wizytę\": put a product used at my visit aside for my next one",
+        "tags": [
+          "client app"
+        ]
+      }
+    },
+    "/v1/client/appointments/{id}/products/next/{productId}": {
+      "delete": {
+        "description": "Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.",
+        "operationId": "ClientShopController_forgetNext",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Undo \"Odłóż na następną wizytę\" chosen while there was no next visit yet",
         "tags": [
           "client app"
         ]
@@ -13469,7 +13514,7 @@
     },
     "/v1/public/appointments/{token}/products/next": {
       "post": {
-        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.",
+        "description": "Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon. Audit EJ fix: no next confirmed visit in this salon yet → the choice is kept on this visit (`reservedForNext` with `nextVisit` null) and the product is put aside on the next visit as soon as it is booked; a visit without a client card → 409 NO_NEXT_VISIT.",
         "operationId": "PublicShopController_reserveForNext",
         "parameters": [
           {
@@ -13520,6 +13565,46 @@
           }
         },
         "summary": "\"Odłóż na następną wizytę\": put a product used at this visit aside for the next one",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/public/appointments/{token}/products/next/{productId}": {
+      "delete": {
+        "description": "Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.",
+        "operationId": "PublicShopController_forgetNext",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsedProducts"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Undo \"Odłóż na następną wizytę\" chosen while there was no next visit yet",
         "tags": [
           "public"
         ]

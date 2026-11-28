@@ -10,11 +10,12 @@ import { FieldError } from '../ui';
 
 /**
  * Task Q3 (screen C): under "Jak było?" on the visit link page, once the visit took place —
- * what the specialist used ("Na wizycie użyto"), with "Odłóż na następną wizytę" when the client
- * already has their next visit in this salon. Without one: a single "Umów kolejną wizytę" that
- * opens the booking at the times of the same specialist; the products come along in the link
- * (`?product=…`) and are put aside for the new visit right after booking. Nothing is shown when
- * nothing the salon sells to clients was used. Paid at the salon, at pick-up.
+ * what the specialist used ("Na wizycie użyto"), each with "Odłóż na następną wizytę". With a
+ * next visit in this salon the product waits there at once. Without one (audit EJ fix, 28.11.2026)
+ * the choice is kept on the server — it survives a reload — and "Umów kolejną wizytę" opens the
+ * booking at the times of the same specialist; the chosen products are named in the form and put
+ * aside for the new visit as soon as it is booked. Nothing is shown when nothing the salon sells to
+ * clients was used. Paid at the salon, at pick-up.
  */
 export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug: string }) {
   const { t, locale } = useI18n();
@@ -44,24 +45,19 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
   const next = data.nextVisit;
   const money = (n: number) => formatPrice(n, data.currency, tag);
   const when = next ? `${next.time} · ${formatDay(next.date, tag, { short: true })}` : '';
-  const toBring = data.products.filter((p) => p.available).map((p) => p.id);
+  // Without a next visit, `reservedForNext` is what the client chose to put aside on it.
+  const toBring = next ? [] : data.products.filter((p) => p.reservedForNext).map((p) => p.id);
   const query = new URLSearchParams({
     service: data.rebook.serviceId,
     staff: data.rebook.staffId,
     ...(toBring.length ? { product: toBring.join(',') } : {}),
   });
 
-  async function save(productId: string) {
+  async function run(productId: string, request: () => Promise<UsedProducts>) {
     setBusy(true);
     setError(null);
     try {
-      setData(
-        await api<UsedProducts>(`${endpoint}/products/next`, {
-          method: 'POST',
-          auth: false,
-          body: { productId, quantity: 1 },
-        }),
-      );
+      setData(await request());
     } catch (e) {
       setError({ id: productId, text: errorText(t, e) });
       await load();
@@ -69,6 +65,23 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
       setBusy(false);
     }
   }
+
+  const save = (productId: string) =>
+    run(productId, () =>
+      api<UsedProducts>(`${endpoint}/products/next`, {
+        method: 'POST',
+        auth: false,
+        body: { productId, quantity: 1 },
+      }),
+    );
+
+  const forget = (productId: string) =>
+    run(productId, () =>
+      api<UsedProducts>(`${endpoint}/products/next/${productId}`, {
+        method: 'DELETE',
+        auth: false,
+      }),
+    );
 
   return (
     <section
@@ -108,7 +121,20 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
               <p className="small" role="status">
                 <strong>✓ {fill(s.savedForNext, { when })}</strong>
               </p>
-            ) : next ? (
+            ) : p.reservedForNext ? (
+              <p className="small row" role="status" style={{ alignItems: 'center', gap: 8 }}>
+                <strong>✓ {s.chosenForNext}</strong>
+                <button
+                  type="button"
+                  className="link-btn small"
+                  disabled={busy}
+                  aria-label={`${s.giveBack}: ${p.name}`}
+                  onClick={() => void forget(p.id)}
+                >
+                  {s.giveBack}
+                </button>
+              </p>
+            ) : (
               <button
                 type="button"
                 className="btn btn--quiet btn--block"
@@ -119,7 +145,7 @@ export function UsedProductsByLink({ endpoint, slug }: { endpoint: string; slug:
               >
                 {s.saveForNext}
               </button>
-            ) : null}
+            )}
             <FieldError
               id={`used-product-${p.id}-error`}
               text={error?.id === p.id ? error.text : undefined}

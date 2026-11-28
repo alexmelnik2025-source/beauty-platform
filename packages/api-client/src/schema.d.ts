@@ -2953,10 +2953,30 @@ export interface paths {
         put?: never;
         /**
          * "Odłóż na następną wizytę": put a product used at my visit aside for my next one
-         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.
+         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. No next confirmed visit in this salon yet → the choice is kept and moves to the next visit when it is booked (audit EJ fix).
          */
         post: operations["ClientShopController_reserveForNext"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/client/appointments/{id}/products/next/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Undo "Odłóż na następną wizytę" chosen while there was no next visit yet
+         * @description Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.
+         */
+        delete: operations["ClientShopController_forgetNext"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3437,10 +3457,30 @@ export interface paths {
         put?: never;
         /**
          * "Odłóż na następną wizytę": put a product used at this visit aside for the next one
-         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.
+         * @description Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon. Audit EJ fix: no next confirmed visit in this salon yet → the choice is kept on this visit (`reservedForNext` with `nextVisit` null) and the product is put aside on the next visit as soon as it is booked; a visit without a client card → 409 NO_NEXT_VISIT.
          */
         post: operations["PublicShopController_reserveForNext"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/public/appointments/{token}/products/next/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Undo "Odłóż na następną wizytę" chosen while there was no next visit yet
+         * @description Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.
+         */
+        delete: operations["PublicShopController_forgetNext"];
         options?: never;
         head?: never;
         patch?: never;
@@ -13883,6 +13923,28 @@ export interface operations {
             };
         };
     };
+    ClientShopController_forgetNext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
+                };
+            };
+        };
+    };
     ClientShopController_unreserve: {
         parameters: {
             query?: never;
@@ -14671,6 +14733,28 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsedProducts"];
+                };
+            };
+        };
+    };
+    PublicShopController_forgetNext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
