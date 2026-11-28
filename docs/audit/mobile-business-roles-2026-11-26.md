@@ -285,3 +285,78 @@
 | Администратор, API | Отменить резерв на 30.11 | 200, клиент видит снятие | [факт] 200, статус `cancelled`; на ссылке визита 01:30 у EJ Clay снова «Odłóż…» (`reservedForNext: false`). Письма клиенту об отмене резерва в Mailpit нет. |
 
 **Сброс отметки без будущей записи (п. 4 от 27.11) — причина по коду.** [факт] В `apps/web/components/booking/UsedProductsByLink.tsx` выбор «Odłóż na następną wizytę» без будущей записи хранится только в состоянии React (`selected`) и в ссылке «Umów kolejną wizytę» (`?product=<id>`). После перезагрузки старой карточки состояние пропадает. В `BookingFlow.tsx` параметр `product` читается в `bring`, но применяется только на экране успеха (`VisitProductsByLink`), поэтому до подтверждения название товара не видно. Предложение исправления (отдельный PR после «да»): 1) сохранять выбор в `sessionStorage` по токену визита и восстанавливать при загрузке; 2) на шаге «Dane» показывать строку «Odłożymy na tę wizytę: EJ Pasta, 39,00 zł» из `bring` и публичного списка товаров; 3) надёжнее — серверное «намерение отложить» на старом визите, которое API применяет к следующей подтверждённой записи клиента в этом салоне.
+| Мастер, веб-кабинет, 04:45 после начала | «Przyszedł» | Визит завершён, отметки сохранены | [факт] После 04:45 появились «Przyszedł», «Nie przyszedł», «Przenieś», «Odwołaj wizytę». После «Przyszedł» — статус «Odbyła się», блок оплаты (Gotówka/Karta/BLIK/Przelew/Inna), чаевые; отметки Clay и Szampon сохранились. Скриншот `img/2026-11-28/master-completed.jpg`. |
+| Клиент «EJ Produkty Klient», ссылка из письма «Wizyta potwierdzona» | Открыть после завершения | Отзыв и товары | [факт] Сразу доступны форма отзыва и «Na wizycie użyto»: EJ Clay с «Kup» и флажком «Odłóż na następną wizytę»; EJ Szampon «chwilowo niedostępny» без действий. Подпись «Nie masz jeszcze kolejnej wizyty. Produkt odłożymy do nowej wizyty.» Скриншот `img/2026-11-28/client-put-aside-no-next.jpg`. |
+| Клиент | Отметить флажок → «Umów kolejną wizytę» → слот 30.11 09:15 | Название товара видно до подтверждения | [факт] Ссылка содержит `service`, `staff`, `product=<id EJ Clay>`. На шаге «Dane» текста «EJ Clay» нет — баг подтверждён на SHA 334eec54. Запись не подтверждалась, удержание отпущено кнопкой «Zmień». |
+| Клиент, тот же браузер | Переход по ссылке клиента A при входе клиента B | — | [факт] На шаге «Dane» подставился вошедший ранее `test-klient-ej-review1@test.pl` («Kod nie jest potrzebny»), хотя ссылка пришла клиенту `test-klient-ej-products`. [оценка] При подтверждении товар из визита клиента A ушёл бы в запись клиента B. Редкий случай (общий компьютер), но стоит показывать «Rezerwujesz jako …» рядом с отложенным товаром. |
+| Администратор, веб-кабинет, карточка визита 01:30 | Открыть | Видно выдачу | [факт] «🛍️ Do wydania klientowi — EJ Clay 49,00 zł ✓ Wydano», «Produkty: 49,00 zł», список «Wybierz produkt» с остатками («zostało 3 szt.», «Brak w magazynie»), полный контакт клиента. |
+
+### Роли: меню и прямые адреса (веб-кабинет, PL, 1400 px)
+
+| Роль | Видимое меню | Прямой адрес вне меню | Сервер (API) |
+| --- | --- | --- | --- |
+| Владелец | Kalendarz, Klienci, Powiadomienia · OFERTA: Usługi, Promocje, Bony podarunkowe, Mój sklep, Program lojalnościowy · REZERWACJE: Lista oczekujących, Ochrona przed odwołaniami, Opinie · SALON: Zespół, Raporty, Ustawienia, Dziennik zmian | — | — |
+| Администратор (manager) | То же без «Dziennik zmian» | [факт] `/pl/app/history` → «Nie masz do tego uprawnień.» | [факт] Ответ на отзыв, настройки отзывов, отмена резерва — 200. |
+| Мастер (staff) | Kalendarz, Powiadomienia · OFERTA: Bony podarunkowe · REZERWACJE: Opinie · SALON: Mój grafik | [факт] `/pl/app/reports` → «Nie masz do tego uprawnień.» **Но** `/pl/app/settings`, `/pl/app/shop`, `/pl/app/services`, `/pl/app/clients` открываются с кнопками «+ Dodaj produkt», «+ Dodaj usługę», «Usuń kategorię», «+ Dodaj klienta». Это расширение проблемы №2 выше. | [факт] Записи отклоняются: `POST services`, `POST products`, `GET/POST customers`, `PATCH location`, `gift-vouchers`, `waitlist`, `audit-log`, `cancellation-guard` → 403. Чтение `services`, `products`, `shop/catalog`, `happy-hours` → 200 (нужно для визитов). Данные не меняются, но экран вводит мастера в заблуждение. |
+
+### Г. Навигация и настройки салона — карта и предложение
+
+[факт] Текущая карта (код `apps/web/components/AppShell.tsx`, экран владельца выше):
+- без группы: Kalendarz, Klienci, Powiadomienia;
+- OFERTA: Usługi (внизу страницы — полный раздел «Produkty»: добавление, штрихкод, остаток, история склада, CSV, инвентаризация, импорт), Promocje, Bony podarunkowe, Mój sklep (товары, видимость для клиентов «Na stronie salonu / W Sklepie / Ukryte», срок хранения отложенных, импорт из Base), Program lojalnościowy;
+- REZERWACJE: Lista oczekujących, Ochrona przed odwołaniami, Opinie;
+- SALON: Zespół, Raporty, Ustawienia (Rezerwacje online · Salon · Pytania przy rezerwacji · Pora na kolejną wizytę · Instagram i Twoja strona · Regulamin i prywatność), Dziennik zmian.
+- [факт] Списка заказов клиентов (резервы «Kup» и «Odłóż») нет ни в одном разделе — только в карточках визитов.
+
+[оценка] Предложение (только перестановка существующих экранов, без новых функций; нужна «да» владельца):
+
+| Mój salon | Mój sklep |
+| --- | --- |
+| Kalendarz, Klienci, Powiadomienia (как сейчас, сверху) | Produkty — один каталог: добавление, цены, остатки, штрихкод, видимость для клиентов (перенести «Produkty» из «Usługi» и список из «Mój sklep» в один экран) |
+| Usługi (только услуги и категории) | Magazyn — история склада, инвентаризация, поставка, списание, CSV |
+| Zespół, Grafik | Zamówienia klientów — **новый** список резервов «do wydania» по всем визитам (это новая функция, отдельное «да») |
+| Rezerwacje online, Pytania przy rezerwacji (пожелания и напитки), Regulamin i prywatność, Instagram i link/QR | Integracje (Base, фид) и срок хранения отложенных |
+| Promocje, Bony, Program lojalnościowy, Lista oczekujących, Ochrona przed odwołaniami, Opinie | — |
+| Raporty, Dziennik zmian | Raporty sprzedaży produktów (если отделять) |
+
+Выбор товара мастером прямо в визите («Produkty użyte podczas usługi» и «Wybierz produkt») остаётся в карточке визита — он берёт данные из каталога «Mój sklep».
+
+### Expo и мобильные программы
+
+| Поверхность | Факт |
+| --- | --- |
+| Expo Web localhost:8081 и :8082 | [факт] 28.11 в Chrome на Mac оба адреса не открылись (страница ошибки соединения). Определить, какой порт клиентский, нельзя — оба не запущены. |
+| Запуск из облака | [факт] Блокер: облачный shell видит только подключённые папки Mac в отдельной Linux-машине; процессы, запущенные там, не слушают `localhost` Mac, а запустить процесс на самом Mac этим инструментом нельзя. Владельцу нужно запустить `pnpm mobile:client` и `pnpm mobile:business` в `~/Documents/beauty-pr149` (README, раздел про мобильные приложения). |
+| Реальный iPhone/Android | [факт] Не проверялось — нет устройства в этой сессии. |
+
+### CI по PR #148 и #149 (проверено по журналам GitHub Actions)
+
+| PR и SHA | Запуск | Результат |
+| --- | --- | --- |
+| #148 `9e38dbb5` | [CI pull_request 45918828305](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45918828305) | [факт] check — success; e2e — **352 passed** (11.0 мин), включая `app-roles-business-*.spec.ts`. |
+| #148 `9e38dbb5` | [Production Docker build 45918828249](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45918828249) | [факт] success. Также [CI push 45918823966](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45918823966) — success. |
+| #149 `334eec54` | [CI pull_request 45930334276](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45930334276) | [факт] check — success; e2e — **347 passed** (13.0 мин). Сообщение о 347 E2E подтверждено. Спецификаций EJ в этой ветке нет. |
+| #149 `334eec54` | [Production Docker build 45930334275](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45930334275) | [факт] success (и push-сборка 45930329684 — success). |
+| #149 `334eec54` | [CI push 45930329686](https://github.com/alexmelnik2025-source/beauty-platform/actions/runs/45930329686) | [факт] failure: 346 passed, 1 failed — `shop-booked-products.spec.ts:81` «Dodać coś do wizyty?»: письмо с кодом входа не пришло в Mailpit за отведённое время. Тот же тест прошёл в pull_request-запуске того же SHA. [оценка] Нестабильный тест ожидания письма, не связан с EJ; исправлять в потоке PR #149. |
+
+### Итог 28.11
+
+**Блокеры.** 1) Expo Web не запущен на Mac, запустить из облака нельзя. 2) Реального телефона нет. 3) Ширины 320/390 px и языки EN/UA/RU в этом проходе не перепроверялись: изменение размера окна затронуло бы окно Chrome владельца с его вкладками; результаты 26–27.11 по ширинам выше остаются в силе.
+
+**Работает хорошо.** Запись с пожеланиями; пожелания у мастера; письмо «Jak było?» строго по согласию; форма отзыва из письма и из «Moje wizyty», ошибки у поля и при обрыве сети, защита от дубля; ответ салона виден клиенту и публично; права мастера на сервере (ответ на отзыв, настройки, клиенты — 403); отметка товаров мастером и администратором; выдача уменьшает остаток; отмена резерва.
+
+**Непонятно клиенту.** Нет кнопки «Oceń» в списке визитов. «Kup» звучит как онлайн-покупка, а это заказ с оплатой в салоне. Отложенный товар не виден до подтверждения новой записи. Подсказка «albo „Pomiń”» без кнопки «Pomiń». У товара нет описания. Жалобу нельзя отправить приватно.
+
+**Непонятно салону.** Заказы «Kup» и резервы висят в карточках прошедших визитов, общего списка нет. Мастер по прямой ссылке видит формы настроек, услуг, магазина и клиентов, которые потом отказывают. Не видно, получит ли клиент письмо об отзыве (нет согласия).
+
+**Топ исправлений (отдельный PR, без влития, после «да» владельца для новых функций).**
+1. [исправление] Отложенный товар: сохранять выбор (`sessionStorage` по токену) и показывать «Odłożymy: <название, цена>» на шаге «Dane» (`UsedProductsByLink.tsx`, `BookingFlow.tsx`).
+2. [исправление] Мастер на `/pl/app/settings|shop|services|clients` — экран «Nie masz do tego uprawnień.», как в отчётах и истории.
+3. [новая функция] Приватное «Napisz tylko do salonu» в форме отзыва (видят владелец и администратор, не мастер, не в рейтинге).
+4. [новая функция] Список «Zamówienia / Do wydania» в «Mój sklep» по всем визитам.
+5. [исправление] Кнопка «Oceń» в «Historia» у визитов без отзыва; переименовать «Kup» в «Zamów do odbioru» (или сразу показывать одну кнопку).
+6. [новая функция] Поле «Co zrobiono» мастера после визита, видимое клиенту; описание товара в каталоге салона.
+7. [новая функция] Свой список напитков салона и вариант «Bez preferencji».
+8. [исправление] Стабилизировать ожидание письма в `shop-booked-products.spec.ts`.
+
+**Тестовые данные 28.11 (без секретов, все в simole).** Клиенты: «EJ Opinia Publiczna» `test-klient-ej-review1@test.pl` (+48 500 600 911, согласие на сообщения), «EJ Produkty Klient» `test-klient-ej-products@test.pl` (+48 500 600 912). Визиты 28.11: 01:00, 01:30 (EJ Opinia Publiczna), 02:00 (EJ Napój), 04:45 (EJ Produkty Klient) — все «Odbyła się»; 30.11 09:00 EJ Opinia Publiczna — «Potwierdzona». Отзывы: 5★ с ответом салона, 2★ без ответа. Резервы: EJ Clay на 30.11 — отменён салоном; EJ Clay на 01:30 — выдан (продажа 49 zł, остаток EJ Clay 3). Ничего не удалялось. Входы ролей в Chrome владельца заменялись по ходу проверки; в конце выполнен выход.
