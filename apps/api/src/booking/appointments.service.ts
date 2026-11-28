@@ -51,6 +51,7 @@ export type {
 } from './booking.responses';
 import { BUSY_STATUSES } from '../scheduling/slots';
 import { offerFor } from '../scheduling/staff-prices';
+import { moveChosenToVisit } from '../shop/put-aside';
 import { birthdayWindow } from './customers.service';
 
 type Loaded = Appointment & {
@@ -284,6 +285,8 @@ export class AppointmentsService {
       await this.writer.event(tx, appointment.id, 'created', 'staff', userId, {
         outsideHours: input.allowOutsideHours,
       });
+      // Audit EJ fix: "Odłóż na następną wizytę" chosen on an earlier visit comes to this one.
+      await moveChosenToVisit(tx, appointment);
       await this.notifyClient(tx, appointment, 'client_confirmation');
       return appointment;
     });

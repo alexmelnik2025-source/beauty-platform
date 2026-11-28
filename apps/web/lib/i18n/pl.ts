@@ -746,6 +746,8 @@ export const pl = {
     usedTitle: 'Na wizycie użyto',
     saveForNext: 'Odłóż na następną wizytę',
     savedForNext: 'Odłożone na wizytę {when}',
+    chosenForNext: 'Odłożymy na Twoją następną wizytę',
+    bringing: 'Odłożymy na tę wizytę: {items}',
     noNext: 'Nie masz jeszcze kolejnej wizyty.',
     bookNextHint: 'Produkt odłożymy do nowej wizyty.',
     bookNext: 'Umów kolejną wizytę',

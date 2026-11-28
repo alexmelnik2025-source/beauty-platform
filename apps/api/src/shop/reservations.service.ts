@@ -16,6 +16,7 @@ import { AppointmentsService } from '../booking/appointments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BaseOrdersService } from './integrations/base-orders.service';
 import { instantToLocal } from '../scheduling/time';
+import { LIVE_VISIT, putAside } from './put-aside';
 import type {
   ReserveProductInput,
   UsedProductsResponse,
@@ -23,15 +24,7 @@ import type {
   VisitReservationsResponse,
 } from './shop.schemas';
 
-/** A visit that still counts: its reservations hold pieces for the client. */
-const LIVE_VISIT: Prisma.AppointmentWhereInput = { status: { in: ['confirmed', 'completed'] } };
-
-/** Reservations that still hold pieces: waiting, on a visit that still counts. */
-export const holdingWhere = (productId: string): Prisma.ProductReservationWhereInput => ({
-  productId,
-  status: 'reserved',
-  appointment: LIVE_VISIT,
-});
+export { holdingWhere } from './put-aside';
 
 const tooLate = (): AppException =>
   new AppException(
@@ -176,6 +169,20 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     return this.used(visit, visit.location);
   }
 
+  async forgetNextByToken(token: string, productId: string): Promise<UsedProductsResponse> {
+    const visit = await this.booking.appointmentByToken(token);
+    await this.forgetNext(visit, productId);
+    return this.used(visit, visit.location);
+  }
+
+  /** Audit EJ fix: the client changed their mind before booking the next visit. */
+  async forgetNext(visit: Appointment, productId: string): Promise<void> {
+    const result = await this.prisma.nextVisitProduct.deleteMany({
+      where: { appointmentId: visit.id, productId },
+    });
+    if (result.count !== 1) throw notFound('Product');
+  }
+
   /**
    * The client's next visit in the same salon: confirmed and still ahead, the earliest one.
    * Visits are the client's by their salon card (`customerId`); without one there is none.
@@ -224,7 +231,18 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
           select: { productId: true },
         })
       : [];
-    const waitingIds = new Set(waiting.map((r) => r.productId));
+    // Without a next visit: what the client chose to put aside once it is booked (audit EJ fix).
+    const chosen =
+      rows.length && !next
+        ? await this.prisma.nextVisitProduct.findMany({
+            where: { appointmentId: visit.id },
+            select: { productId: true },
+          })
+        : [];
+    const waitingIds = new Set<string | null>([
+      ...waiting.map((r) => r.productId),
+      ...chosen.map((c) => c.productId),
+    ]);
     const held = await this.heldByProduct(rows.map((p) => p.id));
     const products = ids
       .map((id) => byId.get(id))
@@ -262,7 +280,24 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
     });
     if (!used) throw notFound('Product');
     const next = await this.nextVisit(visit);
-    if (!next) throw noNextVisit();
+    if (!next) {
+      // Audit EJ fix (28.11.2026): no next visit yet — the choice is kept on this visit and
+      // moves to the next one when it is booked, so it survives a reload of the page.
+      if (!visit.customerId) throw noNextVisit();
+      const shown = await this.prisma.product.findFirst({
+        where: { id: input.productId, locationId: location.id, active: true, inSalonShop: true },
+        select: { id: true },
+      });
+      if (!shown) throw notFound('Product');
+      await this.prisma.nextVisitProduct.upsert({
+        where: {
+          appointmentId_productId: { appointmentId: visit.id, productId: input.productId },
+        },
+        create: { appointmentId: visit.id, productId: input.productId },
+        update: {},
+      });
+      return;
+    }
     // A second tap (or a retry) does not put a second piece aside.
     const already = await this.prisma.productReservation.findFirst({
       where: { appointmentId: next.id, productId: input.productId, status: 'reserved' },
@@ -325,53 +360,16 @@ export class ReservationsService implements OnModuleInit, OnModuleDestroy {
       where: { id: input.productId, locationId: location.id, active: true, inSalonShop: true },
     });
     if (!product) throw notFound('Product');
-    const reservation = await this.prisma.$transaction(async (tx) => {
-      // Lock the product row so two clients cannot both take the last piece.
-      await tx.$queryRaw`SELECT id FROM product WHERE id = ${product.id}::uuid FOR UPDATE`;
-      // Read the stock and the price again under the lock: the salon may have changed them, or
-      // sold the last piece at a visit, while this request was on its way.
-      const fresh = await tx.product.findUniqueOrThrow({
-        where: { id: product.id },
-        select: { stockQuantity: true, priceGrosze: true, name: true },
-      });
-      if (fresh.stockQuantity !== null) {
-        const held = await tx.productReservation.aggregate({
-          where: holdingWhere(product.id),
-          _sum: { quantity: true },
-        });
-        const left = fresh.stockQuantity - (held._sum.quantity ?? 0);
-        if (left < input.quantity) throw notAvailable(Math.max(0, left));
-      }
-      const created = await tx.productReservation.create({
-        data: {
-          locationId: location.id,
-          appointmentId: visit.id,
-          productId: product.id,
-          name: fresh.name,
-          quantity: input.quantity,
-          unitPriceGrosze: fresh.priceGrosze,
-        },
-      });
-      // "Przenieść produkty na nowy termin?": the same product waiting on a cancelled visit of this
-      // client is now moved here — the old reservation is settled, so neither the client's old
-      // visit page nor the salon's card of the cancelled visit offers it again (task 605).
-      if (visit.customerId) {
-        await tx.productReservation.updateMany({
-          where: {
-            productId: product.id,
-            status: 'reserved',
-            appointment: {
-              id: { not: visit.id },
-              locationId: location.id,
-              customerId: visit.customerId,
-              status: 'cancelled',
-            },
-          },
-          data: { status: 'cancelled' },
-        });
-      }
-      return created;
-    });
+    const result = await this.prisma.$transaction((tx) =>
+      putAside(
+        tx,
+        { id: visit.id, locationId: location.id, customerId: visit.customerId },
+        product.id,
+        input.quantity,
+      ),
+    );
+    if ('left' in result) throw notAvailable(result.left);
+    const reservation = result.reservation;
     this.baseOrders.soon(location.id);
     return reservation;
   }

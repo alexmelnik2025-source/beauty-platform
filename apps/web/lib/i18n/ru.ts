@@ -751,6 +751,8 @@ export const ru: Dict = {
     usedTitle: 'На визите использовали',
     saveForNext: 'Отложить на следующий визит',
     savedForNext: 'Отложено на визит {when}',
+    chosenForNext: 'Отложим на ваш следующий визит',
+    bringing: 'Отложим к этому визиту: {items}',
     noNext: 'Следующего визита пока нет.',
     bookNextHint: 'Товар отложим к новому визиту.',
     bookNext: 'Записаться на следующий визит',

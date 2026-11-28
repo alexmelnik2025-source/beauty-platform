@@ -29,6 +29,7 @@ import { ClientService, type ClientAuth } from './client.service';
 
 const idPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Appointment') });
 const reservationPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Reservation') });
+const productPipe = new ParseUUIDPipe({ exceptionFactory: () => notFound('Product') });
 
 /**
  * Task Q3 (screen B in the client app): "Produkty do odbioru" in "Moje wizyty" — the same as on
@@ -100,7 +101,7 @@ export class ClientShopController {
   @ApiOperation({
     summary: '"Odłóż na następną wizytę": put a product used at my visit aside for my next one',
     description:
-      'Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK.',
+      'Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. No next confirmed visit in this salon yet → the choice is kept and moves to the next visit when it is booked (audit EJ fix).',
   })
   @ApiZodBody(reserveProductSchema)
   @ApiZodResponse(usedProductsSchema)
@@ -111,6 +112,23 @@ export class ClientShopController {
   ): Promise<UsedProductsResponse> {
     const visit = await this.clients.myVisit(client, id);
     await this.reservations.reserveForNext(visit, visit.location, body);
+    return this.reservations.used(visit, visit.location);
+  }
+
+  @Delete('next/:productId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Undo "Odłóż na następną wizytę" chosen while there was no next visit yet',
+    description: 'Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.',
+  })
+  @ApiZodResponse(usedProductsSchema)
+  async forgetNext(
+    @CurrentClient() client: ClientAuth,
+    @Param('id', idPipe) id: string,
+    @Param('productId', productPipe) productId: string,
+  ): Promise<UsedProductsResponse> {
+    const visit = await this.clients.myVisit(client, id);
+    await this.reservations.forgetNext(visit, productId);
     return this.reservations.used(visit, visit.location);
   }
 

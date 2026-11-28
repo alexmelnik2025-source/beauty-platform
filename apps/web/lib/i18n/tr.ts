@@ -413,6 +413,8 @@ export const tr: Dict = {
     usedTitle: 'Ziyaretinizde kullanılanlar',
     saveForNext: 'Bir sonraki ziyaretime ayır',
     savedForNext: '{when} ziyaretiniz için ayrıldı',
+    chosenForNext: 'Bir sonraki ziyaretiniz için ayıracağız',
+    bringing: 'Bu ziyaret için ayıracağız: {items}',
     noNext: 'Henüz bir sonraki ziyaretiniz yok.',
     bookNextHint: 'Ürünü yeni ziyaretiniz için ayıracağız.',
     bookNext: 'Bir sonraki ziyaretinizi ayırtın',

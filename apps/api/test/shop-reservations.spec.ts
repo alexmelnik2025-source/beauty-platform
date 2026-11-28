@@ -601,14 +601,7 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
       nextVisit: null,
       rebook: { serviceId, staffId },
     });
-    const none = await ctx
-      .http()
-      .post(`/v1/public/appointments/${visit.token}/products/next`)
-      .send({ productId: pomade.id })
-      .expect(409);
-    expectError(none.body, 'NO_NEXT_VISIT');
-
-    // "Umów kolejną wizytę": the same client books again.
+    // "Umów kolejną wizytę": the same client books again (nothing chosen beforehand).
     const next = await book(12);
     const withNext = await ctx
       .http()
@@ -678,6 +671,161 @@ describe('"Jak było?": put aside for the next visit what was used (task Q3, scr
       .get(`/v1/public/appointments/${visit.token}/products/used`)
       .expect(200);
     expect(used.body.nextVisit).toBeNull();
+  });
+});
+
+describe('"Odłóż na następną wizytę" without a next visit yet (audit EJ fix)', () => {
+  const sell = (visitId: string, productId: string) =>
+    ctx
+      .http()
+      .post(`${base}/appointments/${visitId}/products`)
+      .set(owner.auth)
+      .send({ productId, quantity: 1 })
+      .expect(201);
+
+  it('keeps the choice on the server and puts it aside on the visit booked next', async () => {
+    const pomade = await product({
+      name: 'Pomada',
+      priceGrosze: 5900,
+      stockQuantity: 3,
+      inSalonShop: true,
+    });
+    const visit = await book(10);
+    await came(visit.id);
+    await sell(visit.id, pomade.id);
+    const url = `/v1/public/appointments/${visit.token}/products`;
+
+    const saved = await ctx.http().post(`${url}/next`).send({ productId: pomade.id }).expect(200);
+    shape('UsedProducts', saved.body);
+    expect(saved.body.nextVisit).toBeNull();
+    expect(saved.body.products[0]).toMatchObject({ id: pomade.id, reservedForNext: true });
+    // A second tap keeps one choice; a reload of the page still shows it.
+    await ctx.http().post(`${url}/next`).send({ productId: pomade.id }).expect(200);
+    expect(await ctx.prisma.nextVisitProduct.count()).toBe(1);
+    const reloaded = await ctx.http().get(`${url}/used`).expect(200);
+    expect(reloaded.body.products[0].reservedForNext).toBe(true);
+    // Nothing is taken from the stock clients see until the next visit exists.
+    const shop = await ctx.http().get(`/v1/public/locations/${slug}/products`).expect(200);
+    expect(shop.body.products[0]).toMatchObject({ id: pomade.id, available: true });
+
+    // The client books the next visit: the product waits there, the choice is done.
+    const next = await book(12);
+    const onNext = await ctx
+      .http()
+      .get(`/v1/public/appointments/${next.token}/products`)
+      .expect(200);
+    expect(onNext.body.reservations).toEqual([
+      expect.objectContaining({
+        productId: pomade.id,
+        name: 'Pomada',
+        quantity: 1,
+        unitPriceGrosze: 5900,
+        status: 'reserved',
+      }),
+    ]);
+    expect(await ctx.prisma.nextVisitProduct.count()).toBe(0);
+    // The salon sees it in the new visit's card ("Do wydania klientowi").
+    const card = await ctx
+      .http()
+      .get(`${base}/appointments/${next.id}/reservations`)
+      .set(owner.auth)
+      .expect(200);
+    expect(card.body.reservations).toHaveLength(1);
+    // The old visit's page now says where it waits.
+    const after = await ctx.http().get(`${url}/used`).expect(200);
+    expect(after.body.nextVisit).toMatchObject({ time: '12:00' });
+    expect(after.body.products[0].reservedForNext).toBe(true);
+  });
+
+  it('the client may undo it; another client and a sold-out product do not take it', async () => {
+    // Two pieces: one sold at the visit, the last one left.
+    const pomade = await product({
+      name: 'Pomada',
+      priceGrosze: 5900,
+      stockQuantity: 2,
+      inSalonShop: true,
+    });
+    const visit = await book(10);
+    await came(visit.id);
+    await sell(visit.id, pomade.id);
+    const url = `/v1/public/appointments/${visit.token}/products`;
+
+    await ctx.http().post(`${url}/next`).send({ productId: pomade.id }).expect(200);
+    const undone = await ctx.http().delete(`${url}/next/${pomade.id}`).expect(200);
+    shape('UsedProducts', undone.body);
+    expect(undone.body.products[0].reservedForNext).toBe(false);
+    await ctx.http().delete(`${url}/next/${pomade.id}`).expect(404);
+    await ctx.http().post(`${url}/next`).send({ productId: pomade.id }).expect(200);
+
+    // Someone else books: the choice stays with Anna.
+    const h = await ctx
+      .http()
+      .post(`/v1/public/locations/${slug}/holds`)
+      .send({ serviceId, staffId, start: at(14) })
+      .expect(201);
+    const jan = {
+      ...CLIENT,
+      name: 'Jan Nowak',
+      phone: '+48 600 300 400',
+      email: 'jan@example.com',
+    };
+    await ctx
+      .http()
+      .post(`/v1/public/holds/${h.body.holdId}/code`)
+      .send({ holdToken: h.body.holdToken, ...jan })
+      .expect(202);
+    const code = ctx.mail.lastTo(jan.email)?.text.match(/\b(\d{6})\b/)?.[1];
+    const janVisit = await ctx
+      .http()
+      .post(`/v1/public/holds/${h.body.holdId}/confirm`)
+      .send({ holdToken: h.body.holdToken, code })
+      .expect(200);
+    expect(
+      await ctx.prisma.productReservation.count({
+        where: { appointmentId: janVisit.body.appointment.id },
+      }),
+    ).toBe(0);
+    expect(await ctx.prisma.nextVisitProduct.count()).toBe(1);
+
+    // The last piece went to Jan's visit meanwhile: Anna's booking still goes through, the
+    // choice keeps waiting.
+    await ctx
+      .http()
+      .post(`/v1/public/appointments/${janVisit.body.manageToken}/products`)
+      .send({ productId: pomade.id })
+      .expect(200);
+    const next = await book(12);
+    expect(await ctx.prisma.productReservation.count({ where: { appointmentId: next.id } })).toBe(
+      0,
+    );
+    expect(await ctx.prisma.nextVisitProduct.count()).toBe(1);
+  });
+
+  it('a visit the salon books for the client brings it too', async () => {
+    const pomade = await product({ name: 'Pomada', priceGrosze: 5900, inSalonShop: true });
+    const visit = await book(10);
+    await came(visit.id);
+    await sell(visit.id, pomade.id);
+    await ctx
+      .http()
+      .post(`/v1/public/appointments/${visit.token}/products/next`)
+      .send({ productId: pomade.id })
+      .expect(200);
+    const customer = await ctx.prisma.appointment.findUniqueOrThrow({ where: { id: visit.id } });
+    const created = await ctx
+      .http()
+      .post(`${base}/appointments`)
+      .set(owner.auth)
+      .send({ serviceId, staffId, start: at(15), customerId: customer.customerId })
+      .expect(201);
+    const card = await ctx
+      .http()
+      .get(`${base}/appointments/${created.body.id}/reservations`)
+      .set(owner.auth)
+      .expect(200);
+    expect(card.body.reservations).toEqual([
+      expect.objectContaining({ productId: pomade.id, status: 'reserved' }),
+    ]);
   });
 });
 

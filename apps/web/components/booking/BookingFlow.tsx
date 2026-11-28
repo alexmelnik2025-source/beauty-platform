@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 import { VisitProductsByLink } from './VisitProductsByLink';
+import { BringingProducts } from './BringingProducts';
 import { rememberedLanguages, speakersFirst } from '@/lib/catalogue-languages';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { bookingChannel } from '@/lib/booking-channel';
@@ -1119,6 +1120,8 @@ export function BookingFlow({
             onSubmit={(e) => void (signedInAs ? confirmSignedIn(e) : sendCode(e))}
           >
             <h2>{t.booking.yourDetails}</h2>
+            {/* Audit EJ fix: products chosen on the last visit, named before confirming. */}
+            <BringingProducts slug={salon.slug} ids={bring} />
             {signedInAs ? (
               <p className="note small" data-testid="signed-in-as">
                 {fill(t.booking.signedInAs, { email: signedInAs })} {t.booking.noCodeNeeded}

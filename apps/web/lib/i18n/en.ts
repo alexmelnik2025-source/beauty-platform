@@ -745,6 +745,8 @@ export const en: Dict = {
     usedTitle: 'Used at your visit',
     saveForNext: 'Put aside for my next visit',
     savedForNext: 'Put aside for your visit {when}',
+    chosenForNext: 'We will put it aside for your next visit',
+    bringing: 'We will put aside for this visit: {items}',
     noNext: 'You have no next visit yet.',
     bookNextHint: 'We will put the product aside for the new visit.',
     bookNext: 'Book your next visit',

@@ -174,7 +174,7 @@ export class PublicShopController {
   @ApiOperation({
     summary: '"Odłóż na następną wizytę": put a product used at this visit aside for the next one',
     description:
-      'Task Q3 (screen C). Only a product sold at this visit (else 404); no next confirmed visit in this salon → 409 NO_NEXT_VISIT; not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon.',
+      'Task Q3 (screen C). Only a product sold at this visit (else 404); not enough left → 409 OUT_OF_STOCK. Already waiting on the next visit → nothing changes. Paid at the salon. Audit EJ fix: no next confirmed visit in this salon yet → the choice is kept on this visit (`reservedForNext` with `nextVisit` null) and the product is put aside on the next visit as soon as it is booked; a visit without a client card → 409 NO_NEXT_VISIT.',
   })
   @ApiZodBody(reserveProductSchema)
   @ApiZodResponse(usedProductsSchema)
@@ -185,6 +185,22 @@ export class PublicShopController {
   ): Promise<UsedProductsResponse> {
     this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
     return this.reservations.reserveForNextByToken(token, body);
+  }
+
+  @Delete('appointments/:token/products/next/:productId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Undo "Odłóż na następną wizytę" chosen while there was no next visit yet',
+    description: 'Audit EJ fix. Only a choice still waiting for the next visit; otherwise 404.',
+  })
+  @ApiZodResponse(usedProductsSchema)
+  forgetNext(
+    @Req() req: AppRequest,
+    @Param('token') token: string,
+    @Param('productId', uuid('Product')) productId: string,
+  ): Promise<UsedProductsResponse> {
+    this.limiter.hit(`manage:ip:${req.ip}`, 60, 10 * 60_000);
+    return this.reservations.forgetNextByToken(token, productId);
   }
 
   @Delete('appointments/:token/products/:reservationId')
